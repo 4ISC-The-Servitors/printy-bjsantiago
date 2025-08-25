@@ -1,22 +1,76 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Input, Text, Container } from '../../components/shared';
-import { Eye, EyeOff, Key, Mail, ArrowLeft, User } from 'lucide-react';
+import { Eye, EyeOff, Mail, ArrowLeft, User, Phone, Calendar, MapPin, Building, Globe } from 'lucide-react';
+import { cn } from '../../lib/utils';
+
+interface FormData {
+  // Step 1: Account Information
+  email: string;
+  password: string;
+  confirmPassword: string;
+  
+  // Step 2: Personal Information
+  firstName: string;
+  lastName: string;
+  phone: string;
+  gender: string;
+  birthday: string;
+  
+  // Step 3: Address Information
+  buildingNumber: string;
+  street: string;
+  barangay: string;
+  province: string;
+  city: string;
+  country: string;
+  
+  // Common
+  agreeToTerms: boolean;
+}
 
 const SignUp: React.FC = () => {
   const navigate = useNavigate();
+  const [currentStep, setCurrentStep] = useState(1);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [formData, setFormData] = useState({
-    fullName: '',
+  
+  const [formData, setFormData] = useState<FormData>({
     email: '',
     password: '',
     confirmPassword: '',
+    firstName: '',
+    lastName: '',
+    phone: '',
+    gender: '',
+    birthday: '',
+    buildingNumber: '',
+    street: '',
+    barangay: '',
+    province: '',
+    city: '',
+    country: 'Philippines',
     agreeToTerms: false,
   });
 
-  const handleInputChange = (field: string, value: string | boolean) => {
+  const handleInputChange = (field: keyof FormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleCheckboxChange = (field: keyof FormData, checked: boolean) => {
+    setFormData(prev => ({ ...prev, [field]: checked }));
+  };
+
+  const nextStep = () => {
+    if (currentStep < 3) {
+      setCurrentStep(currentStep + 1);
+    }
+  };
+
+  const prevStep = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -29,6 +83,462 @@ const SignUp: React.FC = () => {
     // TODO: Implement Google sign-up
     console.log('Google sign-up clicked');
   };
+
+  const isStepValid = (step: number): boolean => {
+    switch (step) {
+      case 1:
+        return formData.email && formData.password && formData.confirmPassword && 
+               formData.password === formData.confirmPassword && formData.password.length >= 8;
+      case 2:
+        return formData.firstName && formData.lastName && formData.phone && 
+               formData.gender && formData.birthday;
+      case 3:
+        return formData.street && formData.barangay && formData.province && 
+               formData.city && formData.agreeToTerms;
+      default:
+        return false;
+    }
+  };
+
+  const renderProgressIndicator = () => (
+    <div className="flex items-center justify-center mb-8">
+      {[1, 2, 3].map((step) => (
+        <React.Fragment key={step}>
+          <div className="flex items-center">
+            <div className={cn(
+              "w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-300",
+              step < currentStep 
+                ? "bg-brand-primary border-brand-primary text-white" 
+                : step === currentStep
+                ? "bg-brand-primary border-brand-primary text-white"
+                : "bg-white border-neutral-300 text-neutral-400"
+            )}>
+              {step < currentStep ? (
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+              ) : (
+                <span className="text-sm font-semibold">{step}</span>
+              )}
+            </div>
+          </div>
+          {step < 3 && (
+            <div className={cn(
+              "w-16 h-0.5 mx-2 transition-all duration-300",
+              step < currentStep ? "bg-brand-primary" : "bg-neutral-300"
+            )} />
+          )}
+        </React.Fragment>
+      ))}
+    </div>
+  );
+
+  const renderStepTitle = () => {
+    const titles = {
+      1: "Account Information",
+      2: "Personal Information", 
+      3: "Address Information"
+    };
+    return titles[currentStep as keyof typeof titles];
+  };
+
+  const renderStepContent = () => {
+    switch (currentStep) {
+      case 1:
+        return (
+          <div className="space-y-6">
+            {/* Email Field */}
+            <div className="space-y-2">
+              <Input
+                label="Email"
+                type="email"
+                placeholder="you@company.com"
+                value={formData.email}
+                onChange={(e) => handleInputChange('email', e.target.value)}
+                required
+                className="pr-12"
+                wrapperClassName="relative"
+              >
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400">
+                  <Mail className="w-5 h-5" />
+                </div>
+              </Input>
+            </div>
+
+            {/* Password Field */}
+            <div className="space-y-2">
+              <Input
+                label="Password"
+                type={showPassword ? 'text' : 'password'}
+                placeholder="At least 8 characters"
+                value={formData.password}
+                onChange={(e) => handleInputChange('password', e.target.value)}
+                required
+                className="pr-24"
+                wrapperClassName="relative"
+              >
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center space-x-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="text-neutral-400 hover:text-neutral-600 transition-colors"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="w-5 h-5" />
+                    ) : (
+                      <Eye className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
+              </Input>
+            </div>
+
+            {/* Confirm Password Field */}
+            <div className="space-y-2">
+              <Input
+                label="Confirm Password"
+                type={showConfirmPassword ? 'text' : 'password'}
+                placeholder="Re-enter password"
+                value={formData.confirmPassword}
+                onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                required
+                className="pr-24"
+                wrapperClassName="relative"
+              >
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center space-x-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="text-neutral-400 hover:text-neutral-600 transition-colors"
+                    aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff className="w-5 h-5" />
+                    ) : (
+                      <Eye className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
+              </Input>
+            </div>
+          </div>
+        );
+
+      case 2:
+        return (
+          <div className="space-y-6">
+            {/* First Name Field */}
+            <div className="space-y-2">
+              <Input
+                label="First Name"
+                type="text"
+                placeholder="Enter your first name"
+                value={formData.firstName}
+                onChange={(e) => handleInputChange('firstName', e.target.value)}
+                required
+                className="pr-12"
+                wrapperClassName="relative"
+              >
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400">
+                  <User className="w-5 h-5" />
+                </div>
+              </Input>
+            </div>
+
+            {/* Last Name Field */}
+            <div className="space-y-2">
+              <Input
+                label="Last Name"
+                type="text"
+                placeholder="Enter your last name"
+                value={formData.lastName}
+                onChange={(e) => handleInputChange('lastName', e.target.value)}
+                required
+                className="pr-12"
+                wrapperClassName="relative"
+              >
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400">
+                  <User className="w-5 h-5" />
+                </div>
+              </Input>
+            </div>
+
+            {/* Phone Number Field */}
+            <div className="space-y-2">
+              <Input
+                label="Phone Number"
+                type="tel"
+                placeholder="+63 9XXXXXXXXX"
+                value={formData.phone}
+                onChange={(e) => handleInputChange('phone', e.target.value)}
+                required
+                className="pr-12"
+                wrapperClassName="relative"
+              >
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400">
+                  <Phone className="w-5 h-5" />
+                </div>
+              </Input>
+            </div>
+
+            {/* Gender Field */}
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-neutral-700">
+                Gender <span className="text-error">*</span>
+              </label>
+              <div className="relative">
+                <select
+                  value={formData.gender}
+                  onChange={(e) => handleInputChange('gender', e.target.value)}
+                  required
+                  className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary transition-colors appearance-none bg-white"
+                >
+                  <option value="">Select gender</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                  <option value="prefer-not-to-say">Prefer not to say</option>
+                </select>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            {/* Birthday Field */}
+            <div className="space-y-2">
+              <Input
+                label="Birthday"
+                type="date"
+                placeholder="mm/dd/yyyy"
+                value={formData.birthday}
+                onChange={(e) => handleInputChange('birthday', e.target.value)}
+                required
+                className="pr-12"
+                wrapperClassName="relative"
+              >
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400">
+                  <Calendar className="w-5 h-5" />
+                </div>
+              </Input>
+            </div>
+          </div>
+        );
+
+      case 3:
+        return (
+          <div className="space-y-6">
+            {/* Building/House Number Field */}
+            <div className="space-y-2">
+              <Input
+                label="Building/House Number (optional)"
+                type="text"
+                placeholder="Enter building or house number"
+                value={formData.buildingNumber}
+                onChange={(e) => handleInputChange('buildingNumber', e.target.value)}
+                className="pr-12"
+                wrapperClassName="relative"
+              >
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400">
+                  <Building className="w-5 h-5" />
+                </div>
+              </Input>
+            </div>
+
+            {/* Street Field */}
+            <div className="space-y-2">
+              <Input
+                label="Street"
+                type="text"
+                placeholder="Enter street name"
+                value={formData.street}
+                onChange={(e) => handleInputChange('street', e.target.value)}
+                required
+                className="pr-12"
+                wrapperClassName="relative"
+              >
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400">
+                  <MapPin className="w-5 h-5" />
+                </div>
+              </Input>
+            </div>
+
+            {/* Barangay Field */}
+            <div className="space-y-2">
+              <Input
+                label="Barangay"
+                type="text"
+                placeholder="Enter barangay"
+                value={formData.barangay}
+                onChange={(e) => handleInputChange('barangay', e.target.value)}
+                required
+                className="pr-12"
+                wrapperClassName="relative"
+              >
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400">
+                  <MapPin className="w-5 h-5" />
+                </div>
+              </Input>
+            </div>
+
+            {/* Province Field */}
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-neutral-700">
+                Province <span className="text-error">*</span>
+              </label>
+              <div className="relative">
+                <select
+                  value={formData.province}
+                  onChange={(e) => handleInputChange('province', e.target.value)}
+                  required
+                  className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary transition-colors appearance-none bg-white"
+                >
+                  <option value="">Select province</option>
+                  <option value="metro-manila">Metro Manila</option>
+                </select>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            {/* City/Municipality Field */}
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-neutral-700">
+                City/Municipality <span className="text-error">*</span>
+              </label>
+              <div className="relative">
+                <select
+                  value={formData.city}
+                  onChange={(e) => handleInputChange('city', e.target.value)}
+                  required
+                  disabled={!formData.province}
+                  className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary transition-colors appearance-none bg-white disabled:bg-neutral-50 disabled:cursor-not-allowed"
+                >
+                  <option value="">
+                    {formData.province ? 'Select city/municipality' : 'Select province first'}
+                  </option>
+                  {formData.province === 'metro-manila' && (
+                    <>
+                      <option value="manila">Manila</option>
+                    </>
+                  )}
+                  {/* Add more cities for other provinces as needed */}
+                </select>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            {/* Country Field */}
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-neutral-700">
+                Country <span className="text-error">*</span>
+              </label>
+              <div className="relative">
+                <select
+                  value={formData.country}
+                  onChange={(e) => handleInputChange('country', e.target.value)}
+                  required
+                  className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary transition-colors appearance-none bg-white"
+                >
+                  <option value="Philippines">Philippines</option>
+                </select>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none">
+                  <Globe className="w-5 h-5" />
+                </div>
+              </div>
+            </div>
+
+            {/* Terms Agreement */}
+            <div className="flex items-start space-x-3">
+              <input
+                type="checkbox"
+                id="agreeToTerms"
+                checked={formData.agreeToTerms}
+                onChange={(e) => handleCheckboxChange('agreeToTerms', e.target.checked)}
+                className="w-4 h-4 text-brand-primary border-neutral-300 rounded focus:ring-brand-primary focus:ring-2 mt-1"
+                required
+              />
+              <label htmlFor="agreeToTerms" className="text-sm text-neutral-700">
+                I agree to the{' '}
+                <button 
+                  type="button"
+                  className="text-brand-primary hover:text-brand-primary-700 underline"
+                  onClick={() => console.log('Show terms of service')}
+                >
+                  Terms of Service
+                </button>{' '}
+                and{' '}
+                <button 
+                  type="button"
+                  className="text-brand-primary hover:text-brand-primary-700 underline"
+                  onClick={() => console.log('Show privacy policy')}
+                >
+                  Privacy Policy
+                </button>
+              </label>
+            </div>
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  const renderNavigationButtons = () => (
+    <div className="flex space-x-4 mt-8">
+      {currentStep > 1 && (
+        <Button
+          type="button"
+          variant="secondary"
+          size="lg"
+          onClick={prevStep}
+          className="flex-1"
+        >
+          <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+          </svg>
+          Previous
+        </Button>
+      )}
+      
+      {currentStep < 3 ? (
+        <Button
+          type="button"
+          variant="primary"
+          size="lg"
+          onClick={nextStep}
+          disabled={!isStepValid(currentStep)}
+          className="flex-1"
+        >
+          Next
+          <svg className="w-5 h-5 ml-2" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+          </svg>
+        </Button>
+      ) : (
+        <Button
+          type="submit"
+          variant="primary"
+          size="lg"
+          disabled={!isStepValid(currentStep)}
+          className="flex-1"
+        >
+          Create Account
+        </Button>
+      )}
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-brand-primary-50 flex items-center justify-center p-4">
@@ -64,143 +574,20 @@ const SignUp: React.FC = () => {
             </Text>
           </div>
 
+          {/* Progress Indicator */}
+          {renderProgressIndicator()}
+
+          {/* Step Title */}
+          <div className="text-center mb-8">
+            <Text variant="h3" size="2xl" weight="semibold" color="primary">
+              {renderStepTitle()}
+            </Text>
+          </div>
+
           {/* Sign Up Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Full Name Field */}
-            <div className="space-y-2">
-              <Input
-                label="Full Name"
-                type="text"
-                placeholder="Enter your full name"
-                value={formData.fullName}
-                onChange={(e) => handleInputChange('fullName', e.target.value)}
-                required
-                className="pr-12"
-                wrapperClassName="relative"
-              >
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400">
-                  <User className="w-5 h-5" />
-                </div>
-              </Input>
-            </div>
-
-            {/* Email Field */}
-            <div className="space-y-2">
-              <Input
-                label="Email"
-                type="email"
-                placeholder="you@email.com"
-                value={formData.email}
-                onChange={(e) => handleInputChange('email', e.target.value)}
-                required
-                className="pr-12"
-                wrapperClassName="relative"
-              >
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400">
-                  <Mail className="w-5 h-5" />
-                </div>
-              </Input>
-            </div>
-
-            {/* Password Field */}
-            <div className="space-y-2">
-              <Input
-                label="Password"
-                type={showPassword ? 'text' : 'password'}
-                placeholder="Create a strong password"
-                value={formData.password}
-                onChange={(e) => handleInputChange('password', e.target.value)}
-                required
-                className="pr-24"
-                wrapperClassName="relative"
-              >
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center space-x-2">
-                  <Key className="w-5 h-5 text-neutral-400" />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="text-neutral-400 hover:text-neutral-600 transition-colors"
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="w-5 h-5" />
-                    ) : (
-                      <Eye className="w-5 h-5" />
-                    )}
-                  </button>
-                </div>
-              </Input>
-            </div>
-
-            {/* Confirm Password Field */}
-            <div className="space-y-2">
-              <Input
-                label="Confirm Password"
-                type={showConfirmPassword ? 'text' : 'password'}
-                placeholder="Confirm your password"
-                value={formData.confirmPassword}
-                onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                required
-                className="pr-24"
-                wrapperClassName="relative"
-              >
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center space-x-2">
-                  <Key className="w-5 h-5 text-neutral-400" />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="text-neutral-400 hover:text-neutral-600 transition-colors"
-                    aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
-                  >
-                    {showConfirmPassword ? (
-                      <EyeOff className="w-5 h-5" />
-                    ) : (
-                      <Eye className="w-5 h-5" />
-                    )}
-                  </button>
-                </div>
-              </Input>
-            </div>
-
-            {/* Terms Agreement */}
-            <div className="flex items-start space-x-3">
-              <input
-                type="checkbox"
-                id="agreeToTerms"
-                checked={formData.agreeToTerms}
-                onChange={(e) => handleInputChange('agreeToTerms', e.target.checked)}
-                className="w-4 h-4 text-brand-primary border-neutral-300 rounded focus:ring-brand-primary focus:ring-2 mt-1"
-                required
-              />
-              <label htmlFor="agreeToTerms" className="text-sm text-neutral-700">
-                I agree to the{' '}
-                <button 
-                  type="button"
-                  className="text-brand-primary hover:text-brand-primary-700 underline"
-                  onClick={() => console.log('Show terms of service')}
-                >
-                  Terms of Service
-                </button>{' '}
-                and{' '}
-                <button 
-                  type="button"
-                  className="text-brand-primary hover:text-brand-primary-700 underline"
-                  onClick={() => console.log('Show privacy policy')}
-                >
-                  Privacy Policy
-                </button>
-              </label>
-            </div>
-
-            {/* Sign Up Button */}
-            <Button
-              type="submit"
-              variant="primary"
-              size="lg"
-              className="w-full"
-            >
-              Create account
-            </Button>
+            {renderStepContent()}
+            {renderNavigationButtons()}
           </form>
 
           {/* Divider */}

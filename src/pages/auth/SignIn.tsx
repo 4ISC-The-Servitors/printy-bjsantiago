@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Input, Text, Container } from '../../components/shared';
-import { Eye, EyeOff, Key, Mail, ArrowLeft } from 'lucide-react';
+import { Eye, EyeOff, Mail, ArrowLeft } from 'lucide-react';
 
 const SignIn: React.FC = () => {
   const navigate = useNavigate();
@@ -94,7 +94,6 @@ const SignIn: React.FC = () => {
                 wrapperClassName="relative"
               >
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center space-x-2">
-                  <Key className="w-5 h-5 text-neutral-400" />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
@@ -120,7 +119,7 @@ const SignIn: React.FC = () => {
                   onChange={(e) => handleInputChange('keepLoggedIn', e.target.checked)}
                   className="w-4 h-4 text-brand-primary border-neutral-300 rounded focus:ring-brand-primary focus:ring-2"
                 />
-                <Text variant="p" size="sm" className="text-neutral-700">
+                <Text variant="span" size="sm" className="text-neutral-700">
                   Keep me logged in
                 </Text>
               </label>
