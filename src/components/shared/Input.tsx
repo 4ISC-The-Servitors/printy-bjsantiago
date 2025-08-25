@@ -8,6 +8,7 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
   required?: boolean;
   className?: string;
   wrapperClassName?: string;
+  children?: React.ReactNode;
 }
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
@@ -19,6 +20,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
       required = false,
       className,
       wrapperClassName,
+      children,
       id,
       ...props
     },
@@ -32,15 +34,18 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
       <div className={cn('space-y-2', wrapperClassName)}>
         {label && <InputLabel htmlFor={inputId} required={required}>{label}</InputLabel>}
         {description && <InputDescription id={descriptionId}>{description}</InputDescription>}
-        <InputField
-          ref={ref}
-          id={inputId}
-          error={error}
-          descriptionId={description}
-          errorId={error}
-          className={className}
-          {...props}
-        />
+        <div className="relative">
+          <InputField
+            ref={ref}
+            id={inputId}
+            error={error}
+            descriptionId={description ? descriptionId : undefined}
+            errorId={error ? errorId : undefined}
+            className={className}
+            {...props}
+          />
+          {children}
+        </div>
         {error && <InputError id={errorId}>{error}</InputError>}
       </div>
     );
@@ -93,6 +98,8 @@ const InputField = React.forwardRef<HTMLInputElement, {
     {...props}
   />
 ));
+
+InputField.displayName = 'InputField';
 
 const InputError: React.FC<{ id: string; children: React.ReactNode }> = ({ 
   id, 

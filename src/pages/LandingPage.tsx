@@ -1,8 +1,10 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button, Container, Text } from '../components/shared';
 import { ChevronDown, MessageCircle, Printer, Users, Award, Clock } from 'lucide-react';
 
 const LandingPage: React.FC = () => {
+  const navigate = useNavigate();
   const scrollToChat = () => {
     document.getElementById('chat-section')?.scrollIntoView({ 
       behavior: 'smooth' 
@@ -32,10 +34,10 @@ const LandingPage: React.FC = () => {
 
             {/* Navigation */}
             <div className="flex items-center space-x-4">
-              <Button variant="ghost" size="sm">
+              <Button variant="ghost" size="sm" onClick={() => navigate('/auth/signin')}>
                 Sign In
               </Button>
-              <Button variant="primary" size="sm">
+              <Button variant="primary" size="sm" onClick={() => navigate('/auth/signup')}>
                 Sign Up
               </Button>
             </div>
