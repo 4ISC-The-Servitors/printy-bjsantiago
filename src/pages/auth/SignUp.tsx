@@ -270,8 +270,38 @@ const SignUp: React.FC = () => {
                 label="Phone Number"
                 type="tel"
                 placeholder="+63 9XXXXXXXXX"
-                value={formData.phone}
-                onChange={(e) => handleInputChange('phone', e.target.value)}
+                value={
+                  formData.phone.startsWith('+63')
+                    ? formData.phone
+                    : formData.phone
+                      ? `+63${formData.phone.replace(/^0+/, '')}`
+                      : '+63'
+                }
+                onChange={(e) => {
+                  let value = e.target.value;
+
+                  // Always start with +63
+                  if (!value.startsWith('+63')) {
+                    value = '+63' + value.replace(/^0+/, '').replace(/^\+?63/, '');
+                  }
+
+                  // Remove all non-digits after +63
+                  let digits = value.slice(3).replace(/\D/g, '');
+
+                  // Limit to 10 digits after +63
+                  digits = digits.slice(0, 10);
+
+                  // Reconstruct value
+                  value = '+63' + digits;
+
+                  // Prevent user from deleting +63
+                  if (value.length < 3) {
+                    value = '+63';
+                  }
+
+                  handleInputChange('phone', value);
+                }}
+                maxLength={13} // +63 + 10 digits
                 required
                 className="pr-12"
                 wrapperClassName="relative"
@@ -317,13 +347,10 @@ const SignUp: React.FC = () => {
                 value={formData.birthday}
                 onChange={(e) => handleInputChange('birthday', e.target.value)}
                 required
-                className="pr-12"
-                wrapperClassName="relative"
-              >
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400">
-                  <Calendar className="w-5 h-5" />
-                </div>
-              </Input>
+                // Removed calendar icon and extra padding
+                className=""
+                wrapperClassName=""
+              />
             </div>
           </div>
         );
@@ -343,7 +370,6 @@ const SignUp: React.FC = () => {
                 wrapperClassName="relative"
               >
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400">
-                  <Building className="w-5 h-5" />
                 </div>
               </Input>
             </div>
@@ -444,14 +470,13 @@ const SignUp: React.FC = () => {
                 Country <span className="text-error">*</span>
               </label>
               <div className="relative">
-                <select
-                  value={formData.country}
-                  onChange={(e) => handleInputChange('country', e.target.value)}
-                  required
-                  className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary transition-colors appearance-none bg-white"
-                >
-                  <option value="Philippines">Philippines</option>
-                </select>
+                <input
+                  type="text"
+                  value="Philippines"
+                  readOnly
+                  disabled
+                  className="w-full px-4 py-3 border border-neutral-300 rounded-lg bg-neutral-50 text-neutral-700 cursor-not-allowed"
+                />
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none">
                   <Globe className="w-5 h-5" />
                 </div>
