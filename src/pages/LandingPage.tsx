@@ -50,15 +50,15 @@ const LandingPage: React.FC = () => {
         <Container>
           <div className="text-center max-w-4xl mx-auto space-y-8">
             <div className="space-y-6">
-              <Text variant="h1" size="6xl" weight="bold" className="text-brand-primary leading-tight">
+              <Text variant="h1" size="6xl" weight="bold" className="text-brand-primary leading-tight text-center">
                 Introducing Printy
               </Text>
-              <Text variant="p" size="xl" color="muted" className="leading-relaxed max-w-3xl mx-auto">
+              <Text variant="p" size="xl" color="muted" className="leading-relaxed max-w-3xl mx-auto text-center">
                 For over 33 years, B.J. Santiago Inc. has delivered trusted printing solutions to businesses across the Philippines. Now, with Printy, our prompt-based chatbot assistant, we're making it easier than ever to browse services, place orders, track print jobs, and get instant support — all in one chat.
               </Text>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-4 text-center">
               <Button 
                 variant="primary" 
                 size="lg" 
@@ -68,7 +68,7 @@ const LandingPage: React.FC = () => {
                 Try out Printy
                 <ChevronDown className="w-5 h-5 ml-2 group-hover:translate-y-1 transition-transform" />
               </Button>
-              <Text variant="p" size="lg" color="muted">
+              <Text variant="p" size="lg" color="muted" className="text-center">
                 Experience our new chatbot assistant today
               </Text>
             </div>
@@ -84,7 +84,7 @@ const LandingPage: React.FC = () => {
               <div className="w-16 h-16 bg-brand-primary-100 rounded-full flex items-center justify-center mx-auto">
                 <Printer className="w-8 h-8 text-brand-primary" />
               </div>
-              <Text variant="h3" size="xl" weight="semibold">
+              <Text variant="h3" size="xl" weight="semibold" className="text-center">
                 Professional Printing
               </Text>
               <Text variant="p" color="muted">
@@ -96,11 +96,11 @@ const LandingPage: React.FC = () => {
               <div className="w-16 h-16 bg-brand-accent-100 rounded-full flex items-center justify-center mx-auto">
                 <MessageCircle className="w-8 h-8 text-brand-accent" />
               </div>
-              <Text variant="h3" size="xl" weight="semibold">
-                AI-Powered Support
+              <Text variant="h3" size="xl" weight="semibold" className="text-center">
+                Prompt-Based Support
               </Text>
               <Text variant="p" color="muted">
-                Instant assistance through our intelligent chatbot system
+                Instant assistance through our prompt-based chatbot system
               </Text>
             </div>
 
@@ -108,7 +108,7 @@ const LandingPage: React.FC = () => {
               <div className="w-16 h-16 bg-success-100 rounded-full flex items-center justify-center mx-auto">
                 <Award className="w-8 h-8 text-success" />
               </div>
-              <Text variant="h3" size="xl" weight="semibold">
+              <Text variant="h3" size="xl" weight="semibold" className="text-center">
                 Trusted Quality
               </Text>
               <Text variant="p" color="muted">
@@ -124,10 +124,10 @@ const LandingPage: React.FC = () => {
         <Container>
           <div className="max-w-4xl mx-auto">
             <div className="text-center space-y-8 mb-12">
-              <Text variant="h2" size="4xl" weight="bold" className="text-brand-primary">
+              <Text variant="h2" size="4xl" weight="bold" className="text-brand-primary text-center">
                 Hi there! I'm Printy, your chatbot assistant!
               </Text>
-              <Text variant="p" size="lg" color="muted">
+              <Text variant="p" size="lg" color="muted" className="text-center">
                 Choose a topic and chat right here.
               </Text>
             </div>
