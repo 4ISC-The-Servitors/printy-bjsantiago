@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bot, User, LogOut } from 'lucide-react';
+import { Bot, User, LogOut, MessageSquare } from 'lucide-react';
 import { Button, Text, Badge } from '../shared';
 
 interface Conversation {
@@ -9,6 +9,7 @@ interface Conversation {
   messages: any[];
   flowId: string;
   status: 'active' | 'completed';
+  icon?: React.ReactNode;
 }
 
 interface DesktopSidebarProps {
@@ -67,19 +68,19 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
                     }
                   >
                     <div className="flex items-start gap-2">
-                      <div className="w-6 h-6 rounded-md bg-brand-primary text-white flex items-center justify-center text-xs mt-0.5">
-                        <Bot className="w-3 h-3" />
-                      </div>
+                                             <div className="w-6 h-6 rounded-md bg-brand-primary text-white flex items-center justify-center text-xs mt-0.5">
+                         {c.icon || <MessageSquare className="w-4 h-4" />}
+                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <Text variant="h4" size="sm" weight="semibold" className="truncate">
                             {c.title}
                           </Text>
                           <Badge 
-                            variant={c.status === 'active' ? 'success' : 'default'} 
+                            variant={c.status === 'active' ? 'success' : 'error'} 
                             size="sm"
                           >
-                            {c.status === 'active' ? 'Active' : 'Completed'}
+                            {c.status === 'active' ? 'Active' : 'Ended'}
                           </Badge>
                         </div>
                         <Text variant="p" size="xs" color="muted" className="truncate">

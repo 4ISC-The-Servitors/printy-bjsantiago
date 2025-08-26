@@ -49,7 +49,7 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({
                 'sm:px-4 sm:py-3 sm:text-base ' +
                 (isBot
                   ? 'bg-brand-primary-50 text-neutral-700'
-                  : 'bg-brand-primary text-white ml-auto')
+                  : 'bg-brand-primary text-white ml-auto text-left')
               }
             >
               {isBot && messages.length > 1 && messages.indexOf(m) === 0 && (

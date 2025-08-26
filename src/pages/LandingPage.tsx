@@ -2,7 +2,8 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Container, Text } from '../components/shared';
 import { MessageCircle, Printer, Users, Award } from 'lucide-react';
-import ChatPanel, { type ChatMessage, type QuickReply, type ChatRole } from '../components/chat/ChatPanel';
+import GuestChatPanel from '../components/chat/GuestChatPanel';
+import { type ChatMessage, type QuickReply, type ChatRole } from '../components/chat/types';
 import { guestFlows as flows } from '../chatLogic/guest';
 
 const LandingPage: React.FC = () => {
@@ -270,7 +271,7 @@ const LandingPage: React.FC = () => {
               </div>
             ) : (
               <div className="mt-8">
-                <ChatPanel
+                <GuestChatPanel
                   title={chatTitle}
                   messages={messages}
                   onSend={handleSend}

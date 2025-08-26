@@ -8,6 +8,7 @@ interface Conversation {
   messages: any[];
   flowId: string;
   status: 'active' | 'completed';
+  icon?: React.ReactNode;
 }
 
 interface MobileSidebarProps {
@@ -33,8 +34,8 @@ export const MobileSidebar: React.FC<MobileSidebarProps> = ({
       </div>
       
       {/* Chat Icons */}
-      <div className="flex-1 w-full space-y-2 px-2">
-        {conversations.slice(0, 4).map((c) => (
+      <div className="flex-1 w-full space-y-2 px-2 overflow-y-auto scrollbar-hide">
+        {conversations.map((c) => (
           <button
             key={c.id}
             onClick={() => onSwitchConversation(c.id)}
@@ -45,7 +46,7 @@ export const MobileSidebar: React.FC<MobileSidebarProps> = ({
             }`}
             title={c.title}
           >
-            <MessageSquare className="w-4 h-4" />
+            {c.icon || <MessageSquare className="w-4 h-4" />}
           </button>
         ))}
       </div>

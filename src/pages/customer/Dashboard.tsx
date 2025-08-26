@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import ChatPanel, { type ChatMessage, type QuickReply, type ChatRole } from '../../components/chat/ChatPanel';
+import CustomerChatPanel from '../../components/chat/CustomerChatPanel';
+import { type ChatMessage, type QuickReply, type ChatRole } from '../../components/chat/types';
 import MobileSidebar from '../../components/customer/MobileSidebar';
 import DesktopSidebar from '../../components/customer/DesktopSidebar';
 import DashboardContent from '../../components/customer/DashboardContent';
@@ -31,6 +32,7 @@ interface Conversation {
   messages: ChatMessage[];
   flowId: string;
   status: 'active' | 'completed';
+  icon?: React.ReactNode;
 }
 
 const topicConfig: Record<
@@ -115,6 +117,10 @@ const CustomerDashboard: React.FC = () => {
       ts: Date.now(),
     }));
 
+    // Find the topic config to get the icon
+    const topicEntry = Object.entries(topicConfig).find(([key, config]) => config.flowId === flowId);
+    const icon = topicEntry ? topicEntry[1].icon : undefined;
+
     const conversation: Conversation = {
       id: crypto.randomUUID(),
       title,
@@ -122,6 +128,7 @@ const CustomerDashboard: React.FC = () => {
       messages: botMessages,
       flowId,
       status: 'active',
+      icon,
     };
 
     setConversations((prev) => [conversation, ...prev]);
@@ -151,6 +158,10 @@ const CustomerDashboard: React.FC = () => {
 
   const handleSend = async (text: string) => {
     if (!currentFlow || !activeId) return;
+    
+    // Prevent sending if conversation is completed
+    const activeConversation = conversations.find((c) => c.id === activeId);
+    if (activeConversation?.status === 'completed') return;
 
     const userMessage: ChatMessage = { 
       id: crypto.randomUUID(), 
@@ -201,6 +212,10 @@ const CustomerDashboard: React.FC = () => {
   };
 
   const handleQuickReply = (value: string) => {
+    // Prevent quick replies if conversation is completed
+    const activeConversation = conversations.find((c) => c.id === activeId);
+    if (activeConversation?.status === 'completed') return;
+    
     const normalized = value.trim().toLowerCase();
     if (normalized === 'end chat' || normalized === 'end') {
       endChat();
@@ -216,18 +231,30 @@ const CustomerDashboard: React.FC = () => {
     setActiveId(id);
     setMessages(conv.messages);
     
-    // Restore flow state
+    // For completed conversations, don't restore interactive state
+    if (conv.status === 'completed') {
+      setCurrentFlow(null);
+      setQuickReplies([]);
+      setInputPlaceholder('This conversation has ended');
+      setIsTyping(false);
+    } else {
+      // Restore flow state for active conversations
     const flow = flows[conv.flowId];
     if (flow) {
       setCurrentFlow(flow);
       const replies = flow.quickReplies().map((label: string) => ({ label, value: label }));
       setQuickReplies(replies);
       updateInputPlaceholder(conv.flowId, replies);
+      }
     }
   };
 
   const endChat = () => {
     if (!activeId) return;
+    
+    // Check if conversation is already completed
+    const currentConversation = conversations.find((c) => c.id === activeId);
+    if (currentConversation?.status === 'completed') return;
     
     // Add end chat message
     const endMessage: ChatMessage = {
@@ -251,7 +278,7 @@ const CustomerDashboard: React.FC = () => {
     // Mark conversation as completed
     setConversations((prev) => 
       prev.map((c) => 
-        c.id === activeId ? { ...c, status: 'completed' as const } : c
+        c.id === activeId ? { ...c, status: 'completed' as const, icon: c.icon } : c
       )
     );
     
@@ -266,7 +293,12 @@ const CustomerDashboard: React.FC = () => {
   };
 
   const handleBack = () => {
-    endChat();
+    // Just go back to dashboard without ending the conversation
+    setActiveId(null);
+    setMessages([]);
+    setCurrentFlow(null);
+    setQuickReplies([]);
+    setInputPlaceholder('Type a message...');
   };
 
   const handleLogout = () => {
@@ -295,21 +327,22 @@ const CustomerDashboard: React.FC = () => {
         onLogout={handleLogout}
       />
 
-      {/* Main Content - Full Screen for Chat */}
+        {/* Main Content - Full Screen for Chat */}
       <main className={`flex-1 flex flex-col ${activeId ? 'pl-16' : 'pl-16'} lg:pl-0`}>
-        {activeId ? (
-          // Full screen chat without containers
-          <ChatPanel
-            title={conversations.find((c) => c.id === activeId)?.title || 'Chat'}
-            messages={messages}
-            onSend={handleSend}
-            isTyping={isTyping}
-            onBack={handleBack}
-            quickReplies={quickReplies}
-            onQuickReply={handleQuickReply}
-            inputPlaceholder={inputPlaceholder}
-            onEndChat={endChat}
-          />
+          {activeId ? (
+            // Full screen chat without containers
+              <CustomerChatPanel
+                title={conversations.find((c) => c.id === activeId)?.title || 'Chat'}
+                messages={messages}
+                onSend={handleSend}
+                isTyping={isTyping}
+                onBack={handleBack}
+                quickReplies={quickReplies}
+                onQuickReply={handleQuickReply}
+                inputPlaceholder={inputPlaceholder}
+                onEndChat={endChat}
+                disabled={conversations.find((c) => c.id === activeId)?.status === 'completed'}
+              />
         ) : (
           <DashboardContent
             topics={topics}
@@ -317,8 +350,8 @@ const CustomerDashboard: React.FC = () => {
             recentTicket={recentTicket}
             onTopicSelect={(key) => handleTopic(key as TopicKey)}
           />
-        )}
-      </main>
+          )}
+        </main>
     </div>
   );
 };

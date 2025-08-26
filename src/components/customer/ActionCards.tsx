@@ -30,7 +30,7 @@ export const ActionCards: React.FC<ActionCardsProps> = ({ topics, onTopicSelect 
               </div>
             </div>
             <div className="flex-1 min-w-0">
-              <Text variant="p" size="xs" weight="semibold" className="mb-0.5">
+              <Text variant="p" size="sm" weight="semibold" className="mb-0.5">
                 {cfg.label}
               </Text>
               <Text variant="p" size="xs" color="muted" className="line-clamp-1">
