@@ -9,6 +9,7 @@ import {
   SkeletonShowcase,
   ContainerShowcase,
   ToastShowcase,
+  ModalShowcase,
 } from './index';
 
 const ComponentShowcase: React.FC = () => {
@@ -23,6 +24,7 @@ const ComponentShowcase: React.FC = () => {
       <SkeletonShowcase />
       <ContainerShowcase />
       <ToastShowcase />
+      <ModalShowcase />
     </Container>
   );
 };
