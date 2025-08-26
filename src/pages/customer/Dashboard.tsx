@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Container, Text } from '../../components/shared';
 import ChatPanel, { type ChatMessage, type QuickReply, type ChatRole } from '../../components/chat/ChatPanel';
-import { flows } from '../../chatLogic';
+import { customerFlows as flows } from '../../chatLogic/customer';
 import {
   Bot,
   Menu,

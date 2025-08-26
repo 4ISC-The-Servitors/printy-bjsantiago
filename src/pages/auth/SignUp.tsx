@@ -101,7 +101,7 @@ const SignUp: React.FC = () => {
   };
 
   const renderProgressIndicator = () => (
-    <div className="flex items-center justify-center mb-8">
+    <div className="flex items-center justify-center mb-6">
       {[1, 2, 3].map((step) => (
         <React.Fragment key={step}>
           <div className="flex items-center">
@@ -563,10 +563,10 @@ const SignUp: React.FC = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-brand-primary-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-brand-primary-50 flex items-center justify-center p-3">
       <Container size="sm" className="w-full">
         {/* Back to Home Link */}
-        <div className="mb-8">
+        <div className="mb-4">
           <Button 
             variant="ghost" 
             size="sm" 
@@ -580,13 +580,13 @@ const SignUp: React.FC = () => {
         </div>
 
         {/* Sign Up Form Card */}
-        <div className="bg-white rounded-2xl shadow-lg border border-neutral-200 p-8">
+        <div className="bg-white rounded-2xl shadow-lg border border-neutral-200 p-6">
           {/* Header */}
-          <div className="text-center mb-8">
-            <Text variant="h1" size="4xl" weight="bold" className="text-neutral-900 mb-2">
+          <div className="text-center mb-6">
+            <Text variant="h1" size="3xl" weight="bold" className="text-neutral-900 mb-2">
               Create your account
             </Text>
-            <Text variant="p" size="base" color="muted">
+            <Text variant="p" size="sm" color="muted">
               Already have an account?{' '}
               <button 
                 className="text-brand-accent hover:text-brand-accent-700 font-medium transition-colors"
@@ -601,8 +601,8 @@ const SignUp: React.FC = () => {
           {renderProgressIndicator()}
 
           {/* Step Title */}
-          <div className="text-center mb-8">
-            <Text variant="h3" size="2xl" weight="semibold" color="primary">
+          <div className="text-center mb-6">
+            <Text variant="h3" size="xl" weight="semibold" color="primary" className="text-center">
               {renderStepTitle()}
             </Text>
           </div>
@@ -614,7 +614,7 @@ const SignUp: React.FC = () => {
           </form>
 
           {/* Divider */}
-          <div className="relative my-8">
+          <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-neutral-300" />
             </div>
@@ -658,8 +658,8 @@ const SignUp: React.FC = () => {
         </div>
 
         {/* Additional Info */}
-        <div className="text-center mt-8">
-          <Text variant="p" size="sm" color="muted">
+        <div className="text-center mt-4">
+          <Text variant="p" size="xs" color="muted">
             By creating an account, you agree to our{' '}
             <button className="text-brand-primary hover:text-brand-primary-700 underline">
               Terms of Service

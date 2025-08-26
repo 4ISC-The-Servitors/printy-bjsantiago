@@ -27,6 +27,7 @@ export interface ChatPanelProps {
   onQuickReply?: (value: string) => void;
   inputPlaceholder?: string;
   onEndChat?: () => void;
+  showAttach?: boolean;
 }
 
 function formatRelativeTime(ts: number): string {
@@ -43,7 +44,7 @@ function formatRelativeTime(ts: number): string {
   return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
-const TypingIndicator: React.FC<{ delay?: number }> = ({ delay = 2000 }) => (
+const TypingIndicator: React.FC<{ delay?: number }> = ({ delay = 1500 }) => (
   <div 
     className="inline-flex items-center gap-1 px-3 py-2 rounded-2xl bg-brand-primary-50 text-neutral-700 text-sm align-middle"
     style={{ animationDelay: `${delay}ms` }}
@@ -58,7 +59,8 @@ const MessageGroup: React.FC<{
   messages: ChatMessage[];
   quickReplies?: QuickReply[];
   onQuickReply?: (value: string) => void;
-}> = ({ messages, quickReplies, onQuickReply }) => {
+  onEndChat?: () => void;
+}> = ({ messages, quickReplies, onQuickReply, onEndChat }) => {
   const isBot = messages[0]?.role === 'printy';
   const lastTs = messages[messages.length - 1]?.ts ?? Date.now();
   
@@ -101,19 +103,29 @@ const MessageGroup: React.FC<{
       
       {/* Quick Replies under bot messages */}
       {isBot && quickReplies && quickReplies.length > 0 && (
-        <div className="flex flex-wrap gap-2 mt-3 ml-8">
-          {quickReplies.map((reply, index) => (
-            <Button
-              key={index}
-              variant={reply.label.toLowerCase().includes('end') ? 'secondary' : 'primary'}
-              size="sm"
-              threeD
-              onClick={() => onQuickReply?.(reply.value)}
-              className="text-sm flex items-center gap-1"
-            >
-              {reply.label}
-            </Button>
-          ))}
+        <div className="flex flex-wrap gap-3 mt-3 ml-8">
+          {quickReplies.map((reply, index) => {
+            const isEnd = reply.label.toLowerCase().includes('end');
+            const handleClick = () => {
+              if (isEnd) {
+                onEndChat?.();
+              } else {
+                onQuickReply?.(reply.value);
+              }
+            };
+            return (
+              <Button
+                key={index}
+                variant={isEnd ? 'secondary' : 'primary'}
+                size="sm"
+                threeD
+                onClick={handleClick}
+                className="text-sm flex items-center gap-1"
+              >
+                {reply.label}
+              </Button>
+            );
+          })}
         </div>
       )}
     </div>
@@ -130,6 +142,8 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   quickReplies,
   onQuickReply,
   inputPlaceholder = "Type a message...",
+  onEndChat,
+  showAttach = true,
  
 }) => {
   const [input, setInput] = useState('');
@@ -232,6 +246,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
             messages={group.messages}
             quickReplies={group.quickReplies}
             onQuickReply={handleQuickReply}
+            onEndChat={onEndChat}
           />
         ))}
 
@@ -259,25 +274,29 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
 
       {/* Always-Visible Composer */}
       <form onSubmit={submit} className="p-3 border-t border-neutral-200 flex items-center gap-2">
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          className="hidden"
-          onChange={(e) => {
-            if (e.target.files && onAttachFiles) onAttachFiles(e.target.files);
-          }}
-        />
-        <Button
-          type="button"
-          variant="secondary"
-          size="md"
-          threeD
-          aria-label="Attach files"
-          onClick={() => fileInputRef.current?.click()}
-        >
-          <Paperclip className="w-4 h-4" />
-        </Button>
+        {showAttach && (
+          <>
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              className="hidden"
+              onChange={(e) => {
+                if (e.target.files && onAttachFiles) onAttachFiles(e.target.files);
+              }}
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              size="md"
+              threeD
+              aria-label="Attach files"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Paperclip className="w-4 h-4" />
+            </Button>
+          </>
+        )}
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}

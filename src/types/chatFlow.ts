@@ -1,5 +1,5 @@
 export interface BotMessage {
-  role: 'bot' | 'assistant';
+  role: 'printy';
   text: string;
 }
 

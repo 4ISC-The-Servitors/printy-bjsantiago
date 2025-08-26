@@ -1,4 +1,4 @@
-import type { BotMessage, ChatFlow } from '../types'
+import type { BotMessage, ChatFlow } from '../../../types/chatFlow'
 
 type Option = { label: string; next: string }
 type Node = {
@@ -44,8 +44,8 @@ const NODES: Record<string, Node> = {
 let currentNodeId: keyof typeof NODES = 'guest_place_order_start'
 
 function nodeToMessages(node: Node): BotMessage[] {
-  if (node.message) return [{ role: 'bot', text: node.message }]
-  if (node.answer) return [{ role: 'bot', text: node.answer }]
+  if (node.message) return [{ role: 'printy', text: node.message }]
+  if (node.answer) return [{ role: 'printy', text: node.answer }]
   return []
 }
 
@@ -55,7 +55,7 @@ function nodeQuickReplies(node: Node): string[] {
 
 export const guestPlaceOrderFlow: ChatFlow = {
   id: 'guest_place_order',
-  title: 'Guest Place Order',
+  title: 'Place an Order',
   initial: () => {
     currentNodeId = 'guest_place_order_start'
     return nodeToMessages(NODES[currentNodeId])
@@ -68,7 +68,7 @@ export const guestPlaceOrderFlow: ChatFlow = {
     )
     if (!selection) {
       return {
-        messages: [{ role: 'bot', text: 'Please choose one of the options.' }],
+        messages: [{ role: 'printy', text: 'Please choose one of the options.' }],
         quickReplies: nodeQuickReplies(current),
       }
     }

@@ -1,14 +1,120 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Container, Text } from '../components/shared';
-import { ChevronDown, MessageCircle, Printer, Users, Award, Clock } from 'lucide-react';
+import { MessageCircle, Printer, Users, Award } from 'lucide-react';
+import ChatPanel, { type ChatMessage, type QuickReply, type ChatRole } from '../components/chat/ChatPanel';
+import { guestFlows as flows } from '../chatLogic/guest';
 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
+  const [messages, setMessages] = React.useState<ChatMessage[]>([]);
+  const [isTyping, setIsTyping] = React.useState(false);
+  const [quickReplies, setQuickReplies] = React.useState<QuickReply[]>([]);
+  const [currentFlow, setCurrentFlow] = React.useState<any>(null);
+  const [chatTitle, setChatTitle] = React.useState<string>('Chat');
+  const [inputPlaceholder, setInputPlaceholder] = React.useState('Type a message...');
+  const [isChatOpen, setIsChatOpen] = React.useState(false);
   const scrollToChat = () => {
     document.getElementById('chat-section')?.scrollIntoView({ 
       behavior: 'smooth' 
     });
+  };
+
+  const initializeFlow = (flowKey: 'about' | 'faqs' | 'place-order') => {
+    const flow = flows[flowKey];
+    if (!flow) return;
+    setCurrentFlow(flow);
+    setChatTitle(flow.title);
+    setIsChatOpen(true);
+    setIsTyping(true);
+    setMessages([]);
+    setQuickReplies([]);
+    setTimeout(() => {
+      const initialMessages = flow.initial({});
+      const botMessages: ChatMessage[] = initialMessages.map((msg: any) => ({
+        id: crypto.randomUUID(),
+        role: 'printy' as ChatRole,
+        text: msg.text,
+        ts: Date.now(),
+      }));
+      setMessages(botMessages);
+      const replies = flow.quickReplies().map((label: string) => ({ label, value: label }));
+      setQuickReplies(replies);
+      setInputPlaceholder(replies.length === 0 ? 'Type your response...' : 'Type a message...');
+      setIsTyping(false);
+    }, 1500);
+    document.getElementById('chat-section')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleSend = async (text: string) => {
+    if (!currentFlow) return;
+
+    const userMessage: ChatMessage = {
+      id: crypto.randomUUID(),
+      role: 'user',
+      text,
+      ts: Date.now(),
+    };
+
+    setMessages((prev) => [...prev, userMessage]);
+    setIsTyping(true);
+    setQuickReplies([]);
+
+    try {
+      const response = await currentFlow.respond({}, text);
+      setTimeout(() => {
+        const newBotMessages: ChatMessage[] = response.messages.map((m: any) => ({
+          id: crypto.randomUUID(),
+          role: 'printy',
+          text: m.text,
+          ts: Date.now(),
+        }));
+        setMessages((prev) => [...prev, ...newBotMessages]);
+        const replies = (response.quickReplies ?? []).map((label: string) => ({ label, value: label }));
+        setQuickReplies(replies);
+        setInputPlaceholder(replies.length === 0 ? 'Type your response...' : 'Type a message...');
+        setIsTyping(false);
+        
+        // If guest is in place-order flow, redirect on auth choices
+        const normalized = text.trim().toLowerCase();
+        if (currentFlow?.id === 'guest_place_order') {
+          if (normalized.includes('sign up')) {
+            setTimeout(() => navigate('/auth/signup'), 1500);
+          } else if (normalized.includes('already have an account') || normalized.includes('sign in')) {
+            setTimeout(() => navigate('/auth/signin'), 1500);
+          }
+        }
+      }, 1500);
+    } catch {
+      setIsTyping(false);
+    }
+  };
+
+  const handleQuickReply = (value: string) => {
+    handleSend(value);
+  };
+
+  const handleEndChat = () => {
+    // Show closing message, remove quick replies immediately
+    setQuickReplies([]);
+    setIsTyping(false);
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        role: 'printy' as ChatRole,
+        text: 'Thank you for chatting with Printy! Have a great day. 👋',
+        ts: Date.now(),
+      },
+    ]);
+    // After a short delay, close panel and reset state
+    setTimeout(() => {
+      setIsChatOpen(false);
+      setMessages([]);
+      setCurrentFlow(null);
+      setChatTitle('Chat');
+      setInputPlaceholder('Type a message...');
+    }, 2000);
   };
 
   return (
@@ -132,43 +238,51 @@ const LandingPage: React.FC = () => {
               </Text>
             </div>
 
-            {/* Action Cards Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <ActionCard
-                title="About Us"
-                description="Learn about our company history and values"
-                icon={<Users className="w-6 h-6" />}
-                onClick={() => console.log('About Us clicked')}
-              />
-              
-              <ActionCard
-                title="FAQs"
-                description="Find answers to common questions"
-                icon={<MessageCircle className="w-6 h-6" />}
-                onClick={() => console.log('FAQs clicked')}
-              />
-              
-              <ActionCard
-                title="Place an Order"
-                description="Start your printing project"
-                icon={<Printer className="w-6 h-6" />}
-                onClick={() => console.log('Place Order clicked')}
-              />
-              
-              <ActionCard
-                title="Track a Ticket"
-                description="Monitor your order progress"
-                icon={<Clock className="w-6 h-6" />}
-                onClick={() => console.log('Track Ticket clicked')}
-              />
-              
-              <ActionCard
-                title="Services Offered"
-                description="Explore our printing solutions"
-                icon={<Award className="w-6 h-6" />}
-                onClick={() => console.log('Services clicked')}
-              />
-            </div>
+            {!isChatOpen ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
+                <ActionCard
+                  title="About Us"
+                  description="Learn about our company history and values"
+                  icon={<Users className="w-6 h-6" />}
+                  onClick={() => initializeFlow('about')}
+                />
+                
+                <ActionCard
+                  title="FAQs"
+                  description="Find answers to common questions"
+                  icon={<MessageCircle className="w-6 h-6" />}
+                  onClick={() => initializeFlow('faqs')}
+                />
+
+                <ActionCard
+                  title="Services Offered"
+                  description="Explore our printing solutions"
+                  icon={<Award className="w-6 h-6" />}
+                  onClick={() => initializeFlow('about')}
+                />
+                
+                <ActionCard
+                  title="Place an Order"
+                  description="Start your printing project"
+                  icon={<Printer className="w-6 h-6" />}
+                  onClick={() => initializeFlow('place-order')}
+                />
+              </div>
+            ) : (
+              <div className="mt-8">
+                <ChatPanel
+                  title={chatTitle}
+                  messages={messages}
+                  onSend={handleSend}
+                  isTyping={isTyping}
+                  quickReplies={quickReplies}
+                  onQuickReply={handleQuickReply}
+                  inputPlaceholder={inputPlaceholder}
+                  onEndChat={handleEndChat}
+                  showAttach={false}
+                />
+              </div>
+            )}
           </div>
         </Container>
       </section>
@@ -198,7 +312,7 @@ interface ActionCardProps {
   title: string;
   description: string;
   icon: React.ReactNode;
-  onClick: () => void;
+  onClick?: () => void;
 }
 
 const ActionCard: React.FC<ActionCardProps> = ({ title, description, icon, onClick }) => (

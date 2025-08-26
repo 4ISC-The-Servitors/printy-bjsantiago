@@ -218,20 +218,6 @@ const SignIn: React.FC = () => {
             Sign in with Google
           </Button>
         </div>
-
-        {/* Additional Info */}
-        <div className="text-center mt-8">
-          <Text variant="p" size="sm" color="muted">
-            By signing in, you agree to our{' '}
-            <button className="text-brand-primary hover:text-brand-primary-700 underline">
-              Terms of Service
-            </button>{' '}
-            and{' '}
-            <button className="text-brand-primary hover:text-brand-primary-700 underline">
-              Privacy Policy
-            </button>
-          </Text>
-        </div>
       </Container>
     </div>
   );

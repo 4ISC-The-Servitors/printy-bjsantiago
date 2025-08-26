@@ -1,4 +1,4 @@
-import type { BotMessage, ChatFlow } from '../types'
+import type { BotMessage, ChatFlow } from '../../../types/chatFlow'
 
 type Option = { label: string; next: string }
 type Node = {
@@ -10,8 +10,8 @@ type Node = {
 }
 
 const NODES: Record<string, Node> = {
-  faqs_start: {
-    id: 'faqs_start',
+  guest_faqs_start: {
+    id: 'guest_faqs_start',
     message: "Hi! I'm Printy 🤖. What do you want to know?",
     options: [
       { label: 'Pricing', next: 'pricing' },
@@ -64,7 +64,6 @@ const NODES: Record<string, Node> = {
     answer:
       "Unfortunately, I can't assist with that.",
     options: [
-      { label: "Chat with our support team", next: 'chat_with_support' },
       { label: 'Call our hotline', next: 'call_hotline' },
       { label: 'End Chat', next: 'end' },
     ],
@@ -85,16 +84,8 @@ const NODES: Record<string, Node> = {
     question: 'Unable to contact your hotline',
     answer: 'I am sorry to hear that. Please try again later.',
     options: [
-      { label: 'Chat with our support team instead', next: 'chat_with_support' },
       { label: 'End Chat', next: 'end' },
     ],
-  },
-
-  chat_with_support: {
-    id: 'chat_with_support',
-    question: "Chat with our support team",
-    answer: 'I’ll create a support ticket for you. Please provide details.',
-    options: [{ label: 'End Chat', next: 'end' }],
   },
 
   end: {
@@ -104,11 +95,11 @@ const NODES: Record<string, Node> = {
   },
 }
 
-let currentNodeId: keyof typeof NODES = 'faqs_start'
+let currentNodeId: keyof typeof NODES = 'guest_faqs_start'
 
 function nodeToMessages(node: Node): BotMessage[] {
-  if (node.message) return [{ role: 'bot', text: node.message }]
-  if (node.answer) return [{ role: 'bot', text: node.answer }]
+  if (node.message) return [{ role: 'printy', text: node.message }]
+  if (node.answer) return [{ role: 'printy', text: node.answer }]
   return []
 }
 
@@ -116,11 +107,11 @@ function nodeQuickReplies(node: Node): string[] {
   return node.options.map((o) => o.label)
 }
 
-export const faqsFlow: ChatFlow = {
-  id: 'faqs',
+export const guestFaqsFlow: ChatFlow = {
+  id: 'guest_faqs',
   title: 'FAQs',
   initial: () => {
-    currentNodeId = 'faqs_start'
+    currentNodeId = 'guest_faqs_start'
     return nodeToMessages(NODES[currentNodeId])
   },
   quickReplies: () => nodeQuickReplies(NODES[currentNodeId]),
@@ -131,7 +122,7 @@ export const faqsFlow: ChatFlow = {
     )
     if (!selection) {
       return {
-        messages: [{ role: 'bot', text: 'Please choose one of the options.' }],
+        messages: [{ role: 'printy', text: 'Please choose one of the options.' }],
         quickReplies: nodeQuickReplies(current),
       }
     }
