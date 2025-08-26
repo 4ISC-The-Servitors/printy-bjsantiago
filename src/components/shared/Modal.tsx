@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, type FC } from 'react';
 import { createPortal } from 'react-dom';
 import Button from './Button';
 import { X } from 'lucide-react';
@@ -134,9 +134,15 @@ const ModalFooter: React.FC<ModalFooterProps> = ({ children, className = '' }) =
   );
 };
 
-// Compound component export
-Modal.Header = ModalHeader;
-Modal.Body = ModalBody;
-Modal.Footer = ModalFooter;
+type ModalCompound = FC<ModalProps> & {
+  Header: FC<ModalHeaderProps>;
+  Body: FC<ModalBodyProps>;
+  Footer: FC<ModalFooterProps>;
+};
 
-export default Modal;
+const ModalTyped = Modal as ModalCompound;
+ModalTyped.Header = ModalHeader;
+ModalTyped.Body = ModalBody;
+ModalTyped.Footer = ModalFooter;
+
+export default ModalTyped;
