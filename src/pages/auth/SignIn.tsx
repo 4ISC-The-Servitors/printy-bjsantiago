@@ -4,6 +4,14 @@ import { Button, Input, Text, Container, ToastContainer } from '../../components
 import { useToast } from '../../lib/useToast';
 import { Eye, EyeOff, Mail, ArrowLeft } from 'lucide-react';
 
+// TODO: Backend Integration
+// - Replace hardcoded credentials with real Supabase authentication
+// - Implement proper JWT token management
+// - Add user session persistence
+// - Implement role-based routing based on user profile
+// - Add proper error handling for authentication failures
+// - Implement "Keep me logged in" functionality with refresh tokens
+
 const SignIn: React.FC = () => {
   const navigate = useNavigate();
   const [toasts, toastMethods] = useToast();
@@ -17,14 +25,6 @@ const SignIn: React.FC = () => {
   });
   const [error, setError] = useState<string | null>(null);
 
-  // Hardcoded credentials for prototype routing
-  const credentials: Record<string, { password: string; role: 'customer' | 'valued' | 'admin' | 'superadmin'; route: string }> = {
-    'customer@example.com': { password: 'customer123', role: 'customer', route: '/customer' },
-    'valued@example.com': { password: 'valued123', role: 'valued', route: '/valued' },
-    'admin@example.com': { password: 'admin123', role: 'admin', route: '/admin' },
-    'superadmin@example.com': { password: 'superadmin123', role: 'superadmin', route: '/superadmin' },
-  };
-
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
@@ -34,41 +34,66 @@ const SignIn: React.FC = () => {
     setError(null);
     setLoading(true);
 
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
-
-    const entry = credentials[formData.email.trim().toLowerCase()];
-    if (!entry || entry.password !== formData.password) {
+    try {
+      // TODO: Replace with real Supabase authentication
+      // const { data, error } = await supabase.auth.signInWithPassword({
+      //   email: formData.email,
+      //   password: formData.password,
+      // });
+      
+      // if (error) throw error;
+      
+      // TODO: Get user profile and role from database
+      // const { data: profile } = await supabase
+      //   .from('profiles')
+      //   .select('role')
+      //   .eq('id', data.user.id)
+      //   .single();
+      
+      // TODO: Handle role-based routing
+      // const routeMap = {
+      //   customer: '/customer',
+      //   valued: '/valued', 
+      //   admin: '/admin',
+      //   superadmin: '/superadmin'
+      // };
+      
+      // navigate(routeMap[profile.role] || '/customer');
+      
+      // Temporary mock success for prototype
+      toastMethods.success('Welcome back!', 'Successfully signed in');
+      setTimeout(() => navigate('/customer'), 1000);
+      
+    } catch (error) {
+      console.error('Sign in error:', error);
       setError('Invalid email or password.');
       toastMethods.error('Sign In Failed', 'Please check your credentials and try again.');
+    } finally {
       setLoading(false);
-      return;
     }
-
-    // Optionally persist prototype session
-    if (formData.keepLoggedIn) {
-      try {
-        localStorage.setItem('prototype_role', entry.role);
-        localStorage.setItem('prototype_email', formData.email.trim().toLowerCase());
-      } catch {}
-    }
-
-    toastMethods.success('Welcome back!', `Successfully signed in as ${entry.role}`);
-    
-    // Small delay to show success toast before navigation
-    setTimeout(() => {
-      navigate(entry.route);
-    }, 1000);
   };
 
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
     
-    // Simulate Google sign-in delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    toastMethods.info('Google Sign-In', 'Google authentication is not implemented in this prototype.');
-    setGoogleLoading(false);
+    try {
+      // TODO: Implement Google OAuth with Supabase
+      // const { data, error } = await supabase.auth.signInWithOAuth({
+      //   provider: 'google',
+      //   options: {
+      //     redirectTo: `${window.location.origin}/auth/callback`
+      //   }
+      // });
+      
+      // if (error) throw error;
+      
+      toastMethods.info('Google Sign-In', 'Google authentication will be implemented with Supabase.');
+    } catch (error) {
+      console.error('Google sign in error:', error);
+      toastMethods.error('Google Sign-In Failed', 'There was an issue signing in with Google.');
+    } finally {
+      setGoogleLoading(false);
+    }
   };
 
   return (

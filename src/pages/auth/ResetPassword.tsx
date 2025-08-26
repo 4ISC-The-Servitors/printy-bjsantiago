@@ -4,6 +4,14 @@ import { Button, Input, Text, Container, ToastContainer } from '../../components
 import { useToast } from '../../lib/useToast';
 import { ArrowLeft, Mail, CheckCircle2 } from 'lucide-react';
 
+// TODO: Backend Integration
+// - Implement real password reset with Supabase Auth
+// - Send actual password reset email
+// - Handle password reset token validation
+// - Implement password reset confirmation page
+// - Add proper error handling for invalid emails
+// - Add rate limiting for password reset requests
+
 const ResetPassword: React.FC = () => {
   const navigate = useNavigate();
   const [toasts, toastMethods] = useToast();
@@ -15,20 +23,32 @@ const ResetPassword: React.FC = () => {
     e.preventDefault();
     setLoading(true);
 
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    try {
+      // TODO: Replace with real Supabase password reset
+      // const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      //   redirectTo: `${window.location.origin}/auth/reset-password/confirm`,
+      // });
+      // 
+      // if (error) throw error;
+      
+      // Validate email format
+      if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(email)) {
+        toastMethods.error('Invalid Email', 'Please enter a valid email address.');
+        setLoading(false);
+        return;
+      }
 
-    // Validate email format
-    if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(email)) {
-      toastMethods.error('Invalid Email', 'Please enter a valid email address.');
+      // TODO: Remove this mock logic when implementing real backend
+      // Simulate success for prototype
+      setSubmitted(true);
+      toastMethods.success('Success!', 'We have sent a reset link to your email.');
+      
+    } catch (error) {
+      console.error('Password reset error:', error);
+      toastMethods.error('Password Reset Failed', 'There was an issue sending the reset link. Please try again.');
+    } finally {
       setLoading(false);
-      return;
     }
-
-    // Simulate success
-    setSubmitted(true);
-    setLoading(false);
-    toastMethods.success('Success!', 'We have sent a reset link to your email.');
   };
 
   return (

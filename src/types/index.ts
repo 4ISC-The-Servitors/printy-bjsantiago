@@ -1,3 +1,10 @@
+// TODO: Backend Integration
+// - Align types with actual Supabase database schema
+// - Add proper foreign key relationships
+// - Implement proper enum types for status fields
+// - Add validation schemas for form data
+// - Consider using Zod or similar for runtime validation
+
 // Base entity interface
 export interface BaseEntity {
   id: string;
@@ -5,17 +12,28 @@ export interface BaseEntity {
   updated_at: string;
 }
 
-// User profile interface
+// User profile interface - TODO: Align with Supabase profiles table
 export interface Profile extends BaseEntity {
+  id: string; // This should match Supabase Auth user.id
   email: string;
   full_name: string | null;
   avatar_url: string | null;
   phone: string | null;
   role: 'customer' | 'admin' | 'superadmin' | 'valued';
   preferences: Record<string, any>;
+  // TODO: Add address fields
+  // address?: {
+  //   building_number?: string;
+  //   street: string;
+  //   barangay: string;
+  //   province: string;
+  //   city: string;
+  //   country: string;
+  //   postal_code?: string;
+  // };
 }
 
-// Product interface
+// Product interface - TODO: Implement when adding product catalog
 export interface Product extends BaseEntity {
   name: string;
   slug: string;
@@ -67,10 +85,10 @@ export interface Brand extends BaseEntity {
   is_active: boolean;
 }
 
-// Order interface
+// Order interface - TODO: Align with actual orders table schema
 export interface Order extends BaseEntity {
   order_number: string;
-  user_id: string | null;
+  user_id: string | null; // TODO: Make required when implementing auth
   email: string;
   phone: string | null;
   subtotal: number;
@@ -116,7 +134,7 @@ export type FulfillmentStatus =
   | 'shipped'
   | 'delivered';
 
-// Address interface
+// Address interface - TODO: Align with actual address structure
 export interface Address {
   street: string;
   city: string;
@@ -124,6 +142,9 @@ export interface Address {
   postal_code: string;
   country: string;
   phone?: string;
+  // TODO: Add missing fields from signup form
+  // building_number?: string;
+  // barangay: string;
 }
 
 // Order item interface
@@ -153,22 +174,24 @@ export interface CartItem {
   in_stock: boolean;
 }
 
-// Conversation interface for chat
+// Conversation interface for chat - TODO: Align with actual conversations table
 export interface Conversation extends BaseEntity {
-  user_id: string | null;
-  guest_id: string | null;
+  user_id: string | null; // TODO: Make required when implementing auth
+  guest_id: string | null; // For guest users
   topic: string;
   status: 'active' | 'resolved' | 'archived';
   priority: 'low' | 'normal' | 'high' | 'urgent';
   assigned_to: string | null;
   tags: string[];
   metadata: Record<string, any>;
+  // TODO: Add flow_id field to track which chat flow was used
+  // flow_id?: string;
 }
 
-// Chat message interface
+// Chat message interface - TODO: Align with actual messages table
 export interface ChatMessage extends BaseEntity {
   conversation_id: string;
-  sender_id: string | null;
+  sender_id: string | null; // TODO: Make required when implementing auth
   sender_type: 'user' | 'bot' | 'agent';
   message_type: 'text' | 'image' | 'file' | 'form_response';
   content: string;
@@ -229,7 +252,7 @@ export interface OrderFilters {
   search?: string;
 }
 
-// Form interfaces
+// Form interfaces - TODO: Align with actual form data structures
 export interface ContactForm {
   name: string;
   email: string;

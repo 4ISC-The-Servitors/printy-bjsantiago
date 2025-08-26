@@ -1,3 +1,11 @@
+// TODO: Backend Integration
+// - Implement conversation persistence to database
+// - Add real-time chat updates with Supabase subscriptions
+// - Store chat context and state in database
+// - Implement proper error handling and retry logic
+// - Add support for file uploads and attachments
+// - Implement chat history and search functionality
+
 export interface BotMessage {
   role: 'printy';
   text: string;

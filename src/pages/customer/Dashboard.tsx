@@ -18,6 +18,15 @@ import {
   X,
 } from 'lucide-react';
 
+// TODO: Backend Integration
+// - Replace mock recent order data with real data from Supabase
+// - Replace mock recent ticket data with real support tickets
+// - Implement real-time updates for orders and tickets
+// - Add proper error handling for data fetching
+// - Implement pagination for conversation history
+// - Add conversation persistence to database
+// - Implement real-time chat updates with Supabase subscriptions
+
 type TopicKey =
   | 'placeOrder'
   | 'issueTicket'
@@ -94,7 +103,24 @@ const CustomerDashboard: React.FC = () => {
 
   const topics = useMemo(() => Object.entries(topicConfig) as [TopicKey, typeof topicConfig[TopicKey]][], []);
 
-  // Mock recent order and ticket (prototype only)
+  // TODO: Replace with real data from Supabase
+  // const { data: recentOrder } = await supabase
+  //   .from('orders')
+  //   .select('*')
+  //   .eq('user_id', userId)
+  //   .order('updated_at', { ascending: false })
+  //   .limit(1)
+  //   .single();
+  
+  // const { data: recentTicket } = await supabase
+  //   .from('tickets')
+  //   .select('*')
+  //   .eq('user_id', userId)
+  //   .order('updated_at', { ascending: false })
+  //   .limit(1)
+  //   .single();
+
+  // Mock recent order and ticket (prototype only) - REMOVE WHEN IMPLEMENTING BACKEND
   const recentOrder = useMemo(() => ({
     id: 'ORD-000145',
     title: 'Business Cards · Digital Printing',
@@ -314,24 +340,23 @@ const CustomerDashboard: React.FC = () => {
   const confirmLogout = async () => {
     setShowLogoutModal(false);
     
-    // Show logout confirmation toast
-    toastMethods.info('Logging out...', 'Please wait while we sign you out');
-    
-    // Simulate logout delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
     try {
-      localStorage.removeItem('prototype_role');
-      localStorage.removeItem('prototype_email');
+      // TODO: Implement real logout with Supabase
+      // await supabase.auth.signOut();
       
-      // Success toast
+      // TODO: Clear any local state or user data
+      // setUser(null);
+      // setProfile(null);
+      
       toastMethods.success('Successfully logged out', 'You have been signed out of your account');
       
-      // Delay before redirect to show success message
+      // Redirect to sign in page
       setTimeout(() => {
         navigate('/auth/signin');
-      }, 1500);
+      }, 1000);
+      
     } catch (error) {
+      console.error('Logout error:', error);
       toastMethods.error('Logout Error', 'There was an issue signing you out');
       navigate('/auth/signin');
     }

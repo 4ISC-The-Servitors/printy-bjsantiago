@@ -5,6 +5,16 @@ import { useToast } from '../../lib/useToast';
 import { Eye, EyeOff, Mail, ArrowLeft, User, Phone, MapPin, Globe } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
+// TODO: Backend Integration
+// - Implement real user registration with Supabase Auth
+// - Create user profile in database after successful auth
+// - Add proper validation and error handling
+// - Implement email verification flow
+// - Add phone number validation and verification
+// - Store address information in user profile
+// - Implement terms of service and privacy policy acceptance
+// - Add Google OAuth registration option
+
 interface FormData {
   // Step 1: Account Information
   email: string;
@@ -81,28 +91,81 @@ const SignUp: React.FC = () => {
     e.preventDefault();
     setLoading(true);
     
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // TODO: Implement sign-up logic
-    console.log('Sign up attempt:', formData);
-    
-    toastMethods.success('Account Created!', 'Your account has been successfully created.');
-    
-    // Small delay to show success toast before navigation
-    setTimeout(() => {
-      navigate('/auth/signin');
-    }, 1500);
+    try {
+      // TODO: Implement real sign-up logic
+      // 1. Create user account with Supabase Auth
+      // const { data: authData, error: authError } = await supabase.auth.signUp({
+      //   email: formData.email,
+      //   password: formData.password,
+      // });
+      // 
+      // if (authError) throw authError;
+      // 
+      // 2. Create user profile in database
+      // const { error: profileError } = await supabase
+      //   .from('profiles')
+      //   .insert({
+      //     id: authData.user?.id,
+      //     email: formData.email,
+      //     first_name: formData.firstName,
+      //     last_name: formData.lastName,
+      //     phone: formData.phone,
+      //     gender: formData.gender,
+      //     birthday: formData.birthday,
+      //     role: 'customer', // Default role for new users
+      //     address: {
+      //       building_number: formData.buildingNumber,
+      //       street: formData.street,
+      //       barangay: formData.barangay,
+      //       province: formData.province,
+      //       city: formData.city,
+      //       country: formData.country
+      //     }
+      //   });
+      // 
+      // if (profileError) throw profileError;
+      
+      // TODO: Send email verification
+      // TODO: Redirect to email verification page or show success message
+      
+      console.log('Sign up attempt:', formData);
+      
+      toastMethods.success('Account Created!', 'Your account has been successfully created.');
+      
+      // Small delay to show success toast before navigation
+      setTimeout(() => {
+        navigate('/auth/signin');
+      }, 1500);
+      
+    } catch (error) {
+      console.error('Sign up error:', error);
+      toastMethods.error('Sign Up Failed', 'There was an issue creating your account. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleGoogleSignUp = async () => {
     setGoogleLoading(true);
     
-    // Simulate Google sign-up delay
-    await new Promise(resolve => setTimeout(resolve, 2500));
-    
-    toastMethods.info('Google Sign-Up', 'Google authentication is not implemented in this prototype.');
-    setGoogleLoading(false);
+    try {
+      // TODO: Implement Google OAuth registration
+      // const { data, error } = await supabase.auth.signInWithOAuth({
+      //   provider: 'google',
+      //   options: {
+      //     redirectTo: `${window.location.origin}/auth/callback`
+      //   }
+      // });
+      // 
+      // if (error) throw error;
+      
+      toastMethods.info('Google Sign-Up', 'Google authentication will be implemented with Supabase.');
+    } catch (error) {
+      console.error('Google sign up error:', error);
+      toastMethods.error('Google Sign-Up Failed', 'There was an issue signing up with Google.');
+    } finally {
+      setGoogleLoading(false);
+    }
   };
 
   const isStepValid = (step: number): boolean => {
