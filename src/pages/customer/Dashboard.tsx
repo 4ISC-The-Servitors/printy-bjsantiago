@@ -1,21 +1,17 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Container, Text } from '../../components/shared';
 import ChatPanel, { type ChatMessage, type QuickReply, type ChatRole } from '../../components/chat/ChatPanel';
+import MobileSidebar from '../../components/customer/MobileSidebar';
+import DesktopSidebar from '../../components/customer/DesktopSidebar';
+import DashboardContent from '../../components/customer/DashboardContent';
 import { customerFlows as flows } from '../../chatLogic/customer';
 import {
-  Bot,
-  Menu,
-  X,
   ShoppingCart,
   HelpCircle,
   Clock,
   Info,
   MessageSquare,
   Settings,
-  LogOut,
-  User,
-
 } from 'lucide-react';
 
 type TopicKey =
@@ -81,7 +77,6 @@ const topicConfig: Record<
 
 const CustomerDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -143,7 +138,7 @@ const CustomerDashboard: React.FC = () => {
     if (flowId === 'issue-ticket' && replies.length === 0) {
       setInputPlaceholder('Enter your Order ID (e.g., ORD-123456)');
     } else if (replies.length === 0) {
-      setInputPlaceholder('Type your response...');
+      setInputPlaceholder('Type a message...');
     } else {
       setInputPlaceholder('Type a message...');
     }
@@ -283,230 +278,47 @@ const CustomerDashboard: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-brand-primary-50">
-      {/* Top bar for mobile */}
-      <div className="lg:hidden sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-neutral-200">
-        <Container className="py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-brand-primary text-white flex items-center justify-center">
-              <Bot className="w-5 h-5" />
-            </div>
-            <Text variant="h3" size="lg" weight="bold" className="text-brand-primary">
-              Printy
-            </Text>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            threeD
-            aria-label={sidebarOpen ? 'Close menu' : 'Open menu'}
-            onClick={() => setSidebarOpen((s) => !s)}
-          >
-            {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </Button>
-        </Container>
-      </div>
+    <div className="h-screen bg-gradient-to-br from-neutral-50 to-brand-primary-50 flex">
+      <MobileSidebar
+        conversations={conversations}
+        activeId={activeId}
+        onSwitchConversation={switchConversation}
+        onNavigateToAccount={() => navigate('/account')}
+        onLogout={handleLogout}
+      />
+      
+      <DesktopSidebar
+        conversations={conversations}
+        activeId={activeId}
+        onSwitchConversation={switchConversation}
+        onNavigateToAccount={() => navigate('/account')}
+        onLogout={handleLogout}
+      />
 
-      <div className="max-w-[1200px] mx-auto w-full grid grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)] gap-0">
-        {/* Sidebar */}
-        <aside
-          className={
-            sidebarOpen
-              ? 'fixed inset-0 z-50 bg-black/20 lg:static lg:bg-transparent'
-              : 'lg:static'
-          }
-        >
-          <div
-            className={
-              'absolute left-0 top-0 h-full w-72 max-w-[260px] bg-white border-r border-neutral-200 transition-transform lg:translate-x-0 flex flex-col ' +
-              (sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0')
-            }
-          >
-            <div className="p-4 shrink-0">
-              <div className="hidden lg:flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-lg bg-brand-primary text-white flex items-center justify-center">
-                  <Bot className="w-6 h-6" />
-                </div>
-                <div>
-                  <Text variant="h3" size="lg" weight="bold" className="text-brand-primary">
-                    Printy
-                  </Text>
-                  <Text variant="p" size="xs" color="muted">
-                    B.J. Santiago Inc.
-                  </Text>
-                </div>
-              </div>
-            </div>
-
-            {/* Scrollable Chats Section */}
-            <div className="flex-1 overflow-y-auto scrollbar-hide px-4">
-              {conversations.length > 0 && (
-                <div className="mb-4">
-                  <Text variant="h3" size="sm" weight="semibold" className="px-1 pb-2 text-neutral-600">
-                    Chats
-                  </Text>
-                  <div className="space-y-2">
-                    {conversations.map((c) => {
-                      const lastBotMessage = [...c.messages].reverse().find(m => m.role === 'printy');
-                      
-                      return (
-                        <button
-                          key={c.id}
-                          onClick={() => switchConversation(c.id)}
-                          className={
-                            'w-full text-left rounded-lg border px-3 py-3 transition-colors ' +
-                            (c.id === activeId
-                              ? 'bg-brand-primary-50 border-brand-primary'
-                              : 'bg-white border-neutral-200 hover:bg-neutral-50')
-                          }
-                        >
-                          <div className="flex items-start gap-2">
-                            <div className="w-6 h-6 rounded-md bg-brand-primary text-white flex items-center justify-center text-xs mt-0.5">
-                              <Bot className="w-3 h-3" />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-2 mb-1">
-                                <Text variant="h4" size="sm" weight="semibold" className="truncate">
-                                  {c.title}
-                                </Text>
-                                <span className={`text-xs px-2 py-0.5 rounded-full ${
-                                  c.status === 'active' 
-                                    ? 'bg-green-100 text-green-700' 
-                                    : 'bg-neutral-100 text-neutral-600'
-                                }`}>
-                                  {c.status === 'active' ? 'Active' : 'Completed'}
-                                </span>
-                              </div>
-                              <Text variant="p" size="xs" color="muted" className="truncate">
-                                {lastBotMessage?.text.substring(0, 60) || 'No messages yet'}
-                                {(lastBotMessage?.text.length || 0) > 60 ? '...' : ''}
-                              </Text>
-                              <Text variant="p" size="xs" color="muted" className="mt-1">
-                                {new Date(c.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                              </Text>
-                            </div>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Fixed Sidebar Section */}
-            <div className="p-4 border-t border-neutral-200 shrink-0">
-              <div className="space-y-4">
-                <Button
-                  variant="secondary"
-                  className="w-full justify-start"
-                  threeD
-                  onClick={() => navigate('/account')}
-                >
-                  <User className="w-4 h-4 mr-2" /> Account
-                </Button>
-                <Button
-                  variant="accent"
-                  className="w-full justify-start"
-                  threeD
-                  onClick={handleLogout}
-                >
-                  <LogOut className="w-4 h-4 mr-2" /> Logout
-                </Button>
-              </div>
-            </div>
-          </div>
-          {sidebarOpen && (
-            <div className="h-full" onClick={() => setSidebarOpen(false)} />
-          )}
-        </aside>
-
-        {/* Main */}
-        <main className="p-4 lg:p-8 flex-1">
-          <div className="h-full w-full">
-            {!activeId ? (
-              <>
-                <div className="text-center space-y-2 mb-8">
-                  <Text variant="h1" size="4xl" weight="bold" className="text-brand-primary">
-                    How can I help you today?
-                  </Text>
-                  <Text variant="p" color="muted">
-                    Choose a topic below or start a new chat
-                  </Text>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
-                  {topics.map(([key, cfg]) => (
-                    <button
-                      key={key}
-                      onClick={() => handleTopic(key)}
-                      className="group bg-white rounded-xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 border border-neutral-200 hover:border-brand-primary/20 hover:-translate-y-1 text-left"
-                    >
-                      <div className="w-12 h-12 rounded-lg bg-brand-accent-50 text-brand-accent flex items-center justify-center mb-4 group-hover:bg-brand-accent group-hover:text-white transition-colors">
-                        {cfg.icon}
-                      </div>
-                      <Text variant="h3" size="xl" weight="semibold" className="mb-2">
-                        {cfg.label}
-                      </Text>
-                      <Text variant="p" size="sm" color="muted">
-                        {cfg.description}
-                      </Text>
-                    </button>
-                  ))}
-                </div>
-
-                {/* Mock recent activity cards (prototype only) */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Recent Order */}
-                  <div className="bg-white rounded-xl border border-neutral-200 p-6">
-                    <Text variant="h3" size="lg" weight="semibold" className="mb-4">
-                      Recent Order
-                    </Text>
-                    <div className="space-y-2">
-                      <Text variant="p" size="sm" className="font-semibold">{recentOrder.title}</Text>
-                      <Text variant="p" size="sm" color="muted">Order #{recentOrder.id}</Text>
-                      <div className="flex items-center justify-between mt-2">
-                        <span className="text-xs px-2 py-1 rounded-full bg-info-50 text-info">{recentOrder.status}</span>
-                        <Text variant="p" size="xs" color="muted">{new Date(recentOrder.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Recent Ticket */}
-                  <div className="bg-white rounded-xl border border-neutral-200 p-6">
-                    <Text variant="h3" size="lg" weight="semibold" className="mb-4">
-                      Recent Ticket
-                    </Text>
-                    <div className="space-y-2">
-                      <Text variant="p" size="sm" className="font-semibold">{recentTicket.subject}</Text>
-                      <Text variant="p" size="sm" color="muted">Ticket #{recentTicket.id}</Text>
-                      <div className="flex items-center justify-between mt-2">
-                        <span className="text-xs px-2 py-1 rounded-full bg-warning-50 text-warning">{recentTicket.status}</span>
-                        <Text variant="p" size="xs" color="muted">{new Date(recentTicket.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div className="h-full flex">
-                {/* Enhanced Chat panel */}
-                <ChatPanel
-                  title={conversations.find((c) => c.id === activeId)?.title || 'Chat'}
-                  messages={messages}
-                  onSend={handleSend}
-                  isTyping={isTyping}
-                  onBack={handleBack}
-                  quickReplies={quickReplies}
-                  onQuickReply={handleQuickReply}
-                  inputPlaceholder={inputPlaceholder}
-                  onEndChat={endChat}
-                />
-              </div>
-            )}
-          </div>
-        </main>
-      </div>
+      {/* Main Content - Full Screen for Chat */}
+      <main className={`flex-1 flex flex-col ${activeId ? 'pl-16' : 'pl-16'} lg:pl-0`}>
+        {activeId ? (
+          // Full screen chat without containers
+          <ChatPanel
+            title={conversations.find((c) => c.id === activeId)?.title || 'Chat'}
+            messages={messages}
+            onSend={handleSend}
+            isTyping={isTyping}
+            onBack={handleBack}
+            quickReplies={quickReplies}
+            onQuickReply={handleQuickReply}
+            inputPlaceholder={inputPlaceholder}
+            onEndChat={endChat}
+          />
+        ) : (
+          <DashboardContent
+            topics={topics}
+            recentOrder={recentOrder}
+            recentTicket={recentTicket}
+            onTopicSelect={(key) => handleTopic(key as TopicKey)}
+          />
+        )}
+      </main>
     </div>
   );
 };

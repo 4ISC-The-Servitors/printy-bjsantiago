@@ -495,21 +495,23 @@ const SignUp: React.FC = () => {
               />
               <label htmlFor="agreeToTerms" className="text-sm text-neutral-700">
                 I agree to the{' '}
-                <button 
-                  type="button"
-                  className="text-brand-primary hover:text-brand-primary-700 underline"
+                <Button 
+                  variant="ghost"
+                  size="sm"
+                  className="text-brand-primary hover:text-brand-primary-700 underline p-0 h-auto"
                   onClick={() => console.log('Show terms of service')}
                 >
                   Terms of Service
-                </button>{' '}
+                </Button>{' '}
                 and{' '}
-                <button 
-                  type="button"
-                  className="text-brand-primary hover:text-brand-primary-700 underline"
+                <Button 
+                  variant="ghost"
+                  size="sm"
+                  className="text-brand-primary hover:text-brand-primary-700 underline p-0 h-auto"
                   onClick={() => console.log('Show privacy policy')}
                 >
                   Privacy Policy
-                </button>
+                </Button>
               </label>
             </div>
           </div>
@@ -529,7 +531,7 @@ const SignUp: React.FC = () => {
           size="lg"
           threeD
           onClick={prevStep}
-          className="flex-1"
+          className="flex-1 btn-responsive-primary"
         >
           Previous
         </Button>
@@ -543,7 +545,7 @@ const SignUp: React.FC = () => {
           threeD
           onClick={nextStep}
           disabled={!isStepValid(currentStep)}
-          className="flex-1"
+          className="flex-1 btn-responsive-primary"
         >
           Next
         </Button>
@@ -554,7 +556,7 @@ const SignUp: React.FC = () => {
           size="lg"
           threeD
           disabled={!isStepValid(currentStep)}
-          className="flex-1"
+          className="flex-1 btn-responsive-primary"
         >
           Create Account
         </Button>
@@ -564,7 +566,7 @@ const SignUp: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-brand-primary-50 flex items-center justify-center p-3">
-      <Container size="sm" className="w-full">
+      <Container size="sm" className="w-full container-responsive">
         {/* Back to Home Link */}
         <div className="mb-4">
           <Button 
@@ -661,13 +663,21 @@ const SignUp: React.FC = () => {
         <div className="text-center mt-4">
           <Text variant="p" size="xs" color="muted">
             By creating an account, you agree to our{' '}
-            <button className="text-brand-primary hover:text-brand-primary-700 underline">
+            <Button 
+              variant="ghost"
+              size="sm"
+              className="text-brand-primary hover:text-brand-primary-700 underline p-0 h-auto"
+            >
               Terms of Service
-            </button>{' '}
+            </Button>{' '}
             and{' '}
-            <button className="text-brand-primary hover:text-brand-primary-700 underline">
+            <Button 
+              variant="ghost"
+              size="sm"
+              className="text-brand-primary hover:text-brand-primary-700 underline p-0 h-auto"
+            >
               Privacy Policy
-            </button>
+            </Button>
           </Text>
         </div>
       </Container>

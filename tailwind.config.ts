@@ -111,6 +111,14 @@ export default {
         'lg': '1024px',
         'xl': '1280px',
         '2xl': '1400px',   // Optimal reading width
+        // Content-driven container widths (from sizing guidelines)
+        'content-xs': '24rem',   // 384px
+        'content-sm': '28rem',   // 448px
+        'content-md': '32rem',   // 512px
+        'content-lg': '42rem',   // 672px
+        'content-xl': '56rem',   // 896px
+        'content-2xl': '72rem',  // 1152px
+        'content-3xl': '80rem',  // 1280px
       },
       animation: {
         'fade-in': 'fadeIn 0.2s ease-out',

@@ -2,7 +2,7 @@ import React from 'react';
 import { cn } from '../../lib/utils';
 
 export interface ContainerProps extends React.HTMLAttributes<HTMLDivElement> {
-  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | 'full';
   as?: React.ElementType;
   threeD?: boolean;
   children: React.ReactNode;
@@ -46,6 +46,8 @@ const getSizeClasses = (size: ContainerProps['size']) => ({
   lg: 'max-w-lg',
   xl: 'max-w-xl',
   '2xl': 'max-w-2xl',
+  '3xl': 'max-w-4xl',
+  'full': 'max-w-full',
 }[size || '2xl']);
 
 export default Container;

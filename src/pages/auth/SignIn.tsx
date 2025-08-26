@@ -53,7 +53,7 @@ const SignIn: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-brand-primary-50 flex items-center justify-center p-4">
-      <Container size="sm" className="w-full">
+      <Container size="sm" className="w-full container-responsive">
         {/* Back to Home Link */}
         <div className="mb-8">
           <Button 
@@ -169,7 +169,7 @@ const SignIn: React.FC = () => {
               variant="primary"
               size="lg"
               threeD
-              className="w-full"
+              className="w-full btn-responsive-primary"
             >
               Sign in
             </Button>

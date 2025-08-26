@@ -22,7 +22,7 @@ const ResetPassword: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-brand-primary-50 flex items-center justify-center p-4">
-      <Container size="sm" className="w-full">
+      <Container size="sm" className="w-full container-responsive">
         {/* Back Navigation */}
         <div className="mb-8">
           <Button 
@@ -75,9 +75,12 @@ const ResetPassword: React.FC = () => {
                   variant="primary"
                   size="lg"
                   threeD
-                  className="w-full"
+                  className="w-full btn-responsive-primary"
                   loading={loading}
-                  disabled={loading}
+                  disabled={
+                    loading ||
+                    !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(email)
+                  }
                 >
                   Send reset link
                 </Button>

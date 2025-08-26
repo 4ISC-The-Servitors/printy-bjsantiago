@@ -40,7 +40,7 @@ const LandingPage: React.FC = () => {
       setMessages(botMessages);
       const replies = flow.quickReplies().map((label: string) => ({ label, value: label }));
       setQuickReplies(replies);
-      setInputPlaceholder(replies.length === 0 ? 'Type your response...' : 'Type a message...');
+      setInputPlaceholder('Type a message...');
       setIsTyping(false);
     }, 1500);
     document.getElementById('chat-section')?.scrollIntoView({ behavior: 'smooth' });
@@ -72,7 +72,7 @@ const LandingPage: React.FC = () => {
         setMessages((prev) => [...prev, ...newBotMessages]);
         const replies = (response.quickReplies ?? []).map((label: string) => ({ label, value: label }));
         setQuickReplies(replies);
-        setInputPlaceholder(replies.length === 0 ? 'Type your response...' : 'Type a message...');
+        setInputPlaceholder('Type a message...');
         setIsTyping(false);
         
         // If guest is in place-order flow, redirect on auth choices
@@ -121,7 +121,7 @@ const LandingPage: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-brand-primary-50">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-neutral-200">
-        <Container className="py-4">
+        <Container className="py-4 container-responsive">
           <div className="flex items-center justify-between">
             {/* Logo */}
             <div className="flex items-center space-x-3 cursor-pointer">
@@ -153,7 +153,7 @@ const LandingPage: React.FC = () => {
 
       {/* Hero Section */}
       <section className="py-20 lg:py-32">
-        <Container>
+        <Container className="container-responsive">
           <div className="text-center max-w-4xl mx-auto space-y-8">
             <div className="space-y-6">
               <Text variant="h1" size="6xl" weight="bold" className="text-brand-primary leading-tight text-center">
@@ -170,7 +170,7 @@ const LandingPage: React.FC = () => {
                 size="lg" 
                 threeD
                 onClick={scrollToChat}
-                className="group"
+                className="group btn-responsive-primary"
               >
                 Try out Printy
               </Button>
@@ -184,7 +184,7 @@ const LandingPage: React.FC = () => {
 
       {/* Features Section */}
       <section className="py-16 bg-white">
-        <Container>
+        <Container className="container-responsive">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="text-center space-y-4">
               <div className="w-16 h-16 bg-brand-primary-100 rounded-full flex items-center justify-center mx-auto">
@@ -227,7 +227,7 @@ const LandingPage: React.FC = () => {
 
       {/* Chat Section */}
       <section id="chat-section" className="py-20 bg-gradient-to-br from-brand-primary-50 to-white">
-        <Container>
+        <Container className="container-responsive">
           <div className="max-w-4xl mx-auto">
             <div className="text-center space-y-8 mb-12">
               <Text variant="h2" size="4xl" weight="bold" className="text-brand-primary text-center">
