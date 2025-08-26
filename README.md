@@ -1,15 +1,53 @@
-# Printy - Custom Printing Services
+## 🚀 Current Status
 
-A modern, accessible, and performant web application for custom printing services in the Philippines, built with React, TypeScript, and Tailwind CSS.
+**✅ COMPLETED:**
+- Modern Design System with comprehensive component library
+- Mobile-first responsive design
+- Authentication UI (Sign In, Sign Up, Reset Password)
+- Customer Dashboard with chat interface
+- Chat flow system for About Us, FAQs, and basic interactions
+- Component showcase and design system documentation
+- Toast notifications and modal systems
+- TypeScript types and interfaces
 
-## 🚀 Features
+**🔄 IN PROGRESS:**
+- Backend integration and API implementation
+- Real authentication system
+- Database schema and data persistence
 
-- **Modern Design System** - Comprehensive design tokens and component library
-- **Mobile-First Responsive** - Optimized for all device sizes
-- **Accessibility First** - WCAG 2.1 AA compliant
-- **Performance Optimized** - Built for Core Web Vitals
-- **Type Safe** - Full TypeScript implementation
-- **Component Architecture** - Atomic design principles
+**📋 TODO - Backend Integration Checklist:**
+
+### Phase 1: Authentication & User Management
+- [ ] Replace hardcoded credentials with real Supabase auth
+- [ ] Implement proper JWT token management
+- [ ] Add user session persistence
+- [ ] Create user profile management
+- [ ] Add role-based access control (customer, valued, admin, superadmin)
+
+### Phase 2: Database & Data Models
+- [ ] Set up Supabase database schema
+- [ ] Create tables: users, profiles, orders, tickets, conversations
+- [ ] Implement real-time subscriptions for chat
+- [ ] Add data validation and sanitization
+
+### Phase 3: Chat System Enhancement
+- [ ] Implement real conversation persistence
+- [ ] Add file upload capabilities
+- [ ] Create support ticket system
+- [ ] Add order tracking integration
+- [ ] Implement real-time chat updates
+
+### Phase 4: Order Management
+- [ ] Create order creation flow
+- [ ] Implement payment processing
+- [ ] Add order status tracking
+- [ ] Create invoice generation
+
+### Phase 5: Admin & Superadmin Features
+- [ ] Admin dashboard for order management
+- [ ] User management interface
+- [ ] Analytics and reporting
+- [ ] System configuration
 
 ## 🛠️ Tech Stack
 
@@ -80,6 +118,18 @@ VITE_API_BASE_URL=http://localhost:3000/api
 3. **Update your `.env` file** with the actual values
 4. **Set up your database schema** (see Database Schema section below)
 
+## 🗄️ Database Schema (TODO)
+
+### Core Tables
+```sql
+-- Users table (handled by Supabase Auth)
+-- profiles table for extended user information
+-- orders table for customer orders
+-- tickets table for support tickets
+-- conversations table for chat history
+-- messages table for individual chat messages
+```
+
 ## 🎨 Design System
 
 ### Color Palette
@@ -112,17 +162,21 @@ VITE_API_BASE_URL=http://localhost:3000/api
 ```
 src/
 ├── components/          # Reusable UI components
-│   ├── atoms/          # Basic building blocks
-│   ├── molecules/      # Simple combinations
-│   ├── organisms/      # Complex components
-│   └── templates/      # Page layouts
+│   ├── chat/           # Chat interface components
+│   ├── customer/       # Customer-specific components
+│   └── shared/         # Shared UI components
+├── chatLogic/          # Chat flow definitions
+│   ├── customer/       # Customer chat flows
+│   └── guest/          # Guest chat flows
 ├── lib/                # Utility functions and helpers
 │   ├── supabase.ts     # Supabase client configuration
 │   └── utils.ts        # Common utility functions
 ├── types/              # TypeScript type definitions
-├── hooks/              # Custom React hooks
-├── stores/             # State management
-└── pages/              # Page components
+├── pages/              # Page components
+│   ├── auth/           # Authentication pages
+│   ├── customer/       # Customer dashboard
+│   └── admin/          # Admin interfaces
+└── main.tsx            # Application entry point
 ```
 
 ## 🎯 Development Guidelines
