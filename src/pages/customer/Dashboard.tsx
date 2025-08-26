@@ -279,7 +279,7 @@ const CustomerDashboard: React.FC = () => {
       localStorage.removeItem('prototype_role');
       localStorage.removeItem('prototype_email');
     } catch {}
-    navigate('/');
+    navigate('/auth/signin');
   };
 
   return (
