@@ -298,6 +298,7 @@ const CustomerDashboard: React.FC = () => {
           <Button
             variant="ghost"
             size="sm"
+            threeD
             aria-label={sidebarOpen ? 'Close menu' : 'Open menu'}
             onClick={() => setSidebarOpen((s) => !s)}
           >
@@ -393,12 +394,13 @@ const CustomerDashboard: React.FC = () => {
               )}
             </div>
 
-            {/* Fixed Account Section */}
+            {/* Fixed Sidebar Section */}
             <div className="p-4 border-t border-neutral-200 shrink-0">
-              <div className="space-y-2">
+              <div className="space-y-4">
                 <Button
                   variant="secondary"
                   className="w-full justify-start"
+                  threeD
                   onClick={() => navigate('/account')}
                 >
                   <User className="w-4 h-4 mr-2" /> Account
@@ -406,6 +408,7 @@ const CustomerDashboard: React.FC = () => {
                 <Button
                   variant="accent"
                   className="w-full justify-start"
+                  threeD
                   onClick={handleLogout}
                 >
                   <LogOut className="w-4 h-4 mr-2" /> Logout

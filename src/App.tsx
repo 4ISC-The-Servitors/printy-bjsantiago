@@ -7,6 +7,7 @@ import CustomerDashboard from './pages/customer/Dashboard';
 import AdminDashboard from './pages/admin/Dashboard';
 import SuperAdminDashboard from './pages/superadmin/Dashboard';
 import './index.css';
+import Showcase from './pages/Showcase';
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
       <Route path="/valued" element={<CustomerDashboard />} />
       <Route path="/admin" element={<AdminDashboard />} />
       <Route path="/superadmin" element={<SuperAdminDashboard />} />
+      <Route path="/showcase" element={<Showcase />} />
     </Routes>
   );
 }

@@ -4,6 +4,7 @@ import { cn } from '../../lib/utils';
 export interface ContainerProps extends React.HTMLAttributes<HTMLDivElement> {
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
   as?: React.ElementType;
+  threeD?: boolean;
   children: React.ReactNode;
 }
 
@@ -12,6 +13,7 @@ const Container = React.forwardRef<HTMLDivElement, ContainerProps>(
     {
       size = '2xl',
       as: Component = 'div',
+      threeD = false,
       children,
       className,
       ...props
@@ -24,6 +26,7 @@ const Container = React.forwardRef<HTMLDivElement, ContainerProps>(
         className={cn(
           'w-full mx-auto px-4 sm:px-6 lg:px-8',
           getSizeClasses(size),
+          threeD && 'container-3d',
           className
         )}
         {...props}

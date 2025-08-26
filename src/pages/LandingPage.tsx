@@ -34,10 +34,10 @@ const LandingPage: React.FC = () => {
 
             {/* Navigation */}
             <div className="flex items-center space-x-4">
-              <Button variant="ghost" size="sm" onClick={() => navigate('/auth/signin')}>
+              <Button variant="ghost" size="sm" threeD onClick={() => navigate('/auth/signin')}>
                 Sign In
               </Button>
-              <Button variant="primary" size="sm" onClick={() => navigate('/auth/signup')}>
+              <Button variant="primary" size="sm" threeD onClick={() => navigate('/auth/signup')}>
                 Sign Up
               </Button>
             </div>
@@ -62,6 +62,7 @@ const LandingPage: React.FC = () => {
               <Button 
                 variant="primary" 
                 size="lg" 
+                threeD
                 onClick={scrollToChat}
                 className="group"
               >

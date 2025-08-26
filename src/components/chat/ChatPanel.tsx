@@ -26,6 +26,7 @@ export interface ChatPanelProps {
   quickReplies?: QuickReply[];
   onQuickReply?: (value: string) => void;
   inputPlaceholder?: string;
+  onEndChat?: () => void;
 }
 
 function formatRelativeTime(ts: number): string {
@@ -106,6 +107,7 @@ const MessageGroup: React.FC<{
               key={index}
               variant={reply.label.toLowerCase().includes('end') ? 'secondary' : 'primary'}
               size="sm"
+              threeD
               onClick={() => onQuickReply?.(reply.value)}
               className="text-sm flex items-center gap-1"
             >
@@ -202,6 +204,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
             <Button
               variant="ghost"
               size="sm"
+              threeD
               onClick={onBack}
               className="p-2"
               aria-label="Go back"
@@ -269,6 +272,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
           type="button"
           variant="secondary"
           size="md"
+          threeD
           aria-label="Attach files"
           onClick={() => fileInputRef.current?.click()}
         >
@@ -280,7 +284,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
           placeholder={inputPlaceholder}
           className="flex-1 input"
         />
-        <Button type="submit" variant="primary" size="md">
+        <Button type="submit" variant="primary" size="md" threeD>
           <Send className="w-4 h-4 mr-1" /> Send
         </Button>
       </form>

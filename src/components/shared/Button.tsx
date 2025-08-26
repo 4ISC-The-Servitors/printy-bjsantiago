@@ -6,6 +6,7 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   size?: 'sm' | 'md' | 'lg';
   disabled?: boolean;
   loading?: boolean;
+  threeD?: boolean;
   children: React.ReactNode;
   onClick?: () => void;
   className?: string;
@@ -32,6 +33,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       size = 'md',
       disabled = false,
       loading = false,
+      threeD = false,
       children,
       onClick,
       className,
@@ -56,6 +58,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           variantClasses,
           sizeClasses,
           stateClasses,
+          threeD && 'btn-3d',
           className
         )}
         {...props}

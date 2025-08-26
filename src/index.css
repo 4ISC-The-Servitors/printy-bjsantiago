@@ -268,47 +268,109 @@
   }
 
   .btn-primary {
-    background-color: var(--brand-primary);
+    --btn-bg: var(--brand-primary);
+    background-color: var(--btn-bg);
     color: white;
-    border-color: var(--brand-primary);
+    border-color: var(--btn-bg);
   }
 
   .btn-primary:hover:not(:disabled) {
-    background-color: var(--brand-primary-900);
-    border-color: var(--brand-primary-900);
+    --btn-bg: var(--brand-primary-900);
+    background-color: var(--btn-bg);
+    border-color: var(--btn-bg);
   }
 
   .btn-secondary {
-    background-color: var(--neutral-100);
+    --btn-bg: var(--neutral-100);
+    background-color: var(--btn-bg);
     color: var(--neutral-700);
     border-color: var(--neutral-200);
   }
 
   .btn-secondary:hover:not(:disabled) {
-    background-color: var(--neutral-200);
+    --btn-bg: var(--neutral-200);
+    background-color: var(--btn-bg);
     border-color: var(--neutral-300);
   }
 
   .btn-accent {
-    background-color: var(--brand-accent);
+    --btn-bg: var(--brand-accent);
+    background-color: var(--btn-bg);
     color: white;
-    border-color: var(--brand-accent);
+    border-color: var(--btn-bg);
   }
 
   .btn-accent:hover:not(:disabled) {
-    background-color: #b45309;
-    border-color: #b45309;
+    --btn-bg: #b45309;
+    background-color: var(--btn-bg);
+    border-color: var(--btn-bg);
   }
 
   .btn-ghost {
-    background-color: transparent;
+    --btn-bg: transparent;
+    background-color: var(--btn-bg);
     color: var(--neutral-600);
     border-color: transparent;
   }
 
   .btn-ghost:hover:not(:disabled) {
-    background-color: var(--neutral-50);
+    --btn-bg: var(--neutral-50);
+    background-color: var(--btn-bg);
     color: var(--neutral-700);
+  }
+
+  /* 3D Button Variant */
+  .btn-3d {
+    position: relative;
+    transform: translateY(0);
+    transition:
+      transform var(--duration-quick) var(--ease-out),
+      box-shadow var(--duration-quick) var(--ease-out),
+      background-color var(--duration-quick) var(--ease-out),
+      border-color var(--duration-quick) var(--ease-out);
+    /* Compute a slightly darker depth color from the current surface color */
+    --btn-depth: color-mix(in srgb, var(--btn-bg) 85%, black 15%);
+    box-shadow:
+      0 6px 0 0 var(--btn-depth);
+  }
+
+  .btn-3d:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow:
+      0 7px 0 0 var(--btn-depth);
+  }
+
+  .btn-3d:active:not(:disabled) {
+    transform: translateY(1px) scale(0.98);
+    box-shadow:
+      0 3px 0 0 var(--btn-depth);
+  }
+
+  /* 3D Container Variant */
+  .container-3d {
+    transition:
+      transform var(--duration-quick) var(--ease-out),
+      box-shadow var(--duration-quick) var(--ease-out);
+    box-shadow:
+      0 2px 0 0 rgba(0, 0, 0, 0.06),
+      0 10px 20px -12px rgba(0, 0, 0, 0.12);
+    border: 1px solid var(--neutral-200);
+    border-radius: 0.75rem;
+    background-color: var(--neutral-0);
+  }
+
+  .container-3d:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 4px 0 0 rgba(0, 0, 0, 0.08),
+      0 16px 28px -14px rgba(0, 0, 0, 0.16);
+  }
+
+  .container-3d:active {
+    transform: translateY(1px);
+    box-shadow:
+      0 1px 0 0 rgba(0, 0, 0, 0.06),
+      0 8px 12px -10px rgba(0, 0, 0, 0.12);
   }
 
   /* Card Component */

@@ -28,6 +28,30 @@ const ContainerShowcase: React.FC = () => {
           <Text>2XL Container (max-width: 1400px)</Text>
         </Container>
       </div>
+
+      <Text variant="h3" size="xl" weight="semibold">
+        3D Containers
+      </Text>
+      <div className="space-y-4">
+        <Container size="xs" threeD className="p-4">
+          <Text>XS 3D Container</Text>
+        </Container>
+        <Container size="sm" threeD className="p-4">
+          <Text>SM 3D Container</Text>
+        </Container>
+        <Container size="md" threeD className="p-4">
+          <Text>MD 3D Container</Text>
+        </Container>
+        <Container size="lg" threeD className="p-4">
+          <Text>LG 3D Container</Text>
+        </Container>
+        <Container size="xl" threeD className="p-4">
+          <Text>XL 3D Container</Text>
+        </Container>
+        <Container size="2xl" threeD className="p-4">
+          <Text>2XL 3D Container</Text>
+        </Container>
+      </div>
     </section>
   );
 };
