@@ -5,3 +5,5 @@ export { default as TypographyShowcase } from './TypographyShowcase';
 export { default as BadgeShowcase } from './BadgeShowcase';
 export { default as SkeletonShowcase } from './SkeletonShowcase';
 export { default as ContainerShowcase } from './ContainerShowcase';
+export { default as ToastShowcase } from './ToastShowcase';
+export { default as ComponentShowcase } from './ComponentShowcase';

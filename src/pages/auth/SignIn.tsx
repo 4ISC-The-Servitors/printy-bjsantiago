@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Input, Text, Container } from '../../components/shared';
+import { Button, Input, Text, Container, ToastContainer } from '../../components/shared';
+import { useToast } from '../../lib/useToast';
 import { Eye, EyeOff, Mail, ArrowLeft } from 'lucide-react';
 
 const SignIn: React.FC = () => {
   const navigate = useNavigate();
+  const [toasts, toastMethods] = useToast();
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -25,13 +29,19 @@ const SignIn: React.FC = () => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setLoading(true);
+
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 1500));
 
     const entry = credentials[formData.email.trim().toLowerCase()];
     if (!entry || entry.password !== formData.password) {
       setError('Invalid email or password.');
+      toastMethods.error('Sign In Failed', 'Please check your credentials and try again.');
+      setLoading(false);
       return;
     }
 
@@ -43,12 +53,22 @@ const SignIn: React.FC = () => {
       } catch {}
     }
 
-    navigate(entry.route);
+    toastMethods.success('Welcome back!', `Successfully signed in as ${entry.role}`);
+    
+    // Small delay to show success toast before navigation
+    setTimeout(() => {
+      navigate(entry.route);
+    }, 1000);
   };
 
-  const handleGoogleSignIn = () => {
-    // TODO: Implement Google sign-in
-    console.log('Google sign-in clicked');
+  const handleGoogleSignIn = async () => {
+    setGoogleLoading(true);
+    
+    // Simulate Google sign-in delay
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    toastMethods.info('Google Sign-In', 'Google authentication is not implemented in this prototype.');
+    setGoogleLoading(false);
   };
 
   return (
@@ -169,9 +189,11 @@ const SignIn: React.FC = () => {
               variant="primary"
               size="lg"
               threeD
+              loading={loading}
+              disabled={loading}
               className="w-full btn-responsive-primary"
             >
-              Sign in
+              {loading ? 'Signing in...' : 'Sign in'}
             </Button>
           </form>
 
@@ -192,6 +214,8 @@ const SignIn: React.FC = () => {
             variant="secondary"
             size="lg"
             threeD
+            loading={googleLoading}
+            disabled={googleLoading || loading}
             className="w-full border border-neutral-300 hover:border-neutral-400"
             onClick={handleGoogleSignIn}
           >
@@ -215,10 +239,17 @@ const SignIn: React.FC = () => {
                 />
               </svg>
             </div>
-            Sign in with Google
+            {googleLoading ? 'Signing in with Google...' : 'Sign in with Google'}
           </Button>
         </div>
       </Container>
+      
+      {/* Toast Container */}
+      <ToastContainer
+        toasts={toasts}
+        onRemoveToast={toastMethods.remove}
+        position="top-center"
+      />
     </div>
   );
 };

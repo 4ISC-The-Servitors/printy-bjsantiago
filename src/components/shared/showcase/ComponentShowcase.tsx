@@ -1,5 +1,5 @@
 import React from 'react';
-import { Container, Text } from './index';
+import { Container, Text } from '../index';
 import {
   ButtonShowcase,
   InputShowcase,
@@ -8,7 +8,8 @@ import {
   BadgeShowcase,
   SkeletonShowcase,
   ContainerShowcase,
-} from './showcase';
+  ToastShowcase,
+} from './index';
 
 const ComponentShowcase: React.FC = () => {
   return (
@@ -21,6 +22,7 @@ const ComponentShowcase: React.FC = () => {
       <BadgeShowcase />
       <SkeletonShowcase />
       <ContainerShowcase />
+      <ToastShowcase />
     </Container>
   );
 };

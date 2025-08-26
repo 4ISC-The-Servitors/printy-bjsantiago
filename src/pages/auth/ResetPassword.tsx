@@ -1,23 +1,34 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Input, Text, Container } from '../../components/shared';
+import { Button, Input, Text, Container, ToastContainer } from '../../components/shared';
+import { useToast } from '../../lib/useToast';
 import { ArrowLeft, Mail, CheckCircle2 } from 'lucide-react';
 
 const ResetPassword: React.FC = () => {
   const navigate = useNavigate();
+  const [toasts, toastMethods] = useToast();
   const [email, setEmail] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
-    // Prototype: mimic API call
-    setTimeout(() => {
-      setSubmitted(true);
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
+    // Validate email format
+    if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(email)) {
+      toastMethods.error('Invalid Email', 'Please enter a valid email address.');
       setLoading(false);
-    }, 800);
+      return;
+    }
+
+    // Simulate success
+    setSubmitted(true);
+    setLoading(false);
+    toastMethods.success('Success!', 'We have sent a reset link to your email.');
   };
 
   return (
@@ -82,7 +93,7 @@ const ResetPassword: React.FC = () => {
                     !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(email)
                   }
                 >
-                  Send reset link
+                  {loading ? 'Sending reset link...' : 'Send reset link'}
                 </Button>
               </form>
             </>
@@ -100,7 +111,15 @@ const ResetPassword: React.FC = () => {
                   <Button variant="primary" threeD onClick={() => navigate('/auth/signin')}>
                     Return to sign in
                   </Button>
-                  <Button variant="ghost" threeD onClick={() => setSubmitted(false)}>
+                  <Button 
+                    variant="ghost" 
+                    threeD 
+                    onClick={() => {
+                      setSubmitted(false);
+                      setEmail('');
+                      toastMethods.info('Reset Form', 'You can now enter a different email address.');
+                    }}
+                  >
                     Use a different email
                   </Button>
                 </div>
@@ -109,6 +128,13 @@ const ResetPassword: React.FC = () => {
           )}
         </div>
       </Container>
+      
+      {/* Toast Container */}
+      <ToastContainer
+        toasts={toasts}
+        onRemoveToast={toastMethods.remove}
+        position="top-center"
+      />
     </div>
   );
 };

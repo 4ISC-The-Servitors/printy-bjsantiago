@@ -2,7 +2,7 @@ import React from 'react';
 import { cn } from '../../lib/utils';
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'accent' | 'ghost';
+  variant?: 'primary' | 'secondary' | 'accent' | 'ghost' | 'success' | 'error' | 'warning' | 'info';
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   disabled?: boolean;
   loading?: boolean;
@@ -18,6 +18,10 @@ const buttonVariants = {
   secondary: 'btn-secondary',
   accent: 'btn-accent',
   ghost: 'btn-ghost',
+  success: 'btn-success',
+  error: 'btn-error',
+  warning: 'btn-warning',
+  info: 'btn-info',
 } as const;
 
 const buttonSizes = {

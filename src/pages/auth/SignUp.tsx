@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Input, Text, Container } from '../../components/shared';
+import { Button, Input, Text, Container, ToastContainer } from '../../components/shared';
+import { useToast } from '../../lib/useToast';
 import { Eye, EyeOff, Mail, ArrowLeft, User, Phone, MapPin, Globe } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
@@ -31,9 +32,12 @@ interface FormData {
 
 const SignUp: React.FC = () => {
   const navigate = useNavigate();
+  const [toasts, toastMethods] = useToast();
   const [currentStep, setCurrentStep] = useState(1);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   
   const [formData, setFormData] = useState<FormData>({
     email: '',
@@ -73,15 +77,32 @@ const SignUp: React.FC = () => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
+    
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
     // TODO: Implement sign-up logic
     console.log('Sign up attempt:', formData);
+    
+    toastMethods.success('Account Created!', 'Your account has been successfully created.');
+    
+    // Small delay to show success toast before navigation
+    setTimeout(() => {
+      navigate('/auth/signin');
+    }, 1500);
   };
 
-  const handleGoogleSignUp = () => {
-    // TODO: Implement Google sign-up
-    console.log('Google sign-up clicked');
+  const handleGoogleSignUp = async () => {
+    setGoogleLoading(true);
+    
+    // Simulate Google sign-up delay
+    await new Promise(resolve => setTimeout(resolve, 2500));
+    
+    toastMethods.info('Google Sign-Up', 'Google authentication is not implemented in this prototype.');
+    setGoogleLoading(false);
   };
 
   const isStepValid = (step: number): boolean => {
@@ -531,6 +552,7 @@ const SignUp: React.FC = () => {
           size="lg"
           threeD
           onClick={prevStep}
+          disabled={loading}
           className="flex-1 btn-responsive-primary"
         >
           Previous
@@ -544,7 +566,7 @@ const SignUp: React.FC = () => {
           size="lg"
           threeD
           onClick={nextStep}
-          disabled={!isStepValid(currentStep)}
+          disabled={!isStepValid(currentStep) || loading}
           className="flex-1 btn-responsive-primary"
         >
           Next
@@ -555,10 +577,11 @@ const SignUp: React.FC = () => {
           variant="primary"
           size="lg"
           threeD
-          disabled={!isStepValid(currentStep)}
+          loading={loading}
+          disabled={!isStepValid(currentStep) || loading}
           className="flex-1 btn-responsive-primary"
         >
-          Create Account
+          {loading ? 'Creating Account...' : 'Create Account'}
         </Button>
       )}
     </div>
@@ -632,6 +655,8 @@ const SignUp: React.FC = () => {
             variant="secondary"
             size="lg"
             threeD
+            loading={googleLoading}
+            disabled={googleLoading || loading}
             className="w-full border border-neutral-300 hover:border-neutral-400"
             onClick={handleGoogleSignUp}
           >
@@ -655,7 +680,7 @@ const SignUp: React.FC = () => {
                 />
               </svg>
             </div>
-            Sign up with Google
+            {googleLoading ? 'Signing up with Google...' : 'Sign up with Google'}
           </Button>
         </div>
 
@@ -681,6 +706,13 @@ const SignUp: React.FC = () => {
           </Text>
         </div>
       </Container>
+      
+      {/* Toast Container */}
+      <ToastContainer
+        toasts={toasts}
+        onRemoveToast={toastMethods.remove}
+        position="top-center"
+      />
     </div>
   );
 };
