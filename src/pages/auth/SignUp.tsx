@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Input, Text, Container } from '../../components/shared';
-import { Eye, EyeOff, Mail, ArrowLeft, User, Phone, Calendar, MapPin, Building, Globe } from 'lucide-react';
+import { Eye, EyeOff, Mail, ArrowLeft, User, Phone, MapPin, Globe } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 interface FormData {

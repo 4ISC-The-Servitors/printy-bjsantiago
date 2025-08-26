@@ -11,7 +11,7 @@ export interface Profile extends BaseEntity {
   full_name: string | null;
   avatar_url: string | null;
   phone: string | null;
-  role: 'customer' | 'admin' | 'staff';
+  role: 'customer' | 'admin' | 'superadmin' | 'valued';
   preferences: Record<string, any>;
 }
 

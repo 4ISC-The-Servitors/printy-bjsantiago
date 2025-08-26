@@ -11,6 +11,15 @@ const SignIn: React.FC = () => {
     password: '',
     keepLoggedIn: false,
   });
+  const [error, setError] = useState<string | null>(null);
+
+  // Hardcoded credentials for prototype routing
+  const credentials: Record<string, { password: string; role: 'customer' | 'valued' | 'admin' | 'superadmin'; route: string }> = {
+    'customer@example.com': { password: 'customer123', role: 'customer', route: '/customer' },
+    'valued@example.com': { password: 'valued123', role: 'valued', route: '/valued' },
+    'admin@example.com': { password: 'admin123', role: 'admin', route: '/admin' },
+    'superadmin@example.com': { password: 'superadmin123', role: 'superadmin', route: '/superadmin' },
+  };
 
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -18,8 +27,23 @@ const SignIn: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement sign-in logic
-    console.log('Sign in attempt:', formData);
+    setError(null);
+
+    const entry = credentials[formData.email.trim().toLowerCase()];
+    if (!entry || entry.password !== formData.password) {
+      setError('Invalid email or password.');
+      return;
+    }
+
+    // Optionally persist prototype session
+    if (formData.keepLoggedIn) {
+      try {
+        localStorage.setItem('prototype_role', entry.role);
+        localStorage.setItem('prototype_email', formData.email.trim().toLowerCase());
+      } catch {}
+    }
+
+    navigate(entry.route);
   };
 
   const handleGoogleSignIn = () => {
@@ -63,6 +87,11 @@ const SignIn: React.FC = () => {
 
           {/* Sign In Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
+            {error && (
+              <div className="rounded-md bg-error-50 border border-error p-3 text-sm text-error">
+                {error}
+              </div>
+            )}
             {/* Email Field */}
             <div className="space-y-2">
               <Input
@@ -127,7 +156,7 @@ const SignIn: React.FC = () => {
               <button
                 type="button"
                 className="text-error hover:text-error-700 text-sm font-medium transition-colors"
-                onClick={() => console.log('Forgot password clicked')}
+                onClick={() => navigate('/auth/reset-password')}
               >
                 Forgot your password?
               </button>
