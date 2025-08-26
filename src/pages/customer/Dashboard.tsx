@@ -5,6 +5,8 @@ import { type ChatMessage, type QuickReply, type ChatRole } from '../../componen
 import MobileSidebar from '../../components/customer/MobileSidebar';
 import DesktopSidebar from '../../components/customer/DesktopSidebar';
 import DashboardContent from '../../components/customer/DashboardContent';
+import { ToastContainer, Modal, Text, Button } from '../../components/shared';
+import { useToast } from '../../lib/useToast';
 import { customerFlows as flows } from '../../chatLogic/customer';
 import {
   ShoppingCart,
@@ -13,6 +15,7 @@ import {
   Info,
   MessageSquare,
   Settings,
+  X,
 } from 'lucide-react';
 
 type TopicKey =
@@ -79,6 +82,7 @@ const topicConfig: Record<
 
 const CustomerDashboard: React.FC = () => {
   const navigate = useNavigate();
+  const [toasts, toastMethods] = useToast();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -86,6 +90,7 @@ const CustomerDashboard: React.FC = () => {
   const [currentFlow, setCurrentFlow] = useState<any>(null);
   const [quickReplies, setQuickReplies] = useState<QuickReply[]>([]);
   const [inputPlaceholder, setInputPlaceholder] = useState('Type a message...');
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const topics = useMemo(() => Object.entries(topicConfig) as [TopicKey, typeof topicConfig[TopicKey]][], []);
 
@@ -207,6 +212,7 @@ const CustomerDashboard: React.FC = () => {
       }, 800);
     } catch (error) {
       console.error('Flow error:', error);
+      toastMethods.error('Chat Error', 'There was an issue processing your message. Please try again.');
       setIsTyping(false);
     }
   };
@@ -239,12 +245,12 @@ const CustomerDashboard: React.FC = () => {
       setIsTyping(false);
     } else {
       // Restore flow state for active conversations
-    const flow = flows[conv.flowId];
-    if (flow) {
-      setCurrentFlow(flow);
-      const replies = flow.quickReplies().map((label: string) => ({ label, value: label }));
-      setQuickReplies(replies);
-      updateInputPlaceholder(conv.flowId, replies);
+      const flow = flows[conv.flowId];
+      if (flow) {
+        setCurrentFlow(flow);
+        const replies = flow.quickReplies().map((label: string) => ({ label, value: label }));
+        setQuickReplies(replies);
+        updateInputPlaceholder(conv.flowId, replies);
       }
     }
   };
@@ -302,11 +308,33 @@ const CustomerDashboard: React.FC = () => {
   };
 
   const handleLogout = () => {
+    setShowLogoutModal(true);
+  };
+
+  const confirmLogout = async () => {
+    setShowLogoutModal(false);
+    
+    // Show logout confirmation toast
+    toastMethods.info('Logging out...', 'Please wait while we sign you out');
+    
+    // Simulate logout delay
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
     try {
       localStorage.removeItem('prototype_role');
       localStorage.removeItem('prototype_email');
-    } catch {}
-    navigate('/auth/signin');
+      
+      // Success toast
+      toastMethods.success('Successfully logged out', 'You have been signed out of your account');
+      
+      // Delay before redirect to show success message
+      setTimeout(() => {
+        navigate('/auth/signin');
+      }, 1500);
+    } catch (error) {
+      toastMethods.error('Logout Error', 'There was an issue signing you out');
+      navigate('/auth/signin');
+    }
   };
 
   return (
@@ -352,9 +380,50 @@ const CustomerDashboard: React.FC = () => {
           />
           )}
         </main>
-    </div>
-  );
-};
+        
+        {/* Logout Confirmation Modal */}
+        <Modal isOpen={showLogoutModal} onClose={() => setShowLogoutModal(false)} size="sm">
+          <div className="bg-white rounded-2xl shadow-xl border border-neutral-200">
+            <div className="flex items-center justify-between p-6 pb-4">
+              <Text variant="h3" size="lg" weight="semibold">
+                Confirm Logout
+              </Text>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowLogoutModal(false)}
+                className="ml-4 h-8 w-8 p-0 hover:bg-neutral-100"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            <div className="px-6 pb-4">
+              <Text variant="p">
+                Are you sure you want to log out? You'll need to sign in again to access your account.
+              </Text>
+            </div>
+            
+            <div className="flex items-center justify-end gap-3 p-6 pt-4">
+              <Button variant="ghost" onClick={() => setShowLogoutModal(false)}>
+                Cancel
+              </Button>
+              <Button variant="error" threeD onClick={confirmLogout}>
+                Logout
+              </Button>
+            </div>
+          </div>
+        </Modal>
+        
+        {/* Toast Container */}
+        <ToastContainer
+          toasts={toasts}
+          onRemoveToast={toastMethods.remove}
+          position="top-center"
+        />
+      </div>
+    );
+  };
 
 export default CustomerDashboard;
 
