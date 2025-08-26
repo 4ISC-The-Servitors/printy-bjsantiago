@@ -87,14 +87,14 @@ const SignUp: React.FC = () => {
   const isStepValid = (step: number): boolean => {
     switch (step) {
       case 1:
-        return formData.email && formData.password && formData.confirmPassword && 
+        return !!formData.email && !!formData.password && !!formData.confirmPassword && 
                formData.password === formData.confirmPassword && formData.password.length >= 8;
       case 2:
-        return formData.firstName && formData.lastName && formData.phone && 
-               formData.gender && formData.birthday;
+        return !!formData.firstName && !!formData.lastName && !!formData.phone && 
+               !!formData.gender && !!formData.birthday;
       case 3:
-        return formData.street && formData.barangay && formData.province && 
-               formData.city && formData.agreeToTerms;
+        return !!formData.street && !!formData.barangay && !!formData.province && 
+               !!formData.city && !!formData.agreeToTerms;
       default:
         return false;
     }
@@ -527,12 +527,10 @@ const SignUp: React.FC = () => {
           type="button"
           variant="secondary"
           size="lg"
+          threeD
           onClick={prevStep}
           className="flex-1"
         >
-          <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
-          </svg>
           Previous
         </Button>
       )}
@@ -542,20 +540,19 @@ const SignUp: React.FC = () => {
           type="button"
           variant="primary"
           size="lg"
+          threeD
           onClick={nextStep}
           disabled={!isStepValid(currentStep)}
           className="flex-1"
         >
           Next
-          <svg className="w-5 h-5 ml-2" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-          </svg>
         </Button>
       ) : (
         <Button
           type="submit"
           variant="primary"
           size="lg"
+          threeD
           disabled={!isStepValid(currentStep)}
           className="flex-1"
         >
@@ -573,6 +570,7 @@ const SignUp: React.FC = () => {
           <Button 
             variant="ghost" 
             size="sm" 
+            threeD
             className="text-neutral-600 hover:text-brand-primary"
             onClick={() => navigate('/')}
           >
@@ -631,6 +629,7 @@ const SignUp: React.FC = () => {
           <Button
             variant="secondary"
             size="lg"
+            threeD
             className="w-full border border-neutral-300 hover:border-neutral-400"
             onClick={handleGoogleSignUp}
           >

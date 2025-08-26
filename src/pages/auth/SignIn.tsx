@@ -59,6 +59,7 @@ const SignIn: React.FC = () => {
           <Button 
             variant="ghost" 
             size="sm" 
+            threeD
             className="text-neutral-600 hover:text-brand-primary"
             onClick={() => navigate('/')}
           >
@@ -167,6 +168,7 @@ const SignIn: React.FC = () => {
               type="submit"
               variant="primary"
               size="lg"
+              threeD
               className="w-full"
             >
               Sign in
@@ -189,6 +191,7 @@ const SignIn: React.FC = () => {
           <Button
             variant="secondary"
             size="lg"
+            threeD
             className="w-full border border-neutral-300 hover:border-neutral-400"
             onClick={handleGoogleSignIn}
           >

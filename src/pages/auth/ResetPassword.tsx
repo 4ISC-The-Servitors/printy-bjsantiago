@@ -28,6 +28,7 @@ const ResetPassword: React.FC = () => {
           <Button 
             variant="ghost" 
             size="sm" 
+            threeD
             className="text-neutral-600 hover:text-brand-primary"
             onClick={() => navigate('/auth/signin')}
           >
@@ -73,6 +74,7 @@ const ResetPassword: React.FC = () => {
                   type="submit"
                   variant="primary"
                   size="lg"
+                  threeD
                   className="w-full"
                   loading={loading}
                   disabled={loading}
@@ -80,19 +82,6 @@ const ResetPassword: React.FC = () => {
                   Send reset link
                 </Button>
               </form>
-
-              {/* Help text */}
-              <div className="text-center mt-6">
-                <Text variant="p" size="sm" color="muted">
-                  Remembered your password?{' '}
-                  <button 
-                    className="text-brand-primary hover:text-brand-primary-700 underline"
-                    onClick={() => navigate('/auth/signin')}
-                  >
-                    Sign in
-                  </button>
-                </Text>
-              </div>
             </>
           ) : (
             <>
@@ -105,10 +94,10 @@ const ResetPassword: React.FC = () => {
                   If an account exists for <strong>{email}</strong>, you'll receive an email with a link to reset your password. The link will expire in 15 minutes.
                 </Text>
                 <div className="flex items-center gap-3 mt-2">
-                  <Button variant="primary" onClick={() => navigate('/auth/signin')}>
+                  <Button variant="primary" threeD onClick={() => navigate('/auth/signin')}>
                     Return to sign in
                   </Button>
-                  <Button variant="ghost" onClick={() => setSubmitted(false)}>
+                  <Button variant="ghost" threeD onClick={() => setSubmitted(false)}>
                     Use a different email
                   </Button>
                 </div>

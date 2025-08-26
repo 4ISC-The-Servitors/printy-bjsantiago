@@ -67,7 +67,6 @@ const LandingPage: React.FC = () => {
                 className="group"
               >
                 Try out Printy
-                <ChevronDown className="w-5 h-5 ml-2 group-hover:translate-y-1 transition-transform" />
               </Button>
               <Text variant="p" size="lg" color="muted" className="text-center">
                 Experience our new chatbot assistant today
