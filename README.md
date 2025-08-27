@@ -98,34 +98,40 @@
    ```
 
 5. **Build for production**
+
    ```bash
    npm run build
    ```
 
 6. **Prettier check for code format (optional)**
+
    ```bash
    npm run format:check
    ```
 
 7. **Prettier actual code format (optional)**
+
    ```bash
    npm run format
    ```
 
 8. **Check for dependency updates**
+
    ```bash
    npx npm-check-updates
    ```
-  
+
 9. **Update dependencies (except Tailwind)**
+
    ```bash
    npx npm-check-updates -u -x tailwindcss
    ```
 
 10. **Install new dependency updates**
-   ```bash
-   npm install
-   ```
+
+```bash
+npm install
+```
 
 ## 🔧 Environment Setup
 
