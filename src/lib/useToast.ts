@@ -16,7 +16,13 @@ export interface ToastData {
 
 export interface ToastOptions {
   duration?: number;
-  position?: 'top-left' | 'top-right' | 'top-center' | 'bottom-left' | 'bottom-right' | 'bottom-center';
+  position?:
+    | 'top-left'
+    | 'top-right'
+    | 'top-center'
+    | 'bottom-left'
+    | 'bottom-right'
+    | 'bottom-center';
   action?: {
     label: string;
     onClick: () => void;
@@ -33,7 +39,9 @@ export interface ToastMethods {
   clear: () => void;
 }
 
-export const useToast = (defaultOptions: ToastOptions = {}): [ToastData[], ToastMethods] => {
+export const useToast = (
+  defaultOptions: ToastOptions = {}
+): [ToastData[], ToastMethods] => {
   const [toasts, setToasts] = useState<ToastData[]>([]);
   const idCounter = useRef(0);
 
@@ -42,57 +50,72 @@ export const useToast = (defaultOptions: ToastOptions = {}): [ToastData[], Toast
     return `toast-${idCounter.current}`;
   }, []);
 
-  const show = useCallback((toast: Omit<ToastData, 'id'>) => {
-    const id = generateId();
-    const newToast: ToastData = {
-      ...toast,
-      id,
-      duration: toast.duration ?? defaultOptions.duration ?? 5000,
-    };
-    
-    setToasts(prev => [...prev, newToast]);
-    return id;
-  }, [defaultOptions.duration, generateId]);
+  const show = useCallback(
+    (toast: Omit<ToastData, 'id'>) => {
+      const id = generateId();
+      const newToast: ToastData = {
+        ...toast,
+        id,
+        duration: toast.duration ?? defaultOptions.duration ?? 5000,
+      };
 
-  const success = useCallback((title: string, message?: string, options?: ToastOptions) => {
-    return show({
-      title,
-      message,
-      variant: 'success',
-      ...defaultOptions,
-      ...options,
-    });
-  }, [show, defaultOptions]);
+      setToasts(prev => [...prev, newToast]);
+      return id;
+    },
+    [defaultOptions.duration, generateId]
+  );
 
-  const error = useCallback((title: string, message?: string, options?: ToastOptions) => {
-    return show({
-      title,
-      message,
-      variant: 'error',
-      ...defaultOptions,
-      ...options,
-    });
-  }, [show, defaultOptions]);
+  const success = useCallback(
+    (title: string, message?: string, options?: ToastOptions) => {
+      return show({
+        title,
+        message,
+        variant: 'success',
+        ...defaultOptions,
+        ...options,
+      });
+    },
+    [show, defaultOptions]
+  );
 
-  const warning = useCallback((title: string, message?: string, options?: ToastOptions) => {
-    return show({
-      title,
-      message,
-      variant: 'warning',
-      ...defaultOptions,
-      ...options,
-    });
-  }, [show, defaultOptions]);
+  const error = useCallback(
+    (title: string, message?: string, options?: ToastOptions) => {
+      return show({
+        title,
+        message,
+        variant: 'error',
+        ...defaultOptions,
+        ...options,
+      });
+    },
+    [show, defaultOptions]
+  );
 
-  const info = useCallback((title: string, message?: string, options?: ToastOptions) => {
-    return show({
-      title,
-      message,
-      variant: 'info',
-      ...defaultOptions,
-      ...options,
-    });
-  }, [show, defaultOptions]);
+  const warning = useCallback(
+    (title: string, message?: string, options?: ToastOptions) => {
+      return show({
+        title,
+        message,
+        variant: 'warning',
+        ...defaultOptions,
+        ...options,
+      });
+    },
+    [show, defaultOptions]
+  );
+
+  const info = useCallback(
+    (title: string, message?: string, options?: ToastOptions) => {
+      return show({
+        title,
+        message,
+        variant: 'info',
+        ...defaultOptions,
+        ...options,
+      });
+    },
+    [show, defaultOptions]
+  );
 
   const remove = useCallback((id: string) => {
     setToasts(prev => prev.filter(toast => toast.id !== id));

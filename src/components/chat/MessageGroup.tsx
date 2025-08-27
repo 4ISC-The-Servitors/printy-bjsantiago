@@ -24,18 +24,18 @@ interface MessageGroupProps {
   onEndChat?: () => void;
 }
 
-export const MessageGroup: React.FC<MessageGroupProps> = ({ 
-  messages, 
-  quickReplies, 
-  onQuickReply, 
-  onEndChat 
+export const MessageGroup: React.FC<MessageGroupProps> = ({
+  messages,
+  quickReplies,
+  onQuickReply,
+  onEndChat,
 }) => {
   const isBot = messages[0]?.role === 'printy';
   const lastTs = messages[messages.length - 1]?.ts ?? Date.now();
-  
+
   return (
     <div className={`space-y-2 ${isBot ? 'text-left' : 'text-right'}`}>
-      {messages.map((m) => (
+      {messages.map(m => (
         <div key={m.id} className={isBot ? 'text-left' : 'text-right'}>
           <div className="flex items-start gap-2">
             {isBot && (
@@ -67,10 +67,12 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({
       ))}
 
       {/* Relative timestamp */}
-      <div className={`text-xs text-neutral-500 ${isBot ? 'pl-8 text-left' : 'pr-0 text-right'}`}>
+      <div
+        className={`text-xs text-neutral-500 ${isBot ? 'pl-8 text-left' : 'pr-0 text-right'}`}
+      >
         {formatRelativeTime(lastTs)}
       </div>
-      
+
       {/* Quick Replies under bot messages */}
       {isBot && quickReplies && quickReplies.length > 0 && (
         <div className="flex flex-wrap gap-3 mt-3 ml-6 sm:gap-3 sm:ml-8">

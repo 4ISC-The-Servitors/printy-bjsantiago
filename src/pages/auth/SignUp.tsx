@@ -1,8 +1,23 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Input, Text, Container, ToastContainer } from '../../components/shared';
+import {
+  Button,
+  Input,
+  Text,
+  Container,
+  ToastContainer,
+} from '../../components/shared';
 import { useToast } from '../../lib/useToast';
-import { Eye, EyeOff, Mail, ArrowLeft, User, Phone, MapPin, Globe } from 'lucide-react';
+import {
+  Eye,
+  EyeOff,
+  Mail,
+  ArrowLeft,
+  User,
+  Phone,
+  MapPin,
+  Globe,
+} from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 // TODO: Backend Integration
@@ -20,14 +35,14 @@ interface FormData {
   email: string;
   password: string;
   confirmPassword: string;
-  
+
   // Step 2: Personal Information
   firstName: string;
   lastName: string;
   phone: string;
   gender: string;
   birthday: string;
-  
+
   // Step 3: Address Information
   buildingNumber: string;
   street: string;
@@ -35,7 +50,7 @@ interface FormData {
   province: string;
   city: string;
   country: string;
-  
+
   // Common
   agreeToTerms: boolean;
 }
@@ -48,7 +63,7 @@ const SignUp: React.FC = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  
+
   const [formData, setFormData] = useState<FormData>({
     email: '',
     password: '',
@@ -90,7 +105,7 @@ const SignUp: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    
+
     try {
       // TODO: Implement real sign-up logic
       // 1. Create user account with Supabase Auth
@@ -98,9 +113,9 @@ const SignUp: React.FC = () => {
       //   email: formData.email,
       //   password: formData.password,
       // });
-      // 
+      //
       // if (authError) throw authError;
-      // 
+      //
       // 2. Create user profile in database
       // const { error: profileError } = await supabase
       //   .from('profiles')
@@ -122,24 +137,29 @@ const SignUp: React.FC = () => {
       //       country: formData.country
       //     }
       //   });
-      // 
+      //
       // if (profileError) throw profileError;
-      
+
       // TODO: Send email verification
       // TODO: Redirect to email verification page or show success message
-      
+
       console.log('Sign up attempt:', formData);
-      
-      toastMethods.success('Account Created!', 'Your account has been successfully created.');
-      
+
+      toastMethods.success(
+        'Account Created!',
+        'Your account has been successfully created.'
+      );
+
       // Small delay to show success toast before navigation
       setTimeout(() => {
         navigate('/auth/signin');
       }, 1500);
-      
     } catch (error) {
       console.error('Sign up error:', error);
-      toastMethods.error('Sign Up Failed', 'There was an issue creating your account. Please try again.');
+      toastMethods.error(
+        'Sign Up Failed',
+        'There was an issue creating your account. Please try again.'
+      );
     } finally {
       setLoading(false);
     }
@@ -147,7 +167,7 @@ const SignUp: React.FC = () => {
 
   const handleGoogleSignUp = async () => {
     setGoogleLoading(true);
-    
+
     try {
       // TODO: Implement Google OAuth registration
       // const { data, error } = await supabase.auth.signInWithOAuth({
@@ -156,13 +176,19 @@ const SignUp: React.FC = () => {
       //     redirectTo: `${window.location.origin}/auth/callback`
       //   }
       // });
-      // 
+      //
       // if (error) throw error;
-      
-      toastMethods.info('Google Sign-Up', 'Google authentication will be implemented with Supabase.');
+
+      toastMethods.info(
+        'Google Sign-Up',
+        'Google authentication will be implemented with Supabase.'
+      );
     } catch (error) {
       console.error('Google sign up error:', error);
-      toastMethods.error('Google Sign-Up Failed', 'There was an issue signing up with Google.');
+      toastMethods.error(
+        'Google Sign-Up Failed',
+        'There was an issue signing up with Google.'
+      );
     } finally {
       setGoogleLoading(false);
     }
@@ -171,14 +197,29 @@ const SignUp: React.FC = () => {
   const isStepValid = (step: number): boolean => {
     switch (step) {
       case 1:
-        return !!formData.email && !!formData.password && !!formData.confirmPassword && 
-               formData.password === formData.confirmPassword && formData.password.length >= 8;
+        return (
+          !!formData.email &&
+          !!formData.password &&
+          !!formData.confirmPassword &&
+          formData.password === formData.confirmPassword &&
+          formData.password.length >= 8
+        );
       case 2:
-        return !!formData.firstName && !!formData.lastName && !!formData.phone && 
-               !!formData.gender && !!formData.birthday;
+        return (
+          !!formData.firstName &&
+          !!formData.lastName &&
+          !!formData.phone &&
+          !!formData.gender &&
+          !!formData.birthday
+        );
       case 3:
-        return !!formData.street && !!formData.barangay && !!formData.province && 
-               !!formData.city && !!formData.agreeToTerms;
+        return (
+          !!formData.street &&
+          !!formData.barangay &&
+          !!formData.province &&
+          !!formData.city &&
+          !!formData.agreeToTerms
+        );
       default:
         return false;
     }
@@ -186,20 +227,30 @@ const SignUp: React.FC = () => {
 
   const renderProgressIndicator = () => (
     <div className="flex items-center justify-center mb-6">
-      {[1, 2, 3].map((step) => (
+      {[1, 2, 3].map(step => (
         <React.Fragment key={step}>
           <div className="flex items-center">
-            <div className={cn(
-              "w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-300",
-              step < currentStep 
-                ? "bg-brand-primary border-brand-primary text-white" 
-                : step === currentStep
-                ? "bg-brand-primary border-brand-primary text-white"
-                : "bg-white border-neutral-300 text-neutral-400"
-            )}>
+            <div
+              className={cn(
+                'w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-300',
+                step < currentStep
+                  ? 'bg-brand-primary border-brand-primary text-white'
+                  : step === currentStep
+                    ? 'bg-brand-primary border-brand-primary text-white'
+                    : 'bg-white border-neutral-300 text-neutral-400'
+              )}
+            >
               {step < currentStep ? (
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                <svg
+                  className="w-5 h-5"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                    clipRule="evenodd"
+                  />
                 </svg>
               ) : (
                 <span className="text-sm font-semibold">{step}</span>
@@ -207,10 +258,12 @@ const SignUp: React.FC = () => {
             </div>
           </div>
           {step < 3 && (
-            <div className={cn(
-              "w-16 h-0.5 mx-2 transition-all duration-300",
-              step < currentStep ? "bg-brand-primary" : "bg-neutral-300"
-            )} />
+            <div
+              className={cn(
+                'w-16 h-0.5 mx-2 transition-all duration-300',
+                step < currentStep ? 'bg-brand-primary' : 'bg-neutral-300'
+              )}
+            />
           )}
         </React.Fragment>
       ))}
@@ -219,9 +272,9 @@ const SignUp: React.FC = () => {
 
   const renderStepTitle = () => {
     const titles = {
-      1: "Account Information",
-      2: "Personal Information", 
-      3: "Address Information"
+      1: 'Account Information',
+      2: 'Personal Information',
+      3: 'Address Information',
     };
     return titles[currentStep as keyof typeof titles];
   };
@@ -238,7 +291,7 @@ const SignUp: React.FC = () => {
                 type="email"
                 placeholder="you@company.com"
                 value={formData.email}
-                onChange={(e) => handleInputChange('email', e.target.value)}
+                onChange={e => handleInputChange('email', e.target.value)}
                 required
                 className="pr-12"
                 wrapperClassName="relative"
@@ -256,7 +309,7 @@ const SignUp: React.FC = () => {
                 type={showPassword ? 'text' : 'password'}
                 placeholder="At least 8 characters"
                 value={formData.password}
-                onChange={(e) => handleInputChange('password', e.target.value)}
+                onChange={e => handleInputChange('password', e.target.value)}
                 required
                 className="pr-24"
                 wrapperClassName="relative"
@@ -266,7 +319,9 @@ const SignUp: React.FC = () => {
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="text-neutral-400 hover:text-neutral-600 transition-colors"
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    aria-label={
+                      showPassword ? 'Hide password' : 'Show password'
+                    }
                   >
                     {showPassword ? (
                       <EyeOff className="w-5 h-5" />
@@ -285,7 +340,9 @@ const SignUp: React.FC = () => {
                 type={showConfirmPassword ? 'text' : 'password'}
                 placeholder="Re-enter password"
                 value={formData.confirmPassword}
-                onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                onChange={e =>
+                  handleInputChange('confirmPassword', e.target.value)
+                }
                 required
                 className="pr-24"
                 wrapperClassName="relative"
@@ -295,7 +352,9 @@ const SignUp: React.FC = () => {
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     className="text-neutral-400 hover:text-neutral-600 transition-colors"
-                    aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                    aria-label={
+                      showConfirmPassword ? 'Hide password' : 'Show password'
+                    }
                   >
                     {showConfirmPassword ? (
                       <EyeOff className="w-5 h-5" />
@@ -319,7 +378,7 @@ const SignUp: React.FC = () => {
                 type="text"
                 placeholder="Enter your first name"
                 value={formData.firstName}
-                onChange={(e) => handleInputChange('firstName', e.target.value)}
+                onChange={e => handleInputChange('firstName', e.target.value)}
                 required
                 className="pr-12"
                 wrapperClassName="relative"
@@ -337,7 +396,7 @@ const SignUp: React.FC = () => {
                 type="text"
                 placeholder="Enter your last name"
                 value={formData.lastName}
-                onChange={(e) => handleInputChange('lastName', e.target.value)}
+                onChange={e => handleInputChange('lastName', e.target.value)}
                 required
                 className="pr-12"
                 wrapperClassName="relative"
@@ -361,12 +420,13 @@ const SignUp: React.FC = () => {
                       ? `+63${formData.phone.replace(/^0+/, '')}`
                       : '+63'
                 }
-                onChange={(e) => {
+                onChange={e => {
                   let value = e.target.value;
 
                   // Always start with +63
                   if (!value.startsWith('+63')) {
-                    value = '+63' + value.replace(/^0+/, '').replace(/^\+?63/, '');
+                    value =
+                      '+63' + value.replace(/^0+/, '').replace(/^\+?63/, '');
                   }
 
                   // Remove all non-digits after +63
@@ -404,7 +464,7 @@ const SignUp: React.FC = () => {
               <div className="relative">
                 <select
                   value={formData.gender}
-                  onChange={(e) => handleInputChange('gender', e.target.value)}
+                  onChange={e => handleInputChange('gender', e.target.value)}
                   required
                   className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary transition-colors appearance-none bg-white"
                 >
@@ -415,8 +475,16 @@ const SignUp: React.FC = () => {
                   <option value="prefer-not-to-say">Prefer not to say</option>
                 </select>
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none">
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                  <svg
+                    className="w-5 h-5"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                      clipRule="evenodd"
+                    />
                   </svg>
                 </div>
               </div>
@@ -429,7 +497,7 @@ const SignUp: React.FC = () => {
                 type="date"
                 placeholder="mm/dd/yyyy"
                 value={formData.birthday}
-                onChange={(e) => handleInputChange('birthday', e.target.value)}
+                onChange={e => handleInputChange('birthday', e.target.value)}
                 required
                 // Removed calendar icon and extra padding
                 className=""
@@ -449,12 +517,13 @@ const SignUp: React.FC = () => {
                 type="text"
                 placeholder="Enter building or house number"
                 value={formData.buildingNumber}
-                onChange={(e) => handleInputChange('buildingNumber', e.target.value)}
+                onChange={e =>
+                  handleInputChange('buildingNumber', e.target.value)
+                }
                 className="pr-12"
                 wrapperClassName="relative"
               >
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400">
-                </div>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400"></div>
               </Input>
             </div>
 
@@ -465,7 +534,7 @@ const SignUp: React.FC = () => {
                 type="text"
                 placeholder="Enter street name"
                 value={formData.street}
-                onChange={(e) => handleInputChange('street', e.target.value)}
+                onChange={e => handleInputChange('street', e.target.value)}
                 required
                 className="pr-12"
                 wrapperClassName="relative"
@@ -483,7 +552,7 @@ const SignUp: React.FC = () => {
                 type="text"
                 placeholder="Enter barangay"
                 value={formData.barangay}
-                onChange={(e) => handleInputChange('barangay', e.target.value)}
+                onChange={e => handleInputChange('barangay', e.target.value)}
                 required
                 className="pr-12"
                 wrapperClassName="relative"
@@ -502,7 +571,7 @@ const SignUp: React.FC = () => {
               <div className="relative">
                 <select
                   value={formData.province}
-                  onChange={(e) => handleInputChange('province', e.target.value)}
+                  onChange={e => handleInputChange('province', e.target.value)}
                   required
                   className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary transition-colors appearance-none bg-white"
                 >
@@ -510,8 +579,16 @@ const SignUp: React.FC = () => {
                   <option value="metro-manila">Metro Manila</option>
                 </select>
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none">
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                  <svg
+                    className="w-5 h-5"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                      clipRule="evenodd"
+                    />
                   </svg>
                 </div>
               </div>
@@ -525,13 +602,15 @@ const SignUp: React.FC = () => {
               <div className="relative">
                 <select
                   value={formData.city}
-                  onChange={(e) => handleInputChange('city', e.target.value)}
+                  onChange={e => handleInputChange('city', e.target.value)}
                   required
                   disabled={!formData.province}
                   className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary transition-colors appearance-none bg-white disabled:bg-neutral-50 disabled:cursor-not-allowed"
                 >
                   <option value="">
-                    {formData.province ? 'Select city/municipality' : 'Select province first'}
+                    {formData.province
+                      ? 'Select city/municipality'
+                      : 'Select province first'}
                   </option>
                   {formData.province === 'metro-manila' && (
                     <>
@@ -541,8 +620,16 @@ const SignUp: React.FC = () => {
                   {/* Add more cities for other provinces as needed */}
                 </select>
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none">
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                  <svg
+                    className="w-5 h-5"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                      clipRule="evenodd"
+                    />
                   </svg>
                 </div>
               </div>
@@ -573,13 +660,18 @@ const SignUp: React.FC = () => {
                 type="checkbox"
                 id="agreeToTerms"
                 checked={formData.agreeToTerms}
-                onChange={(e) => handleCheckboxChange('agreeToTerms', e.target.checked)}
+                onChange={e =>
+                  handleCheckboxChange('agreeToTerms', e.target.checked)
+                }
                 className="w-4 h-4 text-brand-primary border-neutral-300 rounded focus:ring-brand-primary focus:ring-2 mt-1"
                 required
               />
-              <label htmlFor="agreeToTerms" className="text-sm text-neutral-700">
+              <label
+                htmlFor="agreeToTerms"
+                className="text-sm text-neutral-700"
+              >
                 I agree to the{' '}
-                <Button 
+                <Button
                   variant="ghost"
                   size="sm"
                   className="text-brand-primary hover:text-brand-primary-700 underline p-0 h-auto"
@@ -588,7 +680,7 @@ const SignUp: React.FC = () => {
                   Terms of Service
                 </Button>{' '}
                 and{' '}
-                <Button 
+                <Button
                   variant="ghost"
                   size="sm"
                   className="text-brand-primary hover:text-brand-primary-700 underline p-0 h-auto"
@@ -621,7 +713,7 @@ const SignUp: React.FC = () => {
           Previous
         </Button>
       )}
-      
+
       {currentStep < 3 ? (
         <Button
           type="button"
@@ -655,9 +747,9 @@ const SignUp: React.FC = () => {
       <Container size="sm" className="w-full container-responsive">
         {/* Back to Home Link */}
         <div className="mb-4">
-          <Button 
-            variant="ghost" 
-            size="sm" 
+          <Button
+            variant="ghost"
+            size="sm"
             threeD
             className="text-neutral-600 hover:text-brand-primary"
             onClick={() => navigate('/')}
@@ -671,12 +763,17 @@ const SignUp: React.FC = () => {
         <div className="bg-white rounded-2xl shadow-lg border border-neutral-200 p-6">
           {/* Header */}
           <div className="text-center mb-6">
-            <Text variant="h1" size="3xl" weight="bold" className="text-neutral-900 mb-2">
+            <Text
+              variant="h1"
+              size="3xl"
+              weight="bold"
+              className="text-neutral-900 mb-2"
+            >
               Create your account
             </Text>
             <Text variant="p" size="sm" color="muted">
               Already have an account?{' '}
-              <button 
+              <button
                 className="text-brand-accent hover:text-brand-accent-700 font-medium transition-colors"
                 onClick={() => navigate('/auth/signin')}
               >
@@ -690,7 +787,13 @@ const SignUp: React.FC = () => {
 
           {/* Step Title */}
           <div className="text-center mb-6">
-            <Text variant="h3" size="xl" weight="semibold" color="primary" className="text-center">
+            <Text
+              variant="h3"
+              size="xl"
+              weight="semibold"
+              color="primary"
+              className="text-center"
+            >
               {renderStepTitle()}
             </Text>
           </div>
@@ -743,7 +846,9 @@ const SignUp: React.FC = () => {
                 />
               </svg>
             </div>
-            {googleLoading ? 'Signing up with Google...' : 'Sign up with Google'}
+            {googleLoading
+              ? 'Signing up with Google...'
+              : 'Sign up with Google'}
           </Button>
         </div>
 
@@ -751,7 +856,7 @@ const SignUp: React.FC = () => {
         <div className="text-center mt-4">
           <Text variant="p" size="xs" color="muted">
             By creating an account, you agree to our{' '}
-            <Button 
+            <Button
               variant="ghost"
               size="sm"
               className="text-brand-primary hover:text-brand-primary-700 underline p-0 h-auto"
@@ -759,7 +864,7 @@ const SignUp: React.FC = () => {
               Terms of Service
             </Button>{' '}
             and{' '}
-            <Button 
+            <Button
               variant="ghost"
               size="sm"
               className="text-brand-primary hover:text-brand-primary-700 underline p-0 h-auto"
@@ -769,7 +874,7 @@ const SignUp: React.FC = () => {
           </Text>
         </div>
       </Container>
-      
+
       {/* Toast Container */}
       <ToastContainer
         toasts={toasts}

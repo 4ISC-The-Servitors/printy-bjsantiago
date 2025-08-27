@@ -20,16 +20,16 @@ interface GuestChatPanelProps {
   showAttach?: boolean;
 }
 
-export const GuestChatPanel: React.FC<GuestChatPanelProps> = ({ 
-  title = 'Chat', 
-  messages, 
-  onSend, 
-  isTyping = false, 
+export const GuestChatPanel: React.FC<GuestChatPanelProps> = ({
+  title = 'Chat',
+  messages,
+  onSend,
+  isTyping = false,
   onAttachFiles,
   onBack,
   quickReplies,
   onQuickReply,
-  inputPlaceholder = "Type a message...",
+  inputPlaceholder = 'Type a message...',
   onEndChat,
   showAttach = true,
 }) => {
@@ -43,15 +43,20 @@ export const GuestChatPanel: React.FC<GuestChatPanelProps> = ({
 
   // Group messages by sender and time proximity
   const messageGroups = useMemo(() => {
-    const groups: { messages: ChatMessage[]; quickReplies?: QuickReply[] }[] = [];
+    const groups: { messages: ChatMessage[]; quickReplies?: QuickReply[] }[] =
+      [];
     let currentGroup: ChatMessage[] = [];
     let lastRole: ChatRole | null = null;
-    
+
     sortedMessages.forEach((msg, index) => {
       const isLastMessage = index === sortedMessages.length - 1;
       const isBot = msg.role === 'printy';
-      
-      if (msg.role !== lastRole || (currentGroup.length > 0 && Math.abs(msg.ts - currentGroup[currentGroup.length - 1].ts) > 300000)) {
+
+      if (
+        msg.role !== lastRole ||
+        (currentGroup.length > 0 &&
+          Math.abs(msg.ts - currentGroup[currentGroup.length - 1].ts) > 300000)
+      ) {
         if (currentGroup.length > 0) {
           groups.push({ messages: [...currentGroup] });
         }
@@ -59,17 +64,17 @@ export const GuestChatPanel: React.FC<GuestChatPanelProps> = ({
       } else {
         currentGroup.push(msg);
       }
-      
+
       if (isLastMessage) {
-        groups.push({ 
+        groups.push({
           messages: [...currentGroup],
-          quickReplies: isBot ? quickReplies : undefined
+          quickReplies: isBot ? quickReplies : undefined,
         });
       }
-      
+
       lastRole = msg.role;
     });
-    
+
     return groups;
   }, [sortedMessages, quickReplies]);
 
@@ -127,7 +132,7 @@ export const GuestChatPanel: React.FC<GuestChatPanelProps> = ({
 
       {/* Fixed Input at Bottom of Chat Panel */}
       <div className="absolute bottom-0 left-0 right-0 bg-white border-t border-neutral-200">
-        <ChatInput 
+        <ChatInput
           value={input}
           onChange={setInput}
           onSubmit={handleSubmit}

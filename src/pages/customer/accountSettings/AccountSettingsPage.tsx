@@ -1,5 +1,10 @@
 import React, { useMemo, useState } from 'react';
-import { Container, Text, ToastContainer, Button } from '../../../components/shared';
+import {
+  Container,
+  Text,
+  ToastContainer,
+  Button,
+} from '../../../components/shared';
 import { useToast } from '../../../lib/useToast';
 import ProfileOverviewCard from '../../../components/customer/accountSettings/ProfileOverviewCard.tsx';
 import PersonalInfoForm from '../../../components/customer/accountSettings/PersonalInfoForm.tsx';
@@ -45,15 +50,22 @@ const AccountSettingsPage: React.FC = () => {
     securityAlerts: true,
   });
 
-  const initials = useMemo(() => userData.displayName.split(' ').map((n) => n[0]).join(''), [userData.displayName]);
+  const initials = useMemo(
+    () =>
+      userData.displayName
+        .split(' ')
+        .map(n => n[0])
+        .join(''),
+    [userData.displayName]
+  );
 
   const handleSavePersonalInfo = (next: Partial<UserData>) => {
-    setUserData((prev) => ({ ...prev, ...next }));
+    setUserData(prev => ({ ...prev, ...next }));
     toast.success('Saved', 'Your personal information has been updated');
   };
 
   const handleTogglePreference = (key: keyof NotificationPreferencesData) => {
-    setPreferences((prev) => ({ ...prev, [key]: !prev[key] }));
+    setPreferences(prev => ({ ...prev, [key]: !prev[key] }));
     toast.info('Preference updated', `Toggled ${String(key)}`);
   };
 
@@ -61,10 +73,12 @@ const AccountSettingsPage: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-brand-primary-50">
       <Container size="xl" className="py-6 md:py-10">
         <div className="flex items-center justify-between mb-6">
-          <Text variant="h1" size="2xl" weight="bold">Account Settings</Text>
-          <Button 
-            variant="ghost" 
-            size="sm" 
+          <Text variant="h1" size="2xl" weight="bold">
+            Account Settings
+          </Text>
+          <Button
+            variant="ghost"
+            size="sm"
             className="md:px-4 md:py-3 md:text-sm lg:px-6 lg:py-4 lg:text-base"
           >
             Help
@@ -79,22 +93,24 @@ const AccountSettingsPage: React.FC = () => {
             membership="Valued"
           />
 
-          <PersonalInfoForm
-            value={userData}
-            onSave={handleSavePersonalInfo}
-          />
+          <PersonalInfoForm value={userData} onSave={handleSavePersonalInfo} />
 
           <SecuritySettings />
 
-          <NotificationPreferences value={preferences} onToggle={handleTogglePreference} />
+          <NotificationPreferences
+            value={preferences}
+            onToggle={handleTogglePreference}
+          />
         </div>
       </Container>
 
-      <ToastContainer toasts={toasts} onRemoveToast={toast.remove} position="top-center" />
+      <ToastContainer
+        toasts={toasts}
+        onRemoveToast={toast.remove}
+        position="top-center"
+      />
     </div>
   );
 };
 
 export default AccountSettingsPage;
-
-

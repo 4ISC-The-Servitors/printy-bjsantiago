@@ -10,7 +10,10 @@ const Showcase: React.FC = () => {
   useEffect(() => {
     // Welcome toast when entering showcase
     const timer = setTimeout(() => {
-      toastMethods.success('Welcome to Printy Design System!', 'Explore our shared UI components and design patterns.');
+      toastMethods.success(
+        'Welcome to Printy Design System!',
+        'Explore our shared UI components and design patterns.'
+      );
     }, 500);
 
     return () => clearTimeout(timer);
@@ -19,7 +22,7 @@ const Showcase: React.FC = () => {
   return (
     <div className="min-h-screen bg-neutral-50">
       <ComponentShowcase />
-      
+
       {/* Toast Container */}
       <ToastContainer
         toasts={toasts}

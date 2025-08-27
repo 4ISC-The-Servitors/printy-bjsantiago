@@ -1,7 +1,8 @@
 import React from 'react';
 import { cn } from '../../lib/utils';
 
-export interface SwitchProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+export interface SwitchProps
+  extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   checked: boolean;
   onCheckedChange?: (checked: boolean) => void;
   size?: 'sm' | 'md' | 'lg' | 'responsive';
@@ -22,7 +23,15 @@ const sizes = {
 
 const Switch = React.forwardRef<HTMLButtonElement, SwitchProps>(
   (
-    { checked, onCheckedChange, size = 'md', disabled = false, label, className, ...props },
+    {
+      checked,
+      onCheckedChange,
+      size = 'md',
+      disabled = false,
+      label,
+      className,
+      ...props
+    },
     ref
   ) => {
     const s = sizes[size];
@@ -31,7 +40,7 @@ const Switch = React.forwardRef<HTMLButtonElement, SwitchProps>(
       onCheckedChange?.(!checked);
     };
 
-    const handleKeyDown: React.KeyboardEventHandler<HTMLButtonElement> = (e) => {
+    const handleKeyDown: React.KeyboardEventHandler<HTMLButtonElement> = e => {
       if (disabled) return;
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
@@ -79,5 +88,3 @@ const Switch = React.forwardRef<HTMLButtonElement, SwitchProps>(
 Switch.displayName = 'Switch';
 
 export default Switch;
-
-

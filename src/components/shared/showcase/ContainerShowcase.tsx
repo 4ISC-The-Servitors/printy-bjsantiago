@@ -7,7 +7,7 @@ const ContainerShowcase: React.FC = () => {
       <Text variant="h2" size="2xl" weight="semibold">
         Layout Containers
       </Text>
-      
+
       <div className="space-y-4">
         <Container size="xs" className="bg-neutral-100 p-4 rounded">
           <Text>Extra Small Container (max-width: 475px)</Text>
@@ -40,23 +40,61 @@ const ContainerShowcase: React.FC = () => {
       </Text>
       <div className="space-y-4">
         <div className="p-4 bg-blue-50 rounded-lg">
-          <Text variant="p" size="sm" weight="medium" className="mb-3">Recommended Usage by Screen Size</Text>
+          <Text variant="p" size="sm" weight="medium" className="mb-3">
+            Recommended Usage by Screen Size
+          </Text>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
             <div>
-              <Text variant="p" size="xs" weight="semibold" className="text-blue-700">Mobile (&lt; 640px)</Text>
-              <Text variant="p" size="xs" color="muted">Use: xs, sm for tight layouts</Text>
+              <Text
+                variant="p"
+                size="xs"
+                weight="semibold"
+                className="text-blue-700"
+              >
+                Mobile (&lt; 640px)
+              </Text>
+              <Text variant="p" size="xs" color="muted">
+                Use: xs, sm for tight layouts
+              </Text>
             </div>
             <div>
-              <Text variant="p" size="xs" weight="semibold" className="text-blue-700">Tablet (640px - 1024px)</Text>
-              <Text variant="p" size="xs" color="muted">Use: sm, md, lg for forms & content</Text>
+              <Text
+                variant="p"
+                size="xs"
+                weight="semibold"
+                className="text-blue-700"
+              >
+                Tablet (640px - 1024px)
+              </Text>
+              <Text variant="p" size="xs" color="muted">
+                Use: sm, md, lg for forms & content
+              </Text>
             </div>
             <div>
-              <Text variant="p" size="xs" weight="semibold" className="text-blue-700">Desktop (1024px - 1280px)</Text>
-              <Text variant="p" size="xs" color="muted">Use: lg, xl, 2xl for main content</Text>
+              <Text
+                variant="p"
+                size="xs"
+                weight="semibold"
+                className="text-blue-700"
+              >
+                Desktop (1024px - 1280px)
+              </Text>
+              <Text variant="p" size="xs" color="muted">
+                Use: lg, xl, 2xl for main content
+              </Text>
             </div>
             <div>
-              <Text variant="p" size="xs" weight="semibold" className="text-blue-700">Wide Screens (&gt; 1280px)</Text>
-              <Text variant="p" size="xs" color="muted">Use: 2xl, 3xl, full for dashboards</Text>
+              <Text
+                variant="p"
+                size="xs"
+                weight="semibold"
+                className="text-blue-700"
+              >
+                Wide Screens (&gt; 1280px)
+              </Text>
+              <Text variant="p" size="xs" color="muted">
+                Use: 2xl, 3xl, full for dashboards
+              </Text>
             </div>
           </div>
         </div>

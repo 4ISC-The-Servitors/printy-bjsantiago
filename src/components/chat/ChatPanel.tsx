@@ -4,21 +4,26 @@ import ChatInput from './ChatInput';
 import MessageGroup from './MessageGroup';
 import TypingIndicator from './TypingIndicator';
 import EmptyState from './EmptyState';
-import type { ChatRole, ChatMessage, QuickReply, ChatPanelProps } from './types';
+import type {
+  ChatRole,
+  ChatMessage,
+  QuickReply,
+  ChatPanelProps,
+} from './types';
 
 // Re-export types for backwards compatibility
 export type { ChatRole, ChatMessage, QuickReply, ChatPanelProps };
 
-export const ChatPanel: React.FC<ChatPanelProps> = ({ 
-  title = 'Chat', 
-  messages, 
-  onSend, 
-  isTyping = false, 
+export const ChatPanel: React.FC<ChatPanelProps> = ({
+  title = 'Chat',
+  messages,
+  onSend,
+  isTyping = false,
   onAttachFiles,
   onBack,
   quickReplies,
   onQuickReply,
-  inputPlaceholder = "Type a message...",
+  inputPlaceholder = 'Type a message...',
   onEndChat,
   showAttach = true,
 }) => {
@@ -32,15 +37,20 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
 
   // Group messages by sender and time proximity
   const messageGroups = useMemo(() => {
-    const groups: { messages: ChatMessage[]; quickReplies?: QuickReply[] }[] = [];
+    const groups: { messages: ChatMessage[]; quickReplies?: QuickReply[] }[] =
+      [];
     let currentGroup: ChatMessage[] = [];
     let lastRole: ChatRole | null = null;
-    
+
     sortedMessages.forEach((msg, index) => {
       const isLastMessage = index === sortedMessages.length - 1;
       const isBot = msg.role === 'printy';
-      
-      if (msg.role !== lastRole || (currentGroup.length > 0 && Math.abs(msg.ts - currentGroup[currentGroup.length - 1].ts) > 300000)) {
+
+      if (
+        msg.role !== lastRole ||
+        (currentGroup.length > 0 &&
+          Math.abs(msg.ts - currentGroup[currentGroup.length - 1].ts) > 300000)
+      ) {
         if (currentGroup.length > 0) {
           groups.push({ messages: [...currentGroup] });
         }
@@ -48,17 +58,17 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
       } else {
         currentGroup.push(msg);
       }
-      
+
       if (isLastMessage) {
-        groups.push({ 
+        groups.push({
           messages: [...currentGroup],
-          quickReplies: isBot ? quickReplies : undefined
+          quickReplies: isBot ? quickReplies : undefined,
         });
       }
-      
+
       lastRole = msg.role;
     });
-    
+
     return groups;
   }, [sortedMessages, quickReplies]);
 
@@ -113,7 +123,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
         {messageGroups.length === 0 && !isTyping && <EmptyState />}
       </div>
 
-      <ChatInput 
+      <ChatInput
         value={input}
         onChange={setInput}
         onSubmit={handleSubmit}
@@ -126,5 +136,3 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
 };
 
 export default ChatPanel;
-
-

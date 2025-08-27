@@ -5,6 +5,7 @@ This document outlines the steps needed to integrate real backend functionality 
 ## 🎯 Overview
 
 The application currently has a complete UI and chat system but uses mock data for:
+
 - Authentication (hardcoded credentials)
 - User management
 - Order tracking
@@ -14,12 +15,14 @@ The application currently has a complete UI and chat system but uses mock data f
 ## 📋 Phase 1: Authentication & User Management
 
 ### 1.1 Supabase Setup
+
 - [ ] Create Supabase project
 - [ ] Configure authentication providers (email, Google OAuth)
 - [ ] Set up Row Level Security (RLS) policies
 - [ ] Configure email templates for verification/reset
 
 ### 1.2 Database Schema - Users & Profiles
+
 ```sql
 -- Profiles table (extends Supabase Auth users)
 CREATE TABLE profiles (
@@ -50,13 +53,14 @@ CREATE POLICY "Users can update own profile" ON profiles
 CREATE POLICY "Admins can view all profiles" ON profiles
   FOR ALL USING (
     EXISTS (
-      SELECT 1 FROM profiles 
+      SELECT 1 FROM profiles
       WHERE id = auth.uid() AND role IN ('admin', 'superadmin')
     )
   );
 ```
 
 ### 1.3 Implementation Tasks
+
 - [ ] Replace hardcoded credentials in `SignIn.tsx`
 - [ ] Implement real Supabase authentication
 - [ ] Add JWT token management
@@ -68,6 +72,7 @@ CREATE POLICY "Admins can view all profiles" ON profiles
 - [ ] Add Google OAuth integration
 
 ### 1.4 Files to Update
+
 - `src/pages/auth/SignIn.tsx` - Lines 25-80
 - `src/pages/auth/SignUp.tsx` - Lines 25-100
 - `src/pages/auth/ResetPassword.tsx` - Lines 25-50
@@ -76,6 +81,7 @@ CREATE POLICY "Admins can view all profiles" ON profiles
 ## 📋 Phase 2: Database & Data Models
 
 ### 2.1 Core Tables
+
 ```sql
 -- Orders table
 CREATE TABLE orders (
@@ -151,6 +157,7 @@ CREATE TABLE messages (
 ```
 
 ### 2.2 Implementation Tasks
+
 - [ ] Create database schema
 - [ ] Set up RLS policies for all tables
 - [ ] Create database triggers for timestamps
@@ -160,6 +167,7 @@ CREATE TABLE messages (
 ## 📋 Phase 3: Chat System Enhancement
 
 ### 3.1 Real-time Chat
+
 - [ ] Implement conversation persistence to database
 - [ ] Add real-time updates with Supabase subscriptions
 - [ ] Store chat context and state
@@ -168,38 +176,39 @@ CREATE TABLE messages (
 - [ ] Add chat history and search functionality
 
 ### 3.2 Files to Update
+
 - `src/types/chatFlow.ts` - Lines 1-10
 - `src/chatLogic/customer/index.ts` - Add database integration
 - `src/chatLogic/guest/index.ts` - Add database integration
 
 ### 3.3 Implementation Example
+
 ```typescript
 // In chatLogic/customer/index.ts
 export async function persistConversation(conversation: Conversation) {
-  const { data, error } = await supabase
-    .from('conversations')
-    .insert({
-      user_id: getCurrentUserId(),
-      topic: conversation.title,
-      flow_id: conversation.flowId,
-      status: conversation.status
-    });
-  
+  const { data, error } = await supabase.from('conversations').insert({
+    user_id: getCurrentUserId(),
+    topic: conversation.title,
+    flow_id: conversation.flowId,
+    status: conversation.status,
+  });
+
   if (error) throw error;
   return data;
 }
 
-export async function persistMessage(message: ChatMessage, conversationId: string) {
-  const { data, error } = await supabase
-    .from('messages')
-    .insert({
-      conversation_id: conversationId,
-      sender_id: getCurrentUserId(),
-      sender_type: message.role === 'printy' ? 'bot' : 'user',
-      content: message.text,
-      message_type: 'text'
-    });
-  
+export async function persistMessage(
+  message: ChatMessage,
+  conversationId: string
+) {
+  const { data, error } = await supabase.from('messages').insert({
+    conversation_id: conversationId,
+    sender_id: getCurrentUserId(),
+    sender_type: message.role === 'printy' ? 'bot' : 'user',
+    content: message.text,
+    message_type: 'text',
+  });
+
   if (error) throw error;
   return data;
 }
@@ -208,6 +217,7 @@ export async function persistMessage(message: ChatMessage, conversationId: strin
 ## 📋 Phase 4: Order Management
 
 ### 4.1 Implementation Tasks
+
 - [ ] Create order creation flow
 - [ ] Implement payment processing
 - [ ] Add order status tracking
@@ -215,12 +225,14 @@ export async function persistMessage(message: ChatMessage, conversationId: strin
 - [ ] Add order history and search
 
 ### 4.2 Files to Update
+
 - `src/pages/customer/Dashboard.tsx` - Replace mock order data
 - `src/types/index.ts` - Align with database schema
 
 ## 📋 Phase 5: Admin & Superadmin Features
 
 ### 5.1 Implementation Tasks
+
 - [ ] Admin dashboard for order management
 - [ ] User management interface
 - [ ] Analytics and reporting
@@ -229,6 +241,7 @@ export async function persistMessage(message: ChatMessage, conversationId: strin
 ## 🔧 Technical Implementation Notes
 
 ### 5.1 Authentication Flow
+
 ```typescript
 // Example authentication implementation
 import { supabase } from '../../lib/supabase';
@@ -238,37 +251,46 @@ export const signInWithEmail = async (email: string, password: string) => {
     email,
     password,
   });
-  
+
   if (error) throw error;
-  
+
   // Get user profile
   const { data: profile } = await supabase
     .from('profiles')
     .select('*')
     .eq('id', data.user.id)
     .single();
-  
+
   return { user: data.user, profile };
 };
 ```
 
 ### 5.2 Real-time Subscriptions
+
 ```typescript
 // Example real-time chat subscription
-export const subscribeToConversation = (conversationId: string, callback: (message: any) => void) => {
+export const subscribeToConversation = (
+  conversationId: string,
+  callback: (message: any) => void
+) => {
   return supabase
     .channel(`conversation:${conversationId}`)
-    .on('postgres_changes', {
-      event: 'INSERT',
-      schema: 'public',
-      table: 'messages',
-      filter: `conversation_id=eq.${conversationId}`
-    }, callback)
+    .on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'messages',
+        filter: `conversation_id=eq.${conversationId}`,
+      },
+      callback
+    )
     .subscribe();
 };
 ```
 
 ### 5.3 Error Handling
+
 ```typescript
 // Example error handling pattern
 export const handleApiError = (error: any) => {
@@ -285,6 +307,7 @@ export const handleApiError = (error: any) => {
 ## 🚀 Deployment Checklist
 
 ### 5.1 Environment Variables
+
 ```bash
 # Required for production
 VITE_SUPABASE_URL=https://your-project.supabase.co
@@ -295,12 +318,14 @@ VITE_APP_ENV=production
 ```
 
 ### 5.2 Database Migration
+
 - [ ] Create migration scripts
 - [ ] Test migrations in staging
 - [ ] Backup production data
 - [ ] Run migrations in production
 
 ### 5.3 Testing
+
 - [ ] Unit tests for authentication
 - [ ] Integration tests for chat flows
 - [ ] End-to-end tests for user journeys

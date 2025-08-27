@@ -15,7 +15,9 @@ export const customerFlows: Record<string, ChatFlow> = {
   'track-ticket': trackTicketFlow,
 };
 
-export function resolveCustomerFlow(topic: string | null | undefined): ChatFlow {
+export function resolveCustomerFlow(
+  topic: string | null | undefined
+): ChatFlow {
   const t = (topic || 'about').toLowerCase();
   if (t.includes('about')) return aboutUsFlow;
   if (t.includes('faq')) return faqsFlow;

@@ -25,7 +25,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   activeId,
   onSwitchConversation,
   onNavigateToAccount,
-  onLogout
+  onLogout,
 }) => {
   return (
     <aside className="hidden lg:flex w-80 bg-white border-r border-neutral-200 flex-col">
@@ -35,7 +35,12 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
             <Bot className="w-6 h-6" />
           </div>
           <div>
-            <Text variant="h3" size="lg" weight="bold" className="text-brand-primary">
+            <Text
+              variant="h3"
+              size="lg"
+              weight="bold"
+              className="text-brand-primary"
+            >
               Printy
             </Text>
             <Text variant="p" size="xs" color="muted">
@@ -49,13 +54,20 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
       <div className="flex-1 overflow-y-auto scrollbar-hide px-4">
         {conversations.length > 0 && (
           <div className="mb-4">
-            <Text variant="h3" size="sm" weight="semibold" className="px-1 pb-2 text-neutral-600">
+            <Text
+              variant="h3"
+              size="sm"
+              weight="semibold"
+              className="px-1 pb-2 text-neutral-600"
+            >
               Chats
             </Text>
             <div className="space-y-2">
-              {conversations.map((c) => {
-                const lastBotMessage = [...c.messages].reverse().find(m => m.role === 'printy');
-                
+              {conversations.map(c => {
+                const lastBotMessage = [...c.messages]
+                  .reverse()
+                  .find(m => m.role === 'printy');
+
                 return (
                   <button
                     key={c.id}
@@ -68,27 +80,48 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
                     }
                   >
                     <div className="flex items-start gap-2">
-                                             <div className="w-6 h-6 rounded-md bg-brand-primary text-white flex items-center justify-center text-xs mt-0.5">
-                         {c.icon || <MessageSquare className="w-4 h-4" />}
-                       </div>
+                      <div className="w-6 h-6 rounded-md bg-brand-primary text-white flex items-center justify-center text-xs mt-0.5">
+                        {c.icon || <MessageSquare className="w-4 h-4" />}
+                      </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <Text variant="h4" size="sm" weight="semibold" className="truncate">
+                          <Text
+                            variant="h4"
+                            size="sm"
+                            weight="semibold"
+                            className="truncate"
+                          >
                             {c.title}
                           </Text>
-                          <Badge 
-                            variant={c.status === 'active' ? 'success' : 'error'} 
+                          <Badge
+                            variant={
+                              c.status === 'active' ? 'success' : 'error'
+                            }
                             size="sm"
                           >
                             {c.status === 'active' ? 'Active' : 'Ended'}
                           </Badge>
                         </div>
-                        <Text variant="p" size="xs" color="muted" className="truncate">
-                          {lastBotMessage?.text.substring(0, 60) || 'No messages yet'}
+                        <Text
+                          variant="p"
+                          size="xs"
+                          color="muted"
+                          className="truncate"
+                        >
+                          {lastBotMessage?.text.substring(0, 60) ||
+                            'No messages yet'}
                           {(lastBotMessage?.text.length || 0) > 60 ? '...' : ''}
                         </Text>
-                        <Text variant="p" size="xs" color="muted" className="mt-1">
-                          {new Date(c.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        <Text
+                          variant="p"
+                          size="xs"
+                          color="muted"
+                          className="mt-1"
+                        >
+                          {new Date(c.createdAt).toLocaleTimeString([], {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
                         </Text>
                       </div>
                     </div>

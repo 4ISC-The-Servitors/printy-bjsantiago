@@ -1,13 +1,13 @@
-import type { BotMessage, ChatFlow } from '../../../types/chatFlow'
+import type { BotMessage, ChatFlow } from '../../../types/chatFlow';
 
-type Option = { label: string; next: string }
+type Option = { label: string; next: string };
 type Node = {
-  id: string
-  message?: string
-  question?: string
-  answer?: string
-  options: Option[]
-}
+  id: string;
+  message?: string;
+  question?: string;
+  answer?: string;
+  options: Option[];
+};
 
 const NODES: Record<string, Node> = {
   faqs_start: {
@@ -61,10 +61,9 @@ const NODES: Record<string, Node> = {
   other_concerns: {
     id: 'other_concerns',
     question: 'I have another concern',
-    answer:
-      "Unfortunately, I can't assist with that.",
+    answer: "Unfortunately, I can't assist with that.",
     options: [
-      { label: "Chat with our support team", next: 'chat_with_support' },
+      { label: 'Chat with our support team', next: 'chat_with_support' },
       { label: 'Call our hotline', next: 'call_hotline' },
       { label: 'End Chat', next: 'end' },
     ],
@@ -85,14 +84,17 @@ const NODES: Record<string, Node> = {
     question: 'Unable to contact your hotline',
     answer: 'I am sorry to hear that. Please try again later.',
     options: [
-      { label: 'Chat with our support team instead', next: 'chat_with_support' },
+      {
+        label: 'Chat with our support team instead',
+        next: 'chat_with_support',
+      },
       { label: 'End Chat', next: 'end' },
     ],
   },
 
   chat_with_support: {
     id: 'chat_with_support',
-    question: "Chat with our support team",
+    question: 'Chat with our support team',
     answer: 'I’ll create a support ticket for you. Please provide details.',
     options: [{ label: 'End Chat', next: 'end' }],
   },
@@ -102,47 +104,49 @@ const NODES: Record<string, Node> = {
     answer: 'Thank you for chatting with Printy! Have a great day. 👋',
     options: [],
   },
-}
+};
 
-let currentNodeId: keyof typeof NODES = 'faqs_start'
+let currentNodeId: keyof typeof NODES = 'faqs_start';
 
 function nodeToMessages(node: Node): BotMessage[] {
-  if (node.message) return [{ role: 'printy', text: node.message }]
-  if (node.answer) return [{ role: 'printy', text: node.answer }]
-  return []
+  if (node.message) return [{ role: 'printy', text: node.message }];
+  if (node.answer) return [{ role: 'printy', text: node.answer }];
+  return [];
 }
 
 function nodeQuickReplies(node: Node): string[] {
-  return node.options.map((o) => o.label)
+  return node.options.map(o => o.label);
 }
 
 export const faqsFlow: ChatFlow = {
   id: 'faqs',
   title: 'FAQs',
   initial: () => {
-    currentNodeId = 'faqs_start'
-    return nodeToMessages(NODES[currentNodeId])
+    currentNodeId = 'faqs_start';
+    return nodeToMessages(NODES[currentNodeId]);
   },
   quickReplies: () => nodeQuickReplies(NODES[currentNodeId]),
   respond: async (_ctx, input) => {
-    const current = NODES[currentNodeId]
+    const current = NODES[currentNodeId];
     const selection = current.options.find(
-      (o) => o.label.toLowerCase() === input.trim().toLowerCase()
-    )
+      o => o.label.toLowerCase() === input.trim().toLowerCase()
+    );
     if (!selection) {
       return {
-        messages: [{ role: 'printy', text: 'Please choose one of the options.' }],
+        messages: [
+          { role: 'printy', text: 'Please choose one of the options.' },
+        ],
         quickReplies: nodeQuickReplies(current),
-      }
+      };
     }
-    currentNodeId = selection.next as keyof typeof NODES
-    const node = NODES[currentNodeId]
-    const messages = nodeToMessages(node)
-    const quickReplies = nodeQuickReplies(node)
+    currentNodeId = selection.next as keyof typeof NODES;
+    const node = NODES[currentNodeId];
+    const messages = nodeToMessages(node);
+    const quickReplies = nodeQuickReplies(node);
     // If user chose End Chat option, still provide the closing message and a single End Chat button
     if (currentNodeId === 'end') {
-      return { messages, quickReplies: ['End Chat'] }
+      return { messages, quickReplies: ['End Chat'] };
     }
-    return { messages, quickReplies }
+    return { messages, quickReplies };
   },
-}
+};

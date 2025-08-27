@@ -8,7 +8,7 @@ const InputShowcase: React.FC = () => {
       <Text variant="h2" size="2xl" weight="semibold">
         Inputs
       </Text>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Input
           label="Email Address"

@@ -3,33 +3,35 @@
 ## Design System & UI/UX
 
 ### Color Palette
+
 ```css
 /* Brand Identity */
---brand-primary: #4056A1;
+--brand-primary: #4056a1;
 --brand-primary-50: #f0f4ff;
 --brand-primary-100: #e0e7ff;
 --brand-primary-900: #1e293b;
 
---brand-accent: #D79922;
+--brand-accent: #d79922;
 --brand-accent-50: #fffbeb;
 --brand-accent-100: #fef3c7;
 
 /* Neutral Foundation */
---neutral-0: #FFFFFF;
---neutral-50: #FAFAF9;
---neutral-100: #F5F5F4;
---neutral-600: #57534E;
---neutral-700: #44403C;
---neutral-900: #1C1917;
+--neutral-0: #ffffff;
+--neutral-50: #fafaf9;
+--neutral-100: #f5f5f4;
+--neutral-600: #57534e;
+--neutral-700: #44403c;
+--neutral-900: #1c1917;
 
 /* Semantic Status */
---error: #DC2626;
---success: #16A34A;
---warning: #D97706;
---info: #2563EB;
+--error: #dc2626;
+--success: #16a34a;
+--warning: #d97706;
+--info: #2563eb;
 ```
 
 ### Typography
+
 ```css
 /* Font Stacks */
 --font-heading: 'Fraunces', Georgia, serif;
@@ -47,6 +49,7 @@
 ```
 
 ### Spacing System
+
 ```css
 /* Base 8px Grid */
 --space-2: 0.5rem;
@@ -59,6 +62,7 @@
 ```
 
 ### Responsive Breakpoints
+
 ```css
 --bp-sm: 640px;
 --bp-md: 768px;
@@ -70,6 +74,7 @@
 ## Component Architecture
 
 ### Project Structure
+
 ```
 src/
   app/               # Root app settings
@@ -83,6 +88,7 @@ src/
 ```
 
 ### Component Patterns
+
 ```typescript
 // Compound Components
 <Card>
@@ -108,6 +114,7 @@ const Button = <T extends React.ElementType = 'button'>({
 ```
 
 ### State Management
+
 ```typescript
 // Server State (React Query)
 const useProducts = (filters?: ProductFilters) =>
@@ -128,16 +135,17 @@ interface AppState {
 ## Responsive Design
 
 ### Mobile-First Strategy
+
 ```scss
 .product-grid {
   display: grid;
   grid-template-columns: 1fr;
   gap: 1rem;
-  
+
   @media (min-width: 640px) {
     grid-template-columns: repeat(2, 1fr);
   }
-  
+
   @media (min-width: 1024px) {
     grid-template-columns: repeat(3, 1fr);
   }
@@ -145,6 +153,7 @@ interface AppState {
 ```
 
 ### Touch Optimization
+
 ```css
 .touch-target {
   min-height: 44px;
@@ -164,24 +173,25 @@ interface AppState {
 ## Accessibility
 
 ### ARIA Patterns
+
 ```tsx
 const FormField = ({ label, error, required, children }) => {
   const id = useId();
   const errorId = `${id}-error`;
-  
+
   return (
     <div className="form-field">
       <label htmlFor={id}>
         {label}
         {required && <span aria-label="required">*</span>}
       </label>
-      
+
       {React.cloneElement(children, {
         id,
         'aria-invalid': !!error,
         'aria-describedby': error && errorId,
       })}
-      
+
       {error && (
         <p id={errorId} role="alert" className="form-error">
           {error}
@@ -193,13 +203,11 @@ const FormField = ({ label, error, required, children }) => {
 ```
 
 ### Screen Reader Support
+
 ```tsx
 const ProductCard = ({ product }) => (
   <article aria-label={`${product.name} - ${formatPrice(product.price)}`}>
-    <img 
-      src={product.image}
-      alt={`${product.name} product image`}
-    />
+    <img src={product.image} alt={`${product.name} product image`} />
     <h3>{product.name}</h3>
     <p>
       <span className="sr-only">Price: </span>
@@ -212,6 +220,7 @@ const ProductCard = ({ product }) => (
 ## Performance
 
 ### Code Splitting
+
 ```typescript
 const ProductsPage = lazy(() => import('../pages/ProductsPage'));
 const CheckoutPage = lazy(() => import('../pages/CheckoutPage'));
@@ -229,6 +238,7 @@ const AppRouter = () => (
 ```
 
 ### Image Optimization
+
 ```tsx
 const OptimizedImage = ({ src, alt, sizes }) => {
   const srcSet = `
@@ -236,16 +246,11 @@ const OptimizedImage = ({ src, alt, sizes }) => {
     ${src}?width=800&format=webp 800w,
     ${src}?width=1200&format=webp 1200w
   `;
-  
+
   return (
     <picture>
       <source srcSet={srcSet} type="image/webp" sizes={sizes} />
-      <img
-        src={src}
-        alt={alt}
-        loading="lazy"
-        sizes={sizes}
-      />
+      <img src={src} alt={alt} loading="lazy" sizes={sizes} />
     </picture>
   );
 };
@@ -254,6 +259,7 @@ const OptimizedImage = ({ src, alt, sizes }) => {
 ## Supabase Integration
 
 ### Database Schema
+
 ```sql
 -- Users with RLS
 CREATE TABLE profiles (
@@ -281,6 +287,7 @@ CREATE INDEX idx_products_search ON products USING gin(search_vector);
 ```
 
 ### RLS Policies
+
 ```sql
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 
@@ -292,6 +299,7 @@ CREATE POLICY "Users can update own profile" ON profiles
 ```
 
 ### Type-Safe Client
+
 ```typescript
 export type Database = {
   public: {
@@ -323,10 +331,7 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
 // Service layer
 export class ProductService {
   static async getProducts(filters?: ProductFilters) {
-    let query = supabase
-      .from('products')
-      .select('*')
-      .eq('status', 'active');
+    let query = supabase.from('products').select('*').eq('status', 'active');
 
     if (filters?.search) {
       query = query.textSearch('search_vector', filters.search);
@@ -340,6 +345,7 @@ export class ProductService {
 ```
 
 ### Real-time Chat
+
 ```typescript
 export class ChatService {
   static async sendMessage(data: {
@@ -357,15 +363,22 @@ export class ChatService {
     return message;
   }
 
-  static subscribeToMessages(conversationId: string, onMessage: (message: any) => void) {
+  static subscribeToMessages(
+    conversationId: string,
+    onMessage: (message: any) => void
+  ) {
     return supabase
       .channel(`conversation:${conversationId}`)
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'chat_messages',
-        filter: `conversation_id=eq.${conversationId}`,
-      }, (payload) => onMessage(payload.new))
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'chat_messages',
+          filter: `conversation_id=eq.${conversationId}`,
+        },
+        payload => onMessage(payload.new)
+      )
       .subscribe();
   }
 }
@@ -374,6 +387,7 @@ export class ChatService {
 ## Security & Error Handling
 
 ### Input Validation
+
 ```typescript
 import { z } from 'zod';
 
@@ -384,7 +398,8 @@ export const CreateProductSchema = z.object({
   inventory_quantity: z.number().int().min(0),
 });
 
-export const validateRequest = <T>(schema: z.ZodSchema<T>) =>
+export const validateRequest =
+  <T>(schema: z.ZodSchema<T>) =>
   (req: Request, res: Response, next: NextFunction) => {
     try {
       req.body = schema.parse(req.body);
@@ -402,6 +417,7 @@ export const validateRequest = <T>(schema: z.ZodSchema<T>) =>
 ```
 
 ### Error Classes
+
 ```typescript
 export class AppError extends Error {
   constructor(
@@ -444,6 +460,7 @@ export const useErrorHandler = () => {
 ## Testing
 
 ### Component Testing
+
 ```typescript
 import { render, screen, fireEvent } from '@testing-library/react';
 import { vi } from 'vitest';
@@ -459,7 +476,7 @@ describe('ProductCard', () => {
 
   it('renders product information', () => {
     render(<ProductCard product={mockProduct} onAddToCart={vi.fn()} />);
-    
+
     expect(screen.getByText('Test Product')).toBeInTheDocument();
     expect(screen.getByText('₱99.99')).toBeInTheDocument();
   });
@@ -467,6 +484,7 @@ describe('ProductCard', () => {
 ```
 
 ### E2E Testing
+
 ```typescript
 import { test, expect } from '@playwright/test';
 
@@ -480,10 +498,11 @@ test('user can add product to cart', async ({ page }) => {
 ## SEO & PWA
 
 ### Metadata Generation
+
 ```typescript
 export async function generateMetadata({ params }): Promise<Metadata> {
   const product = await ProductService.getProductBySlug(params.slug);
-  
+
   return {
     title: `${product.name} | Printy`,
     description: product.description,
@@ -497,6 +516,7 @@ export async function generateMetadata({ params }): Promise<Metadata> {
 ```
 
 ### PWA Configuration
+
 ```javascript
 // next.config.js
 const withPWA = require('next-pwa')({
@@ -516,6 +536,7 @@ module.exports = withPWA({
 ## Button & Container Sizing
 
 ### Responsive Button Scale
+
 ```css
 /* Touch-first button hierarchy */
 xs:  h-8  px-2  text-xs   /* 32px - icons */
@@ -526,6 +547,7 @@ xl:  h-14 px-8  text-lg   /* 56px - hero CTAs */
 ```
 
 ### Content Containers
+
 ```css
 content-xs:   24rem (384px)  /* Auth forms */
 content-sm:   28rem (448px)  /* Mobile layouts */
@@ -558,39 +580,55 @@ content-2xl:  72rem (1152px) /* Dashboard sections */
 ### Required Shared Components
 
 **Text & Typography:**
+
 - Use `<Text>` component for ALL text elements (h1-h6, p, span, div)
 - Supports: variant, size, weight, color, align, truncate
 
 **Interactive Elements:**
+
 - Use `<Button>` for ALL interactive elements (buttons, links, CTAs)
 - Supports: variant, size, threeD, loading, disabled states
 
 **Data Display:**
+
 - Use `<Badge>` for status indicators, tags, counts
 - Use `<Card>` for content containers, sections, panels
 
 **Form Elements:**
+
 - Use `<Input>` for ALL form inputs with built-in validation
 
 **Layout:**
+
 - Use `<Container>` for content width constraints
 
 ### Component Import Pattern
+
 ```typescript
 // ✅ Always import from shared index
 import { Text, Button, Badge, Card, Input, Container } from '../shared';
-import { Text, Button, Badge, Card, Input, Container } from '../../components/shared';
+import {
+  Text,
+  Button,
+  Badge,
+  Card,
+  Input,
+  Container,
+} from '../../components/shared';
 ```
 
 ### Enforcement Rules
+
 1. **NO custom HTML elements** when shared component exists
-2. **NO custom styling** that duplicates component functionality  
+2. **NO custom styling** that duplicates component functionality
 3. **NO inline styles** for standard UI patterns
 4. **ALWAYS check showcase** before creating custom components
 5. **MAINTAIN consistency** across entire codebase
 
 ### Audit Checklist
+
 Before committing, verify NO instances of:
+
 - `<h1>`, `<h2>`, `<h3>`, `<h4>`, `<h5>`, `<h6>` tags
 - `<p>` tags (except in shared components)
 - `<button>` tags with custom styling
@@ -600,6 +638,7 @@ Before committing, verify NO instances of:
 ## Development Principles
 
 ### Always Follow
+
 1. **Mobile-First Design** - Start mobile, enhance for desktop
 2. **Accessibility First** - WCAG 2.1 AA compliance
 3. **Type Safety** - Strict TypeScript, validate inputs
@@ -608,6 +647,7 @@ Before committing, verify NO instances of:
 6. **Shared Components First** - Use design system components exclusively
 
 ### Never Do
+
 - Skip input validation on user data
 - Use `any` types without justification
 - Implement without accessibility considerations
@@ -618,4 +658,5 @@ Before committing, verify NO instances of:
 - **Duplicate component functionality**
 
 ### Architecture Philosophy
+
 Build systems that are secure by default, performant by design, accessible by principle, maintainable by structure, and consistent by shared component usage.

@@ -1,7 +1,11 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CustomerChatPanel from '../../components/chat/CustomerChatPanel';
-import { type ChatMessage, type QuickReply, type ChatRole } from '../../components/chat/types';
+import {
+  type ChatMessage,
+  type QuickReply,
+  type ChatRole,
+} from '../../components/chat/types';
 import MobileSidebar from '../../components/customer/MobileSidebar';
 import DesktopSidebar from '../../components/customer/DesktopSidebar';
 import DashboardContent from '../../components/customer/DashboardContent';
@@ -55,37 +59,37 @@ const topicConfig: Record<
     label: 'Services Offered',
     icon: <Settings className="w-6 h-6" />,
     flowId: 'services',
-    description: 'Browse our printing services and capabilities'
+    description: 'Browse our printing services and capabilities',
   },
   placeOrder: {
     label: 'Place an Order',
     icon: <ShoppingCart className="w-6 h-6" />,
     flowId: 'place-order',
-    description: 'Get a custom quote for printing services'
+    description: 'Get a custom quote for printing services',
   },
   issueTicket: {
     label: 'Issue a Ticket',
     icon: <HelpCircle className="w-6 h-6" />,
     flowId: 'issue-ticket',
-    description: 'Report an issue with an existing order'
+    description: 'Report an issue with an existing order',
   },
   trackTicket: {
     label: 'Track a Ticket',
     icon: <Clock className="w-6 h-6" />,
     flowId: 'track-ticket',
-    description: 'Check the status of your orders'
+    description: 'Check the status of your orders',
   },
   aboutUs: {
     label: 'About Us',
     icon: <Info className="w-6 h-6" />,
     flowId: 'about',
-    description: 'Learn about B.J. Santiago Inc.'
+    description: 'Learn about B.J. Santiago Inc.',
   },
   faqs: {
     label: 'FAQs',
     icon: <MessageSquare className="w-6 h-6" />,
     flowId: 'faqs',
-    description: 'Quick answers to common questions'
+    description: 'Quick answers to common questions',
   },
 };
 
@@ -101,7 +105,14 @@ const CustomerDashboard: React.FC = () => {
   const [inputPlaceholder, setInputPlaceholder] = useState('Type a message...');
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
-  const topics = useMemo(() => Object.entries(topicConfig) as [TopicKey, typeof topicConfig[TopicKey]][], []);
+  const topics = useMemo(
+    () =>
+      Object.entries(topicConfig) as [
+        TopicKey,
+        (typeof topicConfig)[TopicKey],
+      ][],
+    []
+  );
 
   // TODO: Replace with real data from Supabase
   // const { data: recentOrder } = await supabase
@@ -111,7 +122,7 @@ const CustomerDashboard: React.FC = () => {
   //   .order('updated_at', { ascending: false })
   //   .limit(1)
   //   .single();
-  
+
   // const { data: recentTicket } = await supabase
   //   .from('tickets')
   //   .select('*')
@@ -121,19 +132,25 @@ const CustomerDashboard: React.FC = () => {
   //   .single();
 
   // Mock recent order and ticket (prototype only) - REMOVE WHEN IMPLEMENTING BACKEND
-  const recentOrder = useMemo(() => ({
-    id: 'ORD-000145',
-    title: 'Business Cards · Digital Printing',
-    status: 'In Progress',
-    updatedAt: Date.now() - 1000 * 60 * 45, // 45 mins ago
-  }), []);
+  const recentOrder = useMemo(
+    () => ({
+      id: 'ORD-000145',
+      title: 'Business Cards · Digital Printing',
+      status: 'In Progress',
+      updatedAt: Date.now() - 1000 * 60 * 45, // 45 mins ago
+    }),
+    []
+  );
 
-  const recentTicket = useMemo(() => ({
-    id: 'TCK-000052',
-    subject: 'Delivery schedule inquiry',
-    status: 'Open',
-    updatedAt: Date.now() - 1000 * 60 * 125, // ~2 hours ago
-  }), []);
+  const recentTicket = useMemo(
+    () => ({
+      id: 'TCK-000052',
+      subject: 'Delivery schedule inquiry',
+      status: 'Open',
+      updatedAt: Date.now() - 1000 * 60 * 125, // ~2 hours ago
+    }),
+    []
+  );
 
   const initializeFlow = (flowId: string, title: string) => {
     const flow = flows[flowId];
@@ -149,7 +166,9 @@ const CustomerDashboard: React.FC = () => {
     }));
 
     // Find the topic config to get the icon
-    const topicEntry = Object.entries(topicConfig).find(([key, config]) => config.flowId === flowId);
+    const topicEntry = Object.entries(topicConfig).find(
+      ([key, config]) => config.flowId === flowId
+    );
     const icon = topicEntry ? topicEntry[1].icon : undefined;
 
     const conversation: Conversation = {
@@ -162,12 +181,14 @@ const CustomerDashboard: React.FC = () => {
       icon,
     };
 
-    setConversations((prev) => [conversation, ...prev]);
+    setConversations(prev => [conversation, ...prev]);
     setActiveId(conversation.id);
     setMessages(botMessages);
 
     // Set initial quick replies
-    const replies = flow.quickReplies().map((label: string) => ({ label, value: label }));
+    const replies = flow
+      .quickReplies()
+      .map((label: string) => ({ label, value: label }));
     setQuickReplies(replies);
     updateInputPlaceholder(flowId, replies);
   };
@@ -189,21 +210,21 @@ const CustomerDashboard: React.FC = () => {
 
   const handleSend = async (text: string) => {
     if (!currentFlow || !activeId) return;
-    
+
     // Prevent sending if conversation is completed
-    const activeConversation = conversations.find((c) => c.id === activeId);
+    const activeConversation = conversations.find(c => c.id === activeId);
     if (activeConversation?.status === 'completed') return;
 
-    const userMessage: ChatMessage = { 
-      id: crypto.randomUUID(), 
-      role: 'user', 
-      text, 
-      ts: Date.now() 
+    const userMessage: ChatMessage = {
+      id: crypto.randomUUID(),
+      role: 'user',
+      text,
+      ts: Date.now(),
     };
-    
-    setMessages((prev) => [...prev, userMessage]);
-    setConversations((prev) => 
-      prev.map((c) => 
+
+    setMessages(prev => [...prev, userMessage]);
+    setConversations(prev =>
+      prev.map(c =>
         c.id === activeId ? { ...c, messages: [...c.messages, userMessage] } : c
       )
     );
@@ -213,41 +234,51 @@ const CustomerDashboard: React.FC = () => {
 
     try {
       const response = await currentFlow.respond({}, text);
-      
-      setTimeout(() => {
-        const botMessages: ChatMessage[] = response.messages.map((msg: any) => ({
-          id: crypto.randomUUID(),
-          role: 'printy' as ChatRole,
-          text: msg.text,
-          ts: Date.now(),
-        }));
 
-        setMessages((prev) => [...prev, ...botMessages]);
-        setConversations((prev) => 
-          prev.map((c) => 
-            c.id === activeId ? { ...c, messages: [...c.messages, ...botMessages] } : c
+      setTimeout(() => {
+        const botMessages: ChatMessage[] = response.messages.map(
+          (msg: any) => ({
+            id: crypto.randomUUID(),
+            role: 'printy' as ChatRole,
+            text: msg.text,
+            ts: Date.now(),
+          })
+        );
+
+        setMessages(prev => [...prev, ...botMessages]);
+        setConversations(prev =>
+          prev.map(c =>
+            c.id === activeId
+              ? { ...c, messages: [...c.messages, ...botMessages] }
+              : c
           )
         );
 
         // Update quick replies
-        const replies = (response.quickReplies || []).map((label: string) => ({ label, value: label }));
+        const replies = (response.quickReplies || []).map((label: string) => ({
+          label,
+          value: label,
+        }));
         setQuickReplies(replies);
         updateInputPlaceholder(currentFlow.id, replies);
-        
+
         setIsTyping(false);
       }, 800);
     } catch (error) {
       console.error('Flow error:', error);
-      toastMethods.error('Chat Error', 'There was an issue processing your message. Please try again.');
+      toastMethods.error(
+        'Chat Error',
+        'There was an issue processing your message. Please try again.'
+      );
       setIsTyping(false);
     }
   };
 
   const handleQuickReply = (value: string) => {
     // Prevent quick replies if conversation is completed
-    const activeConversation = conversations.find((c) => c.id === activeId);
+    const activeConversation = conversations.find(c => c.id === activeId);
     if (activeConversation?.status === 'completed') return;
-    
+
     const normalized = value.trim().toLowerCase();
     if (normalized === 'end chat' || normalized === 'end') {
       endChat();
@@ -257,12 +288,12 @@ const CustomerDashboard: React.FC = () => {
   };
 
   const switchConversation = (id: string) => {
-    const conv = conversations.find((c) => c.id === id);
+    const conv = conversations.find(c => c.id === id);
     if (!conv) return;
-    
+
     setActiveId(id);
     setMessages(conv.messages);
-    
+
     // For completed conversations, don't restore interactive state
     if (conv.status === 'completed') {
       setCurrentFlow(null);
@@ -274,7 +305,9 @@ const CustomerDashboard: React.FC = () => {
       const flow = flows[conv.flowId];
       if (flow) {
         setCurrentFlow(flow);
-        const replies = flow.quickReplies().map((label: string) => ({ label, value: label }));
+        const replies = flow
+          .quickReplies()
+          .map((label: string) => ({ label, value: label }));
         setQuickReplies(replies);
         updateInputPlaceholder(conv.flowId, replies);
       }
@@ -283,11 +316,11 @@ const CustomerDashboard: React.FC = () => {
 
   const endChat = () => {
     if (!activeId) return;
-    
+
     // Check if conversation is already completed
-    const currentConversation = conversations.find((c) => c.id === activeId);
+    const currentConversation = conversations.find(c => c.id === activeId);
     if (currentConversation?.status === 'completed') return;
-    
+
     // Add end chat message
     const endMessage: ChatMessage = {
       id: crypto.randomUUID(),
@@ -295,25 +328,27 @@ const CustomerDashboard: React.FC = () => {
       text: 'Thank you for chatting with Printy! Have a great day. 👋',
       ts: Date.now(),
     };
-    
+
     // Update messages and conversation
-    setMessages((prev) => [...prev, endMessage]);
-    setConversations((prev) => 
-      prev.map((c) => 
+    setMessages(prev => [...prev, endMessage]);
+    setConversations(prev =>
+      prev.map(c =>
         c.id === activeId ? { ...c, messages: [...c.messages, endMessage] } : c
       )
     );
-    
+
     // Clear quick replies (prevent duplicate End Chat)
     setQuickReplies([]);
-    
+
     // Mark conversation as completed
-    setConversations((prev) => 
-      prev.map((c) => 
-        c.id === activeId ? { ...c, status: 'completed' as const, icon: c.icon } : c
+    setConversations(prev =>
+      prev.map(c =>
+        c.id === activeId
+          ? { ...c, status: 'completed' as const, icon: c.icon }
+          : c
       )
     );
-    
+
     // Standardized delay before closing (2 seconds)
     setTimeout(() => {
       setActiveId(null);
@@ -339,22 +374,24 @@ const CustomerDashboard: React.FC = () => {
 
   const confirmLogout = async () => {
     setShowLogoutModal(false);
-    
+
     try {
       // TODO: Implement real logout with Supabase
       // await supabase.auth.signOut();
-      
+
       // TODO: Clear any local state or user data
       // setUser(null);
       // setProfile(null);
-      
-      toastMethods.success('Successfully logged out', 'You have been signed out of your account');
-      
+
+      toastMethods.success(
+        'Successfully logged out',
+        'You have been signed out of your account'
+      );
+
       // Redirect to sign in page
       setTimeout(() => {
         navigate('/auth/signin');
       }, 1000);
-      
     } catch (error) {
       console.error('Logout error:', error);
       toastMethods.error('Logout Error', 'There was an issue signing you out');
@@ -371,7 +408,7 @@ const CustomerDashboard: React.FC = () => {
         onNavigateToAccount={() => navigate('/account')}
         onLogout={handleLogout}
       />
-      
+
       <DesktopSidebar
         conversations={conversations}
         activeId={activeId}
@@ -380,76 +417,83 @@ const CustomerDashboard: React.FC = () => {
         onLogout={handleLogout}
       />
 
-        {/* Main Content - Full Screen for Chat */}
-      <main className={`flex-1 flex flex-col ${activeId ? 'pl-16' : 'pl-16'} lg:pl-0`}>
-          {activeId ? (
-            // Full screen chat without containers
-              <CustomerChatPanel
-                title={conversations.find((c) => c.id === activeId)?.title || 'Chat'}
-                messages={messages}
-                onSend={handleSend}
-                isTyping={isTyping}
-                onBack={handleBack}
-                quickReplies={quickReplies}
-                onQuickReply={handleQuickReply}
-                inputPlaceholder={inputPlaceholder}
-                onEndChat={endChat}
-                disabled={conversations.find((c) => c.id === activeId)?.status === 'completed'}
-              />
+      {/* Main Content - Full Screen for Chat */}
+      <main
+        className={`flex-1 flex flex-col ${activeId ? 'pl-16' : 'pl-16'} lg:pl-0`}
+      >
+        {activeId ? (
+          // Full screen chat without containers
+          <CustomerChatPanel
+            title={conversations.find(c => c.id === activeId)?.title || 'Chat'}
+            messages={messages}
+            onSend={handleSend}
+            isTyping={isTyping}
+            onBack={handleBack}
+            quickReplies={quickReplies}
+            onQuickReply={handleQuickReply}
+            inputPlaceholder={inputPlaceholder}
+            onEndChat={endChat}
+            disabled={
+              conversations.find(c => c.id === activeId)?.status === 'completed'
+            }
+          />
         ) : (
           <DashboardContent
             topics={topics}
             recentOrder={recentOrder}
             recentTicket={recentTicket}
-            onTopicSelect={(key) => handleTopic(key as TopicKey)}
+            onTopicSelect={key => handleTopic(key as TopicKey)}
           />
-          )}
-        </main>
-        
-        {/* Logout Confirmation Modal */}
-        <Modal isOpen={showLogoutModal} onClose={() => setShowLogoutModal(false)} size="sm">
-          <div className="bg-white rounded-2xl shadow-xl border border-neutral-200">
-            <div className="flex items-center justify-between p-6 pb-4">
-              <Text variant="h3" size="lg" weight="semibold">
-                Confirm Logout
-              </Text>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowLogoutModal(false)}
-                className="ml-4 h-8 w-8 p-0 hover:bg-neutral-100"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-            
-            <div className="px-6 pb-4">
-              <Text variant="p">
-                Are you sure you want to log out? You'll need to sign in again to access your account.
-              </Text>
-            </div>
-            
-            <div className="flex items-center justify-end gap-3 p-6 pt-4">
-              <Button variant="ghost" onClick={() => setShowLogoutModal(false)}>
-                Cancel
-              </Button>
-              <Button variant="error" threeD onClick={confirmLogout}>
-                Logout
-              </Button>
-            </div>
+        )}
+      </main>
+
+      {/* Logout Confirmation Modal */}
+      <Modal
+        isOpen={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        size="sm"
+      >
+        <div className="bg-white rounded-2xl shadow-xl border border-neutral-200">
+          <div className="flex items-center justify-between p-6 pb-4">
+            <Text variant="h3" size="lg" weight="semibold">
+              Confirm Logout
+            </Text>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowLogoutModal(false)}
+              className="ml-4 h-8 w-8 p-0 hover:bg-neutral-100"
+            >
+              <X className="h-4 w-4" />
+            </Button>
           </div>
-        </Modal>
-        
-        {/* Toast Container */}
-        <ToastContainer
-          toasts={toasts}
-          onRemoveToast={toastMethods.remove}
-          position="top-center"
-        />
-      </div>
-    );
-  };
+
+          <div className="px-6 pb-4">
+            <Text variant="p">
+              Are you sure you want to log out? You'll need to sign in again to
+              access your account.
+            </Text>
+          </div>
+
+          <div className="flex items-center justify-end gap-3 p-6 pt-4">
+            <Button variant="ghost" onClick={() => setShowLogoutModal(false)}>
+              Cancel
+            </Button>
+            <Button variant="error" threeD onClick={confirmLogout}>
+              Logout
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Toast Container */}
+      <ToastContainer
+        toasts={toasts}
+        onRemoveToast={toastMethods.remove}
+        position="top-center"
+      />
+    </div>
+  );
+};
 
 export default CustomerDashboard;
-
-

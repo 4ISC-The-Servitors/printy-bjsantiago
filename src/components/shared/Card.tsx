@@ -9,7 +9,10 @@ export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   onClick?: () => void;
 }
 
-interface CardComponent extends React.ForwardRefExoticComponent<CardProps & React.RefAttributes<HTMLDivElement>> {
+interface CardComponent
+  extends React.ForwardRefExoticComponent<
+    CardProps & React.RefAttributes<HTMLDivElement>
+  > {
   Header: React.FC<{ title?: string; subtitle?: string }>;
   Title: React.FC<{ children: React.ReactNode }>;
   Subtitle: React.FC<{ children: React.ReactNode }>;
@@ -47,7 +50,7 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(
         tabIndex={isClickable ? 0 : undefined}
         onKeyDown={
           isClickable
-            ? (e) => {
+            ? e => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
                   onClick?.();
@@ -68,9 +71,9 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(
 
 Card.displayName = 'Card';
 
-const CardHeader: React.FC<{ title?: string; subtitle?: string }> = ({ 
-  title, 
-  subtitle 
+const CardHeader: React.FC<{ title?: string; subtitle?: string }> = ({
+  title,
+  subtitle,
 }) => (
   <div className="p-6 pb-4">
     {title && <CardTitle>{title}</CardTitle>}
@@ -82,9 +85,9 @@ const CardTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <h3 className="text-lg font-semibold text-neutral-900">{children}</h3>
 );
 
-const CardSubtitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <p className="mt-1 text-sm text-neutral-600">{children}</p>
-);
+const CardSubtitle: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => <p className="mt-1 text-sm text-neutral-600">{children}</p>;
 
 const CardContent: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <div className="p-6">{children}</div>

@@ -1,6 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Input, Text, Container, ToastContainer } from '../../components/shared';
+import {
+  Button,
+  Input,
+  Text,
+  Container,
+  ToastContainer,
+} from '../../components/shared';
 import { useToast } from '../../lib/useToast';
 import { Eye, EyeOff, Mail, ArrowLeft } from 'lucide-react';
 
@@ -40,34 +46,36 @@ const SignIn: React.FC = () => {
       //   email: formData.email,
       //   password: formData.password,
       // });
-      
+
       // if (error) throw error;
-      
+
       // TODO: Get user profile and role from database
       // const { data: profile } = await supabase
       //   .from('profiles')
       //   .select('role')
       //   .eq('id', data.user.id)
       //   .single();
-      
+
       // TODO: Handle role-based routing
       // const routeMap = {
       //   customer: '/customer',
-      //   valued: '/valued', 
+      //   valued: '/valued',
       //   admin: '/admin',
       //   superadmin: '/superadmin'
       // };
-      
+
       // navigate(routeMap[profile.role] || '/customer');
-      
+
       // Temporary mock success for prototype
       toastMethods.success('Welcome back!', 'Successfully signed in');
       setTimeout(() => navigate('/customer'), 1000);
-      
     } catch (error) {
       console.error('Sign in error:', error);
       setError('Invalid email or password.');
-      toastMethods.error('Sign In Failed', 'Please check your credentials and try again.');
+      toastMethods.error(
+        'Sign In Failed',
+        'Please check your credentials and try again.'
+      );
     } finally {
       setLoading(false);
     }
@@ -75,7 +83,7 @@ const SignIn: React.FC = () => {
 
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
-    
+
     try {
       // TODO: Implement Google OAuth with Supabase
       // const { data, error } = await supabase.auth.signInWithOAuth({
@@ -84,13 +92,19 @@ const SignIn: React.FC = () => {
       //     redirectTo: `${window.location.origin}/auth/callback`
       //   }
       // });
-      
+
       // if (error) throw error;
-      
-      toastMethods.info('Google Sign-In', 'Google authentication will be implemented with Supabase.');
+
+      toastMethods.info(
+        'Google Sign-In',
+        'Google authentication will be implemented with Supabase.'
+      );
     } catch (error) {
       console.error('Google sign in error:', error);
-      toastMethods.error('Google Sign-In Failed', 'There was an issue signing in with Google.');
+      toastMethods.error(
+        'Google Sign-In Failed',
+        'There was an issue signing in with Google.'
+      );
     } finally {
       setGoogleLoading(false);
     }
@@ -101,9 +115,9 @@ const SignIn: React.FC = () => {
       <Container size="sm" className="w-full container-responsive">
         {/* Back to Home Link */}
         <div className="mb-8">
-          <Button 
-            variant="ghost" 
-            size="sm" 
+          <Button
+            variant="ghost"
+            size="sm"
             threeD
             className="text-neutral-600 hover:text-brand-primary"
             onClick={() => navigate('/')}
@@ -117,12 +131,17 @@ const SignIn: React.FC = () => {
         <div className="bg-white rounded-2xl shadow-lg border border-neutral-200 p-8">
           {/* Header */}
           <div className="text-center mb-8">
-            <Text variant="h1" size="4xl" weight="bold" className="text-neutral-900 mb-2">
+            <Text
+              variant="h1"
+              size="4xl"
+              weight="bold"
+              className="text-neutral-900 mb-2"
+            >
               Sign in to your account
             </Text>
             <Text variant="p" size="base" color="muted">
               Don't have an account?{' '}
-              <button 
+              <button
                 className="text-brand-accent hover:text-brand-accent-700 font-medium transition-colors"
                 onClick={() => navigate('/auth/signup')}
               >
@@ -145,7 +164,7 @@ const SignIn: React.FC = () => {
                 type="email"
                 placeholder="you@email.com"
                 value={formData.email}
-                onChange={(e) => handleInputChange('email', e.target.value)}
+                onChange={e => handleInputChange('email', e.target.value)}
                 required
                 className="pr-12"
                 wrapperClassName="relative"
@@ -163,7 +182,7 @@ const SignIn: React.FC = () => {
                 type={showPassword ? 'text' : 'password'}
                 placeholder="Enter your password"
                 value={formData.password}
-                onChange={(e) => handleInputChange('password', e.target.value)}
+                onChange={e => handleInputChange('password', e.target.value)}
                 required
                 className="pr-24"
                 wrapperClassName="relative"
@@ -173,7 +192,9 @@ const SignIn: React.FC = () => {
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="text-neutral-400 hover:text-neutral-600 transition-colors"
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    aria-label={
+                      showPassword ? 'Hide password' : 'Show password'
+                    }
                   >
                     {showPassword ? (
                       <EyeOff className="w-5 h-5" />
@@ -191,14 +212,16 @@ const SignIn: React.FC = () => {
                 <input
                   type="checkbox"
                   checked={formData.keepLoggedIn}
-                  onChange={(e) => handleInputChange('keepLoggedIn', e.target.checked)}
+                  onChange={e =>
+                    handleInputChange('keepLoggedIn', e.target.checked)
+                  }
                   className="w-4 h-4 text-brand-primary border-neutral-300 rounded focus:ring-brand-primary focus:ring-2"
                 />
                 <Text variant="span" size="sm" className="text-neutral-700">
                   Keep me logged in
                 </Text>
               </label>
-              
+
               <button
                 type="button"
                 className="text-error hover:text-error-700 text-sm font-medium transition-colors"
@@ -264,11 +287,13 @@ const SignIn: React.FC = () => {
                 />
               </svg>
             </div>
-            {googleLoading ? 'Signing in with Google...' : 'Sign in with Google'}
+            {googleLoading
+              ? 'Signing in with Google...'
+              : 'Sign in with Google'}
           </Button>
         </div>
       </Container>
-      
+
       {/* Toast Container */}
       <ToastContainer
         toasts={toasts}

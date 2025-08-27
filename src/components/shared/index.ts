@@ -38,7 +38,12 @@ export type { ToastContainerProps } from './ToastContainer';
 
 // Modal Component
 export { default as Modal } from './Modal';
-export type { ModalProps, ModalHeaderProps, ModalBodyProps, ModalFooterProps } from './Modal';
+export type {
+  ModalProps,
+  ModalHeaderProps,
+  ModalBodyProps,
+  ModalFooterProps,
+} from './Modal';
 
 // Toast Hook and Types (from lib)
 export { useToast } from '../../lib/useToast';

@@ -6,24 +6,27 @@ import type { ToastData } from '../../lib/useToast';
 export interface ToastContainerProps {
   toasts: ToastData[];
   onRemoveToast: (id: string) => void;
-  position?: 'top-left' | 'top-right' | 'top-center' | 'bottom-left' | 'bottom-right' | 'bottom-center';
+  position?:
+    | 'top-left'
+    | 'top-right'
+    | 'top-center'
+    | 'bottom-left'
+    | 'bottom-right'
+    | 'bottom-center';
   className?: string;
 }
 
 const ToastContainer = React.forwardRef<HTMLDivElement, ToastContainerProps>(
   (
-    {
-      toasts,
-      onRemoveToast,
-      position = 'top-right',
-      className,
-      ...props
-    },
+    { toasts, onRemoveToast, position = 'top-right', className, ...props },
     ref
   ) => {
-    const handleClose = useCallback((id: string) => {
-      onRemoveToast(id);
-    }, [onRemoveToast]);
+    const handleClose = useCallback(
+      (id: string) => {
+        onRemoveToast(id);
+      },
+      [onRemoveToast]
+    );
 
     if (toasts.length === 0) return null;
 
@@ -37,12 +40,9 @@ const ToastContainer = React.forwardRef<HTMLDivElement, ToastContainerProps>(
         )}
         {...props}
       >
-        {toasts.map((toast) => (
+        {toasts.map(toast => (
           <div key={toast.id} className="pointer-events-auto">
-            <Toast
-              {...toast}
-              onClose={handleClose}
-            />
+            <Toast {...toast} onClose={handleClose} />
           </div>
         ))}
       </div>
