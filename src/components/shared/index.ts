@@ -22,6 +22,10 @@ export type { BadgeProps } from './Badge';
 export { default as Skeleton } from './Skeleton';
 export type { SkeletonProps } from './Skeleton';
 
+// Switch Component
+export { default as Switch } from './Switch';
+export type { SwitchProps } from './Switch';
+
 // Container Component
 export { default as Container } from './Container';
 export type { ContainerProps } from './Container';
