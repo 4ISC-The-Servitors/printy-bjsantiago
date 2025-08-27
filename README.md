@@ -11,6 +11,12 @@
 - Toast notifications and modal systems
 - TypeScript types and interfaces
 
+**🔗 Quick Links**
+
+- [Account Settings Backend TODOs](#account-settings-backend-todos-summary)
+- [Backend Integration Guide](./BACKEND_INTEGRATION.md#account-settings-integration-plan)
+- [Backend TODO Summary (from codebase)](./BACKEND_INTEGRATION.md#todobackend-summary-from-codebase)
+
 **🔄 IN PROGRESS:**
 
 - Backend integration and API implementation
@@ -357,3 +363,27 @@ For technical support or questions about the project architecture, please refer 
 ---
 
 **Built with ❤️ by B.J. Santiago INC.**
+
+## 🧩 Account Settings Backend TODOs (Summary)
+
+The UI is complete and instrumented with inline TODO(BACKEND) markers. Implement these to wire Supabase while preserving current UX.
+
+### AccountSettingsPage.tsx
+
+- TODO(BACKEND): Replace local state with data fetched from Supabase (profile, preferences)
+- TODO(BACKEND): Fetch profile and preferences on mount and hydrate state
+- TODO(BACKEND): Persist profile changes from PersonalInfoForm on save
+- TODO(BACKEND): Persist notification preference toggles
+
+### PersonalInfoForm.tsx
+
+- TODO(BACKEND): Wire onSave to profile update service (optimistic UI + toast)
+- TODO(BACKEND): Optionally refetch latest profile before editing
+
+### SecuritySettings.tsx
+
+- TODO(BACKEND): Call password change API and handle errors; fire success toast
+- TODO(BACKEND): Trigger onPasswordUpdated after successful API
+- TODO(BACKEND): Implement 2FA setup flow
+
+See `BACKEND_INTEGRATION.md` for the service layer outline and recommended endpoints.
