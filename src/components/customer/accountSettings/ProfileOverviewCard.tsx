@@ -5,10 +5,10 @@ interface ProfileOverviewCardProps {
   initials: string;
   displayName: string;
   email: string;
-  membership?: 'Premium' | 'Standard';
+  membership?: 'Valued' | 'Regular';
 }
 
-const ProfileOverviewCard: React.FC<ProfileOverviewCardProps> = ({ initials, displayName, email, membership = 'Standard' }) => {
+const ProfileOverviewCard: React.FC<ProfileOverviewCardProps> = ({ initials, displayName, email, membership = 'Regular' }) => {
   return (
     <Card className="p-4 md:p-6">
       <div className="flex flex-col md:flex-row items-center md:items-start gap-4">
@@ -19,7 +19,7 @@ const ProfileOverviewCard: React.FC<ProfileOverviewCardProps> = ({ initials, dis
           <Text variant="h3" size="xl" weight="semibold">{displayName}</Text>
           <Text variant="p" className="text-neutral-600 mt-1">{email}</Text>
           <div className="mt-2">
-            <Badge variant={membership === 'Premium' ? 'warning' : 'info'} size="sm">
+            <Badge variant={membership === 'Valued' ? 'warning' : 'info'} size="sm">
               {membership} Member
             </Badge>
           </div>
