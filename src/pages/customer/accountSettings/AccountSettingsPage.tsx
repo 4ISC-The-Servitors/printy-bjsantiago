@@ -23,10 +23,10 @@ export interface UserData {
 
 export interface NotificationPreferencesData {
   emailNotifications: boolean;
+  smsNotifications: boolean;
   orderUpdates: boolean;
   chatMessages: boolean;
-  promotions: boolean;
-  securityAlerts: boolean;
+  ticketUpdates: boolean;
 }
 
 const AccountSettingsPage: React.FC = () => {
@@ -44,10 +44,10 @@ const AccountSettingsPage: React.FC = () => {
 
   const [preferences, setPreferences] = useState<NotificationPreferencesData>({
     emailNotifications: true,
+    smsNotifications: true,
     orderUpdates: true,
     chatMessages: true,
-    promotions: false,
-    securityAlerts: true,
+    ticketUpdates: true,
   });
 
   const initials = useMemo(
@@ -61,7 +61,7 @@ const AccountSettingsPage: React.FC = () => {
 
   const handleSavePersonalInfo = (next: Partial<UserData>) => {
     setUserData(prev => ({ ...prev, ...next }));
-    toast.success('Saved', 'Your personal information has been updated');
+    toast.success('Saved', 'Your personal information has been updated!');
   };
 
   const handleTogglePreference = (key: keyof NotificationPreferencesData) => {
