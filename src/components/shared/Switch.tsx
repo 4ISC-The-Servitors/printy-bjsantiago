@@ -4,7 +4,7 @@ import { cn } from '../../lib/utils';
 export interface SwitchProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   checked: boolean;
   onCheckedChange?: (checked: boolean) => void;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | 'responsive';
   disabled?: boolean;
   label?: string;
 }
@@ -13,6 +13,11 @@ const sizes = {
   sm: { track: 'h-5 w-9', thumb: 'h-4 w-4', translate: 'translate-x-4' },
   md: { track: 'h-6 w-11', thumb: 'h-5 w-5', translate: 'translate-x-5' },
   lg: { track: 'h-7 w-14', thumb: 'h-6 w-6', translate: 'translate-x-7' },
+  responsive: {
+    track: 'h-5 w-9 md:h-6 md:w-11 lg:h-7 lg:w-14',
+    thumb: 'h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6',
+    translate: 'translate-x-4 md:translate-x-5 lg:translate-x-7',
+  },
 } as const;
 
 const Switch = React.forwardRef<HTMLButtonElement, SwitchProps>(
