@@ -21,10 +21,18 @@ const ProfileOverviewCard: React.FC<ProfileOverviewCardProps> = ({
           {initials}
         </div>
         <div className="w-full">
-          <Text variant="h3" size="xl" weight="semibold" className="text-center md:text-left">
+          <Text
+            variant="h3"
+            size="xl"
+            weight="semibold"
+            className="text-center md:text-left"
+          >
             {displayName}
           </Text>
-          <Text variant="p" className="text-neutral-600 mt-1 text-center md:text-left">
+          <Text
+            variant="p"
+            className="text-neutral-600 mt-1 text-center md:text-left"
+          >
             {email}
           </Text>
           <div className="mt-2 flex justify-center md:justify-start">

@@ -31,7 +31,11 @@ const SecuritySettings: React.FC = () => {
             </Text>
           </div>
           {!isChanging && (
-            <Button variant="secondary" onClick={() => setIsChanging(true)}>
+            <Button
+              variant="secondary"
+              threeD
+              onClick={() => setIsChanging(true)}
+            >
               Change Password
             </Button>
           )}
@@ -142,7 +146,9 @@ const SecuritySettings: React.FC = () => {
                 Add an extra layer of security to your account
               </Text>
             </div>
-            <Button variant="warning">Enable 2FA</Button>
+            <Button variant="warning" threeD>
+              Enable 2FA
+            </Button>
           </div>
         </div>
       </div>
