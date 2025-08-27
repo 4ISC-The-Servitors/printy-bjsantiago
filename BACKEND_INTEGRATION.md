@@ -2,6 +2,11 @@
 
 This document outlines the steps needed to integrate real backend functionality with the Printy application, replacing all mock data and prototype functionality.
 
+## 🔗 Quick Links
+
+- [Account Settings Integration Plan](#-account-settings-integration-plan)
+- [TODO(BACKEND) Summary From Codebase](#-todobackend-summary-from-codebase)
+
 ## 🎯 Overview
 
 The application currently has a complete UI and chat system but uses mock data for:
@@ -11,6 +16,59 @@ The application currently has a complete UI and chat system but uses mock data f
 - Order tracking
 - Support tickets
 - Data persistence
+
+## 🧩 Account Settings Integration Plan
+
+Files with TODO markers:
+
+- `src/pages/customer/accountSettings/AccountSettingsPage.tsx`
+- `src/components/customer/accountSettings/PersonalInfoForm.tsx`
+- `src/components/customer/accountSettings/SecuritySettings.tsx`
+
+### Data model (Supabase tables)
+
+- `profiles` (or extend existing): id, email, display_name, phone, address, city, zip_code, avatar_url
+- `preferences` (by user): email_notifications, sms_notifications, order_updates, chat_messages, ticket_updates
+
+### Services (client-side)
+
+Create `src/lib/services/account.ts` (suggested) with:
+
+```ts
+// TODO: implement with Supabase client
+export const AccountService = {
+  async getProfile() {}, // returns profile
+  async updateProfile(partial) {},
+};
+
+export const PreferencesService = {
+  async get() {},
+  async set(key, value) {},
+  async updateAll(prefs) {},
+};
+
+export const SecurityService = {
+  async changePassword(current, next) {},
+  async enable2FA() {},
+};
+```
+
+Wire these in the following locations:
+
+- Page mount → `getProfile`, `get()`; hydrate UI state
+- PersonalInfoForm `onSave` → `updateProfile(partial)`; optimistic UI + toasts
+- NotificationPreferences `onToggle` → `set(key, value)`; toast on result
+- SecuritySettings confirm → `changePassword(current, next)`; call `onPasswordUpdated` on success
+
+### Error handling
+
+- Use existing toasts/modals; only close on success
+- Show error toast on failure and keep forms open
+
+### Security notes
+
+- Enforce RLS on `profiles` and `preferences`
+- Scope reads/writes to the authenticated user
 
 ## 📋 Phase 1: Authentication & User Management
 
@@ -347,3 +405,22 @@ VITE_APP_ENV=production
 - [ ] Orders and tickets properly tracked
 - [ ] Performance maintained or improved
 - [ ] Security policies properly implemented
+
+## 🧩 TODO(BACKEND) Summary From Codebase
+
+Collected from inline markers to guide implementation order:
+
+- `src/pages/customer/accountSettings/AccountSettingsPage.tsx`
+  - Replace local state with Supabase-fetched profile and preferences
+  - Fetch profile + preferences on mount and hydrate UI
+  - Persist profile changes (PersonalInfoForm onSave)
+  - Persist notification preference toggles (onToggle)
+- `src/components/customer/accountSettings/PersonalInfoForm.tsx`
+  - Wire onSave to profile update service; optimistic update + toasts
+  - Optionally refetch latest profile before entering edit mode
+- `src/components/customer/accountSettings/SecuritySettings.tsx`
+  - Call password change API and handle errors; close modal on success
+  - Trigger onPasswordUpdated after success to show toast
+  - Implement 2FA enablement flow (placeholder button present)
+
+Refer to the “Account Settings Integration Plan” section above for proposed service shapes and where to connect them.

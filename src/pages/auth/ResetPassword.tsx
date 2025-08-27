@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Button,
@@ -24,6 +24,23 @@ const ResetPassword: React.FC = () => {
   const [email, setEmail] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mql = window.matchMedia('(min-width: 1024px)');
+    const handler = (e: MediaQueryListEvent | MediaQueryList) => {
+      setIsDesktop('matches' in e ? e.matches : (e as MediaQueryList).matches);
+    };
+    handler(mql);
+    if (mql.addEventListener) mql.addEventListener('change', handler as any);
+    else (mql as any).addListener(handler as any);
+    return () => {
+      if (mql.removeEventListener)
+        mql.removeEventListener('change', handler as any);
+      else (mql as any).removeListener(handler as any);
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -187,7 +204,7 @@ const ResetPassword: React.FC = () => {
       <ToastContainer
         toasts={toasts}
         onRemoveToast={toastMethods.remove}
-        position="top-center"
+        position={isDesktop ? 'bottom-right' : 'top-center'}
       />
     </div>
   );

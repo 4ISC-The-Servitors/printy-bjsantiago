@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Button,
@@ -30,6 +30,23 @@ const SignIn: React.FC = () => {
     keepLoggedIn: false,
   });
   const [error, setError] = useState<string | null>(null);
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mql = window.matchMedia('(min-width: 1024px)');
+    const handle = (e: MediaQueryListEvent | MediaQueryList) => {
+      setIsDesktop('matches' in e ? e.matches : (e as MediaQueryList).matches);
+    };
+    handle(mql);
+    if (mql.addEventListener) mql.addEventListener('change', handle as any);
+    else (mql as any).addListener(handle as any);
+    return () => {
+      if (mql.removeEventListener)
+        mql.removeEventListener('change', handle as any);
+      else (mql as any).removeListener(handle as any);
+    };
+  }, []);
 
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -298,7 +315,7 @@ const SignIn: React.FC = () => {
       <ToastContainer
         toasts={toasts}
         onRemoveToast={toastMethods.remove}
-        position="top-center"
+        position={isDesktop ? 'bottom-right' : 'top-center'}
       />
     </div>
   );

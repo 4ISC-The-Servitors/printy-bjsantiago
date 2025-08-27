@@ -53,6 +53,22 @@ const NotificationPreferences: React.FC<NotificationPreferencesProps> = ({
         <div className="flex items-center justify-between">
           <div>
             <Text variant="span" weight="medium">
+              SMS Notifications
+            </Text>
+            <Text variant="p" className="text-neutral-600">
+              Receive notifications via SMS
+            </Text>
+          </div>
+          <ResponsiveSwitch
+            checked={value.smsNotifications}
+            onClick={() => onToggle('smsNotifications')}
+            label="SMS Notifications"
+          />
+        </div>
+
+        <div className="flex items-center justify-between">
+          <div>
+            <Text variant="span" weight="medium">
               Order Updates
             </Text>
             <Text variant="p" className="text-neutral-600">
@@ -69,6 +85,22 @@ const NotificationPreferences: React.FC<NotificationPreferencesProps> = ({
         <div className="flex items-center justify-between">
           <div>
             <Text variant="span" weight="medium">
+              Ticket Updates
+            </Text>
+            <Text variant="p" className="text-neutral-600">
+              Important ticket updates
+            </Text>
+          </div>
+          <ResponsiveSwitch
+            checked={value.ticketUpdates}
+            onClick={() => onToggle('ticketUpdates')}
+            label="Ticket Updates"
+          />
+        </div>
+
+        <div className="flex items-center justify-between">
+          <div>
+            <Text variant="span" weight="medium">
               Chat Messages
             </Text>
             <Text variant="p" className="text-neutral-600">
@@ -79,38 +111,6 @@ const NotificationPreferences: React.FC<NotificationPreferencesProps> = ({
             checked={value.chatMessages}
             onClick={() => onToggle('chatMessages')}
             label="Chat Messages"
-          />
-        </div>
-
-        <div className="flex items-center justify-between">
-          <div>
-            <Text variant="span" weight="medium">
-              Promotions & Offers
-            </Text>
-            <Text variant="p" className="text-neutral-600">
-              Receive promotional emails and special offers
-            </Text>
-          </div>
-          <ResponsiveSwitch
-            checked={value.promotions}
-            onClick={() => onToggle('promotions')}
-            label="Promotions & Offers"
-          />
-        </div>
-
-        <div className="flex items-center justify-between">
-          <div>
-            <Text variant="span" weight="medium">
-              Security Alerts
-            </Text>
-            <Text variant="p" className="text-neutral-600">
-              Important security notifications (recommended)
-            </Text>
-          </div>
-          <ResponsiveSwitch
-            checked={value.securityAlerts}
-            onClick={() => onToggle('securityAlerts')}
-            label="Security Alerts"
           />
         </div>
       </div>

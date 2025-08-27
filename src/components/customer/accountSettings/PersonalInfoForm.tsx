@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Card, Text, Button, Input } from '../../shared';
+import { Card, Text, Button, Input, Modal } from '../../shared';
+import { Pencil } from 'lucide-react';
 import type { UserData } from '../../../pages/customer/accountSettings/AccountSettingsPage';
 
 interface PersonalInfoFormProps {
   value: UserData;
-  onSave: (partial: Partial<UserData>) => void;
+  onSave: (partial: Partial<UserData>) => void; // TODO(BACKEND): Wire to profile update service
 }
 
 const PersonalInfoForm: React.FC<PersonalInfoFormProps> = ({
@@ -14,8 +15,10 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = ({
   const [isEditing, setIsEditing] = useState(false);
   const [form, setForm] = useState<UserData>(value);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const startEdit = () => {
+    // TODO(BACKEND): Optionally refetch latest profile before editing
     setForm(value);
     setIsEditing(true);
   };
@@ -29,19 +32,44 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = ({
     const next: Record<string, string> = {};
     if (!form.displayName.trim()) next.displayName = 'Display name is required';
     if (!form.email.trim()) next.email = 'Email is required';
-    if (!form.phone.trim()) next.phone = 'Phone number is required';
+    const phoneLocal = getLocalDigitsFromPhone(form.phone);
+    if (phoneLocal.length !== 10)
+      next.phone = 'Enter a valid PH mobile (9xxxxxxxxx)';
     setErrors(next);
     return Object.keys(next).length === 0;
   };
 
   const save = () => {
     if (!validate()) return;
-    onSave(form);
-    setIsEditing(false);
+    setConfirmOpen(true);
   };
 
+  const getLocalDigitsFromPhone = (phone: string) => {
+    const digits = phone.replace(/\D/g, '');
+    let local = digits.startsWith('63') ? digits.slice(2) : digits;
+    if (local.startsWith('0')) local = local.slice(1);
+    if (!local.startsWith('9')) {
+      local = `9${local.replace(/^9?/, '')}`;
+    }
+    return local.slice(0, 10);
+  };
+
+  const formatPHMobile = (localDigits: string) => `+63 ${localDigits}`;
+
   return (
-    <Card className="p-4 md:p-6">
+    <Card className="p-4 md:p-6 relative">
+      {!isEditing && (
+        <Button
+          onClick={startEdit}
+          variant="secondary"
+          size="sm"
+          threeD
+          className="md:hidden h-9 w-9 p-0 flex items-center justify-center absolute top-3 right-3"
+          aria-label="Edit personal information"
+        >
+          <Pencil className="h-4 w-4" />
+        </Button>
+      )}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-3">
         <div>
           <Text variant="h3" size="lg" weight="semibold">
@@ -52,9 +80,19 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = ({
           </Text>
         </div>
         {!isEditing && (
-          <Button onClick={startEdit} variant="secondary">
-            Edit
-          </Button>
+          <div className="flex items-center gap-2">
+            {/* Tablet/Desktop: icon-only as default */}
+            <Button
+              onClick={startEdit}
+              variant="secondary"
+              size="sm"
+              threeD
+              className="hidden md:inline-flex h-9 w-9 p-0 items-center justify-center"
+              aria-label="Edit personal information"
+            >
+              <Pencil className="h-4 w-4" />
+            </Button>
+          </div>
         )}
       </div>
 
@@ -131,17 +169,21 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = ({
           {isEditing ? (
             <Input
               type="tel"
-              value={form.phone}
-              onChange={e => setForm(p => ({ ...p, phone: e.target.value }))}
+              value={getLocalDigitsFromPhone(form.phone)}
+              onChange={e => {
+                const digits = e.target.value.replace(/\D/g, '').slice(0, 10);
+                setForm(p => ({ ...p, phone: formatPHMobile(digits) }));
+              }}
               aria-invalid={Boolean(errors.phone)}
               aria-describedby={errors.phone ? 'phone-error' : undefined}
+              maxLength={10}
             />
           ) : (
             <Text
               variant="p"
               className="bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2"
             >
-              {value.phone}
+              {formatPHMobile(getLocalDigitsFromPhone(value.phone))}
             </Text>
           )}
           {errors.phone && (
@@ -227,6 +269,40 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = ({
           </div>
         )}
       </div>
+      <Modal
+        isOpen={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        size="sm"
+      >
+        <Card className="p-0">
+          <div className="flex items-center justify-between p-6 pb-4">
+            <Text variant="h3" size="lg" weight="semibold">
+              Confirm Save
+            </Text>
+          </div>
+          <div className="px-6 pb-4">
+            <Text variant="p">
+              Are you sure you want to save these changes to your personal
+              information?
+            </Text>
+          </div>
+          <div className="flex items-center justify-end gap-3 p-6 pt-4">
+            <Button variant="ghost" onClick={() => setConfirmOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              threeD
+              onClick={() => {
+                setConfirmOpen(false);
+                onSave(form);
+                setIsEditing(false);
+              }}
+            >
+              Confirm
+            </Button>
+          </div>
+        </Card>
+      </Modal>
     </Card>
   );
 };
