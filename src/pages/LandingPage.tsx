@@ -3,7 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { Button, Container, Text } from '../components/shared';
 import { MessageCircle, Printer, Users, Award } from 'lucide-react';
 import GuestChatPanel from '../components/chat/GuestChatPanel';
-import { type ChatMessage, type QuickReply, type ChatRole } from '../components/chat/types';
+import {
+  type ChatMessage,
+  type QuickReply,
+  type ChatRole,
+} from '../components/chat/types';
 import { guestFlows as flows } from '../chatLogic/guest';
 
 const LandingPage: React.FC = () => {
@@ -13,11 +17,12 @@ const LandingPage: React.FC = () => {
   const [quickReplies, setQuickReplies] = React.useState<QuickReply[]>([]);
   const [currentFlow, setCurrentFlow] = React.useState<any>(null);
   const [chatTitle, setChatTitle] = React.useState<string>('Chat');
-  const [inputPlaceholder, setInputPlaceholder] = React.useState('Type a message...');
+  const [inputPlaceholder, setInputPlaceholder] =
+    React.useState('Type a message...');
   const [isChatOpen, setIsChatOpen] = React.useState(false);
   const scrollToChat = () => {
-    document.getElementById('chat-section')?.scrollIntoView({ 
-      behavior: 'smooth' 
+    document.getElementById('chat-section')?.scrollIntoView({
+      behavior: 'smooth',
     });
   };
 
@@ -39,12 +44,16 @@ const LandingPage: React.FC = () => {
         ts: Date.now(),
       }));
       setMessages(botMessages);
-      const replies = flow.quickReplies().map((label: string) => ({ label, value: label }));
+      const replies = flow
+        .quickReplies()
+        .map((label: string) => ({ label, value: label }));
       setQuickReplies(replies);
       setInputPlaceholder('Type a message...');
       setIsTyping(false);
     }, 1500);
-    document.getElementById('chat-section')?.scrollIntoView({ behavior: 'smooth' });
+    document
+      .getElementById('chat-section')
+      ?.scrollIntoView({ behavior: 'smooth' });
   };
 
   const handleSend = async (text: string) => {
@@ -57,31 +66,39 @@ const LandingPage: React.FC = () => {
       ts: Date.now(),
     };
 
-    setMessages((prev) => [...prev, userMessage]);
+    setMessages(prev => [...prev, userMessage]);
     setIsTyping(true);
     setQuickReplies([]);
 
     try {
       const response = await currentFlow.respond({}, text);
       setTimeout(() => {
-        const newBotMessages: ChatMessage[] = response.messages.map((m: any) => ({
-          id: crypto.randomUUID(),
-          role: 'printy',
-          text: m.text,
-          ts: Date.now(),
+        const newBotMessages: ChatMessage[] = response.messages.map(
+          (m: any) => ({
+            id: crypto.randomUUID(),
+            role: 'printy',
+            text: m.text,
+            ts: Date.now(),
+          })
+        );
+        setMessages(prev => [...prev, ...newBotMessages]);
+        const replies = (response.quickReplies ?? []).map((label: string) => ({
+          label,
+          value: label,
         }));
-        setMessages((prev) => [...prev, ...newBotMessages]);
-        const replies = (response.quickReplies ?? []).map((label: string) => ({ label, value: label }));
         setQuickReplies(replies);
         setInputPlaceholder('Type a message...');
         setIsTyping(false);
-        
+
         // If guest is in place-order flow, redirect on auth choices
         const normalized = text.trim().toLowerCase();
         if (currentFlow?.id === 'guest_place_order') {
           if (normalized.includes('sign up')) {
             setTimeout(() => navigate('/auth/signup'), 1500);
-          } else if (normalized.includes('already have an account') || normalized.includes('sign in')) {
+          } else if (
+            normalized.includes('already have an account') ||
+            normalized.includes('sign in')
+          ) {
             setTimeout(() => navigate('/auth/signin'), 1500);
           }
         }
@@ -99,7 +116,7 @@ const LandingPage: React.FC = () => {
     // Show closing message, remove quick replies immediately
     setQuickReplies([]);
     setIsTyping(false);
-    setMessages((prev) => [
+    setMessages(prev => [
       ...prev,
       {
         id: crypto.randomUUID(),
@@ -130,7 +147,12 @@ const LandingPage: React.FC = () => {
                 <Printer className="w-6 h-6 text-white" />
               </div>
               <div>
-                <Text variant="h3" size="lg" weight="bold" className="text-brand-primary">
+                <Text
+                  variant="h3"
+                  size="lg"
+                  weight="bold"
+                  className="text-brand-primary"
+                >
                   Printy
                 </Text>
                 <Text variant="p" size="xs" color="muted">
@@ -141,10 +163,20 @@ const LandingPage: React.FC = () => {
 
             {/* Navigation */}
             <div className="flex items-center space-x-4">
-              <Button variant="ghost" size="sm" threeD onClick={() => navigate('/auth/signin')}>
+              <Button
+                variant="ghost"
+                size="sm"
+                threeD
+                onClick={() => navigate('/auth/signin')}
+              >
                 Sign In
               </Button>
-              <Button variant="primary" size="sm" threeD onClick={() => navigate('/auth/signup')}>
+              <Button
+                variant="primary"
+                size="sm"
+                threeD
+                onClick={() => navigate('/auth/signup')}
+              >
                 Sign Up
               </Button>
             </div>
@@ -157,18 +189,32 @@ const LandingPage: React.FC = () => {
         <Container className="container-responsive">
           <div className="text-center max-w-4xl mx-auto space-y-8">
             <div className="space-y-6">
-              <Text variant="h1" size="6xl" weight="bold" className="text-brand-primary leading-tight text-center">
+              <Text
+                variant="h1"
+                size="6xl"
+                weight="bold"
+                className="text-brand-primary leading-tight text-center"
+              >
                 Introducing Printy
               </Text>
-              <Text variant="p" size="xl" color="muted" className="leading-relaxed max-w-3xl mx-auto text-center">
-                For over 33 years, B.J. Santiago Inc. has delivered trusted printing solutions to businesses across the Philippines. Now, with Printy, our prompt-based chatbot assistant, we're making it easier than ever to browse services, place orders, track print jobs, and get instant support — all in one chat.
+              <Text
+                variant="p"
+                size="xl"
+                color="muted"
+                className="leading-relaxed max-w-3xl mx-auto text-center"
+              >
+                For over 33 years, B.J. Santiago Inc. has delivered trusted
+                printing solutions to businesses across the Philippines. Now,
+                with Printy, our prompt-based chatbot assistant, we're making it
+                easier than ever to browse services, place orders, track print
+                jobs, and get instant support — all in one chat.
               </Text>
             </div>
 
             <div className="space-y-4 text-center">
-              <Button 
-                variant="primary" 
-                size="lg" 
+              <Button
+                variant="primary"
+                size="lg"
                 threeD
                 onClick={scrollToChat}
                 className="group btn-responsive-primary"
@@ -191,11 +237,17 @@ const LandingPage: React.FC = () => {
               <div className="w-16 h-16 bg-brand-primary-100 rounded-full flex items-center justify-center mx-auto">
                 <Printer className="w-8 h-8 text-brand-primary" />
               </div>
-              <Text variant="h3" size="xl" weight="semibold" className="text-center">
+              <Text
+                variant="h3"
+                size="xl"
+                weight="semibold"
+                className="text-center"
+              >
                 Professional Printing
               </Text>
               <Text variant="p" color="muted">
-                Offset, digital, and large format printing with 33+ years of expertise
+                Offset, digital, and large format printing with 33+ years of
+                expertise
               </Text>
             </div>
 
@@ -203,7 +255,12 @@ const LandingPage: React.FC = () => {
               <div className="w-16 h-16 bg-brand-accent-100 rounded-full flex items-center justify-center mx-auto">
                 <MessageCircle className="w-8 h-8 text-brand-accent" />
               </div>
-              <Text variant="h3" size="xl" weight="semibold" className="text-center">
+              <Text
+                variant="h3"
+                size="xl"
+                weight="semibold"
+                className="text-center"
+              >
                 Prompt-Based Support
               </Text>
               <Text variant="p" color="muted">
@@ -215,7 +272,12 @@ const LandingPage: React.FC = () => {
               <div className="w-16 h-16 bg-success-100 rounded-full flex items-center justify-center mx-auto">
                 <Award className="w-8 h-8 text-success" />
               </div>
-              <Text variant="h3" size="xl" weight="semibold" className="text-center">
+              <Text
+                variant="h3"
+                size="xl"
+                weight="semibold"
+                className="text-center"
+              >
                 Trusted Quality
               </Text>
               <Text variant="p" color="muted">
@@ -227,11 +289,19 @@ const LandingPage: React.FC = () => {
       </section>
 
       {/* Chat Section */}
-      <section id="chat-section" className="py-20 bg-gradient-to-br from-brand-primary-50 to-white">
+      <section
+        id="chat-section"
+        className="py-20 bg-gradient-to-br from-brand-primary-50 to-white"
+      >
         <Container className="container-responsive">
           <div className="max-w-4xl mx-auto">
             <div className="text-center space-y-8 mb-12">
-              <Text variant="h2" size="4xl" weight="bold" className="text-brand-primary text-center">
+              <Text
+                variant="h2"
+                size="4xl"
+                weight="bold"
+                className="text-brand-primary text-center"
+              >
                 Hi there! I'm Printy, your chatbot assistant!
               </Text>
               <Text variant="p" size="lg" color="muted" className="text-center">
@@ -247,7 +317,7 @@ const LandingPage: React.FC = () => {
                   icon={<Users className="w-6 h-6" />}
                   onClick={() => initializeFlow('about')}
                 />
-                
+
                 <ActionCard
                   title="FAQs"
                   description="Find answers to common questions"
@@ -261,7 +331,7 @@ const LandingPage: React.FC = () => {
                   icon={<Award className="w-6 h-6" />}
                   onClick={() => initializeFlow('about')}
                 />
-                
+
                 <ActionCard
                   title="Place an Order"
                   description="Start your printing project"
@@ -316,7 +386,12 @@ interface ActionCardProps {
   onClick?: () => void;
 }
 
-const ActionCard: React.FC<ActionCardProps> = ({ title, description, icon, onClick }) => (
+const ActionCard: React.FC<ActionCardProps> = ({
+  title,
+  description,
+  icon,
+  onClick,
+}) => (
   <div
     onClick={onClick}
     className="group bg-white rounded-xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer border border-neutral-200 hover:border-brand-primary/20 hover:-translate-y-1"
@@ -326,7 +401,12 @@ const ActionCard: React.FC<ActionCardProps> = ({ title, description, icon, onCli
         {icon}
       </div>
       <div className="flex-1">
-        <Text variant="h4" size="lg" weight="semibold" className="group-hover:text-brand-primary transition-colors">
+        <Text
+          variant="h4"
+          size="lg"
+          weight="semibold"
+          className="group-hover:text-brand-primary transition-colors"
+        >
           {title}
         </Text>
         <Text variant="p" size="sm" color="muted" className="mt-1">

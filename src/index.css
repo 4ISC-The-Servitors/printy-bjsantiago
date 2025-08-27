@@ -7,40 +7,42 @@
 @layer base {
   :root {
     /* Brand Identity */
-    --brand-primary: #4056A1;
+    --brand-primary: #4056a1;
     --brand-primary-50: #f0f4ff;
     --brand-primary-100: #e0e7ff;
     --brand-primary-900: #1e293b;
-    --brand-accent: #D79922;
+    --brand-accent: #d79922;
     --brand-accent-50: #fffbeb;
     --brand-accent-100: #fef3c7;
 
     /* Neutral Foundation */
-    --neutral-0: #FFFFFF;
-    --neutral-50: #FAFAF9;
-    --neutral-100: #F5F5F4;
-    --neutral-200: #E7E5E4;
-    --neutral-300: #D6D3D1;
-    --neutral-400: #A8A29E;
-    --neutral-500: #78716C;
-    --neutral-600: #57534E;
-    --neutral-700: #44403C;
+    --neutral-0: #ffffff;
+    --neutral-50: #fafaf9;
+    --neutral-100: #f5f5f4;
+    --neutral-200: #e7e5e4;
+    --neutral-300: #d6d3d1;
+    --neutral-400: #a8a29e;
+    --neutral-500: #78716c;
+    --neutral-600: #57534e;
+    --neutral-700: #44403c;
     --neutral-800: #292524;
-    --neutral-900: #1C1917;
+    --neutral-900: #1c1917;
 
     /* Semantic Status Colors */
-    --error: #DC2626;
-    --error-50: #FEF2F2;
-    --success: #16A34A;
-    --success-50: #F0FDF4;
-    --warning: #D97706;
-    --warning-50: #FFFBEB;
-    --info: #2563EB;
-    --info-50: #EFF6FF;
+    --error: #dc2626;
+    --error-50: #fef2f2;
+    --success: #16a34a;
+    --success-50: #f0fdf4;
+    --warning: #d97706;
+    --warning-50: #fffbeb;
+    --info: #2563eb;
+    --info-50: #eff6ff;
 
     /* Typography */
     --font-heading: 'Fraunces', Georgia, 'Times New Roman', serif;
-    --font-body: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-body:
+      'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+      sans-serif;
     --font-mono: 'JetBrains Mono', Consolas, 'Courier New', monospace;
 
     /* Spacing */
@@ -99,7 +101,12 @@
   }
 
   /* Typography */
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     font-family: var(--font-heading);
     font-weight: 600;
     line-height: 1.25;
@@ -107,12 +114,24 @@
     margin: 0;
   }
 
-  h1 { font-size: 3rem; }
-  h2 { font-size: 2.25rem; }
-  h3 { font-size: 1.875rem; }
-  h4 { font-size: 1.5rem; }
-  h5 { font-size: 1.25rem; }
-  h6 { font-size: 1.125rem; }
+  h1 {
+    font-size: 3rem;
+  }
+  h2 {
+    font-size: 2.25rem;
+  }
+  h3 {
+    font-size: 1.875rem;
+  }
+  h4 {
+    font-size: 1.5rem;
+  }
+  h5 {
+    font-size: 1.25rem;
+  }
+  h6 {
+    font-size: 1.125rem;
+  }
 
   p {
     margin: 0 0 1rem 0;
@@ -153,7 +172,9 @@
   }
 
   /* Form Elements */
-  input, textarea, select {
+  input,
+  textarea,
+  select {
     font-family: inherit;
     font-size: inherit;
     line-height: inherit;
@@ -167,7 +188,8 @@
   }
 
   /* Lists */
-  ul, ol {
+  ul,
+  ol {
     margin: 0;
     padding: 0;
     list-style: none;
@@ -205,10 +227,10 @@
     .ios-fix {
       min-height: -webkit-fill-available;
     }
-    
-    input[type="text"],
-    input[type="email"],
-    input[type="tel"],
+
+    input[type='text'],
+    input[type='email'],
+    input[type='tel'],
     textarea {
       font-size: 16px;
     }
@@ -219,7 +241,7 @@
     body {
       overscroll-behavior: none;
     }
-    
+
     .scroll-container {
       -webkit-overflow-scrolling: touch;
       overflow-scrolling: touch;
@@ -238,41 +260,41 @@
 @layer components {
   /* Responsive button sizing per guidelines */
   .btn-responsive-primary {
-    @apply h-11 px-4 text-sm;           /* Mobile default (md) */
+    @apply h-11 px-4 text-sm; /* Mobile default (md) */
   }
 
   @media (min-width: 640px) {
     .btn-responsive-primary {
-      @apply h-12 px-6 text-base;       /* Tablet+ (lg) */
+      @apply h-12 px-6 text-base; /* Tablet+ (lg) */
     }
   }
 
   @media (min-width: 1280px) {
     .btn-responsive-primary {
-      @apply h-14 px-8 text-lg;         /* Large desktop (xl) */
+      @apply h-14 px-8 text-lg; /* Large desktop (xl) */
     }
   }
 
   /* Responsive container sizing per guidelines */
   .container-responsive {
-    @apply max-w-content-sm px-4;       /* Mobile (xs + padding) */
+    @apply max-w-content-sm px-4; /* Mobile (xs + padding) */
   }
 
   @media (min-width: 640px) {
     .container-responsive {
-      @apply max-w-content-lg px-6;     /* Tablet (lg + padding) */
+      @apply max-w-content-lg px-6; /* Tablet (lg + padding) */
     }
   }
 
   @media (min-width: 1024px) {
     .container-responsive {
-      @apply max-w-2xl px-8;            /* Desktop (2xl + padding) */
+      @apply max-w-2xl px-8; /* Desktop (2xl + padding) */
     }
   }
 
   @media (min-width: 1280px) {
     .container-responsive {
-      @apply max-w-content-xl px-12;    /* Large desktop (xl + padding) */
+      @apply max-w-content-xl px-12; /* Large desktop (xl + padding) */
     }
   }
   /* Button Variants */
@@ -421,20 +443,17 @@
       border-color var(--duration-quick) var(--ease-out);
     /* Compute a slightly darker depth color from the current surface color */
     --btn-depth: color-mix(in srgb, var(--btn-bg) 85%, black 15%);
-    box-shadow:
-      0 6px 0 0 var(--btn-depth);
+    box-shadow: 0 6px 0 0 var(--btn-depth);
   }
 
   .btn-3d:hover:not(:disabled) {
     transform: translateY(-1px);
-    box-shadow:
-      0 7px 0 0 var(--btn-depth);
+    box-shadow: 0 7px 0 0 var(--btn-depth);
   }
 
   .btn-3d:active:not(:disabled) {
     transform: translateY(1px) scale(0.98);
-    box-shadow:
-      0 3px 0 0 var(--btn-depth);
+    box-shadow: 0 3px 0 0 var(--btn-depth);
   }
 
   /* 3D Container Variant */
@@ -469,12 +488,16 @@
     background-color: var(--neutral-0);
     border: 1px solid var(--neutral-200);
     border-radius: 0.75rem;
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    box-shadow:
+      0 1px 3px 0 rgba(0, 0, 0, 0.1),
+      0 1px 2px 0 rgba(0, 0, 0, 0.06);
     transition: all var(--duration-normal) var(--ease-out);
   }
 
   .card:hover {
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    box-shadow:
+      0 4px 6px -1px rgba(0, 0, 0, 0.1),
+      0 2px 4px -1px rgba(0, 0, 0, 0.06);
     transform: translateY(-1px);
   }
 
@@ -547,20 +570,20 @@
 
   /* Responsive Chat Input Sizing */
   .chat-input-responsive {
-    @apply h-9 px-3;           /* Mobile: match sm button height */
-    @apply sm:h-11 sm:px-4;    /* Tablet: match md button height */  
-    @apply lg:h-12 lg:px-4;    /* Desktop: match lg button height */
+    @apply h-9 px-3; /* Mobile: match sm button height */
+    @apply sm:h-11 sm:px-4; /* Tablet: match md button height */
+    @apply lg:h-12 lg:px-4; /* Desktop: match lg button height */
     display: flex;
     align-items: center;
   }
 
   .chat-input-responsive input {
-    @apply text-sm;       /* Mobile: small text */
-    @apply sm:text-base;  /* Tablet+: regular text */
+    @apply text-sm; /* Mobile: small text */
+    @apply sm:text-base; /* Tablet+: regular text */
   }
 
   .chat-input-responsive button {
-    @apply h-9 px-3 text-sm;         /* Mobile: sm button */
+    @apply h-9 px-3 text-sm; /* Mobile: sm button */
     @apply sm:h-11 sm:px-4 sm:text-sm; /* Tablet: md button */
     @apply lg:h-12 lg:px-6 lg:text-base; /* Desktop: lg button */
   }
@@ -650,7 +673,12 @@
 
   /* Loading States */
   .skeleton {
-    background: linear-gradient(90deg, var(--neutral-100) 25%, var(--neutral-200) 50%, var(--neutral-100) 75%);
+    background: linear-gradient(
+      90deg,
+      var(--neutral-100) 25%,
+      var(--neutral-200) 50%,
+      var(--neutral-100) 75%
+    );
     background-size: 200% 100%;
     animation: skeleton-loading 1.5s infinite;
   }
@@ -686,7 +714,9 @@
   .toast {
     border: 1px solid;
     border-radius: 0.75rem;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    box-shadow:
+      0 4px 6px -1px rgba(0, 0, 0, 0.1),
+      0 2px 4px -1px rgba(0, 0, 0, 0.06);
     backdrop-filter: blur(8px);
     transition: all var(--duration-normal) var(--ease-out);
     max-width: 24rem;
@@ -694,7 +724,9 @@
   }
 
   .toast:hover {
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    box-shadow:
+      0 10px 15px -3px rgba(0, 0, 0, 0.1),
+      0 4px 6px -2px rgba(0, 0, 0, 0.05);
   }
 
   .toast-exit {
@@ -723,7 +755,11 @@
 @layer utilities {
   /* Custom utilities */
   .bg-gradient-brand {
-    background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary-900) 100%);
+    background: linear-gradient(
+      135deg,
+      var(--brand-primary) 0%,
+      var(--brand-primary-900) 100%
+    );
   }
 
   .bg-gradient-accent {
@@ -731,7 +767,11 @@
   }
 
   .text-gradient-brand {
-    background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary-900) 100%);
+    background: linear-gradient(
+      135deg,
+      var(--brand-primary) 0%,
+      var(--brand-primary-900) 100%
+    );
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;

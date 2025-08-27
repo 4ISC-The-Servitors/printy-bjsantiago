@@ -1,8 +1,17 @@
 import React from 'react';
 import { cn } from '../../lib/utils';
 
-export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'accent' | 'ghost' | 'success' | 'error' | 'warning' | 'info';
+export interface ButtonProps
+  extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?:
+    | 'primary'
+    | 'secondary'
+    | 'accent'
+    | 'ghost'
+    | 'success'
+    | 'error'
+    | 'warning'
+    | 'info';
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   disabled?: boolean;
   loading?: boolean;
@@ -51,7 +60,8 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     const baseClasses = 'btn';
     const variantClasses = buttonVariants[variant];
     const sizeClasses = buttonSizes[size];
-    const stateClasses = disabled || loading ? 'opacity-50 cursor-not-allowed' : '';
+    const stateClasses =
+      disabled || loading ? 'opacity-50 cursor-not-allowed' : '';
 
     return (
       <button

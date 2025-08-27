@@ -8,7 +8,7 @@ const BadgeShowcase: React.FC = () => {
       <Text variant="h2" size="2xl" weight="semibold">
         Badges
       </Text>
-      
+
       <div className="space-y-4">
         <div className="flex flex-wrap gap-2">
           <Badge variant="default">Default</Badge>
@@ -16,14 +16,14 @@ const BadgeShowcase: React.FC = () => {
           <Badge variant="secondary">Secondary</Badge>
           <Badge variant="accent">Accent</Badge>
         </div>
-        
+
         <div className="flex flex-wrap gap-2">
           <Badge variant="success">Success</Badge>
           <Badge variant="warning">Warning</Badge>
           <Badge variant="error">Error</Badge>
           <Badge variant="info">Info</Badge>
         </div>
-        
+
         <div className="flex flex-wrap gap-2">
           <Badge size="sm">Small</Badge>
           <Badge size="md">Medium</Badge>

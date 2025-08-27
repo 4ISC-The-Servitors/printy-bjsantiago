@@ -13,7 +13,10 @@ interface ActionCardsProps {
   onTopicSelect: (key: string) => void;
 }
 
-export const ActionCards: React.FC<ActionCardsProps> = ({ topics, onTopicSelect }) => {
+export const ActionCards: React.FC<ActionCardsProps> = ({
+  topics,
+  onTopicSelect,
+}) => {
   return (
     <>
       {/* Action Cards for Mobile - Single Column */}
@@ -33,7 +36,12 @@ export const ActionCards: React.FC<ActionCardsProps> = ({ topics, onTopicSelect 
               <Text variant="p" size="sm" weight="semibold" className="mb-0.5">
                 {cfg.label}
               </Text>
-              <Text variant="p" size="xs" color="muted" className="line-clamp-1">
+              <Text
+                variant="p"
+                size="xs"
+                color="muted"
+                className="line-clamp-1"
+              >
                 {cfg.description}
               </Text>
             </div>

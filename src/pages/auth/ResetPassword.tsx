@@ -1,6 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Input, Text, Container, ToastContainer } from '../../components/shared';
+import {
+  Button,
+  Input,
+  Text,
+  Container,
+  ToastContainer,
+} from '../../components/shared';
 import { useToast } from '../../lib/useToast';
 import { ArrowLeft, Mail, CheckCircle2 } from 'lucide-react';
 
@@ -28,12 +34,15 @@ const ResetPassword: React.FC = () => {
       // const { error } = await supabase.auth.resetPasswordForEmail(email, {
       //   redirectTo: `${window.location.origin}/auth/reset-password/confirm`,
       // });
-      // 
+      //
       // if (error) throw error;
-      
+
       // Validate email format
       if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(email)) {
-        toastMethods.error('Invalid Email', 'Please enter a valid email address.');
+        toastMethods.error(
+          'Invalid Email',
+          'Please enter a valid email address.'
+        );
         setLoading(false);
         return;
       }
@@ -41,11 +50,16 @@ const ResetPassword: React.FC = () => {
       // TODO: Remove this mock logic when implementing real backend
       // Simulate success for prototype
       setSubmitted(true);
-      toastMethods.success('Success!', 'We have sent a reset link to your email.');
-      
+      toastMethods.success(
+        'Success!',
+        'We have sent a reset link to your email.'
+      );
     } catch (error) {
       console.error('Password reset error:', error);
-      toastMethods.error('Password Reset Failed', 'There was an issue sending the reset link. Please try again.');
+      toastMethods.error(
+        'Password Reset Failed',
+        'There was an issue sending the reset link. Please try again.'
+      );
     } finally {
       setLoading(false);
     }
@@ -56,9 +70,9 @@ const ResetPassword: React.FC = () => {
       <Container size="sm" className="w-full container-responsive">
         {/* Back Navigation */}
         <div className="mb-8">
-          <Button 
-            variant="ghost" 
-            size="sm" 
+          <Button
+            variant="ghost"
+            size="sm"
             threeD
             className="text-neutral-600 hover:text-brand-primary"
             onClick={() => navigate('/auth/signin')}
@@ -74,11 +88,17 @@ const ResetPassword: React.FC = () => {
             <>
               {/* Header */}
               <div className="text-center mb-8">
-                <Text variant="h1" size="4xl" weight="bold" className="text-neutral-900 mb-2">
+                <Text
+                  variant="h1"
+                  size="4xl"
+                  weight="bold"
+                  className="text-neutral-900 mb-2"
+                >
                   Reset your password
                 </Text>
                 <Text variant="p" size="base" color="muted">
-                  Enter the email associated with your account and we'll send you a reset link.
+                  Enter the email associated with your account and we'll send
+                  you a reset link.
                 </Text>
               </div>
 
@@ -90,7 +110,7 @@ const ResetPassword: React.FC = () => {
                     type="email"
                     placeholder="you@email.com"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={e => setEmail(e.target.value)}
                     required
                     className="pr-12"
                     wrapperClassName="relative"
@@ -121,23 +141,37 @@ const ResetPassword: React.FC = () => {
             <>
               <div className="flex flex-col items-center text-center space-y-4">
                 <CheckCircle2 className="w-12 h-12 text-success" />
-                <Text variant="h2" size="3xl" weight="bold" className="text-neutral-900">
+                <Text
+                  variant="h2"
+                  size="3xl"
+                  weight="bold"
+                  className="text-neutral-900"
+                >
                   Check your email
                 </Text>
                 <Text variant="p" color="muted" className="max-w-md">
-                  If an account exists for <strong>{email}</strong>, you'll receive an email with a link to reset your password. The link will expire in 15 minutes.
+                  If an account exists for <strong>{email}</strong>, you'll
+                  receive an email with a link to reset your password. The link
+                  will expire in 15 minutes.
                 </Text>
                 <div className="flex items-center gap-3 mt-2">
-                  <Button variant="primary" threeD onClick={() => navigate('/auth/signin')}>
+                  <Button
+                    variant="primary"
+                    threeD
+                    onClick={() => navigate('/auth/signin')}
+                  >
                     Return to sign in
                   </Button>
-                  <Button 
-                    variant="ghost" 
-                    threeD 
+                  <Button
+                    variant="ghost"
+                    threeD
                     onClick={() => {
                       setSubmitted(false);
                       setEmail('');
-                      toastMethods.info('Reset Form', 'You can now enter a different email address.');
+                      toastMethods.info(
+                        'Reset Form',
+                        'You can now enter a different email address.'
+                      );
                     }}
                   >
                     Use a different email
@@ -148,7 +182,7 @@ const ResetPassword: React.FC = () => {
           )}
         </div>
       </Container>
-      
+
       {/* Toast Container */}
       <ToastContainer
         toasts={toasts}

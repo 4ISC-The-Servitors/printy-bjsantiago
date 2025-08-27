@@ -5,17 +5,35 @@ import { useToast } from '../../../lib/useToast';
 const ToastShowcase: React.FC = () => {
   const [toasts, toastMethods] = useToast();
 
-  const handleShowToast = (variant: 'default' | 'success' | 'error' | 'warning' | 'info', size: 'sm' | 'md' | 'lg' = 'md') => {
+  const handleShowToast = (
+    variant: 'default' | 'success' | 'error' | 'warning' | 'info',
+    size: 'sm' | 'md' | 'lg' = 'md'
+  ) => {
     const messages = {
-      default: { title: 'Default Toast', message: 'This is a default toast message' },
-      success: { title: 'Success!', message: 'Your action was completed successfully' },
-      error: { title: 'Error Occurred', message: 'Something went wrong. Please try again.' },
-      warning: { title: 'Warning', message: 'Please review your input before proceeding' },
-      info: { title: 'Information', message: 'Here is some helpful information for you' },
+      default: {
+        title: 'Default Toast',
+        message: 'This is a default toast message',
+      },
+      success: {
+        title: 'Success!',
+        message: 'Your action was completed successfully',
+      },
+      error: {
+        title: 'Error Occurred',
+        message: 'Something went wrong. Please try again.',
+      },
+      warning: {
+        title: 'Warning',
+        message: 'Please review your input before proceeding',
+      },
+      info: {
+        title: 'Information',
+        message: 'Here is some helpful information for you',
+      },
     };
 
     const { title, message } = messages[variant];
-    
+
     toastMethods.show({
       title,
       message,
@@ -35,7 +53,10 @@ const ToastShowcase: React.FC = () => {
       action: {
         label: 'Take Action',
         onClick: () => {
-          toastMethods.success('Action Taken!', 'You clicked the action button');
+          toastMethods.success(
+            'Action Taken!',
+            'You clicked the action button'
+          );
         },
       },
     });
@@ -66,43 +87,43 @@ const ToastShowcase: React.FC = () => {
       <Text variant="h2" size="2xl" weight="semibold">
         Toast Notifications
       </Text>
-      
+
       <div className="space-y-4">
         <Text variant="h3" size="xl" weight="semibold">
           Toast Variants
         </Text>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
-          <Button 
-            variant="secondary" 
-            size="sm" 
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => handleShowToast('default')}
           >
             Default
           </Button>
-          <Button 
-            variant="success" 
-            size="sm" 
+          <Button
+            variant="success"
+            size="sm"
             onClick={() => handleShowToast('success')}
           >
             Success
           </Button>
-          <Button 
-            variant="error" 
-            size="sm" 
+          <Button
+            variant="error"
+            size="sm"
             onClick={() => handleShowToast('error')}
           >
             Error
           </Button>
-          <Button 
-            variant="warning" 
-            size="sm" 
+          <Button
+            variant="warning"
+            size="sm"
             onClick={() => handleShowToast('warning')}
           >
             Warning
           </Button>
-          <Button 
-            variant="info" 
-            size="sm" 
+          <Button
+            variant="info"
+            size="sm"
             onClick={() => handleShowToast('info')}
           >
             Info
@@ -115,23 +136,23 @@ const ToastShowcase: React.FC = () => {
           Toast Sizes
         </Text>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <Button 
-            variant="secondary" 
-            size="sm" 
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => handleShowToast('info', 'sm')}
           >
             Small Toast
           </Button>
-          <Button 
-            variant="secondary" 
-            size="sm" 
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => handleShowToast('info', 'md')}
           >
             Medium Toast
           </Button>
-          <Button 
-            variant="secondary" 
-            size="sm" 
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => handleShowToast('info', 'lg')}
           >
             Large Toast
@@ -144,32 +165,24 @@ const ToastShowcase: React.FC = () => {
           Special Features
         </Text>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-          <Button 
-            variant="accent" 
-            size="sm" 
+          <Button
+            variant="accent"
+            size="sm"
             onClick={handleShowToastWithAction}
           >
             With Action
           </Button>
-          <Button 
-            variant="accent" 
-            size="sm" 
+          <Button
+            variant="accent"
+            size="sm"
             onClick={handleShowPersistentToast}
           >
             Persistent
           </Button>
-          <Button 
-            variant="accent" 
-            size="sm" 
-            onClick={handleShowCustomDuration}
-          >
+          <Button variant="accent" size="sm" onClick={handleShowCustomDuration}>
             Custom Duration
           </Button>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={toastMethods.clear}
-          >
+          <Button variant="ghost" size="sm" onClick={toastMethods.clear}>
             Clear All
           </Button>
         </div>
@@ -180,23 +193,61 @@ const ToastShowcase: React.FC = () => {
           Usage Examples
         </Text>
         <div className="p-4 bg-neutral-50 rounded-lg space-y-3">
-          <Text variant="p" size="sm" weight="medium" className="mb-3">Common Toast Patterns</Text>
+          <Text variant="p" size="sm" weight="medium" className="mb-3">
+            Common Toast Patterns
+          </Text>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="text-sm">
-              <Text variant="p" size="xs" weight="semibold" className="text-blue-700 mb-1">Success Feedback</Text>
-              <Text variant="p" size="xs" color="muted">Use for completed actions, form submissions, etc.</Text>
+              <Text
+                variant="p"
+                size="xs"
+                weight="semibold"
+                className="text-blue-700 mb-1"
+              >
+                Success Feedback
+              </Text>
+              <Text variant="p" size="xs" color="muted">
+                Use for completed actions, form submissions, etc.
+              </Text>
             </div>
             <div className="text-sm">
-              <Text variant="p" size="xs" weight="semibold" className="text-blue-700 mb-1">Error Handling</Text>
-              <Text variant="p" size="xs" color="muted">Use for validation errors, API failures, etc.</Text>
+              <Text
+                variant="p"
+                size="xs"
+                weight="semibold"
+                className="text-blue-700 mb-1"
+              >
+                Error Handling
+              </Text>
+              <Text variant="p" size="xs" color="muted">
+                Use for validation errors, API failures, etc.
+              </Text>
             </div>
             <div className="text-sm">
-              <Text variant="p" size="xs" weight="semibold" className="text-blue-700 mb-1">Information</Text>
-              <Text variant="p" size="xs" color="muted">Use for helpful tips, status updates, etc.</Text>
+              <Text
+                variant="p"
+                size="xs"
+                weight="semibold"
+                className="text-blue-700 mb-1"
+              >
+                Information
+              </Text>
+              <Text variant="p" size="xs" color="muted">
+                Use for helpful tips, status updates, etc.
+              </Text>
             </div>
             <div className="text-sm">
-              <Text variant="p" size="xs" weight="semibold" className="text-blue-700 mb-1">Warnings</Text>
-              <Text variant="p" size="xs" color="muted">Use for important notices, confirmations, etc.</Text>
+              <Text
+                variant="p"
+                size="xs"
+                weight="semibold"
+                className="text-blue-700 mb-1"
+              >
+                Warnings
+              </Text>
+              <Text variant="p" size="xs" color="muted">
+                Use for important notices, confirmations, etc.
+              </Text>
             </div>
           </div>
         </div>

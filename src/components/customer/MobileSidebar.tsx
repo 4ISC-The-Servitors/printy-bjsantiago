@@ -24,7 +24,7 @@ export const MobileSidebar: React.FC<MobileSidebarProps> = ({
   activeId,
   onSwitchConversation,
   onNavigateToAccount,
-  onLogout
+  onLogout,
 }) => {
   return (
     <aside className="lg:hidden fixed left-0 top-0 bottom-0 w-16 bg-white border-r border-neutral-200 flex flex-col items-center py-4 z-50">
@@ -32,10 +32,10 @@ export const MobileSidebar: React.FC<MobileSidebarProps> = ({
       <div className="w-10 h-10 rounded-lg bg-brand-primary text-white flex items-center justify-center mb-6">
         <Bot className="w-5 h-5" />
       </div>
-      
+
       {/* Chat Icons */}
       <div className="flex-1 w-full space-y-2 px-2 overflow-y-auto scrollbar-hide">
-        {conversations.map((c) => (
+        {conversations.map(c => (
           <button
             key={c.id}
             onClick={() => onSwitchConversation(c.id)}
@@ -50,7 +50,7 @@ export const MobileSidebar: React.FC<MobileSidebarProps> = ({
           </button>
         ))}
       </div>
-      
+
       {/* Bottom Actions */}
       <div className="space-y-2 w-full px-2">
         <button

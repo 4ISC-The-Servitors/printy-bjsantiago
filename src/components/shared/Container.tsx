@@ -39,15 +39,16 @@ const Container = React.forwardRef<HTMLDivElement, ContainerProps>(
 
 Container.displayName = 'Container';
 
-const getSizeClasses = (size: ContainerProps['size']) => ({
-  xs: 'max-w-xs',
-  sm: 'max-w-sm',
-  md: 'max-w-md',
-  lg: 'max-w-lg',
-  xl: 'max-w-xl',
-  '2xl': 'max-w-2xl',
-  '3xl': 'max-w-4xl',
-  'full': 'max-w-full',
-}[size || '2xl']);
+const getSizeClasses = (size: ContainerProps['size']) =>
+  ({
+    xs: 'max-w-xs',
+    sm: 'max-w-sm',
+    md: 'max-w-md',
+    lg: 'max-w-lg',
+    xl: 'max-w-xl',
+    '2xl': 'max-w-2xl',
+    '3xl': 'max-w-4xl',
+    full: 'max-w-full',
+  })[size || '2xl'];
 
 export default Container;

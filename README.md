@@ -1,6 +1,7 @@
 ## 🚀 Current Status
 
 **✅ COMPLETED:**
+
 - Modern Design System with comprehensive component library
 - Mobile-first responsive design
 - Authentication UI (Sign In, Sign Up, Reset Password)
@@ -11,6 +12,7 @@
 - TypeScript types and interfaces
 
 **🔄 IN PROGRESS:**
+
 - Backend integration and API implementation
 - Real authentication system
 - Database schema and data persistence
@@ -18,6 +20,7 @@
 **📋 TODO - Backend Integration Checklist:**
 
 ### Phase 1: Authentication & User Management
+
 - [ ] Replace hardcoded credentials with real Supabase auth
 - [ ] Implement proper JWT token management
 - [ ] Add user session persistence
@@ -25,12 +28,14 @@
 - [ ] Add role-based access control (customer, valued, admin, superadmin)
 
 ### Phase 2: Database & Data Models
+
 - [ ] Set up Supabase database schema
 - [ ] Create tables: users, profiles, orders, tickets, conversations
 - [ ] Implement real-time subscriptions for chat
 - [ ] Add data validation and sanitization
 
 ### Phase 3: Chat System Enhancement
+
 - [ ] Implement real conversation persistence
 - [ ] Add file upload capabilities
 - [ ] Create support ticket system
@@ -38,12 +43,14 @@
 - [ ] Implement real-time chat updates
 
 ### Phase 4: Order Management
+
 - [ ] Create order creation flow
 - [ ] Implement payment processing
 - [ ] Add order status tracking
 - [ ] Create invoice generation
 
 ### Phase 5: Admin & Superadmin Features
+
 - [ ] Admin dashboard for order management
 - [ ] User management interface
 - [ ] Analytics and reporting
@@ -61,27 +68,31 @@
 ## 📦 Installation
 
 1. **Clone the repository**
+
    ```bash
    git clone <repository-url>
    cd printy
    ```
 
 2. **Install dependencies**
+
    ```bash
    npm install
    ```
 
 3. **Set up environment variables**
+
    ```bash
    # Copy the example environment file
    cp env.example .env
-   
+
    # Edit .env with your Supabase credentials
    VITE_SUPABASE_URL=https://your-project.supabase.co
    VITE_SUPABASE_ANON_KEY=your-anon-key-here
    ```
 
 4. **Start development server**
+
    ```bash
    npm run dev
    ```
@@ -89,6 +100,31 @@
 5. **Build for production**
    ```bash
    npm run build
+   ```
+
+6. **Prettier check for code format (optional)**
+   ```bash
+   npm run format:check
+   ```
+
+7. **Prettier actual code format (optional)**
+   ```bash
+   npm run format
+   ```
+
+8. **Check for dependency updates**
+   ```bash
+   npx npm-check-updates
+   ```
+  
+9. **Update dependencies (except Tailwind)**
+   ```bash
+   npx npm-check-updates -u -x tailwindcss
+   ```
+
+10. **Install new dependency updates**
+   ```bash
+   npm install
    ```
 
 ## 🔧 Environment Setup
@@ -121,6 +157,7 @@ VITE_API_BASE_URL=http://localhost:3000/api
 ## 🗄️ Database Schema (TODO)
 
 ### Core Tables
+
 ```sql
 -- Users table (handled by Supabase Auth)
 -- profiles table for extended user information
@@ -237,6 +274,7 @@ src/
 ## 🔧 Configuration Files
 
 ### Tailwind CSS (`tailwind.config.ts`)
+
 - Custom color palette and design tokens
 - Typography scale and font families
 - Spacing system and responsive breakpoints
@@ -244,15 +282,18 @@ src/
 - Custom utilities and components
 
 ### PostCSS (`postcss.config.js`)
+
 - Tailwind CSS processing
 - Autoprefixer for cross-browser compatibility
 
 ### Prettier (`.prettierrc`)
+
 - Consistent code formatting
 - 80 character line width
 - Single quotes and semicolons
 
 ### ESLint (`eslint.config.js`)
+
 - TypeScript and React rules
 - Accessibility guidelines
 - Performance best practices
@@ -261,12 +302,12 @@ src/
 
 ```json
 {
-  "dev": "vite",                    // Start development server
-  "build": "tsc -b && vite build",  // Type check and build
-  "preview": "vite preview",        // Preview production build
-  "lint": "eslint .",               // Run ESLint
-  "type-check": "tsc --noEmit",     // TypeScript type checking
-  "format": "prettier --write .",   // Format code with Prettier
+  "dev": "vite", // Start development server
+  "build": "tsc -b && vite build", // Type check and build
+  "preview": "vite preview", // Preview production build
+  "lint": "eslint .", // Run ESLint
+  "type-check": "tsc --noEmit", // TypeScript type checking
+  "format": "prettier --write .", // Format code with Prettier
   "format:check": "prettier --check ." // Check code formatting
 }
 ```

@@ -111,7 +111,7 @@ export interface Order extends BaseEntity {
 }
 
 // Order status types
-export type OrderStatus = 
+export type OrderStatus =
   | 'pending'
   | 'confirmed'
   | 'processing'
@@ -120,14 +120,14 @@ export type OrderStatus =
   | 'cancelled'
   | 'refunded';
 
-export type PaymentStatus = 
+export type PaymentStatus =
   | 'pending'
   | 'paid'
   | 'partially_paid'
   | 'refunded'
   | 'failed';
 
-export type FulfillmentStatus = 
+export type FulfillmentStatus =
   | 'unfulfilled'
   | 'partial'
   | 'fulfilled'

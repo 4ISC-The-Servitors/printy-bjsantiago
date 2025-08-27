@@ -70,18 +70,20 @@ const Modal: React.FC<ModalProps> = ({
 
   // Safety check for document.body
   if (typeof document === 'undefined') return null;
-  
+
   try {
     return createPortal(
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         {/* Backdrop */}
-        <div 
+        <div
           className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
           onClick={handleOverlayClick}
         />
-        
+
         {/* Modal */}
-        <div className={`relative w-full ${sizeClasses[size]} animate-in fade-in-0 zoom-in-95 duration-200`}>
+        <div
+          className={`relative w-full ${sizeClasses[size]} animate-in fade-in-0 zoom-in-95 duration-200`}
+        >
           {children}
         </div>
       </div>,
@@ -93,16 +95,14 @@ const Modal: React.FC<ModalProps> = ({
   }
 };
 
-const ModalHeader: React.FC<ModalHeaderProps> = ({ 
-  children, 
-  showCloseButton = true, 
-  onClose 
+const ModalHeader: React.FC<ModalHeaderProps> = ({
+  children,
+  showCloseButton = true,
+  onClose,
 }) => {
   return (
     <div className="flex items-center justify-between p-6 pb-4">
-      <div className="flex-1">
-        {children}
-      </div>
+      <div className="flex-1">{children}</div>
       {showCloseButton && (
         <Button
           variant="ghost"
@@ -119,16 +119,17 @@ const ModalHeader: React.FC<ModalHeaderProps> = ({
 };
 
 const ModalBody: React.FC<ModalBodyProps> = ({ children }) => {
-  return (
-    <div className="px-6 pb-4">
-      {children}
-    </div>
-  );
+  return <div className="px-6 pb-4">{children}</div>;
 };
 
-const ModalFooter: React.FC<ModalFooterProps> = ({ children, className = '' }) => {
+const ModalFooter: React.FC<ModalFooterProps> = ({
+  children,
+  className = '',
+}) => {
   return (
-    <div className={`flex items-center justify-end gap-3 p-6 pt-4 ${className}`}>
+    <div
+      className={`flex items-center justify-end gap-3 p-6 pt-4 ${className}`}
+    >
       {children}
     </div>
   );
