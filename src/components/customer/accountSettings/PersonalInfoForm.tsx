@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, Text, Button, Input } from '../../shared';
+import { Card, Text, Button, Input, Modal } from '../../shared';
 import { Pencil } from 'lucide-react';
 import type { UserData } from '../../../pages/customer/accountSettings/AccountSettingsPage';
 
@@ -15,6 +15,7 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = ({
   const [isEditing, setIsEditing] = useState(false);
   const [form, setForm] = useState<UserData>(value);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const startEdit = () => {
     setForm(value);
@@ -39,8 +40,7 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = ({
 
   const save = () => {
     if (!validate()) return;
-    onSave(form);
-    setIsEditing(false);
+    setConfirmOpen(true);
   };
 
   const getLocalDigitsFromPhone = (phone: string) => {
@@ -268,6 +268,40 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = ({
           </div>
         )}
       </div>
+      <Modal
+        isOpen={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        size="sm"
+      >
+        <Card className="p-0">
+          <div className="flex items-center justify-between p-6 pb-4">
+            <Text variant="h3" size="lg" weight="semibold">
+              Confirm Save
+            </Text>
+          </div>
+          <div className="px-6 pb-4">
+            <Text variant="p">
+              Are you sure you want to save these changes to your personal
+              information?
+            </Text>
+          </div>
+          <div className="flex items-center justify-end gap-3 p-6 pt-4">
+            <Button variant="ghost" onClick={() => setConfirmOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              threeD
+              onClick={() => {
+                setConfirmOpen(false);
+                onSave(form);
+                setIsEditing(false);
+              }}
+            >
+              Confirm
+            </Button>
+          </div>
+        </Card>
+      </Modal>
     </Card>
   );
 };

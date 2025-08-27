@@ -1,8 +1,14 @@
 import React, { useState } from 'react';
-import { Card, Text, Button, Input } from '../../shared';
+import { Card, Text, Button, Input, Modal } from '../../shared';
 import { Eye, EyeOff } from 'lucide-react';
 
-const SecuritySettings: React.FC = () => {
+interface SecuritySettingsProps {
+  onPasswordUpdated?: () => void;
+}
+
+const SecuritySettings: React.FC<SecuritySettingsProps> = ({
+  onPasswordUpdated,
+}) => {
   const [isChanging, setIsChanging] = useState(false);
   const [show, setShow] = useState({
     current: false,
@@ -10,6 +16,7 @@ const SecuritySettings: React.FC = () => {
     confirm: false,
   });
   const [pw, setPw] = useState({ current: '', next: '', confirm: '' });
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const toggle = (k: 'current' | 'next' | 'confirm') =>
     setShow(p => ({ ...p, [k]: !p[k] }));
@@ -129,7 +136,7 @@ const SecuritySettings: React.FC = () => {
               <Button variant="ghost" onClick={() => setIsChanging(false)}>
                 Cancel
               </Button>
-              <Button threeD onClick={() => setIsChanging(false)}>
+              <Button threeD onClick={() => setConfirmOpen(true)}>
                 Update Password
               </Button>
             </div>
@@ -152,6 +159,40 @@ const SecuritySettings: React.FC = () => {
           </div>
         </div>
       </div>
+      <Modal
+        isOpen={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        size="sm"
+      >
+        <Card className="p-0">
+          <div className="flex items-center justify-between p-6 pb-4">
+            <Text variant="h3" size="lg" weight="semibold">
+              Confirm Password Change
+            </Text>
+          </div>
+          <div className="px-6 pb-4">
+            <Text variant="p">
+              Are you sure you want to update your password?
+            </Text>
+          </div>
+          <div className="flex items-center justify-end gap-3 p-6 pt-4">
+            <Button variant="ghost" onClick={() => setConfirmOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              threeD
+              onClick={() => {
+                setConfirmOpen(false);
+                setIsChanging(false);
+                setPw({ current: '', next: '', confirm: '' });
+                onPasswordUpdated?.();
+              }}
+            >
+              Confirm
+            </Button>
+          </div>
+        </Card>
+      </Modal>
     </Card>
   );
 };
