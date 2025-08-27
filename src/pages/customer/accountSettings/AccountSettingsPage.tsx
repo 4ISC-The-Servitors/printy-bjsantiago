@@ -1,10 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import {
-  Container,
-  Text,
-  ToastContainer,
-  Button,
-} from '../../../components/shared';
+import { Container, Text, ToastContainer } from '../../../components/shared';
 import { useToast } from '../../../lib/useToast';
 import ProfileOverviewCard from '../../../components/customer/accountSettings/ProfileOverviewCard.tsx';
 import PersonalInfoForm from '../../../components/customer/accountSettings/PersonalInfoForm.tsx';
@@ -72,17 +67,10 @@ const AccountSettingsPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-brand-primary-50">
       <Container size="xl" className="py-6 md:py-10">
-        <div className="flex items-center justify-between mb-6">
-          <Text variant="h1" size="2xl" weight="bold">
+        <div className="mb-6 text-center">
+          <Text variant="h1" size="2xl" weight="bold" align="center">
             Account Settings
           </Text>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="md:px-4 md:py-3 md:text-sm lg:px-6 lg:py-4 lg:text-base"
-          >
-            Help
-          </Button>
         </div>
 
         <div className="space-y-6 md:space-y-8">
