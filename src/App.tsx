@@ -4,6 +4,7 @@ import SignIn from './pages/auth/SignIn';
 import SignUp from './pages/auth/SignUp';
 import ResetPassword from './pages/auth/ResetPassword';
 import CustomerDashboard from './pages/customer/Dashboard';
+import AccountSettingsPage from './pages/customer/accountSettings/AccountSettingsPage';
 import AdminDashboard from './pages/admin/Dashboard';
 import SuperAdminDashboard from './pages/superadmin/Dashboard';
 import './index.css';
@@ -19,6 +20,7 @@ function App() {
       {/* Prototype dashboards */}
       <Route path="/customer" element={<CustomerDashboard />} />
       <Route path="/valued" element={<CustomerDashboard />} />
+      <Route path="/account" element={<AccountSettingsPage />} />
       <Route path="/admin" element={<AdminDashboard />} />
       <Route path="/superadmin" element={<SuperAdminDashboard />} />
       <Route path="/showcase" element={<ComponentShowcase />} />
