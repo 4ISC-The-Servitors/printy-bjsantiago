@@ -9,6 +9,7 @@ import {
 } from '../../components/shared';
 import { useToast } from '../../lib/useToast';
 import { ArrowLeft, Mail, CheckCircle2 } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
 
 // TODO: Backend Integration
 // - Implement real password reset with Supabase Auth
@@ -47,13 +48,6 @@ const ResetPassword: React.FC = () => {
     setLoading(true);
 
     try {
-      // TODO: Replace with real Supabase password reset
-      // const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      //   redirectTo: `${window.location.origin}/auth/reset-password/confirm`,
-      // });
-      //
-      // if (error) throw error;
-
       // Validate email format
       if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(email)) {
         toastMethods.error(
@@ -64,13 +58,14 @@ const ResetPassword: React.FC = () => {
         return;
       }
 
-      // TODO: Remove this mock logic when implementing real backend
-      // Simulate success for prototype
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/reset-password/confirm`,
+      });
+
+      if (error) throw error;
+
       setSubmitted(true);
-      toastMethods.success(
-        'Success!',
-        'We have sent a reset link to your email.'
-      );
+      toastMethods.success('Success!', 'We have sent a reset link to your email.');
     } catch (error) {
       console.error('Password reset error:', error);
       toastMethods.error(

@@ -19,6 +19,7 @@ import {
   Globe,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { supabase } from '../../lib/supabase';
 
 // TODO: Backend Integration
 // - Implement real user registration with Supabase Auth
@@ -124,58 +125,59 @@ const SignUp: React.FC = () => {
     setLoading(true);
 
     try {
-      // TODO: Implement real sign-up logic
-      // 1. Create user account with Supabase Auth
-      // const { data: authData, error: authError } = await supabase.auth.signUp({
-      //   email: formData.email,
-      //   password: formData.password,
-      // });
-      //
-      // if (authError) throw authError;
-      //
-      // 2. Create user profile in database
-      // const { error: profileError } = await supabase
-      //   .from('profiles')
-      //   .insert({
-      //     id: authData.user?.id,
-      //     email: formData.email,
-      //     first_name: formData.firstName,
-      //     last_name: formData.lastName,
-      //     phone: formData.phone,
-      //     gender: formData.gender,
-      //     birthday: formData.birthday,
-      //     role: 'customer', // Default role for new users
-      //     address: {
-      //       building_number: formData.buildingNumber,
-      //       street: formData.street,
-      //       barangay: formData.barangay,
-      //       province: formData.province,
-      //       city: formData.city,
-      //       country: formData.country
-      //     }
-      //   });
-      //
-      // if (profileError) throw profileError;
+      if (formData.password !== formData.confirmPassword) {
+        toastMethods.error('Passwords do not match', 'Please confirm your password.');
+        setLoading(false);
+        return;
+      }
 
-      // TODO: Send email verification
-      // TODO: Redirect to email verification page or show success message
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+            phone: formData.phone,
+            gender: formData.gender,
+            birthday: formData.birthday,
+            role: 'regular',
+            address: {
+              building_number: formData.buildingNumber,
+              street: formData.street,
+              barangay: formData.barangay,
+              province: formData.province,
+              city: formData.city,
+              country: formData.country,
+            },
+          },
+          emailRedirectTo: `${window.location.origin}/auth/signin`,
+        },
+      });
 
-      console.log('Sign up attempt:', formData);
+      if (authError) throw authError;
+
+      // Customer row will be auto-provisioned via DB trigger after signup
+
+      if (!authData.session) {
+        toastMethods.success(
+          'Check your email',
+          'We sent a confirmation link to verify your account.'
+        );
+        navigate('/auth/signin');
+        return;
+      }
 
       toastMethods.success(
         'Account Created!',
         'Your account has been successfully created.'
       );
-
-      // Small delay to show success toast before navigation
-      setTimeout(() => {
-        navigate('/auth/signin');
-      }, 1500);
-    } catch (error) {
+      navigate('/customer');
+    } catch (error: any) {
       console.error('Sign up error:', error);
       toastMethods.error(
         'Sign Up Failed',
-        'There was an issue creating your account. Please try again.'
+        error?.message || 'There was an issue creating your account. Please try again.'
       );
     } finally {
       setLoading(false);
@@ -186,20 +188,16 @@ const SignUp: React.FC = () => {
     setGoogleLoading(true);
 
     try {
-      // TODO: Implement Google OAuth registration
-      // const { data, error } = await supabase.auth.signInWithOAuth({
-      //   provider: 'google',
-      //   options: {
-      //     redirectTo: `${window.location.origin}/auth/callback`
-      //   }
-      // });
-      //
-      // if (error) throw error;
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/customer`,
+          queryParams: { prompt: 'select_account' },
+        },
+      });
 
-      toastMethods.info(
-        'Google Sign-Up',
-        'Google authentication will be implemented with Supabase.'
-      );
+      if (error) throw error;
+      if (data?.url) window.location.href = data.url;
     } catch (error) {
       console.error('Google sign up error:', error);
       toastMethods.error(

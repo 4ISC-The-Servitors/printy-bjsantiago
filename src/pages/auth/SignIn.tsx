@@ -9,6 +9,7 @@ import {
 } from '../../components/shared';
 import { useToast } from '../../lib/useToast';
 import { Eye, EyeOff, Mail, ArrowLeft } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
 
 // TODO: Backend Integration
 // - Replace hardcoded credentials with real Supabase authentication
@@ -58,40 +59,56 @@ const SignIn: React.FC = () => {
     setLoading(true);
 
     try {
-      // TODO: Replace with real Supabase authentication
-      // const { data, error } = await supabase.auth.signInWithPassword({
-      //   email: formData.email,
-      //   password: formData.password,
-      // });
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: formData.password,
+      });
 
-      // if (error) throw error;
+      if (error) throw error;
 
-      // TODO: Get user profile and role from database
-      // const { data: profile } = await supabase
-      //   .from('profiles')
-      //   .select('role')
-      //   .eq('id', data.user.id)
-      //   .single();
+      const userId = data.user?.id;
 
-      // TODO: Handle role-based routing
-      // const routeMap = {
-      //   customer: '/customer',
-      //   valued: '/valued',
-      //   admin: '/admin',
-      //   superadmin: '/superadmin'
-      // };
+      let destination = '/customer';
 
-      // navigate(routeMap[profile.role] || '/customer');
+      // Fetch the customer row using auth user id or email
+      let customerType: string | undefined;
+      if (userId) {
+        const { data: customerById } = await supabase
+          .from('customer')
+          .select('customer_type')
+          .eq('customer_id', userId)
+          .maybeSingle();
+        customerType = customerById?.customer_type as string | undefined;
+      }
 
-      // Temporary mock success for prototype
+      if (!customerType && data.user?.email) {
+        const { data: customerByEmail } = await supabase
+          .from('customer')
+          .select('customer_type')
+          .eq('email_address', data.user.email)
+          .maybeSingle();
+        customerType = customerByEmail?.customer_type as string | undefined;
+      }
+
+      const routeMap: Record<string, string> = {
+        regular: '/customer',
+        customer: '/customer',
+        valued: '/valued',
+        admin: '/admin',
+        superadmin: '/superadmin',
+      };
+      if (customerType && routeMap[customerType]) {
+        destination = routeMap[customerType];
+      }
+
       toastMethods.success('Welcome back!', 'Successfully signed in');
-      setTimeout(() => navigate('/customer'), 1000);
-    } catch (error) {
+      navigate(destination);
+    } catch (error: any) {
       console.error('Sign in error:', error);
-      setError('Invalid email or password.');
+      setError(error?.message || 'Invalid email or password.');
       toastMethods.error(
         'Sign In Failed',
-        'Please check your credentials and try again.'
+        error?.message || 'Please check your credentials and try again.'
       );
     } finally {
       setLoading(false);
@@ -102,20 +119,21 @@ const SignIn: React.FC = () => {
     setGoogleLoading(true);
 
     try {
-      // TODO: Implement Google OAuth with Supabase
-      // const { data, error } = await supabase.auth.signInWithOAuth({
-      //   provider: 'google',
-      //   options: {
-      //     redirectTo: `${window.location.origin}/auth/callback`
-      //   }
-      // });
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/customer`,
+          queryParams: {
+            prompt: 'select_account',
+          },
+        },
+      });
 
-      // if (error) throw error;
+      if (error) throw error;
 
-      toastMethods.info(
-        'Google Sign-In',
-        'Google authentication will be implemented with Supabase.'
-      );
+      if (data?.url) {
+        window.location.href = data.url;
+      }
     } catch (error) {
       console.error('Google sign in error:', error);
       toastMethods.error(
