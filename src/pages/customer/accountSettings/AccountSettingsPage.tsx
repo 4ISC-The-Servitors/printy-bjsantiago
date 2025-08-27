@@ -1,10 +1,10 @@
 import React, { useMemo, useState } from 'react';
 import { Container, Text, ToastContainer, Button } from '../../../components/shared';
 import { useToast } from '../../../lib/useToast';
-import ProfileOverviewCard from '../../../components/customer/accountSettings/ProfileOverviewCard';
-import PersonalInfoForm from '../../../components/customer/accountSettings/PersonalInfoForm';
-import SecuritySettings from '../../../components/customer/accountSettings/SecuritySettings';
-import NotificationPreferences from '../../../components/customer/accountSettings/NotificationPreferences';
+import ProfileOverviewCard from '../../../components/customer/accountSettings/ProfileOverviewCard.tsx';
+import PersonalInfoForm from '../../../components/customer/accountSettings/PersonalInfoForm.tsx';
+import SecuritySettings from '../../../components/customer/accountSettings/SecuritySettings.tsx';
+import NotificationPreferences from '../../../components/customer/accountSettings/NotificationPreferences.tsx';
 
 export interface UserData {
   displayName: string;
@@ -62,7 +62,13 @@ const AccountSettingsPage: React.FC = () => {
       <Container size="xl" className="py-6 md:py-10">
         <div className="flex items-center justify-between mb-6">
           <Text variant="h1" size="2xl" weight="bold">Account Settings</Text>
-          <Button variant="ghost" size="sm">Help</Button>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="md:px-4 md:py-3 md:text-sm lg:px-6 lg:py-4 lg:text-base"
+          >
+            Help
+          </Button>
         </div>
 
         <div className="space-y-6 md:space-y-8">
@@ -70,7 +76,7 @@ const AccountSettingsPage: React.FC = () => {
             initials={initials}
             displayName={userData.displayName}
             email={userData.email}
-            membership="Premium"
+            membership="Valued"
           />
 
           <PersonalInfoForm
