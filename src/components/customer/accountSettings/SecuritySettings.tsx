@@ -3,7 +3,7 @@ import { Card, Text, Button, Input, Modal } from '../../shared';
 import { Eye, EyeOff } from 'lucide-react';
 
 interface SecuritySettingsProps {
-  onPasswordUpdated?: () => void;
+  onPasswordUpdated?: () => void; // TODO(BACKEND): Trigger after successful password update API
 }
 
 const SecuritySettings: React.FC<SecuritySettingsProps> = ({
@@ -156,6 +156,7 @@ const SecuritySettings: React.FC<SecuritySettingsProps> = ({
             <Button variant="warning" threeD>
               Enable 2FA
             </Button>
+            {/* TODO(BACKEND): Implement 2FA setup flow */}
           </div>
         </div>
       </div>
@@ -186,6 +187,7 @@ const SecuritySettings: React.FC<SecuritySettingsProps> = ({
                 setIsChanging(false);
                 setPw({ current: '', next: '', confirm: '' });
                 onPasswordUpdated?.();
+                // TODO(BACKEND): Call password change API and handle errors
               }}
             >
               Confirm

@@ -5,7 +5,7 @@ import type { UserData } from '../../../pages/customer/accountSettings/AccountSe
 
 interface PersonalInfoFormProps {
   value: UserData;
-  onSave: (partial: Partial<UserData>) => void;
+  onSave: (partial: Partial<UserData>) => void; // TODO(BACKEND): Wire to profile update service
 }
 
 const PersonalInfoForm: React.FC<PersonalInfoFormProps> = ({
@@ -18,6 +18,7 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = ({
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   const startEdit = () => {
+    // TODO(BACKEND): Optionally refetch latest profile before editing
     setForm(value);
     setIsEditing(true);
   };

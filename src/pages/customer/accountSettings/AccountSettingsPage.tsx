@@ -35,33 +35,47 @@ const AccountSettingsPage: React.FC = () => {
   const [toasts, toast] = useToast();
   const navigate = useNavigate();
 
-  const [userData, setUserData] = useState<UserData>({
-    displayName: 'John Doe',
-    email: 'john.doe@example.com',
-    phone: '+63 (917) 123-4567',
-    address: '123 Rizal Street',
-    city: 'Manila',
-    zipCode: '1000',
-    avatarUrl: '',
-  });
-
-  const [preferences, setPreferences] = useState<NotificationPreferencesData>({
-    emailNotifications: true,
-    smsNotifications: true,
-    orderUpdates: true,
-    chatMessages: true,
-    ticketUpdates: true,
-  });
+  // TODO(BACKEND): Replace local state with data fetched from backend (Supabase)
+  // Keep optimistic UI and use skeletons/spinners if needed.
+  const [userData, setUserData] = useState<UserData | null>(null);
+  const [preferences, setPreferences] =
+    useState<NotificationPreferencesData | null>(null);
 
   const [isDesktop, setIsDesktop] = useState(false);
 
+  useEffect(() => {
+    // TODO(BACKEND): Fetch profile and preferences for current user
+    // Example:
+    // const profile = await ProfileService.getProfile();
+    // const prefs = await PreferencesService.getPreferences();
+    // setUserData(profile);
+    // setPreferences(prefs);
+    // For now, initialize minimal safe defaults to preserve UX layout
+    setUserData({
+      displayName: '',
+      email: '',
+      phone: '+63 9',
+      address: '',
+      city: '',
+      zipCode: '',
+      avatarUrl: '',
+    });
+    setPreferences({
+      emailNotifications: true,
+      smsNotifications: true,
+      orderUpdates: true,
+      chatMessages: true,
+      ticketUpdates: true,
+    });
+  }, []);
+
   const initials = useMemo(
     () =>
-      userData.displayName
+      (userData?.displayName || '')
         .split(' ')
         .map(n => n[0])
         .join(''),
-    [userData.displayName]
+    [userData?.displayName]
   );
 
   useEffect(() => {
@@ -70,9 +84,7 @@ const AccountSettingsPage: React.FC = () => {
     const handleChange = (e: MediaQueryListEvent | MediaQueryList) => {
       setIsDesktop('matches' in e ? e.matches : (e as MediaQueryList).matches);
     };
-    // Initialize
     setIsDesktop(mql.matches);
-    // Subscribe to changes
     if (mql.addEventListener) {
       mql.addEventListener(
         'change',
@@ -94,11 +106,14 @@ const AccountSettingsPage: React.FC = () => {
   }, []);
 
   const handleSavePersonalInfo = (next: Partial<UserData>) => {
-    setUserData(prev => ({ ...prev, ...next }));
+    // TODO(BACKEND): Persist profile changes
+    setUserData(prev => ({ ...(prev as UserData), ...next }));
     toast.success('Saved', 'Your personal information has been updated.');
   };
 
   const handleTogglePreference = (key: keyof NotificationPreferencesData) => {
+    if (!preferences) return;
+    // TODO(BACKEND): Persist preference toggle
     const labelMap: Record<keyof NotificationPreferencesData, string> = {
       emailNotifications: 'email notifications',
       smsNotifications: 'SMS notifications',
@@ -138,14 +153,21 @@ const AccountSettingsPage: React.FC = () => {
         </div>
 
         <div className="space-y-6 md:space-y-8">
-          <ProfileOverviewCard
-            initials={initials}
-            displayName={userData.displayName}
-            email={userData.email}
-            membership="Valued"
-          />
+          {userData && (
+            <ProfileOverviewCard
+              initials={initials}
+              displayName={userData.displayName}
+              email={userData.email}
+              membership="Valued"
+            />
+          )}
 
-          <PersonalInfoForm value={userData} onSave={handleSavePersonalInfo} />
+          {userData && (
+            <PersonalInfoForm
+              value={userData}
+              onSave={handleSavePersonalInfo}
+            />
+          )}
 
           <SecuritySettings
             onPasswordUpdated={() =>
@@ -156,10 +178,12 @@ const AccountSettingsPage: React.FC = () => {
             }
           />
 
-          <NotificationPreferences
-            value={preferences}
-            onToggle={handleTogglePreference}
-          />
+          {preferences && (
+            <NotificationPreferences
+              value={preferences}
+              onToggle={handleTogglePreference}
+            />
+          )}
         </div>
       </Container>
 
