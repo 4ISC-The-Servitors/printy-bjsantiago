@@ -84,6 +84,7 @@
 
    ```bash
    npm install
+   npm install @supabase/supabase-js @supabase/auth-ui-react @supabase/auth-ui-shared
    ```
 
 3. **Set up environment variables**
