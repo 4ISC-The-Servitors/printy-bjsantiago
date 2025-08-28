@@ -66,26 +66,72 @@ const SignIn: React.FC = () => {
 
       if (error) throw error;
 
-      const userId = data.user?.id;
+      const user = data.user;
+      const userId = user?.id;
 
       let destination = '/customer';
 
       // Fetch the customer row using auth user id or email
       let customerType: string | undefined;
       if (userId) {
-        const { data: customerById } = await supabase
+        let { data: customerById, error: getErr } = await supabase
           .from('customer')
           .select('customer_type')
           .eq('customer_id', userId)
           .maybeSingle();
+
+        if (getErr) throw getErr;
+
+        // Provision missing customer + location on first sign-in
+        if (!customerById) {
+          const m = user?.user_metadata || {};
+          const addr = (m.address as any) || {};
+          const normalize = (s?: string) => (s || '').toString().trim().toLowerCase().replace(/\s+/g, '-');
+          const locationId = [
+            normalize(addr.country),
+            normalize(addr.province),
+            normalize(addr.city),
+            normalize(addr.barangay),
+            normalize(addr.street),
+            normalize(addr.building_number)
+          ].join('|');
+
+          if (locationId.replace(/\|/g, '') !== '') {
+            await supabase
+              .from('location')
+              .upsert(
+                {
+                  location_id: locationId,
+                  bldg_name: addr.street || null,
+                  bldg_num: addr.building_number || null,
+                },
+                { onConflict: 'location_id' }
+              );
+          }
+
+          const insertRes = await supabase.from('customer').insert({
+            customer_id: userId,
+            first_name: m.first_name || null,
+            last_name: m.last_name || null,
+            middle_initial: null,
+            contact_no: m.phone || null,
+            email_address: user?.email || null,
+            customer_type: m.role || 'regular',
+            location_id: locationId || null,
+          });
+          if (insertRes.error) throw insertRes.error;
+
+          customerById = { customer_type: m.role || 'regular' } as any;
+        }
+
         customerType = customerById?.customer_type as string | undefined;
       }
 
-      if (!customerType && data.user?.email) {
+      if (!customerType && user?.email) {
         const { data: customerByEmail } = await supabase
           .from('customer')
           .select('customer_type')
-          .eq('email_address', data.user.email)
+          .eq('email_address', user.email)
           .maybeSingle();
         customerType = customerByEmail?.customer_type as string | undefined;
       }
