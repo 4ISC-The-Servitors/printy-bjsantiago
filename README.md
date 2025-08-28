@@ -374,6 +374,7 @@ The UI is complete and instrumented with inline TODO(BACKEND) markers. Implement
 - TODO(BACKEND): Fetch profile and preferences on mount and hydrate state
 - TODO(BACKEND): Persist profile changes from PersonalInfoForm on save
 - TODO(BACKEND): Persist notification preference toggles
+- TODO(BACKEND): Changed the country field from region instead
 
 ### PersonalInfoForm.tsx
 

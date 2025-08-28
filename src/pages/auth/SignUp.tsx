@@ -16,7 +16,6 @@ import {
   User,
   Phone,
   MapPin,
-  Globe,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { supabase } from '../../lib/supabase';
@@ -50,7 +49,8 @@ interface FormData {
   barangay: string;
   province: string;
   city: string;
-  country: string;
+  region: string;
+  
 
   // Common
   agreeToTerms: boolean;
@@ -96,7 +96,7 @@ const SignUp: React.FC = () => {
     barangay: '',
     province: '',
     city: '',
-    country: 'Philippines',
+    region: 'NCR',
     agreeToTerms: false,
   });
 
@@ -135,29 +135,29 @@ const SignUp: React.FC = () => {
         email: formData.email,
         password: formData.password,
         options: {
-          data: {
-            first_name: formData.firstName,
-            last_name: formData.lastName,
-            phone: formData.phone,
-            gender: formData.gender,
-            birthday: formData.birthday,
-            role: 'regular',
-            address: {
-              building_number: formData.buildingNumber,
-              street: formData.street,
-              barangay: formData.barangay,
-              province: formData.province,
-              city: formData.city,
-              country: formData.country,
-            },
-          },
           emailRedirectTo: `${window.location.origin}/auth/signin`,
         },
       });
 
       if (authError) throw authError;
 
-      // Customer row will be auto-provisioned via DB trigger after signup
+      // Best-effort: insert address hierarchy now if session exists
+      if (authData.session) {
+        try {
+          await supabase.rpc('upsert_full_address', {
+            p_region: formData.region || null,
+            p_province: formData.province || null,
+            p_city: formData.city || null,
+            p_zip_code: null,
+            p_barangay: formData.barangay || null,
+            p_street: formData.street || null,
+            p_building_number: formData.buildingNumber || null,
+            p_building_name: null,
+          });
+        } catch (e) {
+          console.warn('Address upsert skipped:', e);
+        }
+      }
 
       if (!authData.session) {
         toastMethods.success(
@@ -578,6 +578,36 @@ const SignUp: React.FC = () => {
               </Input>
             </div>
 
+            {/* Region Field */}
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-neutral-700">
+                Region <span className="text-error">*</span>
+              </label>
+              <div className="relative">
+                <select
+                  value={formData.region}
+                  onChange={e => handleInputChange('region', e.target.value)}
+                  required
+                  className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary transition-colors appearance-none bg-white"
+                >
+                  <option value="NCR">NCR</option>
+                </select>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none">
+                  <svg
+                    className="w-5 h-5"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </div>
+              </div>
+            </div>
+
             {/* Province Field */}
             <div className="space-y-2">
               <label className="block text-sm font-medium text-neutral-700">
@@ -650,24 +680,7 @@ const SignUp: React.FC = () => {
               </div>
             </div>
 
-            {/* Country Field */}
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-neutral-700">
-                Country <span className="text-error">*</span>
-              </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  value="Philippines"
-                  readOnly
-                  disabled
-                  className="w-full px-4 py-3 border border-neutral-300 rounded-lg bg-neutral-50 text-neutral-700 cursor-not-allowed"
-                />
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none">
-                  <Globe className="w-5 h-5" />
-                </div>
-              </div>
-            </div>
+            {/* Country Field removed */}
 
             {/* Terms Agreement */}
             <div className="flex items-start space-x-3">
