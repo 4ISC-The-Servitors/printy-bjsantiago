@@ -427,6 +427,21 @@ const SignIn: React.FC = () => {
               : 'Sign in with Google'}
           </Button>
         </div>
+
+        {/* Add this button after the existing form, before the closing div */}
+        <div className="mt-6 pt-6 border-t border-neutral-200">
+          <Text variant="p" size="sm" color="muted" className="text-center mb-4">
+            Prototype Access (Remove before production)
+          </Text>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => navigate('/admin')}
+            className="w-full"
+          >
+             Quick Admin Access
+          </Button>
+        </div>
       </Container>
 
       {/* Toast Container */}

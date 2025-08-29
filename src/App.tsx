@@ -7,6 +7,9 @@ import ResetPassword from './pages/auth/ResetPassword';
 import CustomerDashboard from './pages/customer/Dashboard';
 import AccountSettingsPage from './pages/customer/accountSettings/AccountSettingsPage';
 import AdminDashboard from './pages/admin/Dashboard';
+import AdminShell from './pages/admin/AdminShell';
+import AdminSettingsPage from './pages/admin/adminSettings/AdminSettingsPage';
+import AdminPortfolio from './pages/admin/Portfolio';
 import SuperAdminDashboard from './pages/superadmin/Dashboard';
 import './index.css';
 import ComponentShowcase from './components/shared/showcase/ComponentShowcase';
@@ -22,7 +25,12 @@ function App() {
       <Route path="/customer" element={<CustomerDashboard />} />
       <Route path="/valued" element={<CustomerDashboard />} />
       <Route path="/account" element={<AccountSettingsPage />} />
-      <Route path="/admin" element={<AdminDashboard />} />
+      <Route path="/admin" element={<AdminShell />}>
+        <Route index element={<AdminDashboard />} />
+        <Route path="orders" element={<AdminDashboard />} />
+        <Route path="portfolio" element={<AdminPortfolio />} />
+        <Route path="settings" element={<AdminSettingsPage />} />
+      </Route>
       <Route path="/superadmin" element={<SuperAdminDashboard />} />
       <Route path="/showcase" element={<ComponentShowcase />} />
     </Routes>

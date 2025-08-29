@@ -8,3 +8,5 @@ export { default as ContainerShowcase } from './ContainerShowcase';
 export { default as ToastShowcase } from './ToastShowcase';
 export { default as ModalShowcase } from './ModalShowcase';
 export { default as SwitchShowcase } from './SwitchShowcase';
+export { default as AdminComponentsShowcase } from './AdminComponentsShowcase';
+// Additional showcases to include chat utilities showcase later if needed

@@ -24,4 +24,7 @@ export interface ChatPanelProps {
   inputPlaceholder?: string;
   onEndChat?: () => void;
   showAttach?: boolean;
+  mobileFixed?: boolean;
+  mobileOffsetLeftClass?: string;
+  hideHeader?: boolean;
 }

@@ -26,6 +26,10 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   inputPlaceholder = 'Type a message...',
   onEndChat,
   showAttach = true,
+  // New: mobile fixed input bar
+  mobileFixed = false,
+  mobileOffsetLeftClass = 'left-16',
+  hideHeader = false,
 }) => {
   const [input, setInput] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -96,12 +100,15 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
 
   return (
     <div className="bg-white flex flex-col h-full w-full">
-      <ChatHeader title={title} onBack={onBack} />
+      {!hideHeader && <ChatHeader title={title} onBack={onBack} />}
 
       {/* Enhanced Message Area */}
       <div
         ref={scrollRef}
-        className="p-4 flex-1 min-h-[260px] max-h-[72vh] lg:max-h-[78vh] overflow-y-auto space-y-6 scrollbar-hide"
+        className={
+          `p-4 flex-1 min-h-0 overflow-y-auto space-y-6 scrollbar-hide ` +
+          (mobileFixed ? 'pb-28' : 'pb-24')
+        }
       >
         {messageGroups.map((group, index) => (
           <MessageGroup
@@ -123,14 +130,22 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
         {messageGroups.length === 0 && !isTyping && <EmptyState />}
       </div>
 
-      <ChatInput
-        value={input}
-        onChange={setInput}
-        onSubmit={handleSubmit}
-        placeholder={inputPlaceholder}
-        showAttach={showAttach}
-        onAttachFiles={onAttachFiles}
-      />
+      <div
+        className={
+          mobileFixed
+            ? `fixed bottom-0 ${mobileOffsetLeftClass} right-0 bg-white lg:static`
+            : 'sticky bottom-0 left-0 right-0 bg-white'
+        }
+      >
+        <ChatInput
+          value={input}
+          onChange={setInput}
+          onSubmit={handleSubmit}
+          placeholder={inputPlaceholder}
+          showAttach={showAttach}
+          onAttachFiles={onAttachFiles}
+        />
+      </div>
     </div>
   );
 };

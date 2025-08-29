@@ -11,6 +11,7 @@ import {
   ToastShowcase,
   ModalShowcase,
   SwitchShowcase,
+  AdminComponentsShowcase,
 } from './index';
 
 const ComponentShowcase: React.FC = () => {
@@ -27,6 +28,7 @@ const ComponentShowcase: React.FC = () => {
       <ToastShowcase />
       <ModalShowcase />
       <SwitchShowcase />
+      <AdminComponentsShowcase />
     </Container>
   );
 };

@@ -15,22 +15,22 @@ const CardShowcase: React.FC = () => {
         </Card>
 
         <Card hoverable>
-          <Card.Header>
-            <Card.Title>Compound Card</Card.Title>
-            <Card.Actions>
+          <div className="p-6 pb-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-neutral-900">Compound Card</h3>
               <Button variant="ghost" size="sm">
                 Edit
               </Button>
-            </Card.Actions>
-          </Card.Header>
-          <Card.Content>
+            </div>
+          </div>
+          <div className="px-6 pb-4">
             <Text>This card uses the compound component pattern.</Text>
-          </Card.Content>
-          <Card.Footer>
+          </div>
+          <div className="p-6 pt-4">
             <Button variant="primary" size="sm">
               Save
             </Button>
-          </Card.Footer>
+          </div>
         </Card>
 
         <Card

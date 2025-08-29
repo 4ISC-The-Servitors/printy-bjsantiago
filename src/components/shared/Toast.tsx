@@ -131,7 +131,8 @@ const getSizeClasses = (size: ToastProps['size']) =>
     lg: 'p-5 gap-4',
   })[size || 'md'];
 
-const getVariantIcon = (variant: ToastProps['variant']) => {
+        const getVariantIcon = (variant: ToastProps['variant']) => {
+
   switch (variant) {
     case 'success':
       return (

@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { Send, Paperclip } from 'lucide-react';
 import { Button } from '../shared';
 
@@ -20,6 +20,22 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   onAttachFiles,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [focused, setFocused] = useState(false);
+
+  const templates = useMemo(
+    () => [
+      'update order ORD-12353 status to Processing',
+      'show tickets from last 7 days',
+      'toggle service SRV-CP002 availability',
+    ],
+    []
+  );
+
+  const filteredTemplates = useMemo(() => {
+    const q = (value || '').toLowerCase().trim();
+    if (!q) return [] as string[];
+    return templates.filter(t => t.toLowerCase().includes(q)).slice(0, 5);
+  }, [templates, value]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,7 +45,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   return (
     <form
       onSubmit={handleSubmit}
-      className="p-3 border-t border-neutral-200 flex items-center gap-2"
+      className="p-3 border-t border-neutral-200 flex items-center gap-2 relative"
     >
       {showAttach && (
         <>
@@ -56,13 +72,29 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           </Button>
         </>
       )}
-      <div className="flex-1 chat-input-container-3d chat-input-responsive">
+      <div className="flex-1 chat-input-container-3d chat-input-responsive relative">
         <input
           value={value}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setTimeout(() => setFocused(false), 150)}
           onChange={e => onChange(e.target.value)}
           placeholder={placeholder}
           className="w-full input-3d border-0 bg-transparent shadow-none focus:shadow-none focus:border-0"
         />
+        {focused && filteredTemplates.length > 0 && (
+          <div className="absolute bottom-full mb-2 left-0 right-0 bg-white border border-neutral-200 rounded-lg shadow-md p-2 z-10">
+            {filteredTemplates.map((t, i) => (
+              <button
+                key={i}
+                type="button"
+                className="w-full text-left px-2 py-1 rounded hover:bg-neutral-50 text-sm"
+                onMouseDown={() => onChange(t)}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
       <Button
         type="submit"
