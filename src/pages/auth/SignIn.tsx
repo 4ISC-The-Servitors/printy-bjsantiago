@@ -30,7 +30,6 @@ const SignIn: React.FC = () => {
     password: '',
     keepLoggedIn: false,
   });
-  const [error, setError] = useState<string | null>(null);
   const [isDesktop, setIsDesktop] = useState(false);
 
   useEffect(() => {
@@ -55,7 +54,6 @@ const SignIn: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
     setLoading(true);
 
     try {
@@ -199,7 +197,6 @@ const SignIn: React.FC = () => {
       setTimeout(() => navigate(destination), 1000);
     } catch (error: any) {
       console.error('Sign in error:', error);
-      setError(error?.message || 'Invalid email or password.');
       toastMethods.error(
         'Sign In Failed',
         error?.message || 'Please check your credentials and try again.'
@@ -281,11 +278,6 @@ const SignIn: React.FC = () => {
 
           {/* Sign In Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
-            {error && (
-              <div className="rounded-md bg-error-50 border border-error p-3 text-sm text-error">
-                {error}
-              </div>
-            )}
             {/* Email Field */}
             <div className="space-y-2">
               <Input
