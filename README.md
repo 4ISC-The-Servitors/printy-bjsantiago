@@ -32,6 +32,8 @@
 - Updated dependencies for package.json
 - Updated code formats (ran prettier)
 - Updated src/lib/supabase.ts
+- Added sign in toast message
+- Added sign up toast message to confirm email first for access
 
 ## 🚀 Current Status
 

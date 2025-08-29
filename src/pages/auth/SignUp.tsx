@@ -119,6 +119,28 @@ const SignUp: React.FC = () => {
     }
   };
 
+  const mapSignUpError = (message?: string) => {
+    const msg = (message || '').toLowerCase();
+    if (msg.includes('user already') || msg.includes('email already')) {
+      return {
+        title: 'Email Already Registered',
+        body: 'Try signing in or use a different email address.',
+      };
+    }
+    if (msg.includes('password') && msg.includes('short')) {
+      return {
+        title: 'Weak Password',
+        body: 'Password must meet minimum length and complexity.',
+      };
+    }
+    return {
+      title: 'Sign Up Failed',
+      body:
+        message ||
+        'There was an issue creating your account. Please try again.',
+    };
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -180,24 +202,25 @@ const SignUp: React.FC = () => {
       if (!authData.session) {
         toastMethods.success(
           'Check your email',
-          'We sent a confirmation link to verify your account.'
+          'We sent a confirmation link to your email to verify your account.'
         );
-        navigate('/auth/signin');
+        setTimeout(() => navigate('/auth/signin'), 1000);
         return;
       }
 
-      toastMethods.success(
-        'Account Created!',
-        'Your account has been successfully created.'
-      );
-      navigate('/customer');
+      // Enforce email verification flow even if a session exists
+      toastMethods.show({
+        title: 'Check your email',
+        message:
+          'We sent a confirmation link to your email to verify your account.',
+        variant: 'success',
+        duration: 6000,
+      });
+      setTimeout(() => navigate('/auth/signin'), 3000);
     } catch (error: any) {
       console.error('Sign up error:', error);
-      toastMethods.error(
-        'Sign Up Failed',
-        error?.message ||
-          'There was an issue creating your account. Please try again.'
-      );
+      const mapped = mapSignUpError(error?.message);
+      toastMethods.error(mapped.title, mapped.body);
     } finally {
       setLoading(false);
     }
