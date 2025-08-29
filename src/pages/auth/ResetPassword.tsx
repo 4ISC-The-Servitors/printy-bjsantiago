@@ -1,31 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Button,
-  Input,
-  Text,
-  Container,
-  ToastContainer,
-} from '../../components/shared';
+import { Button, Input, Text, Container, ToastContainer } from '../../components/shared';
 import { useToast } from '../../lib/useToast';
-import { ArrowLeft, Mail, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
 // TODO: Backend Integration
-// - Implement real password reset with Supabase Auth
-// - Send actual password reset email
-// - Handle password reset token validation
-// - Implement password reset confirmation page
-// - Add proper error handling for invalid emails
-// - Add rate limiting for password reset requests
+// - Validate access token and type from URL
+// - Handle Supabase updateUser for new password
+// - Provide robust error messages and edge-case handling
 
 const ResetPassword: React.FC = () => {
   const navigate = useNavigate();
   const [toasts, toastMethods] = useToast();
-  const [email, setEmail] = useState('');
-  const [submitted, setSubmitted] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [done, setDone] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -37,8 +31,7 @@ const ResetPassword: React.FC = () => {
     if (mql.addEventListener) mql.addEventListener('change', handler as any);
     else (mql as any).addListener(handler as any);
     return () => {
-      if (mql.removeEventListener)
-        mql.removeEventListener('change', handler as any);
+      if (mql.removeEventListener) mql.removeEventListener('change', handler as any);
       else (mql as any).removeListener(handler as any);
     };
   }, []);
@@ -48,33 +41,26 @@ const ResetPassword: React.FC = () => {
     setLoading(true);
 
     try {
-      // Validate email format
-      if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(email)) {
-        toastMethods.error(
-          'Invalid Email',
-          'Please enter a valid email address.'
-        );
+      if (!password || password.length < 8) {
+        toastMethods.error('Weak Password', 'Password must be at least 8 characters.');
+        setLoading(false);
+        return;
+      }
+      if (password !== confirmPassword) {
+        toastMethods.error('Passwords do not match', 'Please confirm your new password.');
         setLoading(false);
         return;
       }
 
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/reset-password/confirm`,
-      });
-
+      const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
 
-      setSubmitted(true);
-      toastMethods.success(
-        'Success!',
-        'We have sent a reset link to your email.'
-      );
-    } catch (error) {
-      console.error('Password reset error:', error);
-      toastMethods.error(
-        'Password Reset Failed',
-        'There was an issue sending the reset link. Please try again.'
-      );
+      setDone(true);
+      toastMethods.success('Password Updated', 'Your password has been reset successfully.');
+      setTimeout(() => navigate('/auth/signin'), 1200);
+    } catch (error: any) {
+      console.error('Reset password error:', error);
+      toastMethods.error('Reset Failed', error?.message || 'Unable to reset password. Try the link again.');
     } finally {
       setLoading(false);
     }
@@ -99,40 +85,59 @@ const ResetPassword: React.FC = () => {
 
         {/* Card */}
         <div className="bg-white rounded-2xl shadow-lg border border-neutral-200 p-8">
-          {!submitted ? (
+          {!done ? (
             <>
-              {/* Header */}
               <div className="text-center mb-8">
-                <Text
-                  variant="h1"
-                  size="4xl"
-                  weight="bold"
-                  className="text-neutral-900 mb-2"
-                >
-                  Reset your password
+                <Text variant="h1" size="4xl" weight="bold" className="text-neutral-900 mb-2">
+                  Set a new password
                 </Text>
                 <Text variant="p" size="base" color="muted">
-                  Enter the email associated with your account and we'll send
-                  you a reset link.
+                  Enter your new password below to complete the reset.
                 </Text>
               </div>
 
-              {/* Form */}
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="space-y-2">
                   <Input
-                    label="Email"
-                    type="email"
-                    placeholder="you@email.com"
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
+                    label="New Password"
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="At least 8 characters"
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
                     required
-                    className="pr-12"
                     wrapperClassName="relative"
+                    className="pr-12"
                   >
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400">
-                      <Mail className="w-5 h-5" />
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(s => !s)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
+                  </Input>
+                </div>
+
+                <div className="space-y-2">
+                  <Input
+                    label="Confirm New Password"
+                    type={showConfirm ? 'text' : 'password'}
+                    placeholder="Re-enter password"
+                    value={confirmPassword}
+                    onChange={e => setConfirmPassword(e.target.value)}
+                    required
+                    wrapperClassName="relative"
+                    className="pr-12"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirm(s => !s)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
+                      aria-label={showConfirm ? 'Hide password' : 'Show password'}
+                    >
+                      {showConfirm ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
                   </Input>
                 </div>
 
@@ -143,12 +148,9 @@ const ResetPassword: React.FC = () => {
                   threeD
                   className="w-full btn-responsive-primary"
                   loading={loading}
-                  disabled={
-                    loading ||
-                    !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(email)
-                  }
+                  disabled={loading || !password || !confirmPassword}
                 >
-                  {loading ? 'Sending reset link...' : 'Send reset link'}
+                  {loading ? 'Updating password...' : 'Update password'}
                 </Button>
               </form>
             </>
@@ -156,40 +158,15 @@ const ResetPassword: React.FC = () => {
             <>
               <div className="flex flex-col items-center text-center space-y-4">
                 <CheckCircle2 className="w-12 h-12 text-success" />
-                <Text
-                  variant="h2"
-                  size="3xl"
-                  weight="bold"
-                  className="text-neutral-900"
-                >
-                  Check your email
+                <Text variant="h2" size="3xl" weight="bold" className="text-neutral-900">
+                  Password updated
                 </Text>
                 <Text variant="p" color="muted" className="max-w-md">
-                  If an account exists for <strong>{email}</strong>, you'll
-                  receive an email with a link to reset your password. The link
-                  will expire in 15 minutes.
+                  Your password has been successfully reset. You can now sign in with your new password.
                 </Text>
                 <div className="flex items-center gap-3 mt-2">
-                  <Button
-                    variant="primary"
-                    threeD
-                    onClick={() => navigate('/auth/signin')}
-                  >
-                    Return to sign in
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    threeD
-                    onClick={() => {
-                      setSubmitted(false);
-                      setEmail('');
-                      toastMethods.info(
-                        'Reset Form',
-                        'You can now enter a different email address.'
-                      );
-                    }}
-                  >
-                    Use a different email
+                  <Button variant="primary" threeD onClick={() => navigate('/auth/signin')}>
+                    Go to sign in
                   </Button>
                 </div>
               </div>

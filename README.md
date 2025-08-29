@@ -34,6 +34,8 @@
 - Updated src/lib/supabase.ts
 - Added sign in toast message
 - Added sign up toast message to confirm email first for access
+- Added new page: Reset password (works as intended na)
+- Renamed ForgotPassword page
 
 ## 🚀 Current Status
 
