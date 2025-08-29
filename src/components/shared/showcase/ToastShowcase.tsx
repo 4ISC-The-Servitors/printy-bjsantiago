@@ -1,5 +1,5 @@
 import React from 'react';
-import { Toast, ToastContainer, Button, Text } from '../index';
+import { ToastContainer, Button, Text } from '../index';
 import { useToast } from '../../../lib/useToast';
 
 const ToastShowcase: React.FC = () => {

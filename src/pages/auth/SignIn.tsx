@@ -196,7 +196,7 @@ const SignIn: React.FC = () => {
       }
 
       toastMethods.success('Welcome back!', 'Successfully signed in');
-      navigate(destination);
+      setTimeout(() => navigate(destination), 1000);
     } catch (error: any) {
       console.error('Sign in error:', error);
       setError(error?.message || 'Invalid email or password.');
