@@ -136,6 +136,22 @@ const SignUp: React.FC = () => {
         password: formData.password,
         options: {
           emailRedirectTo: `${window.location.origin}/auth/signin`,
+          // Persist important profile + address metadata at creation time
+          data: {
+            first_name: formData.firstName || null,
+            last_name: formData.lastName || null,
+            phone: formData.phone || null,
+            address: {
+              region: formData.region || null,
+              province: formData.province || null,
+              city: formData.city || null,
+              zip_code: null,
+              barangay: formData.barangay || null,
+              street: formData.street || null,
+              building_number: formData.buildingNumber || null,
+              building_name: null,
+            },
+          },
         },
       });
 

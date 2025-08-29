@@ -16,6 +16,8 @@
 - [Account Settings Backend TODOs](#account-settings-backend-todos-summary)
 - [Backend Integration Guide](./BACKEND_INTEGRATION.md#account-settings-integration-plan)
 - [Backend TODO Summary (from codebase)](./BACKEND_INTEGRATION.md#todobackend-summary-from-codebase)
+- [Supabase SQL Migration Guide](#supabase-sql-migration-guide)
+- [Changelog](#changelog)
 
 **🔄 IN PROGRESS:**
 
@@ -166,6 +168,44 @@ VITE_API_BASE_URL=http://localhost:3000/api
 2. **Get your project URL and anon key** from the project settings
 3. **Update your `.env` file** with the actual values
 4. **Set up your database schema** (see Database Schema section below)
+
+## 🧰 Supabase SQL Migration Guide
+
+The `supabase/sql` directory contains SQL scripts you can run against your Supabase project's Postgres database. Run them in order.
+
+### Files and order
+
+1. `supabase/sql/001_address_schema.sql`
+2. `supabase/sql/002_address_policies.sql`
+3. `supabase/sql/003_upsert_full_address.sql`
+4. `supabase/sql/004_upsert_location_from_meta.sql`
+
+### Option A: Run in Supabase SQL Editor (web)
+
+- Open your project in the Supabase dashboard → SQL Editor
+- Paste the contents of each file above, in order, and run
+
+### Option B: Run via psql (PowerShell)
+
+1. Set your database URL (replace placeholders):
+
+```powershell
+$env:DB_URL = "postgresql://postgres:YOUR-PASSWORD@db.YOUR-PROJECT.supabase.co:5432/postgres"
+```
+
+2. Execute scripts in order from the project root:
+
+```powershell
+psql $env:DB_URL -f supabase/sql/001_address_schema.sql
+psql $env:DB_URL -f supabase/sql/002_address_policies.sql
+psql $env:DB_URL -f supabase/sql/003_upsert_full_address.sql
+psql $env:DB_URL -f supabase/sql/004_upsert_location_from_meta.sql
+```
+
+### Verify
+
+- Tables, policies, and functions should be present as defined in the scripts
+- If a script errors due to existing objects, apply only the missing changes
 
 ## 🗄️ Database Schema (TODO)
 
@@ -360,6 +400,14 @@ This project is proprietary software owned by B.J. Santiago INC.
 ## 🤝 Support
 
 For technical support or questions about the project architecture, please refer to the development team or project documentation.
+
+## Changelog
+
+### 2025-08-29
+
+- Added Supabase SQL Migration Guide with PowerShell/psql steps
+- Added quick links to Migration Guide and Changelog
+- Kept existing setup and status sections unchanged; no breaking changes
 
 ---
 

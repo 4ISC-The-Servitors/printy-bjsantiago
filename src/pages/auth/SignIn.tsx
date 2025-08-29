@@ -86,10 +86,13 @@ const SignIn: React.FC = () => {
         if (!customerById) {
           const m = user?.user_metadata || {};
           const addr = (m.address as any) || {};
+          const hasRequiredAddress = Boolean(
+            (addr.region && addr.province && addr.city && addr.barangay && addr.street)
+          );
           const normalize = (s?: string) => (s || '').toString().trim().toLowerCase().replace(/\s+/g, '-');
           // Prefer server-side RPC to insert region/province/city/barangay/street/building/location
           let locationId: string | null = null;
-          try {
+          if (hasRequiredAddress) try {
             const { data: rpcData, error: rpcError } = await supabase.rpc('upsert_full_address', {
               p_region: addr.region || null,
               p_province: addr.province || null,
@@ -104,8 +107,8 @@ const SignIn: React.FC = () => {
               console.warn('RPC upsert_full_address failed:', rpcError);
               throw rpcError;
             }
-            // Accept either a raw id or an object with location_id
-            locationId = (rpcData as any)?.location_id ?? (rpcData as any) ?? null;
+            // RPC now returns a scalar UUID
+            locationId = (rpcData as any) ?? null;
             if (!locationId) {
               throw new Error('No location_id returned from upsert_full_address');
             }
@@ -114,41 +117,24 @@ const SignIn: React.FC = () => {
               'RPC upsert_full_address failed:',
               rpcError?.message || rpcError
             );
-            // Try a simpler RPC that only upserts the location row from meta
-            try {
-              const { data: locData, error: locError } = await supabase.rpc(
-                'upsert_location_from_meta',
-                {
-                  p_region: normalize(addr.region) || null,
-                  p_province: normalize(addr.province) || null,
-                  p_city: normalize(addr.city) || null,
-                  p_zip_code: (addr.zip_code || addr.zip || '').toString() || null,
-                  p_barangay: normalize(addr.barangay) || null,
-                  p_street: normalize(addr.street) || null,
-                  p_building_number: normalize(addr.building_number) || null,
-                  p_building_name: normalize(addr.building_name) || null,
-                }
-              );
-              if (locError) throw locError;
-              locationId = (locData as any)?.location_id ?? (locData as any) ?? null;
-            } catch (rpc2Error: any) {
-              console.warn(
-                'Secondary RPC upsert_location_from_meta failed, falling back to deterministic key:',
-                rpc2Error?.message || rpc2Error
-              );
-              // Fallback to deterministic client key if RPCs are unavailable
-              const fallbackId = [
-                normalize(addr.region),
-                normalize(addr.province),
-                normalize(addr.city),
-                normalize(addr.barangay),
-                normalize(addr.street),
-                normalize(addr.building_number)
-              ]
-                .filter(Boolean)
-                .join('|');
-              locationId = fallbackId || null;
-            }
+            // Try the compatibility wrapper (also returns scalar UUID)
+            const { data: locData, error: locError } = await supabase.rpc(
+              'upsert_location_from_meta',
+              {
+                p_region: addr.region || null,
+                p_province: addr.province || null,
+                p_city: addr.city || null,
+                p_zip_code: (addr.zip_code || addr.zip || null) as any,
+                p_barangay: addr.barangay || null,
+                p_street: addr.street || null,
+                p_building_number: addr.building_number || null,
+                p_building_name: addr.building_name || null,
+              }
+            );
+            if (locError) throw locError;
+            locationId = (locData as any) ?? null;
+          } else {
+            console.info('Address metadata incomplete; skipping location provisioning');
           }
 
           // Insert customer only if we have a location_id (to satisfy NOT NULL + FK)
