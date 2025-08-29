@@ -20,7 +20,7 @@ export interface Profile extends BaseEntity {
   avatar_url: string | null;
   phone: string | null;
   role: 'customer' | 'admin' | 'superadmin' | 'valued';
-  preferences: Record<string, any>;
+  preferences: Record<string, unknown>;
   // TODO: Add address fields
   // address?: {
   //   building_number?: string;
@@ -183,7 +183,7 @@ export interface Conversation extends BaseEntity {
   priority: 'low' | 'normal' | 'high' | 'urgent';
   assigned_to: string | null;
   tags: string[];
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
   // TODO: Add flow_id field to track which chat flow was used
   // flow_id?: string;
 }
@@ -195,7 +195,7 @@ export interface ChatMessage extends BaseEntity {
   sender_type: 'user' | 'bot' | 'agent';
   message_type: 'text' | 'image' | 'file' | 'form_response';
   content: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
   is_internal: boolean;
 }
 
@@ -204,11 +204,11 @@ export interface FormResponse extends BaseEntity {
   conversation_id: string;
   message_id: string;
   form_type: 'contact' | 'order' | 'support';
-  form_data: Record<string, any>;
+  form_data: Record<string, unknown>;
 }
 
 // API response interfaces
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   data: T;
   message?: string;
   success: boolean;
@@ -217,7 +217,7 @@ export interface ApiResponse<T = any> {
 export interface ApiError {
   message: string;
   code?: string;
-  details?: any;
+  details?: unknown;
   statusCode: number;
 }
 
@@ -385,7 +385,7 @@ export interface SearchResult<T> {
 
 export interface SearchFilters {
   query: string;
-  filters: Record<string, any>;
+  filters: Record<string, unknown>;
   sort: string;
   page: number;
   limit: number;

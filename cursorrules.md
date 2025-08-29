@@ -657,6 +657,92 @@ Before committing, verify NO instances of:
 - **Use raw HTML tags for styled elements**
 - **Duplicate component functionality**
 
+## Linting & Type Safety
+
+### TypeScript Rules We Enforce
+
+1. No `any` types
+   - Prefer domain types or utility generics.
+   - If uncertain, use `unknown` + narrow with runtime checks.
+
+2. Prefer `const`
+   - Use `const` by default; switch to `let` only if reassignment is required.
+
+3. Avoid unused identifiers
+   - Remove unused variables and params.
+   - For intentionally unused params, prefix with `_` or use `void param`.
+
+4. Accurate event and handler types
+   - Use `React.FormEvent<HTMLFormElement>`, `React.ChangeEvent<HTMLInputElement>` etc.
+
+5. Typed media queries (no `any`)
+   - Use `matchMedia` with modern listeners, fallback to legacy without `any`:
+
+   ```ts
+   const mql = window.matchMedia('(min-width: 1024px)');
+   const handleModern = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+   const handleLegacy = function (
+     this: MediaQueryList,
+     e: MediaQueryListEvent
+   ) {
+     setIsDesktop(e.matches);
+   };
+   setIsDesktop(mql.matches);
+   if (mql.addEventListener) mql.addEventListener('change', handleModern);
+   else (mql as MediaQueryList).addListener(handleLegacy);
+   // cleanup mirrors add
+   ```
+
+6. React hooks dependencies
+   - Wrap callback dependencies using `useCallback` when referenced in `useEffect`.
+   - Keep dependency arrays complete; avoid disabling ESLint rules.
+
+7. Utility function generics
+   - Replace `(...args: any[]) => any` with constrained generics:
+
+   ```ts
+   export function debounce<TArgs extends unknown[]>(
+     func: (...args: TArgs) => void,
+     wait: number
+   ): (...args: TArgs) => void {
+     /* ... */
+   }
+   ```
+
+8. Shared response and API types
+   - Use `ApiResponse<T = unknown>` and `Record<string, unknown>` for metadata.
+
+9. Component polymorphism without `any`
+   - Cast `as` to `React.ElementType` and type refs precisely; do not use `any` casts.
+
+10. Tailwind plugin typing
+
+- Type plugin params instead of `any`: `{ addUtilities: (utils: Record<string, unknown>) => void }`.
+
+### Workflow
+
+- Fix quick wins first (unused vars, prefer-const, hook deps), then replace `any` types.
+- Strengthen shared types/utilities before consumers to minimize churn.
+- Run lint after each batch; do not relax rules to “pass”.
+
+### Examples
+
+```ts
+// Unused param
+export function resolveAdminFlow(topic?: string | null) {
+  void topic;
+  return null;
+}
+
+// Error handling without any
+catch (error: unknown) {
+  const message = error instanceof Error ? error.message : 'Unknown error';
+}
+
+// Metadata typing
+const m = (user?.user_metadata ?? {}) as Record<string, unknown>;
+```
+
 ### Architecture Philosophy
 
 Build systems that are secure by default, performant by design, accessible by principle, maintainable by structure, and consistent by shared component usage.

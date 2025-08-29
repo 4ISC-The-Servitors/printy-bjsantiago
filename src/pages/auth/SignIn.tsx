@@ -35,16 +35,21 @@ const SignIn: React.FC = () => {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const mql = window.matchMedia('(min-width: 1024px)');
-    const handle = (e: MediaQueryListEvent | MediaQueryList) => {
-      setIsDesktop('matches' in e ? e.matches : (e as MediaQueryList).matches);
+    const handleModern = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    const handleLegacy = function (
+      this: MediaQueryList,
+      e: MediaQueryListEvent
+    ) {
+      setIsDesktop(e.matches);
     };
-    handle(mql);
-    if (mql.addEventListener) mql.addEventListener('change', handle as any);
-    else (mql as any).addListener(handle as any);
+    // Initialize once
+    setIsDesktop(mql.matches);
+    if (mql.addEventListener) mql.addEventListener('change', handleModern);
+    else (mql as MediaQueryList).addListener(handleLegacy);
     return () => {
       if (mql.removeEventListener)
-        mql.removeEventListener('change', handle as any);
-      else (mql as any).removeListener(handle as any);
+        mql.removeEventListener('change', handleModern);
+      else (mql as MediaQueryList).removeListener(handleLegacy);
     };
   }, []);
 
@@ -72,27 +77,26 @@ const SignIn: React.FC = () => {
       // Fetch the customer row using auth user id or email
       let customerType: string | undefined;
       if (userId) {
-        let { data: customerById, error: getErr } = await supabase
+        const { data, error: getErr } = await supabase
           .from('customer')
           .select('customer_type')
           .eq('customer_id', userId)
           .maybeSingle();
+        let customerById = data;
 
         if (getErr) throw getErr;
 
         // Provision missing customer + location on first sign-in
         if (!customerById) {
-          const m = user?.user_metadata || {};
-          const addr = (m.address as any) || {};
+          const m = (user?.user_metadata ?? {}) as Record<string, unknown>;
+          const addr = (m.address ?? {}) as Record<string, unknown>;
           const hasRequiredAddress = Boolean(
-            addr.region &&
-              addr.province &&
-              addr.city &&
-              addr.barangay &&
-              addr.street
+            typeof addr.region === 'string' &&
+              typeof addr.province === 'string' &&
+              typeof addr.city === 'string' &&
+              typeof addr.barangay === 'string' &&
+              typeof addr.street === 'string'
           );
-          const normalize = (s?: string) =>
-            (s || '').toString().trim().toLowerCase().replace(/\s+/g, '-');
           // Prefer server-side RPC to insert region/province/city/barangay/street/building/location
           let locationId: string | null = null;
           if (hasRequiredAddress)
@@ -100,14 +104,17 @@ const SignIn: React.FC = () => {
               const { data: rpcData, error: rpcError } = await supabase.rpc(
                 'upsert_full_address',
                 {
-                  p_region: addr.region || null,
-                  p_province: addr.province || null,
-                  p_city: addr.city || null,
-                  p_zip_code: addr.zip_code || addr.zip || null,
-                  p_barangay: addr.barangay || null,
-                  p_street: addr.street || null,
-                  p_building_number: addr.building_number || null,
-                  p_building_name: addr.building_name || null,
+                  p_region: (addr.region as string) || null,
+                  p_province: (addr.province as string) || null,
+                  p_city: (addr.city as string) || null,
+                  p_zip_code: ((addr as { zip_code?: string; zip?: string })
+                    .zip_code ||
+                    (addr as { zip?: string }).zip ||
+                    null) as string | null,
+                  p_barangay: (addr.barangay as string) || null,
+                  p_street: (addr.street as string) || null,
+                  p_building_number: (addr.building_number as string) || null,
+                  p_building_name: (addr.building_name as string) || null,
                 }
               );
               if (rpcError) {
@@ -115,33 +122,36 @@ const SignIn: React.FC = () => {
                 throw rpcError;
               }
               // RPC now returns a scalar UUID
-              locationId = (rpcData as any) ?? null;
+              locationId = (rpcData as string | null) ?? null;
               if (!locationId) {
                 throw new Error(
                   'No location_id returned from upsert_full_address'
                 );
               }
-            } catch (rpcError: any) {
+            } catch (rpcError: unknown) {
               console.warn(
                 'RPC upsert_full_address failed:',
-                rpcError?.message || rpcError
+                rpcError instanceof Error ? rpcError.message : rpcError
               );
               // Try the compatibility wrapper (also returns scalar UUID)
               const { data: locData, error: locError } = await supabase.rpc(
                 'upsert_location_from_meta',
                 {
-                  p_region: addr.region || null,
-                  p_province: addr.province || null,
-                  p_city: addr.city || null,
-                  p_zip_code: (addr.zip_code || addr.zip || null) as any,
-                  p_barangay: addr.barangay || null,
-                  p_street: addr.street || null,
-                  p_building_number: addr.building_number || null,
-                  p_building_name: addr.building_name || null,
+                  p_region: (addr.region as string) || null,
+                  p_province: (addr.province as string) || null,
+                  p_city: (addr.city as string) || null,
+                  p_zip_code: ((addr as { zip_code?: string; zip?: string })
+                    .zip_code ||
+                    (addr as { zip?: string }).zip ||
+                    null) as string | null,
+                  p_barangay: (addr.barangay as string) || null,
+                  p_street: (addr.street as string) || null,
+                  p_building_number: (addr.building_number as string) || null,
+                  p_building_name: (addr.building_name as string) || null,
                 }
               );
               if (locError) throw locError;
-              locationId = (locData as any) ?? null;
+              locationId = (locData as string | null) ?? null;
             }
           else {
             console.info(
@@ -153,11 +163,11 @@ const SignIn: React.FC = () => {
           if (locationId) {
             const insertRes = await supabase.from('customer').insert({
               customer_id: userId,
-              first_name: m.first_name || null,
-              last_name: m.last_name || null,
-              contact_no: m.phone || null,
+              first_name: (m.first_name as string) || null,
+              last_name: (m.last_name as string) || null,
+              contact_no: (m.phone as string) || null,
               email_address: user?.email || null,
-              customer_type: m.role || 'regular',
+              customer_type: (m.role as string) || 'regular',
               location_id: locationId,
             });
             if (insertRes.error) throw insertRes.error;
@@ -167,10 +177,12 @@ const SignIn: React.FC = () => {
             );
           }
 
-          customerById = { customer_type: m.role || 'regular' } as any;
+          customerById = { customer_type: (m.role as string) || 'regular' } as {
+            customer_type: string;
+          };
         }
 
-        customerType = customerById?.customer_type as string | undefined;
+        customerType = customerById?.customer_type ?? undefined;
       }
 
       if (!customerType && user?.email) {
@@ -195,11 +207,13 @@ const SignIn: React.FC = () => {
 
       toastMethods.success('Welcome back!', 'Successfully signed in');
       setTimeout(() => navigate(destination), 1000);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Sign in error:', error);
       toastMethods.error(
         'Sign In Failed',
-        error?.message || 'Please check your credentials and try again.'
+        error instanceof Error
+          ? error.message
+          : 'Please check your credentials and try again.'
       );
     } finally {
       setLoading(false);

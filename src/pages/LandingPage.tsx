@@ -15,7 +15,16 @@ const LandingPage: React.FC = () => {
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [isTyping, setIsTyping] = React.useState(false);
   const [quickReplies, setQuickReplies] = React.useState<QuickReply[]>([]);
-  const [currentFlow, setCurrentFlow] = React.useState<any>(null);
+  const [currentFlow, setCurrentFlow] = React.useState<{
+    id: string;
+    title: string;
+    initial: (ctx: unknown) => { text: string }[];
+    respond: (
+      ctx: unknown,
+      input: string
+    ) => Promise<{ messages: { text: string }[]; quickReplies?: string[] }>;
+    quickReplies: () => string[];
+  } | null>(null);
   const [chatTitle, setChatTitle] = React.useState<string>('Chat');
   const [inputPlaceholder, setInputPlaceholder] =
     React.useState('Type a message...');
@@ -37,12 +46,14 @@ const LandingPage: React.FC = () => {
     setQuickReplies([]);
     setTimeout(() => {
       const initialMessages = flow.initial({});
-      const botMessages: ChatMessage[] = initialMessages.map((msg: any) => ({
-        id: crypto.randomUUID(),
-        role: 'printy' as ChatRole,
-        text: msg.text,
-        ts: Date.now(),
-      }));
+      const botMessages: ChatMessage[] = initialMessages.map(
+        (msg: { text: string }) => ({
+          id: crypto.randomUUID(),
+          role: 'printy' as ChatRole,
+          text: msg.text,
+          ts: Date.now(),
+        })
+      );
       setMessages(botMessages);
       const replies = flow
         .quickReplies()
@@ -74,7 +85,7 @@ const LandingPage: React.FC = () => {
       const response = await currentFlow.respond({}, text);
       setTimeout(() => {
         const newBotMessages: ChatMessage[] = response.messages.map(
-          (m: any) => ({
+          (m: { text: string }) => ({
             id: crypto.randomUUID(),
             role: 'printy',
             text: m.text,

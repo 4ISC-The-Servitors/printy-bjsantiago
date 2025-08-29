@@ -81,27 +81,20 @@ const AccountSettingsPage: React.FC = () => {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const mql = window.matchMedia('(min-width: 1024px)');
-    const handleChange = (e: MediaQueryListEvent | MediaQueryList) => {
-      setIsDesktop('matches' in e ? e.matches : (e as MediaQueryList).matches);
+    const handleModern = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    const handleLegacy = function (
+      this: MediaQueryList,
+      e: MediaQueryListEvent
+    ) {
+      setIsDesktop(e.matches);
     };
     setIsDesktop(mql.matches);
-    if (mql.addEventListener) {
-      mql.addEventListener(
-        'change',
-        handleChange as (ev: MediaQueryListEvent) => void
-      );
-    } else if ((mql as any).addListener) {
-      (mql as any).addListener(handleChange as any);
-    }
+    if (mql.addEventListener) mql.addEventListener('change', handleModern);
+    else (mql as MediaQueryList).addListener(handleLegacy);
     return () => {
-      if (mql.removeEventListener) {
-        mql.removeEventListener(
-          'change',
-          handleChange as (ev: MediaQueryListEvent) => void
-        );
-      } else if ((mql as any).removeListener) {
-        (mql as any).removeListener(handleChange as any);
-      }
+      if (mql.removeEventListener)
+        mql.removeEventListener('change', handleModern);
+      else (mql as MediaQueryList).removeListener(handleLegacy);
     };
   }, []);
 

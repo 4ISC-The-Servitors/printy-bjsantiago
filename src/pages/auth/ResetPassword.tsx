@@ -1,6 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Input, Text, Container, ToastContainer } from '../../components/shared';
+import {
+  Button,
+  Input,
+  Text,
+  Container,
+  ToastContainer,
+} from '../../components/shared';
 import { useToast } from '../../lib/useToast';
 import { ArrowLeft, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
@@ -24,30 +30,41 @@ const ResetPassword: React.FC = () => {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const mql = window.matchMedia('(min-width: 1024px)');
-    const handler = (e: MediaQueryListEvent | MediaQueryList) => {
-      setIsDesktop('matches' in e ? e.matches : (e as MediaQueryList).matches);
+    const handleModern = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    const handleLegacy = function (
+      this: MediaQueryList,
+      e: MediaQueryListEvent
+    ) {
+      setIsDesktop(e.matches);
     };
-    handler(mql);
-    if (mql.addEventListener) mql.addEventListener('change', handler as any);
-    else (mql as any).addListener(handler as any);
+    setIsDesktop(mql.matches);
+    if (mql.addEventListener) mql.addEventListener('change', handleModern);
+    else (mql as MediaQueryList).addListener(handleLegacy);
     return () => {
-      if (mql.removeEventListener) mql.removeEventListener('change', handler as any);
-      else (mql as any).removeListener(handler as any);
+      if (mql.removeEventListener)
+        mql.removeEventListener('change', handleModern);
+      else (mql as MediaQueryList).removeListener(handleLegacy);
     };
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
 
     try {
       if (!password || password.length < 8) {
-        toastMethods.error('Weak Password', 'Password must be at least 8 characters.');
+        toastMethods.error(
+          'Weak Password',
+          'Password must be at least 8 characters.'
+        );
         setLoading(false);
         return;
       }
       if (password !== confirmPassword) {
-        toastMethods.error('Passwords do not match', 'Please confirm your new password.');
+        toastMethods.error(
+          'Passwords do not match',
+          'Please confirm your new password.'
+        );
         setLoading(false);
         return;
       }
@@ -56,11 +73,19 @@ const ResetPassword: React.FC = () => {
       if (error) throw error;
 
       setDone(true);
-      toastMethods.success('Password Updated', 'Your password has been reset successfully.');
+      toastMethods.success(
+        'Password Updated',
+        'Your password has been reset successfully.'
+      );
       setTimeout(() => navigate('/auth/signin'), 1200);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Reset password error:', error);
-      toastMethods.error('Reset Failed', error?.message || 'Unable to reset password. Try the link again.');
+      toastMethods.error(
+        'Reset Failed',
+        error instanceof Error
+          ? error.message
+          : 'Unable to reset password. Try the link again.'
+      );
     } finally {
       setLoading(false);
     }
@@ -88,7 +113,12 @@ const ResetPassword: React.FC = () => {
           {!done ? (
             <>
               <div className="text-center mb-8">
-                <Text variant="h1" size="4xl" weight="bold" className="text-neutral-900 mb-2">
+                <Text
+                  variant="h1"
+                  size="4xl"
+                  weight="bold"
+                  className="text-neutral-900 mb-2"
+                >
                   Set a new password
                 </Text>
                 <Text variant="p" size="base" color="muted">
@@ -112,9 +142,15 @@ const ResetPassword: React.FC = () => {
                       type="button"
                       onClick={() => setShowPassword(s => !s)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
-                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      aria-label={
+                        showPassword ? 'Hide password' : 'Show password'
+                      }
                     >
-                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      {showPassword ? (
+                        <EyeOff className="w-5 h-5" />
+                      ) : (
+                        <Eye className="w-5 h-5" />
+                      )}
                     </button>
                   </Input>
                 </div>
@@ -134,9 +170,15 @@ const ResetPassword: React.FC = () => {
                       type="button"
                       onClick={() => setShowConfirm(s => !s)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
-                      aria-label={showConfirm ? 'Hide password' : 'Show password'}
+                      aria-label={
+                        showConfirm ? 'Hide password' : 'Show password'
+                      }
                     >
-                      {showConfirm ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      {showConfirm ? (
+                        <EyeOff className="w-5 h-5" />
+                      ) : (
+                        <Eye className="w-5 h-5" />
+                      )}
                     </button>
                   </Input>
                 </div>
@@ -158,14 +200,24 @@ const ResetPassword: React.FC = () => {
             <>
               <div className="flex flex-col items-center text-center space-y-4">
                 <CheckCircle2 className="w-12 h-12 text-success" />
-                <Text variant="h2" size="3xl" weight="bold" className="text-neutral-900">
+                <Text
+                  variant="h2"
+                  size="3xl"
+                  weight="bold"
+                  className="text-neutral-900"
+                >
                   Password updated
                 </Text>
                 <Text variant="p" color="muted" className="max-w-md">
-                  Your password has been successfully reset. You can now sign in with your new password.
+                  Your password has been successfully reset. You can now sign in
+                  with your new password.
                 </Text>
                 <div className="flex items-center gap-3 mt-2">
-                  <Button variant="primary" threeD onClick={() => navigate('/auth/signin')}>
+                  <Button
+                    variant="primary"
+                    threeD
+                    onClick={() => navigate('/auth/signin')}
+                  >
                     Go to sign in
                   </Button>
                 </div>

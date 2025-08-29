@@ -53,7 +53,7 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
         <RecentActivity recentOrder={recentOrder} recentTicket={recentTicket} />
         <ActionCards
           topics={topics}
-          onTopicSelect={key => onTopicSelect(key as any)}
+          onTopicSelect={key => onTopicSelect(key)}
         />
       </div>
     </div>

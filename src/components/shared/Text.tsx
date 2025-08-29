@@ -47,7 +47,7 @@ const Text = React.forwardRef<HTMLElement, TextProps>(
     },
     ref
   ) => {
-    const Component = as || variant;
+    const Component = (as || variant) as React.ElementType;
     const classes = cn(
       getSizeClasses(size),
       getWeightClasses(weight),
@@ -60,7 +60,11 @@ const Text = React.forwardRef<HTMLElement, TextProps>(
     );
 
     return (
-      <Component ref={ref as any} className={classes} {...props}>
+      <Component
+        ref={ref as React.Ref<HTMLElement>}
+        className={classes}
+        {...props}
+      >
         {children}
       </Component>
     );

@@ -12,7 +12,7 @@ export interface BotMessage {
 }
 
 export interface FlowContext {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface FlowResponse {

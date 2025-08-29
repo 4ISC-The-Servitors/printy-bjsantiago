@@ -1,4 +1,5 @@
 import React from 'react';
+import type { ChatMessage } from '../chat/types';
 import { Bot, User, LogOut, MessageSquare } from 'lucide-react';
 import { Button, Text, Badge } from '../shared';
 
@@ -6,7 +7,7 @@ interface Conversation {
   id: string;
   title: string;
   createdAt: number;
-  messages: any[];
+  messages: ChatMessage[];
   flowId: string;
   status: 'active' | 'completed';
   icon?: React.ReactNode;

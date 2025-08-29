@@ -199,7 +199,11 @@ export default {
   },
   plugins: [
     // Custom plugin for container queries (progressive enhancement)
-    function ({ addUtilities }: any) {
+    function ({
+      addUtilities,
+    }: {
+      addUtilities: (utils: Record<string, unknown>) => void;
+    }) {
       const newUtilities = {
         '.container-query': {
           'container-type': 'inline-size',

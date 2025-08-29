@@ -100,7 +100,15 @@ const CustomerDashboard: React.FC = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [currentFlow, setCurrentFlow] = useState<any>(null);
+  const [currentFlow, setCurrentFlow] = useState<{
+    id: string;
+    initial: (ctx: unknown) => { text: string }[];
+    respond: (
+      ctx: unknown,
+      input: string
+    ) => Promise<{ messages: { text: string }[]; quickReplies?: string[] }>;
+    quickReplies: () => string[];
+  } | null>(null);
   const [quickReplies, setQuickReplies] = useState<QuickReply[]>([]);
   const [inputPlaceholder, setInputPlaceholder] = useState('Type a message...');
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -109,16 +117,20 @@ const CustomerDashboard: React.FC = () => {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const mql = window.matchMedia('(min-width: 1024px)');
-    const handler = (e: MediaQueryListEvent | MediaQueryList) => {
-      setIsDesktop('matches' in e ? e.matches : (e as MediaQueryList).matches);
+    const handleModern = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    const handleLegacy = function (
+      this: MediaQueryList,
+      e: MediaQueryListEvent
+    ) {
+      setIsDesktop(e.matches);
     };
-    handler(mql);
-    if (mql.addEventListener) mql.addEventListener('change', handler as any);
-    else (mql as any).addListener(handler as any);
+    setIsDesktop(mql.matches);
+    if (mql.addEventListener) mql.addEventListener('change', handleModern);
+    else (mql as MediaQueryList).addListener(handleLegacy);
     return () => {
       if (mql.removeEventListener)
-        mql.removeEventListener('change', handler as any);
-      else (mql as any).removeListener(handler as any);
+        mql.removeEventListener('change', handleModern);
+      else (mql as MediaQueryList).removeListener(handleLegacy);
     };
   }, []);
 
@@ -175,16 +187,18 @@ const CustomerDashboard: React.FC = () => {
 
     setCurrentFlow(flow);
     const initialMessages = flow.initial({});
-    const botMessages: ChatMessage[] = initialMessages.map((msg: any) => ({
-      id: crypto.randomUUID(),
-      role: 'printy' as ChatRole,
-      text: msg.text,
-      ts: Date.now(),
-    }));
+    const botMessages: ChatMessage[] = initialMessages.map(
+      (msg: { text: string }) => ({
+        id: crypto.randomUUID(),
+        role: 'printy' as ChatRole,
+        text: msg.text,
+        ts: Date.now(),
+      })
+    );
 
     // Find the topic config to get the icon
     const topicEntry = Object.entries(topicConfig).find(
-      ([key, config]) => config.flowId === flowId
+      ([, config]) => config.flowId === flowId
     );
     const icon = topicEntry ? topicEntry[1].icon : undefined;
 
@@ -254,7 +268,7 @@ const CustomerDashboard: React.FC = () => {
 
       setTimeout(() => {
         const botMessages: ChatMessage[] = response.messages.map(
-          (msg: any) => ({
+          (msg: { text: string }) => ({
             id: crypto.randomUUID(),
             role: 'printy' as ChatRole,
             text: msg.text,

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { cn } from '../../lib/utils';
 import { Text } from './index';
 
@@ -36,6 +36,14 @@ const Toast = React.forwardRef<HTMLDivElement, ToastProps>(
     const [isVisible, setIsVisible] = useState(true);
     const [isExiting, setIsExiting] = useState(false);
 
+    const handleClose = useCallback(() => {
+      setIsExiting(true);
+      setTimeout(() => {
+        setIsVisible(false);
+        onClose?.(id);
+      }, 200);
+    }, [id, onClose]);
+
     useEffect(() => {
       if (duration > 0) {
         const timer = setTimeout(() => {
@@ -44,15 +52,7 @@ const Toast = React.forwardRef<HTMLDivElement, ToastProps>(
 
         return () => clearTimeout(timer);
       }
-    }, [duration]);
-
-    const handleClose = () => {
-      setIsExiting(true);
-      setTimeout(() => {
-        setIsVisible(false);
-        onClose?.(id);
-      }, 200);
-    };
+    }, [duration, handleClose]);
 
     if (!isVisible) return null;
 
@@ -132,8 +132,6 @@ const getSizeClasses = (size: ToastProps['size']) =>
   })[size || 'md'];
 
 const getVariantIcon = (variant: ToastProps['variant']) => {
-  const iconClasses = 'w-5 h-5';
-
   switch (variant) {
     case 'success':
       return (

@@ -30,16 +30,20 @@ const ForgotPassword: React.FC = () => {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const mql = window.matchMedia('(min-width: 1024px)');
-    const handler = (e: MediaQueryListEvent | MediaQueryList) => {
-      setIsDesktop('matches' in e ? e.matches : (e as MediaQueryList).matches);
+    const handleModern = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    const handleLegacy = function (
+      this: MediaQueryList,
+      e: MediaQueryListEvent
+    ) {
+      setIsDesktop(e.matches);
     };
-    handler(mql);
-    if (mql.addEventListener) mql.addEventListener('change', handler as any);
-    else (mql as any).addListener(handler as any);
+    setIsDesktop(mql.matches);
+    if (mql.addEventListener) mql.addEventListener('change', handleModern);
+    else (mql as MediaQueryList).addListener(handleLegacy);
     return () => {
       if (mql.removeEventListener)
-        mql.removeEventListener('change', handler as any);
-      else (mql as any).removeListener(handler as any);
+        mql.removeEventListener('change', handleModern);
+      else (mql as MediaQueryList).removeListener(handleLegacy);
     };
   }, []);
 
