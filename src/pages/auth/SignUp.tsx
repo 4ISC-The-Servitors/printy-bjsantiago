@@ -50,7 +50,6 @@ interface FormData {
   province: string;
   city: string;
   region: string;
-  
 
   // Common
   agreeToTerms: boolean;
@@ -126,7 +125,10 @@ const SignUp: React.FC = () => {
 
     try {
       if (formData.password !== formData.confirmPassword) {
-        toastMethods.error('Passwords do not match', 'Please confirm your password.');
+        toastMethods.error(
+          'Passwords do not match',
+          'Please confirm your password.'
+        );
         setLoading(false);
         return;
       }
@@ -193,7 +195,8 @@ const SignUp: React.FC = () => {
       console.error('Sign up error:', error);
       toastMethods.error(
         'Sign Up Failed',
-        error?.message || 'There was an issue creating your account. Please try again.'
+        error?.message ||
+          'There was an issue creating your account. Please try again.'
       );
     } finally {
       setLoading(false);

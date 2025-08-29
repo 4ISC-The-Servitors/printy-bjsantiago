@@ -65,7 +65,10 @@ const ResetPassword: React.FC = () => {
       if (error) throw error;
 
       setSubmitted(true);
-      toastMethods.success('Success!', 'We have sent a reset link to your email.');
+      toastMethods.success(
+        'Success!',
+        'We have sent a reset link to your email.'
+      );
     } catch (error) {
       console.error('Password reset error:', error);
       toastMethods.error(
