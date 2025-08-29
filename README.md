@@ -36,6 +36,8 @@
 - Added sign up toast message to confirm email first for access
 - Added new page: Reset password (works as intended na)
 - Renamed ForgotPassword page
+- Removed 74 lint errors
+- Improved sign up page to check for duplicate email and phone number registrations
 
 ## 🚀 Current Status
 

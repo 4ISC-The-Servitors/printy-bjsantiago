@@ -68,16 +68,20 @@ const SignUp: React.FC = () => {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const mql = window.matchMedia('(min-width: 1024px)');
-    const handler = (e: MediaQueryListEvent | MediaQueryList) => {
-      setIsDesktop('matches' in e ? e.matches : (e as MediaQueryList).matches);
+    const handleModern = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    const handleLegacy = function (
+      this: MediaQueryList,
+      e: MediaQueryListEvent
+    ) {
+      setIsDesktop(e.matches);
     };
-    handler(mql);
-    if (mql.addEventListener) mql.addEventListener('change', handler as any);
-    else (mql as any).addListener(handler as any);
+    setIsDesktop(mql.matches);
+    if (mql.addEventListener) mql.addEventListener('change', handleModern);
+    else (mql as MediaQueryList).addListener(handleLegacy);
     return () => {
       if (mql.removeEventListener)
-        mql.removeEventListener('change', handler as any);
-      else (mql as any).removeListener(handler as any);
+        mql.removeEventListener('change', handleModern);
+      else (mql as MediaQueryList).removeListener(handleLegacy);
     };
   }, []);
 
@@ -141,7 +145,7 @@ const SignUp: React.FC = () => {
     };
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
 
@@ -155,6 +159,45 @@ const SignUp: React.FC = () => {
         return;
       }
 
+      // Normalize and validate PH mobile number (+639XXXXXXXXX)
+      const normalizedPhone = (() => {
+        let v = formData.phone.trim();
+        if (!v) return '';
+        if (!v.startsWith('+63'))
+          v = '+63' + v.replace(/^\+?63/, '').replace(/^0+/, '');
+        // Retain only + and digits
+        v = '+63' + v.slice(3).replace(/\D/g, '');
+        return v;
+      })();
+
+      if (!/^\+639\d{9}$/.test(normalizedPhone)) {
+        toastMethods.error(
+          'Invalid Mobile Number',
+          'Enter a valid PH mobile number (+639XXXXXXXXX).'
+        );
+        setLoading(false);
+        return;
+      }
+
+      // Check uniqueness of mobile number in customer table
+      try {
+        const { data: existingPhone } = await supabase
+          .from('customer')
+          .select('customer_id')
+          .eq('contact_no', normalizedPhone)
+          .maybeSingle();
+        if (existingPhone) {
+          toastMethods.error(
+            'Mobile Number In Use',
+            'This mobile number is already registered. Use a different number.'
+          );
+          setLoading(false);
+          return;
+        }
+      } catch {
+        // If the check fails silently, proceed; backend RLS/constraint should still protect
+      }
+
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -164,7 +207,7 @@ const SignUp: React.FC = () => {
           data: {
             first_name: formData.firstName || null,
             last_name: formData.lastName || null,
-            phone: formData.phone || null,
+            phone: normalizedPhone || null,
             address: {
               region: formData.region || null,
               province: formData.province || null,
@@ -180,6 +223,14 @@ const SignUp: React.FC = () => {
       });
 
       if (authError) throw authError;
+
+      // Supabase returns user with no identities if email already exists
+      const identities = (
+        authData.user as unknown as { identities?: unknown[] }
+      )?.identities;
+      if (Array.isArray(identities) && identities.length === 0) {
+        throw new Error('Email already registered');
+      }
 
       // Best-effort: insert address hierarchy now if session exists
       if (authData.session) {
@@ -217,9 +268,11 @@ const SignUp: React.FC = () => {
         duration: 6000,
       });
       setTimeout(() => navigate('/auth/signin'), 3000);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Sign up error:', error);
-      const mapped = mapSignUpError(error?.message);
+      const mapped = mapSignUpError(
+        error instanceof Error ? error.message : undefined
+      );
       toastMethods.error(mapped.title, mapped.body);
     } finally {
       setLoading(false);
