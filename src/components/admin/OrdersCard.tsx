@@ -68,10 +68,10 @@ const OrdersCard: React.FC<Props> = ({ isPending, togglePending }) => {
               />
             )}
 
-            <div className="flex-1 min-w-0 space-y-1 sm:space-y-2">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-                {/* ID + (mobile customer) */}
-                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3 min-w-0">
+            <div className="flex w-full items-center justify-between gap-3 sm:gap-4">
+              {/* Left section: identifiers, customer, badges */}
+              <div className="flex-1 min-w-0 space-y-1 sm:space-y-2">
+                <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                   <span className="text-xs sm:text-sm lg:text-base font-medium text-neutral-500 truncate">
                     {o.id}
                   </span>
@@ -80,8 +80,43 @@ const OrdersCard: React.FC<Props> = ({ isPending, togglePending }) => {
                   </div>
                 </div>
 
-                {/* Amount + Date */}
-                <div className="flex items-center justify-between sm:flex-col sm:text-right">
+                {/* Mobile badges */}
+                <div className="flex items-center justify-between sm:hidden">
+                  <div className="flex items-center gap-2">
+                    {o.priority && (
+                      <Badge size="sm" variant="error" className="text-xs">
+                        {o.priority}
+                      </Badge>
+                    )}
+                    <Badge
+                      size="sm"
+                      variant={o.status === 'Processing' ? 'info' : 'warning'}
+                      className="text-xs"
+                    >
+                      {o.status}
+                    </Badge>
+                  </div>
+                </div>
+
+                {/* Desktop: customer + badges */}
+                <div className="hidden sm:block text-sm sm:text-base lg:text-lg font-medium text-neutral-900 truncate">
+                  {o.customer}
+                </div>
+                <div className="hidden sm:flex sm:items-center sm:gap-3">
+                  {o.priority && (
+                    <Badge size="sm" variant="error" className="text-xs sm:text-sm">
+                      {o.priority}
+                    </Badge>
+                  )}
+                  <Badge size="sm" variant={o.status === 'Processing' ? 'info' : 'warning'} className="text-xs sm:text-sm">
+                    {o.status}
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Right section: amount/date + action aligned right */}
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="text-right">
                   <div className="text-sm sm:text-base lg:text-lg xl:text-xl font-semibold">
                     {o.total}
                   </div>
@@ -89,60 +124,17 @@ const OrdersCard: React.FC<Props> = ({ isPending, togglePending }) => {
                     {o.date}
                   </div>
                 </div>
-              </div>
-
-              {/* Mobile: badge row */}
-              <div className="flex items-center justify-between sm:hidden">
-                <div className="flex items-center gap-2">
-                  {o.priority && (
-                    <Badge size="sm" variant="error" className="text-xs">
-                      {o.priority}
-                    </Badge>
-                  )}
-                  <Badge
-                    size="sm"
-                    variant={o.status === 'Processing' ? 'info' : 'warning'}
-                    className="text-xs"
-                  >
-                    {o.status}
-                  </Badge>
-                </div>
-              </div>
-
-              {/* Desktop: customer and badges */}
-              <div className="hidden sm:block text-sm sm:text-base lg:text-lg font-medium text-neutral-900 truncate">
-                {o.customer}
-              </div>
-              <div className="hidden sm:flex sm:items-center sm:gap-3">
-                {o.priority && (
-                  <Badge
-                    size="sm"
-                    variant="error"
-                    className="text-xs sm:text-sm"
-                  >
-                    {o.priority}
-                  </Badge>
-                )}
-                <Badge
+                <Button
+                  variant="secondary"
                   size="sm"
-                  variant={o.status === 'Processing' ? 'info' : 'warning'}
-                  className="text-xs sm:text-sm"
+                  aria-label={`Ask about ${o.id}`}
+                  onClick={() => askAboutOrder(o.id)}
+                  className="shrink-0"
                 >
-                  {o.status}
-                </Badge>
+                  <MessageSquare className="w-4 h-4" />
+                </Button>
               </div>
             </div>
-
-            {/* Ask/Chat action */}
-            <Button
-              variant="secondary"
-              size="sm"
-              aria-label={`Ask about ${o.id}`}
-              onClick={() => askAboutOrder(o.id)}
-              className="shrink-0"
-            >
-              <MessageSquare className="w-4 h-4" />
-            </Button>
           </div>
         ))}
       </div>

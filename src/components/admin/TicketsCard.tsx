@@ -78,9 +78,10 @@ const TicketsCard: React.FC<Props> = ({ isPending, togglePending }) => {
               />
             )}
 
-            <div className="flex-1 min-w-0 space-y-1 sm:space-y-2">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3 min-w-0">
+            <div className="flex w-full items-center justify-between gap-3 sm:gap-4">
+              {/* Left section: identifiers + subject/status */}
+              <div className="flex-1 min-w-0 space-y-1 sm:space-y-2">
+                <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                   <span className="text-xs sm:text-sm lg:text-base font-medium text-neutral-500 truncate">
                     {t.id}
                   </span>
@@ -88,44 +89,31 @@ const TicketsCard: React.FC<Props> = ({ isPending, togglePending }) => {
                     {t.subject}
                   </div>
                 </div>
-                <div className="text-xs sm:text-sm text-neutral-500 sm:self-start">
-                  {t.time}
+                <div className="text-xs sm:text-sm text-neutral-500 sm:self-start">{t.time}</div>
+
+                <div className="hidden sm:block text-sm sm:text-base lg:text-lg font-medium text-neutral-900 text-pretty truncate">{t.subject}</div>
+
+                <div className="flex justify-start sm:hidden">
+                  <Badge size="sm" variant={getBadgeVariantForStatus(t.status)} className="text-xs">{t.status}</Badge>
+                </div>
+                <div className="hidden sm:flex sm:items-center sm:gap-3">
+                  <Badge size="sm" variant={getBadgeVariantForStatus(t.status)} className="text-xs sm:text-sm">{t.status}</Badge>
                 </div>
               </div>
 
-              <div className="hidden sm:block text-sm sm:text-base lg:text-lg font-medium text-neutral-900 text-pretty truncate">
-                {t.subject}
-              </div>
-
-              <div className="flex justify-start sm:hidden">
-                <Badge
+              {/* Right section: action aligned right */}
+              <div className="flex items-center gap-3 sm:gap-4">
+                <Button
+                  variant="secondary"
                   size="sm"
-                  variant={getBadgeVariantForStatus(t.status)}
-                  className="text-xs"
+                  aria-label={`Ask about ${t.id}`}
+                  onClick={() => askAboutTicket(t.id)}
+                  className="shrink-0"
                 >
-                  {t.status}
-                </Badge>
-              </div>
-              <div className="hidden sm:flex sm:items-center sm:gap-3">
-                <Badge
-                  size="sm"
-                  variant={getBadgeVariantForStatus(t.status)}
-                  className="text-xs sm:text-sm"
-                >
-                  {t.status}
-                </Badge>
+                  <MessageSquare className="w-4 h-4" />
+                </Button>
               </div>
             </div>
-
-            <Button
-              variant="secondary"
-              size="sm"
-              aria-label={`Ask about ${t.id}`}
-              onClick={() => askAboutTicket(t.id)}
-              className="shrink-0"
-            >
-              <MessageSquare className="w-4 h-4" />
-            </Button>
           </div>
         ))}
       </div>
