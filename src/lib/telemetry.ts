@@ -28,10 +28,6 @@ export function bumpWidget(name: string) {
   write(t);
 }
 
-
-
 export function getTelemetry() {
   return read();
 }
-
-

@@ -11,7 +11,9 @@ import { Button, Text } from '../shared';
 
 export interface AdminDesktopSidebarProps {
   active: 'dashboard' | 'orders' | 'portfolio' | 'settings';
-  onNavigate: (route: 'dashboard' | 'orders' | 'portfolio' | 'settings') => void;
+  onNavigate: (
+    route: 'dashboard' | 'orders' | 'portfolio' | 'settings'
+  ) => void;
   onLogout: () => void;
 }
 

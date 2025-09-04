@@ -8,7 +8,13 @@ export interface WorkflowAction {
   description: string;
   icon: string;
   shortcut: string;
-  gesture: 'swipe-left' | 'swipe-right' | 'swipe-up' | 'swipe-down' | 'double-tap' | 'long-press';
+  gesture:
+    | 'swipe-left'
+    | 'swipe-right'
+    | 'swipe-up'
+    | 'swipe-down'
+    | 'double-tap'
+    | 'long-press';
   category: 'orders' | 'tickets' | 'services' | 'quick';
   priority: 'low' | 'medium' | 'high';
   estimatedTime: string;
@@ -30,15 +36,16 @@ const MobileWorkflow: React.FC<MobileWorkflowProps> = ({
   const [showTutorial, setShowTutorial] = useState(false);
 
   // Group actions by category
-  const groupedActions = actions.reduce((groups, action) => {
-    if (!groups[action.category]) {
-      groups[action.category] = [];
-    }
-    groups[action.category].push(action);
-    return groups;
-  }, {} as Record<string, WorkflowAction[]>);
-
-
+  const groupedActions = actions.reduce(
+    (groups, action) => {
+      if (!groups[action.category]) {
+        groups[action.category] = [];
+      }
+      groups[action.category].push(action);
+      return groups;
+    },
+    {} as Record<string, WorkflowAction[]>
+  );
 
   const getGestureIcon = (gesture: WorkflowAction['gesture']) => {
     switch (gesture) {
@@ -93,7 +100,9 @@ const MobileWorkflow: React.FC<MobileWorkflowProps> = ({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Smartphone className="w-6 h-6 text-brand-primary" />
-          <Text variant="h2" size="2xl" weight="semibold">Mobile Workflow</Text>
+          <Text variant="h2" size="2xl" weight="semibold">
+            Mobile Workflow
+          </Text>
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -103,11 +112,7 @@ const MobileWorkflow: React.FC<MobileWorkflowProps> = ({
           >
             Tutorial
           </Button>
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={onCustomizeShortcuts}
-          >
+          <Button variant="primary" size="sm" onClick={onCustomizeShortcuts}>
             Customize
           </Button>
         </div>
@@ -117,12 +122,19 @@ const MobileWorkflow: React.FC<MobileWorkflowProps> = ({
       {showTutorial && (
         <Card className="p-6 bg-blue-50 border-blue-200">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {(['swipe-left', 'swipe-right', 'swipe-up', 'swipe-down'] as const).map(gesture => (
+            {(
+              ['swipe-left', 'swipe-right', 'swipe-up', 'swipe-down'] as const
+            ).map(gesture => (
               <div key={gesture} className="text-center">
                 <div className="w-16 h-16 mx-auto mb-2 bg-white rounded-lg border-2 border-blue-300 flex items-center justify-center">
                   {getGestureIcon(gesture)}
                 </div>
-                <Text variant="p" size="sm" weight="medium" className="capitalize">
+                <Text
+                  variant="p"
+                  size="sm"
+                  weight="medium"
+                  className="capitalize"
+                >
                   {gesture.replace('-', ' ')}
                 </Text>
               </div>
@@ -143,7 +155,12 @@ const MobileWorkflow: React.FC<MobileWorkflowProps> = ({
             <div className="w-24 h-24 mx-auto mb-4 bg-brand-primary rounded-full flex items-center justify-center">
               {getGestureIcon(activeGesture as WorkflowAction['gesture'])}
             </div>
-            <Text variant="h3" size="lg" weight="semibold" className="capitalize">
+            <Text
+              variant="h3"
+              size="lg"
+              weight="semibold"
+              className="capitalize"
+            >
               {activeGesture.replace('-', ' ')}
             </Text>
           </div>
@@ -186,40 +203,61 @@ const MobileWorkflow: React.FC<MobileWorkflowProps> = ({
       {/* Category-based Actions */}
       {Object.entries(groupedActions).map(([category, categoryActions]) => {
         if (category === 'quick') return null;
-        
+
         return (
           <div key={category} className="space-y-4">
             <div className="flex items-center gap-2">
-              <Badge variant={getCategoryColor(category as WorkflowAction['category'])} size="sm">
+              <Badge
+                variant={getCategoryColor(
+                  category as WorkflowAction['category']
+                )}
+                size="sm"
+              >
                 {category.charAt(0).toUpperCase() + category.slice(1)}
               </Badge>
               <Text variant="h3" size="lg" weight="semibold">
                 {category.charAt(0).toUpperCase() + category.slice(1)} Actions
               </Text>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {categoryActions.map(action => (
-                <Card key={action.id} className="p-4 hover:shadow-md transition-shadow">
+                <Card
+                  key={action.id}
+                  className="p-4 hover:shadow-md transition-shadow"
+                >
                   <div className="flex items-start gap-3">
                     <div className="w-10 h-10 bg-brand-primary-50 rounded-lg flex items-center justify-center flex-shrink-0">
                       <span className="text-lg">{action.icon}</span>
                     </div>
-                    
+
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <Text variant="p" size="sm" weight="medium" className="truncate">
+                        <Text
+                          variant="p"
+                          size="sm"
+                          weight="medium"
+                          className="truncate"
+                        >
                           {action.title}
                         </Text>
-                        <Badge variant={getPriorityColor(action.priority)} size="sm">
+                        <Badge
+                          variant={getPriorityColor(action.priority)}
+                          size="sm"
+                        >
                           {action.priority}
                         </Badge>
                       </div>
-                      
-                      <Text variant="p" size="xs" color="muted" className="mb-2">
+
+                      <Text
+                        variant="p"
+                        size="xs"
+                        color="muted"
+                        className="mb-2"
+                      >
                         {action.description}
                       </Text>
-                      
+
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <div className="flex items-center gap-1 text-xs text-neutral-500">
@@ -233,7 +271,7 @@ const MobileWorkflow: React.FC<MobileWorkflowProps> = ({
                             {action.estimatedTime}
                           </div>
                         </div>
-                        
+
                         <Button
                           variant="primary"
                           size="xs"
@@ -256,18 +294,28 @@ const MobileWorkflow: React.FC<MobileWorkflowProps> = ({
         <div className="space-y-4">
           <div className="flex items-center gap-2">
             <Zap className="w-5 h-5 text-brand-primary" />
-            <Text variant="h3" size="lg" weight="semibold">Recent Actions</Text>
+            <Text variant="h3" size="lg" weight="semibold">
+              Recent Actions
+            </Text>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {recentActions.map(action => (
-              <Card key={action.id} className="p-4 bg-neutral-50 border-neutral-200">
+              <Card
+                key={action.id}
+                className="p-4 bg-neutral-50 border-neutral-200"
+              >
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 bg-brand-primary-100 rounded-lg flex items-center justify-center">
                     <span className="text-sm">{action.icon}</span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <Text variant="p" size="sm" weight="medium" className="truncate">
+                    <Text
+                      variant="p"
+                      size="sm"
+                      weight="medium"
+                      className="truncate"
+                    >
                       {action.title}
                     </Text>
                     <Text variant="p" size="xs" color="muted">
@@ -286,11 +334,18 @@ const MobileWorkflow: React.FC<MobileWorkflowProps> = ({
         <div className="flex items-start gap-3">
           <Smartphone className="w-6 h-6 text-green-600 mt-1" />
           <div>
-            <Text variant="h4" size="lg" weight="semibold" className="text-green-800 mb-2">
+            <Text
+              variant="h4"
+              size="lg"
+              weight="semibold"
+              className="text-green-800 mb-2"
+            >
               Mobile Tips
             </Text>
             <ul className="space-y-2 text-sm text-green-700">
-              <li>• Use swipe gestures for quick navigation between sections</li>
+              <li>
+                • Use swipe gestures for quick navigation between sections
+              </li>
               <li>• Double-tap to mark items as read or complete</li>
               <li>• Long-press for context menus and additional options</li>
               <li>• Customize shortcuts for your most common tasks</li>

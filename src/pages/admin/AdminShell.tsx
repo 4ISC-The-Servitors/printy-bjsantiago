@@ -154,14 +154,14 @@ const AdminShell: React.FC = () => {
                     if (messages.length === 0) {
                       const flow = resolveAdminFlow('intro');
                       const initial = flow.initial({});
-                                              setMessages(
-                          initial.map(m => ({
-                            id: crypto.randomUUID(),
-                            role: m.role as ChatRole,
-                            text: m.text,
-                            ts: Date.now(),
-                          }))
-                        );
+                      setMessages(
+                        initial.map(m => ({
+                          id: crypto.randomUUID(),
+                          role: m.role as ChatRole,
+                          text: m.text,
+                          ts: Date.now(),
+                        }))
+                      );
                       setQuickReplies(
                         flow.quickReplies().map(l => ({ label: l, value: l }))
                       );
@@ -203,7 +203,10 @@ const AdminShell: React.FC = () => {
                     }));
                     setMessages(prev => [...prev, ...botMessages]);
                     setQuickReplies(
-                      (dispatched.quickReplies || []).map(l => ({ label: l, value: l }))
+                      (dispatched.quickReplies || []).map(l => ({
+                        label: l,
+                        value: l,
+                      }))
                     );
                     setIsTyping(false);
                   } else {
@@ -217,7 +220,10 @@ const AdminShell: React.FC = () => {
                       }));
                       setMessages(prev => [...prev, ...botMessages]);
                       setQuickReplies(
-                        (resp.quickReplies || []).map(l => ({ label: l, value: l }))
+                        (resp.quickReplies || []).map(l => ({
+                          label: l,
+                          value: l,
+                        }))
                       );
                       setIsTyping(false);
                     });

@@ -17,9 +17,7 @@ const ResponsiveSwitch: React.FC<{
 }> = ({ checked, onClick, label, description, icon }) => (
   <div className="flex items-center justify-between">
     <div className="flex items-center gap-3">
-      <div className="text-neutral-500">
-        {icon}
-      </div>
+      <div className="text-neutral-500">{icon}</div>
       <div>
         <Text variant="span" weight="medium">
           {label}
@@ -55,17 +53,21 @@ const SystemPreferences: React.FC<SystemPreferencesProps> = ({
     }
   };
 
-  const handleDataRetentionChange = (retention: SystemPreferencesData['dataRetention']) => {
+  const handleDataRetentionChange = (
+    retention: SystemPreferencesData['dataRetention']
+  ) => {
     onUpdate({ dataRetention: retention });
     setDataRetentionModalOpen(false);
   };
 
-  const getDataRetentionLabel = (retention: SystemPreferencesData['dataRetention']) => {
+  const getDataRetentionLabel = (
+    retention: SystemPreferencesData['dataRetention']
+  ) => {
     const labels = {
       '30_days': '30 Days',
       '90_days': '90 Days',
       '1_year': '1 Year',
-      'indefinite': 'Indefinite',
+      indefinite: 'Indefinite',
     };
     return labels[retention];
   };
@@ -78,7 +80,7 @@ const SystemPreferences: React.FC<SystemPreferencesProps> = ({
           System Preferences
         </Text>
       </div>
-      
+
       <Text variant="p" className="text-neutral-600 mb-6">
         Configure system-wide settings and behaviors
       </Text>
@@ -110,7 +112,9 @@ const SystemPreferences: React.FC<SystemPreferencesProps> = ({
 
         <ResponsiveSwitch
           checked={value.performanceMonitoring}
-          onClick={() => onUpdate({ performanceMonitoring: !value.performanceMonitoring })}
+          onClick={() =>
+            onUpdate({ performanceMonitoring: !value.performanceMonitoring })
+          }
           label="Performance Monitoring"
           description="Track system performance metrics"
           icon={<Gauge className="h-4 w-4" />}
@@ -130,7 +134,7 @@ const SystemPreferences: React.FC<SystemPreferencesProps> = ({
               </Text>
             </div>
           </div>
-          
+
           <Button
             variant="secondary"
             size="sm"
@@ -157,7 +161,7 @@ const SystemPreferences: React.FC<SystemPreferencesProps> = ({
               Enable Maintenance Mode
             </Text>
           </div>
-          
+
           <div className="px-6 pb-4">
             <Text variant="p" className="mb-3">
               Maintenance mode will:
@@ -171,9 +175,12 @@ const SystemPreferences: React.FC<SystemPreferencesProps> = ({
               Are you sure you want to enable maintenance mode?
             </Text>
           </div>
-          
+
           <div className="flex items-center justify-end gap-3 p-6 pt-4">
-            <Button variant="ghost" onClick={() => setMaintenanceModalOpen(false)}>
+            <Button
+              variant="ghost"
+              onClick={() => setMaintenanceModalOpen(false)}
+            >
               Cancel
             </Button>
             <Button
@@ -204,22 +211,26 @@ const SystemPreferences: React.FC<SystemPreferencesProps> = ({
               Data Retention Policy
             </Text>
           </div>
-          
+
           <div className="px-6 pb-4">
             <Text variant="p" className="mb-4">
               Select how long to retain system data:
             </Text>
             <div className="space-y-2">
-              {(['30_days', '90_days', '1_year', 'indefinite'] as const).map((option) => (
-                <Button
-                  key={option}
-                  variant={value.dataRetention === option ? 'primary' : 'ghost'}
-                  className="w-full justify-start"
-                  onClick={() => handleDataRetentionChange(option)}
-                >
-                  {getDataRetentionLabel(option)}
-                </Button>
-              ))}
+              {(['30_days', '90_days', '1_year', 'indefinite'] as const).map(
+                option => (
+                  <Button
+                    key={option}
+                    variant={
+                      value.dataRetention === option ? 'primary' : 'ghost'
+                    }
+                    className="w-full justify-start"
+                    onClick={() => handleDataRetentionChange(option)}
+                  >
+                    {getDataRetentionLabel(option)}
+                  </Button>
+                )
+              )}
             </div>
           </div>
         </Card>

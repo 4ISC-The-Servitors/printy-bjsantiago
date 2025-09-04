@@ -33,17 +33,22 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
   onMarkAllAsRead,
   onClearAll,
 }) => {
-  const [filter, setFilter] = useState<'all' | 'unread' | 'high-priority'>('all');
+  const [filter, setFilter] = useState<'all' | 'unread' | 'high-priority'>(
+    'all'
+  );
   const [isOpen, setIsOpen] = useState(false);
 
   const unreadCount = notifications.filter(n => !n.read).length;
-  const highPriorityCount = notifications.filter(n => 
-    n.priority === 'high' || n.priority === 'urgent'
+  const highPriorityCount = notifications.filter(
+    n => n.priority === 'high' || n.priority === 'urgent'
   ).length;
 
   const filteredNotifications = notifications.filter(notification => {
     if (filter === 'unread') return !notification.read;
-    if (filter === 'high-priority') return notification.priority === 'high' || notification.priority === 'urgent';
+    if (filter === 'high-priority')
+      return (
+        notification.priority === 'high' || notification.priority === 'urgent'
+      );
     return true;
   });
 
@@ -113,7 +118,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
     const now = new Date();
     const diff = now.getTime() - date.getTime();
     const minutes = Math.floor(diff / 60000);
-    
+
     if (minutes < 1) return 'Just now';
     if (minutes < 60) return `${minutes}m ago`;
     const hours = Math.floor(minutes / 60);
@@ -147,8 +152,12 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Bell className="w-5 h-5 text-brand-primary" />
-                <Text variant="h4" size="lg" weight="semibold">Notifications</Text>
-                <Badge variant="primary" size="sm">{notifications.length}</Badge>
+                <Text variant="h4" size="lg" weight="semibold">
+                  Notifications
+                </Text>
+                <Badge variant="primary" size="sm">
+                  {notifications.length}
+                </Badge>
               </div>
               <div className="flex items-center gap-2">
                 <Button
@@ -172,7 +181,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
 
             {/* Filter tabs */}
             <div className="flex gap-1 mt-3">
-              {(['all', 'unread', 'high-priority'] as const).map((filterType) => (
+              {(['all', 'unread', 'high-priority'] as const).map(filterType => (
                 <button
                   key={filterType}
                   onClick={() => setFilter(filterType)}
@@ -184,7 +193,8 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
                 >
                   {filterType === 'all' && `All (${notifications.length})`}
                   {filterType === 'unread' && `Unread (${unreadCount})`}
-                  {filterType === 'high-priority' && `High Priority (${highPriorityCount})`}
+                  {filterType === 'high-priority' &&
+                    `High Priority (${highPriorityCount})`}
                 </button>
               ))}
             </div>
@@ -195,16 +205,20 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
             {filteredNotifications.length === 0 ? (
               <div className="p-6 text-center text-neutral-500">
                 <Bell className="w-8 h-8 mx-auto mb-2 text-neutral-300" />
-                <Text variant="p" size="sm">No notifications</Text>
+                <Text variant="p" size="sm">
+                  No notifications
+                </Text>
                 <Text variant="p" size="xs" color="muted">
-                  {filter === 'unread' ? 'All notifications are read' : 
-                   filter === 'high-priority' ? 'No high priority notifications' : 
-                   'You\'re all caught up!'}
+                  {filter === 'unread'
+                    ? 'All notifications are read'
+                    : filter === 'high-priority'
+                      ? 'No high priority notifications'
+                      : "You're all caught up!"}
                 </Text>
               </div>
             ) : (
               <div className="divide-y divide-neutral-100">
-                {filteredNotifications.map((notification) => (
+                {filteredNotifications.map(notification => (
                   <div
                     key={notification.id}
                     className={`p-4 transition-colors ${
@@ -213,48 +227,72 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
                   >
                     <div className="flex items-start gap-3">
                       <div className="flex-shrink-0 mt-1">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                          notification.type === 'success' ? 'bg-green-100 text-green-600' :
-                          notification.type === 'warning' ? 'bg-orange-100 text-orange-600' :
-                          notification.type === 'error' ? 'bg-red-100 text-red-600' :
-                          'bg-blue-100 text-blue-600'
-                        }`}>
+                        <div
+                          className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                            notification.type === 'success'
+                              ? 'bg-green-100 text-green-600'
+                              : notification.type === 'warning'
+                                ? 'bg-orange-100 text-orange-600'
+                                : notification.type === 'error'
+                                  ? 'bg-red-100 text-red-600'
+                                  : 'bg-blue-100 text-blue-600'
+                          }`}
+                        >
                           {getTypeIcon(notification.type)}
                         </div>
                       </div>
-                      
+
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <Text variant="p" size="sm" weight="medium" className="truncate">
+                          <Text
+                            variant="p"
+                            size="sm"
+                            weight="medium"
+                            className="truncate"
+                          >
                             {notification.title}
                           </Text>
                           {!notification.read && (
                             <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                           )}
                         </div>
-                        
+
                         <div className="flex items-center gap-2 mb-2">
-                          <Badge variant={getTypeColor(notification.type)} size="sm">
+                          <Badge
+                            variant={getTypeColor(notification.type)}
+                            size="sm"
+                          >
                             {notification.type}
                           </Badge>
-                          <Badge variant={getPriorityColor(notification.priority)} size="sm">
+                          <Badge
+                            variant={getPriorityColor(notification.priority)}
+                            size="sm"
+                          >
                             {notification.priority}
                           </Badge>
-                          <Badge variant={getCategoryColor(notification.category)} size="sm">
+                          <Badge
+                            variant={getCategoryColor(notification.category)}
+                            size="sm"
+                          >
                             {notification.category}
                           </Badge>
                         </div>
-                        
-                        <Text variant="p" size="xs" color="muted" className="mb-2">
+
+                        <Text
+                          variant="p"
+                          size="xs"
+                          color="muted"
+                          className="mb-2"
+                        >
                           {notification.message}
                         </Text>
-                        
+
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2 text-xs text-neutral-500">
                             <Clock className="w-3 h-3" />
                             {formatTimestamp(notification.timestamp)}
                           </div>
-                          
+
                           <div className="flex items-center gap-2">
                             {notification.action && (
                               <Button

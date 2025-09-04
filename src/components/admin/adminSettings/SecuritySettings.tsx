@@ -214,7 +214,8 @@ const SecuritySettings: React.FC<SecuritySettingsProps> = ({
           </div>
           <div className="px-6 pb-4">
             <Text variant="p">
-              Are you sure you want to update your admin password? This will log you out of all active sessions.
+              Are you sure you want to update your admin password? This will log
+              you out of all active sessions.
             </Text>
           </div>
           <div className="flex items-center justify-end gap-3 p-6 pt-4">

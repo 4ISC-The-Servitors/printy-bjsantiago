@@ -57,6 +57,6 @@ export function resolveAdminFlow(topic?: string | null): ChatFlow | null {
 export function dispatchAdminCommand(input: string) {
   const flow = resolveAdminFlow('intro');
   if (!flow) return null;
-  
+
   return flow.respond({}, input);
 }

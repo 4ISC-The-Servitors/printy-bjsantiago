@@ -17,9 +17,7 @@ const ResponsiveSwitch: React.FC<{
 }> = ({ checked, onClick, label, description, icon }) => (
   <div className="flex items-center justify-between">
     <div className="flex items-center gap-3">
-      <div className="text-neutral-500">
-        {icon}
-      </div>
+      <div className="text-neutral-500">{icon}</div>
       <div>
         <Text variant="span" weight="medium">
           {label}
@@ -49,9 +47,7 @@ const NumberInput: React.FC<{
 }> = ({ label, description, value, onChange, min, max, icon }) => (
   <div className="flex items-center justify-between">
     <div className="flex items-center gap-3">
-      <div className="text-neutral-500">
-        {icon}
-      </div>
+      <div className="text-neutral-500">{icon}</div>
       <div>
         <Text variant="span" weight="medium">
           {label}
@@ -61,12 +57,12 @@ const NumberInput: React.FC<{
         </Text>
       </div>
     </div>
-    
+
     <div className="flex items-center gap-2">
       <Input
         type="number"
         value={value}
-        onChange={(e) => {
+        onChange={e => {
           const newValue = parseInt(e.target.value);
           if (!isNaN(newValue) && newValue >= min && newValue <= max) {
             onChange(newValue);
@@ -107,7 +103,7 @@ const UserManagementSettings: React.FC<UserManagementSettingsProps> = ({
           User Management Settings
         </Text>
       </div>
-      
+
       <Text variant="p" className="text-neutral-600 mb-6">
         Configure user registration, verification, and access policies
       </Text>
@@ -123,7 +119,11 @@ const UserManagementSettings: React.FC<UserManagementSettingsProps> = ({
 
         <ResponsiveSwitch
           checked={value.requireEmailVerification}
-          onClick={() => onUpdate({ requireEmailVerification: !value.requireEmailVerification })}
+          onClick={() =>
+            onUpdate({
+              requireEmailVerification: !value.requireEmailVerification,
+            })
+          }
           label="Require Email Verification"
           description="Users must verify their email before accessing the system"
           icon={<Mail className="h-4 w-4" />}
@@ -141,7 +141,7 @@ const UserManagementSettings: React.FC<UserManagementSettingsProps> = ({
           label="Maximum Login Attempts"
           description="Number of failed login attempts before account lockout"
           value={value.maxLoginAttempts}
-          onChange={(newValue) => onUpdate({ maxLoginAttempts: newValue })}
+          onChange={newValue => onUpdate({ maxLoginAttempts: newValue })}
           min={3}
           max={10}
           icon={<Lock className="h-4 w-4" />}
@@ -151,7 +151,7 @@ const UserManagementSettings: React.FC<UserManagementSettingsProps> = ({
           label="Session Timeout"
           description="Minutes of inactivity before automatic logout"
           value={value.sessionTimeout}
-          onChange={(newValue) => onUpdate({ sessionTimeout: newValue })}
+          onChange={newValue => onUpdate({ sessionTimeout: newValue })}
           min={15}
           max={120}
           icon={<Clock className="h-4 w-4" />}
@@ -173,7 +173,7 @@ const UserManagementSettings: React.FC<UserManagementSettingsProps> = ({
               Disable Guest Access
             </Text>
           </div>
-          
+
           <div className="px-6 pb-4">
             <Text variant="p" className="mb-3">
               Disabling guest access will:
@@ -187,9 +187,12 @@ const UserManagementSettings: React.FC<UserManagementSettingsProps> = ({
               Are you sure you want to disable guest access?
             </Text>
           </div>
-          
+
           <div className="flex items-center justify-end gap-3 p-6 pt-4">
-            <Button variant="ghost" onClick={() => setConfirmGuestAccess(false)}>
+            <Button
+              variant="ghost"
+              onClick={() => setConfirmGuestAccess(false)}
+            >
               Cancel
             </Button>
             <Button

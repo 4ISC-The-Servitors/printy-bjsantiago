@@ -17,7 +17,9 @@ const CardShowcase: React.FC = () => {
         <Card hoverable>
           <div className="p-6 pb-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-neutral-900">Compound Card</h3>
+              <h3 className="text-lg font-semibold text-neutral-900">
+                Compound Card
+              </h3>
               <Button variant="ghost" size="sm">
                 Edit
               </Button>

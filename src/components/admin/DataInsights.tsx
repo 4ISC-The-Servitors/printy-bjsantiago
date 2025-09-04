@@ -1,6 +1,14 @@
 import React, { useState, useMemo } from 'react';
 import { Text, Badge, Button, Card } from '../shared';
-import { TrendingUp, TrendingDown, BarChart3, PieChart, Filter, Download, Calendar } from 'lucide-react';
+import {
+  TrendingUp,
+  TrendingDown,
+  BarChart3,
+  PieChart,
+  Filter,
+  Download,
+  Calendar,
+} from 'lucide-react';
 
 export interface DataPoint {
   label: string;
@@ -32,7 +40,8 @@ const DataInsights: React.FC<DataInsightsProps> = ({
   onPeriodChange: _onPeriodChange,
   onExport,
 }) => {
-  const [selectedPeriod, setSelectedPeriod] = useState<ChartData['period']>('month');
+  const [selectedPeriod, setSelectedPeriod] =
+    useState<ChartData['period']>('month');
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
 
   const availableCategories = useMemo(() => {
@@ -47,16 +56,16 @@ const DataInsights: React.FC<DataInsightsProps> = ({
 
   const filteredCharts = useMemo(() => {
     if (activeFilters.length === 0) return charts;
-    return charts.filter(chart => 
-      chart.data.some(point => 
-        point.category && activeFilters.includes(point.category)
+    return charts.filter(chart =>
+      chart.data.some(
+        point => point.category && activeFilters.includes(point.category)
       )
     );
   }, [charts, activeFilters]);
 
   const toggleFilter = (category: string) => {
-    setActiveFilters(prev => 
-      prev.includes(category) 
+    setActiveFilters(prev =>
+      prev.includes(category)
         ? prev.filter(f => f !== category)
         : [...prev, category]
     );
@@ -65,15 +74,22 @@ const DataInsights: React.FC<DataInsightsProps> = ({
   const renderMetricChart = (chart: ChartData) => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {chart.data.map((point, index) => (
-        <div key={index} className="bg-white p-4 rounded-lg border border-neutral-200">
+        <div
+          key={index}
+          className="bg-white p-4 rounded-lg border border-neutral-200"
+        >
           <div className="flex items-center justify-between mb-2">
             <Text variant="p" size="sm" color="muted">
               {point.label}
             </Text>
             {point.change && (
-              <div className={`flex items-center gap-1 text-xs ${
-                point.changeType === 'increase' ? 'text-green-600' : 'text-red-600'
-              }`}>
+              <div
+                className={`flex items-center gap-1 text-xs ${
+                  point.changeType === 'increase'
+                    ? 'text-green-600'
+                    : 'text-red-600'
+                }`}
+              >
                 {point.changeType === 'increase' ? (
                   <TrendingUp className="w-3 h-3" />
                 ) : (
@@ -98,7 +114,7 @@ const DataInsights: React.FC<DataInsightsProps> = ({
 
   const renderBarChart = (chart: ChartData) => {
     const maxValue = Math.max(...chart.data.map(d => d.value));
-    
+
     return (
       <div className="space-y-3">
         {chart.data.map((point, index) => (
@@ -111,19 +127,28 @@ const DataInsights: React.FC<DataInsightsProps> = ({
                 className="h-6 rounded-full transition-all duration-300"
                 style={{
                   width: `${(point.value / maxValue) * 100}%`,
-                  backgroundColor: point.color || '#3b82f6'
+                  backgroundColor: point.color || '#3b82f6',
                 }}
               />
               <div className="absolute inset-0 flex items-center justify-center">
-                <Text variant="p" size="xs" weight="medium" className="text-white">
+                <Text
+                  variant="p"
+                  size="xs"
+                  weight="medium"
+                  className="text-white"
+                >
                   {point.value.toLocaleString()}
                 </Text>
               </div>
             </div>
             {point.change && (
-              <div className={`flex items-center gap-1 text-xs w-16 ${
-                point.changeType === 'increase' ? 'text-green-600' : 'text-red-600'
-              }`}>
+              <div
+                className={`flex items-center gap-1 text-xs w-16 ${
+                  point.changeType === 'increase'
+                    ? 'text-green-600'
+                    : 'text-red-600'
+                }`}
+              >
                 {point.changeType === 'increase' ? (
                   <TrendingUp className="w-3 h-3" />
                 ) : (
@@ -140,7 +165,7 @@ const DataInsights: React.FC<DataInsightsProps> = ({
 
   const renderPieChart = (chart: ChartData) => {
     const total = chart.data.reduce((sum, point) => sum + point.value, 0);
-    
+
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Simple pie chart visualization */}
@@ -151,7 +176,7 @@ const DataInsights: React.FC<DataInsightsProps> = ({
               const rotation = chart.data
                 .slice(0, index)
                 .reduce((sum, p) => sum + (p.value / total) * 360, 0);
-              
+
               return (
                 <div
                   key={index}
@@ -159,14 +184,14 @@ const DataInsights: React.FC<DataInsightsProps> = ({
                   style={{
                     borderTopColor: point.color || '#3b82f6',
                     transform: `rotate(${rotation}deg)`,
-                    clipPath: `polygon(50% 0%, 50% 50%, ${50 + percentage * 0.5}% 50%)`
+                    clipPath: `polygon(50% 0%, 50% 50%, ${50 + percentage * 0.5}% 50%)`,
                   }}
                 />
               );
             })}
           </div>
         </div>
-        
+
         {/* Legend */}
         <div className="space-y-2">
           {chart.data.map((point, index) => (
@@ -221,17 +246,23 @@ const DataInsights: React.FC<DataInsightsProps> = ({
       {/* Header with Filters */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <Text variant="h2" size="2xl" weight="semibold">Data Insights</Text>
-          <Text variant="p" color="muted">Analytics and performance metrics</Text>
+          <Text variant="h2" size="2xl" weight="semibold">
+            Data Insights
+          </Text>
+          <Text variant="p" color="muted">
+            Analytics and performance metrics
+          </Text>
         </div>
-        
+
         <div className="flex items-center gap-3">
           {/* Period Selector */}
           <div className="flex items-center gap-2">
             <Calendar className="w-4 h-4 text-neutral-500" />
             <select
               value={selectedPeriod}
-              onChange={(e) => setSelectedPeriod(e.target.value as ChartData['period'])}
+              onChange={e =>
+                setSelectedPeriod(e.target.value as ChartData['period'])
+              }
               className="text-sm border border-neutral-300 rounded px-2 py-1"
             >
               <option value="day">Day</option>
@@ -241,7 +272,7 @@ const DataInsights: React.FC<DataInsightsProps> = ({
               <option value="year">Year</option>
             </select>
           </div>
-          
+
           {/* Category Filters */}
           <div className="flex items-center gap-2">
             <Filter className="w-4 h-4 text-neutral-500" />
@@ -280,7 +311,7 @@ const DataInsights: React.FC<DataInsightsProps> = ({
                   )}
                 </div>
               </div>
-              
+
               <div className="flex items-center gap-2">
                 <Button
                   variant="ghost"
@@ -292,12 +323,10 @@ const DataInsights: React.FC<DataInsightsProps> = ({
                 </Button>
               </div>
             </div>
-            
+
             {/* Chart Content */}
-            <div className="mb-4">
-              {renderChart(chart)}
-            </div>
-            
+            <div className="mb-4">{renderChart(chart)}</div>
+
             {/* Insights */}
             {chart.insights && chart.insights.length > 0 && (
               <div className="border-t border-neutral-200 pt-4">
@@ -306,7 +335,10 @@ const DataInsights: React.FC<DataInsightsProps> = ({
                 </Text>
                 <ul className="space-y-1">
                   {chart.insights.map((insight, index) => (
-                    <li key={index} className="flex items-start gap-2 text-sm text-neutral-600">
+                    <li
+                      key={index}
+                      className="flex items-start gap-2 text-sm text-neutral-600"
+                    >
                       <div className="w-1.5 h-1.5 bg-brand-primary rounded-full mt-2 flex-shrink-0" />
                       {insight}
                     </li>
@@ -317,7 +349,7 @@ const DataInsights: React.FC<DataInsightsProps> = ({
           </Card>
         ))}
       </div>
-      
+
       {/* Empty State */}
       {filteredCharts.length === 0 && (
         <div className="text-center py-12">
@@ -326,10 +358,9 @@ const DataInsights: React.FC<DataInsightsProps> = ({
             No data available
           </Text>
           <Text variant="p" color="muted">
-            {activeFilters.length > 0 
+            {activeFilters.length > 0
               ? 'Try adjusting your filters or select a different time period.'
-              : 'Select a time period to view insights.'
-            }
+              : 'Select a time period to view insights.'}
           </Text>
         </div>
       )}

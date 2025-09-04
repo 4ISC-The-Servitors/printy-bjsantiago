@@ -1,5 +1,13 @@
 import React, { useState } from 'react';
-import { Container, Text, Card, Badge, NotificationCenter, DataInsights, MobileWorkflow } from '../index';
+import {
+  Container,
+  Text,
+  Card,
+  Badge,
+  NotificationCenter,
+  DataInsights,
+  MobileWorkflow,
+} from '../index';
 import {
   AdminProfileCard,
   SystemPreferences,
@@ -24,9 +32,9 @@ const AdminComponentsShowcase: React.FC = () => {
       category: 'order',
       action: {
         label: 'View Order',
-        onClick: () => console.log('View order clicked')
+        onClick: () => console.log('View order clicked'),
       },
-      dismissible: true
+      dismissible: true,
     },
     {
       id: '2',
@@ -37,7 +45,7 @@ const AdminComponentsShowcase: React.FC = () => {
       read: false,
       priority: 'medium',
       category: 'service',
-      dismissible: true
+      dismissible: true,
     },
     {
       id: '3',
@@ -47,8 +55,8 @@ const AdminComponentsShowcase: React.FC = () => {
       timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000),
       read: true,
       priority: 'low',
-      category: 'system'
-    }
+      category: 'system',
+    },
   ]);
 
   const [charts] = useState<ChartData[]>([
@@ -57,43 +65,99 @@ const AdminComponentsShowcase: React.FC = () => {
       title: 'Order Volume',
       type: 'bar',
       data: [
-        { label: 'Jan', value: 45, change: 12, changeType: 'increase', category: 'orders', color: '#3b82f6' },
-        { label: 'Feb', value: 52, change: 8, changeType: 'increase', category: 'orders', color: '#3b82f6' },
-        { label: 'Mar', value: 48, change: -8, changeType: 'decrease', category: 'orders', color: '#3b82f6' },
-        { label: 'Apr', value: 61, change: 27, changeType: 'increase', category: 'orders', color: '#3b82f6' }
+        {
+          label: 'Jan',
+          value: 45,
+          change: 12,
+          changeType: 'increase',
+          category: 'orders',
+          color: '#3b82f6',
+        },
+        {
+          label: 'Feb',
+          value: 52,
+          change: 8,
+          changeType: 'increase',
+          category: 'orders',
+          color: '#3b82f6',
+        },
+        {
+          label: 'Mar',
+          value: 48,
+          change: -8,
+          changeType: 'decrease',
+          category: 'orders',
+          color: '#3b82f6',
+        },
+        {
+          label: 'Apr',
+          value: 61,
+          change: 27,
+          changeType: 'increase',
+          category: 'orders',
+          color: '#3b82f6',
+        },
       ],
       period: 'month',
       description: 'Monthly order volume trends',
       insights: [
         'Order volume increased by 27% in April',
         'February showed consistent growth',
-        'March had a slight decline but recovered in April'
-      ]
+        'March had a slight decline but recovered in April',
+      ],
     },
     {
       id: '2',
       title: 'Revenue Distribution',
       type: 'pie',
       data: [
-        { label: 'Printing', value: 45, category: 'services', color: '#10b981' },
+        {
+          label: 'Printing',
+          value: 45,
+          category: 'services',
+          color: '#10b981',
+        },
         { label: 'Design', value: 25, category: 'services', color: '#f59e0b' },
-        { label: 'Consulting', value: 20, category: 'services', color: '#8b5cf6' },
-        { label: 'Other', value: 10, category: 'services', color: '#6b7280' }
+        {
+          label: 'Consulting',
+          value: 20,
+          category: 'services',
+          color: '#8b5cf6',
+        },
+        { label: 'Other', value: 10, category: 'services', color: '#6b7280' },
       ],
       period: 'month',
-      description: 'Revenue breakdown by service type'
+      description: 'Revenue breakdown by service type',
     },
     {
       id: '3',
       title: 'Key Metrics',
       type: 'metric',
       data: [
-        { label: 'Total Orders', value: 156, change: 15, changeType: 'increase', category: 'orders' },
-        { label: 'Revenue', value: 12500, change: 8, changeType: 'increase', category: 'revenue' },
-        { label: 'Customer Satisfaction', value: 4.8, change: -2, changeType: 'decrease', category: 'quality' }
+        {
+          label: 'Total Orders',
+          value: 156,
+          change: 15,
+          changeType: 'increase',
+          category: 'orders',
+        },
+        {
+          label: 'Revenue',
+          value: 12500,
+          change: 8,
+          changeType: 'increase',
+          category: 'revenue',
+        },
+        {
+          label: 'Customer Satisfaction',
+          value: 4.8,
+          change: -2,
+          changeType: 'decrease',
+          category: 'quality',
+        },
       ],
-      period: 'month'
-    }
+      period: 'month',
+    },
   ]);
 
   const [workflowActions] = useState<WorkflowAction[]>([
@@ -106,7 +170,7 @@ const AdminComponentsShowcase: React.FC = () => {
       gesture: 'swipe-right',
       category: 'orders',
       priority: 'high',
-      estimatedTime: '30s'
+      estimatedTime: '30s',
     },
     {
       id: '2',
@@ -117,7 +181,7 @@ const AdminComponentsShowcase: React.FC = () => {
       gesture: 'swipe-left',
       category: 'tickets',
       priority: 'medium',
-      estimatedTime: '1m'
+      estimatedTime: '1m',
     },
     {
       id: '3',
@@ -128,7 +192,7 @@ const AdminComponentsShowcase: React.FC = () => {
       gesture: 'double-tap',
       category: 'services',
       priority: 'low',
-      estimatedTime: '15s'
+      estimatedTime: '15s',
     },
     {
       id: '4',
@@ -139,13 +203,13 @@ const AdminComponentsShowcase: React.FC = () => {
       gesture: 'swipe-up',
       category: 'quick',
       priority: 'medium',
-      estimatedTime: '20s'
-    }
+      estimatedTime: '20s',
+    },
   ]);
 
   const handleMarkAsRead = (id: string) => {
-    setNotifications(prev => 
-      prev.map(n => n.id === id ? { ...n, read: true } : n)
+    setNotifications(prev =>
+      prev.map(n => (n.id === id ? { ...n, read: true } : n))
     );
   };
 
@@ -180,7 +244,12 @@ const AdminComponentsShowcase: React.FC = () => {
   return (
     <Container className="py-8 space-y-8">
       <div className="text-center">
-        <Text variant="h1" size="4xl" weight="bold" className="text-brand-primary">
+        <Text
+          variant="h1"
+          size="4xl"
+          weight="bold"
+          className="text-brand-primary"
+        >
           Admin Components
         </Text>
         <Text variant="p" size="lg" color="muted" className="mt-4">
@@ -191,7 +260,9 @@ const AdminComponentsShowcase: React.FC = () => {
       {/* Notification Center */}
       <section className="space-y-6">
         <div className="flex items-center justify-between">
-          <Text variant="h2" size="2xl" weight="semibold">Notification Center</Text>
+          <Text variant="h2" size="2xl" weight="semibold">
+            Notification Center
+          </Text>
           <div className="flex items-center gap-2">
             <span className="text-sm text-neutral-500">
               {notifications.filter(n => !n.read).length} unread
@@ -205,21 +276,30 @@ const AdminComponentsShowcase: React.FC = () => {
             />
           </div>
         </div>
-        
+
         <Card className="p-6">
           <Text variant="p" size="sm" color="muted" className="mb-4">
-            Click the notification bell above to see the notification center in action.
+            Click the notification bell above to see the notification center in
+            action.
           </Text>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {notifications.slice(0, 3).map(notification => (
-              <div key={notification.id} className="p-3 border border-neutral-200 rounded-lg">
+              <div
+                key={notification.id}
+                className="p-3 border border-neutral-200 rounded-lg"
+              >
                 <div className="flex items-center gap-2 mb-2">
-                  <span className={`w-2 h-2 rounded-full ${
-                    notification.type === 'success' ? 'bg-green-500' :
-                    notification.type === 'warning' ? 'bg-orange-500' :
-                    notification.type === 'error' ? 'bg-red-500' :
-                    'bg-blue-500'
-                  }`} />
+                  <span
+                    className={`w-2 h-2 rounded-full ${
+                      notification.type === 'success'
+                        ? 'bg-green-500'
+                        : notification.type === 'warning'
+                          ? 'bg-orange-500'
+                          : notification.type === 'error'
+                            ? 'bg-red-500'
+                            : 'bg-blue-500'
+                    }`}
+                  />
                   <Text variant="p" size="sm" weight="medium">
                     {notification.title}
                   </Text>
@@ -231,7 +311,12 @@ const AdminComponentsShowcase: React.FC = () => {
                   <Badge variant="secondary" size="sm">
                     {notification.category}
                   </Badge>
-                  <Badge variant={notification.priority === 'high' ? 'error' : 'secondary'} size="sm">
+                  <Badge
+                    variant={
+                      notification.priority === 'high' ? 'error' : 'secondary'
+                    }
+                    size="sm"
+                  >
                     {notification.priority}
                   </Badge>
                 </div>
@@ -243,7 +328,9 @@ const AdminComponentsShowcase: React.FC = () => {
 
       {/* Data Insights */}
       <section className="space-y-6">
-        <Text variant="h2" size="2xl" weight="semibold">Data Insights</Text>
+        <Text variant="h2" size="2xl" weight="semibold">
+          Data Insights
+        </Text>
         <DataInsights
           charts={charts}
           onPeriodChange={handlePeriodChange}
@@ -253,7 +340,9 @@ const AdminComponentsShowcase: React.FC = () => {
 
       {/* Mobile Workflow */}
       <section className="space-y-6">
-        <Text variant="h2" size="2xl" weight="semibold">Mobile Workflow</Text>
+        <Text variant="h2" size="2xl" weight="semibold">
+          Mobile Workflow
+        </Text>
         <MobileWorkflow
           actions={workflowActions}
           onExecuteAction={handleExecuteAction}
@@ -263,8 +352,10 @@ const AdminComponentsShowcase: React.FC = () => {
 
       {/* Admin Settings Components */}
       <section className="space-y-6">
-        <Text variant="h2" size="2xl" weight="semibold">Admin Settings Components</Text>
-        
+        <Text variant="h2" size="2xl" weight="semibold">
+          Admin Settings Components
+        </Text>
+
         <div className="space-y-6">
           {/* Admin Profile Card */}
           <AdminProfileCard
@@ -289,7 +380,7 @@ const AdminComponentsShowcase: React.FC = () => {
               performanceMonitoring: true,
               dataRetention: '90_days',
             }}
-            onUpdate={(updates) => console.log('System prefs updated:', updates)}
+            onUpdate={updates => console.log('System prefs updated:', updates)}
           />
 
           {/* User Management Settings */}
@@ -301,7 +392,7 @@ const AdminComponentsShowcase: React.FC = () => {
               maxLoginAttempts: 5,
               sessionTimeout: 30,
             }}
-            onUpdate={(updates) => console.log('User mgmt updated:', updates)}
+            onUpdate={updates => console.log('User mgmt updated:', updates)}
           />
 
           {/* Security Settings */}
@@ -318,21 +409,24 @@ const AdminComponentsShowcase: React.FC = () => {
               performanceIssues: true,
               maintenanceUpdates: true,
             }}
-            onToggle={(key) => console.log('Notification toggled:', key)}
+            onToggle={key => console.log('Notification toggled:', key)}
           />
         </div>
       </section>
 
       {/* Usage Examples */}
       <section className="space-y-6">
-        <Text variant="h2" size="2xl" weight="semibold">Usage Examples</Text>
+        <Text variant="h2" size="2xl" weight="semibold">
+          Usage Examples
+        </Text>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Card className="p-6">
             <Text variant="h3" size="lg" weight="semibold" className="mb-3">
               Integration Example
             </Text>
             <Text variant="p" size="sm" color="muted" className="mb-4">
-              These components can be integrated into your admin dashboard to provide:
+              These components can be integrated into your admin dashboard to
+              provide:
             </Text>
             <ul className="space-y-2 text-sm text-neutral-600">
               <li>• Real-time notifications for important events</li>
@@ -341,7 +435,7 @@ const AdminComponentsShowcase: React.FC = () => {
               <li>• Consistent admin experience across devices</li>
             </ul>
           </Card>
-          
+
           <Card className="p-6">
             <Text variant="h3" size="lg" weight="semibold" className="mb-3">
               Customization

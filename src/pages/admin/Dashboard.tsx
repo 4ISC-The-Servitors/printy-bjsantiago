@@ -40,14 +40,34 @@ const AdminDashboard: React.FC = () => {
     <div className="p-3 sm:p-4 lg:p-8 space-y-6">
       {/* Orders and Tickets */}
       <div className="flex flex-wrap gap-6">
-        <div className="flex-1 min-w-[320px] space-y-3" style={{ order: (getTelemetry().widgets['orders'] || 0) * -1 }}>
-          <Text variant="h2" size="xl" weight="semibold" className="px-1">Recent Orders</Text>
-          <OrdersCard isPending={isPending} togglePending={(i, c) => togglePending({ id: i.id, label: i.label, type: 'order' }, c)} />
+        <div
+          className="flex-1 min-w-[320px] space-y-3"
+          style={{ order: (getTelemetry().widgets['orders'] || 0) * -1 }}
+        >
+          <Text variant="h2" size="xl" weight="semibold" className="px-1">
+            Recent Orders
+          </Text>
+          <OrdersCard
+            isPending={isPending}
+            togglePending={(i, c) =>
+              togglePending({ id: i.id, label: i.label, type: 'order' }, c)
+            }
+          />
         </div>
 
-        <div className="flex-1 min-w-[320px] space-y-3" style={{ order: (getTelemetry().widgets['tickets'] || 0) * -1 }}>
-          <Text variant="h2" size="xl" weight="semibold" className="px-1">Recent Tickets</Text>
-          <TicketsCard isPending={isPending} togglePending={(i, c) => togglePending({ id: i.id, label: i.label, type: 'ticket' }, c)} />
+        <div
+          className="flex-1 min-w-[320px] space-y-3"
+          style={{ order: (getTelemetry().widgets['tickets'] || 0) * -1 }}
+        >
+          <Text variant="h2" size="xl" weight="semibold" className="px-1">
+            Recent Tickets
+          </Text>
+          <TicketsCard
+            isPending={isPending}
+            togglePending={(i, c) =>
+              togglePending({ id: i.id, label: i.label, type: 'ticket' }, c)
+            }
+          />
         </div>
       </div>
 
@@ -55,10 +75,26 @@ const AdminDashboard: React.FC = () => {
       {pending.length > 0 && (
         <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-30">
           <div className="inline-flex items-center gap-4 bg-white border border-neutral-200 shadow-xl rounded-full px-5 py-3">
-            <Badge variant="primary" size="sm">{pending.length} selected</Badge>
+            <Badge variant="primary" size="sm">
+              {pending.length} selected
+            </Badge>
             <div className="flex items-center gap-3">
-              <Button variant="secondary" size="sm" threeD onClick={clearPending}>Clear</Button>
-              <Button variant="primary" size="sm" threeD onClick={addPendingToChat}>Add to Chat</Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                threeD
+                onClick={clearPending}
+              >
+                Clear
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                threeD
+                onClick={addPendingToChat}
+              >
+                Add to Chat
+              </Button>
             </div>
           </div>
         </div>

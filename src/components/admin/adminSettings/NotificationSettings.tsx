@@ -1,6 +1,13 @@
 import React from 'react';
 import { Card, Text, Switch } from '../../shared';
-import { Bell, AlertTriangle, Users, Shield, Gauge, Wrench } from 'lucide-react';
+import {
+  Bell,
+  AlertTriangle,
+  Users,
+  Shield,
+  Gauge,
+  Wrench,
+} from 'lucide-react';
 import type { AdminNotificationData } from '../../../pages/admin/adminSettings/AdminSettingsPage';
 
 interface NotificationSettingsProps {
@@ -17,9 +24,7 @@ const ResponsiveSwitch: React.FC<{
 }> = ({ checked, onClick, label, description, icon }) => (
   <div className="flex items-center justify-between">
     <div className="flex items-center gap-3">
-      <div className="text-neutral-500">
-        {icon}
-      </div>
+      <div className="text-neutral-500">{icon}</div>
       <div>
         <Text variant="span" weight="medium">
           {label}
@@ -50,7 +55,7 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({
           Notification Preferences
         </Text>
       </div>
-      
+
       <Text variant="p" className="text-neutral-600 mb-6">
         Choose which system events and alerts you want to be notified about
       </Text>
@@ -105,7 +110,7 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({
               Notification Delivery
             </Text>
             <Text variant="p" className="text-neutral-600 text-sm mt-1">
-              All notifications are delivered via email and in-app alerts. 
+              All notifications are delivered via email and in-app alerts.
               Critical system alerts will also be sent via SMS if configured.
             </Text>
           </div>

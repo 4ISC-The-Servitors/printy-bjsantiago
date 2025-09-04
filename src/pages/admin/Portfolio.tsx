@@ -29,7 +29,7 @@ const AdminPortfolio: React.FC = () => {
         addSelected({
           id: p.id,
           label: p.label,
-          type: p.type
+          type: p.type,
         });
       }
     });
@@ -52,7 +52,7 @@ const AdminPortfolio: React.FC = () => {
     servicesByCategory.forEach(([cat]) => (obj[cat] = true));
     return obj;
   });
-  
+
   return (
     <div className="p-3 sm:p-4 lg:p-8 space-y-6">
       <div className="mb-6">
@@ -66,16 +66,20 @@ const AdminPortfolio: React.FC = () => {
 
       {/* Service Portfolio and Services Offered */}
       <div className="space-y-6">
-        <ServicePortfolioCard 
-          isPending={isPending} 
-          togglePending={(i, c) => togglePending({ id: i.id, label: i.label, type: 'service' }, c)} 
-          expanded={expanded} 
-          setExpanded={setExpanded} 
+        <ServicePortfolioCard
+          isPending={isPending}
+          togglePending={(i, c) =>
+            togglePending({ id: i.id, label: i.label, type: 'service' }, c)
+          }
+          expanded={expanded}
+          setExpanded={setExpanded}
         />
 
-        <ServicesOfferedCard 
-          isPending={isPending} 
-          togglePending={(i, c) => togglePending({ id: i.id, label: i.label, type: 'service' }, c)} 
+        <ServicesOfferedCard
+          isPending={isPending}
+          togglePending={(i, c) =>
+            togglePending({ id: i.id, label: i.label, type: 'service' }, c)
+          }
         />
       </div>
 
@@ -85,20 +89,42 @@ const AdminPortfolio: React.FC = () => {
           <div className="w-full max-w-3xl bg-white border border-neutral-200 shadow-xl rounded-xl p-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Badge variant="primary" size="sm">{pending.length} selected</Badge>
+                <Badge variant="primary" size="sm">
+                  {pending.length} selected
+                </Badge>
                 <Text variant="p" size="sm" color="muted">
                   {pending.length} services
                 </Text>
               </div>
               <div className="flex items-center gap-2">
-                <Button variant="secondary" size="sm" threeD onClick={clearPending}>Clear</Button>
-                <Button variant="primary" size="sm" threeD onClick={addPendingToChat}>Add to Chat</Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  threeD
+                  onClick={clearPending}
+                >
+                  Clear
+                </Button>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  threeD
+                  onClick={addPendingToChat}
+                >
+                  Add to Chat
+                </Button>
               </div>
             </div>
             <div className="mt-3 flex flex-wrap gap-2">
-              <Button variant="secondary" size="sm">Suggest: Toggle Availability</Button>
-              <Button variant="secondary" size="sm">Suggest: Update Pricing</Button>
-              <Button variant="secondary" size="sm">Suggest: Edit Descriptions</Button>
+              <Button variant="secondary" size="sm">
+                Suggest: Toggle Availability
+              </Button>
+              <Button variant="secondary" size="sm">
+                Suggest: Update Pricing
+              </Button>
+              <Button variant="secondary" size="sm">
+                Suggest: Edit Descriptions
+              </Button>
             </div>
           </div>
         </div>

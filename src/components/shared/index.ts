@@ -54,6 +54,9 @@ export { default as ComponentShowcase } from './showcase/ComponentShowcase';
 
 // Chat utilities
 export { default as SelectedChipsBar } from './SelectedChipsBar';
+// Social auth button
+export { default as SocialAuthButton } from './SocialAuthButton';
+export type { SocialAuthButtonProps } from './SocialAuthButton';
 export { default as ChatDock } from './ChatDock';
 
 // Admin components

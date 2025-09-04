@@ -56,9 +56,12 @@ const AdminSettingsPage: React.FC = () => {
 
   // TODO(BACKEND): Replace local state with data fetched from backend (Supabase)
   const [adminData, setAdminData] = useState<AdminData | null>(null);
-  const [systemPrefs, setSystemPrefs] = useState<SystemPreferencesData | null>(null);
+  const [systemPrefs, setSystemPrefs] = useState<SystemPreferencesData | null>(
+    null
+  );
   const [userMgmt, setUserMgmt] = useState<UserManagementData | null>(null);
-  const [notifications, setNotifications] = useState<AdminNotificationData | null>(null);
+  const [notifications, setNotifications] =
+    useState<AdminNotificationData | null>(null);
 
   const [isDesktop, setIsDesktop] = useState(false);
 
@@ -73,7 +76,7 @@ const AdminSettingsPage: React.FC = () => {
       lastLogin: '2024-01-15T10:30:00Z',
       avatarUrl: '',
     });
-    
+
     setSystemPrefs({
       autoBackup: true,
       maintenanceMode: false,
@@ -81,7 +84,7 @@ const AdminSettingsPage: React.FC = () => {
       performanceMonitoring: true,
       dataRetention: '90_days',
     });
-    
+
     setUserMgmt({
       autoApproval: false,
       requireEmailVerification: true,
@@ -89,7 +92,7 @@ const AdminSettingsPage: React.FC = () => {
       maxLoginAttempts: 5,
       sessionTimeout: 30,
     });
-    
+
     setNotifications({
       systemAlerts: true,
       userReports: true,
@@ -144,7 +147,7 @@ const AdminSettingsPage: React.FC = () => {
     if (!notifications) return;
     const turnedOn = !notifications[key];
     setNotifications({ ...notifications, [key]: turnedOn });
-    
+
     const labelMap: Record<keyof AdminNotificationData, string> = {
       systemAlerts: 'system alerts',
       userReports: 'user reports',
@@ -182,10 +185,7 @@ const AdminSettingsPage: React.FC = () => {
 
         <div className="space-y-6 md:space-y-8">
           {adminData && (
-            <AdminProfileCard
-              initials={initials}
-              data={adminData}
-            />
+            <AdminProfileCard initials={initials} data={adminData} />
           )}
 
           {systemPrefs && (

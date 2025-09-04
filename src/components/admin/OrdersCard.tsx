@@ -4,7 +4,10 @@ import { mockOrders } from '../../data/orders';
 import { useAdmin } from '../../pages/admin/AdminContext';
 import { MessageSquare } from 'lucide-react';
 
-export type TogglePending = (item: { id: string; label: string; type: 'order' }, checked: boolean) => void;
+export type TogglePending = (
+  item: { id: string; label: string; type: 'order' },
+  checked: boolean
+) => void;
 export type IsPending = (id: string) => boolean;
 
 interface Props {
@@ -23,11 +26,16 @@ const OrdersCard: React.FC<Props> = ({ isPending, togglePending }) => {
   };
 
   return (
-    <Card className="p-0" ref={containerRef as unknown as React.Ref<HTMLDivElement>}>
+    <Card
+      className="p-0"
+      ref={containerRef as unknown as React.Ref<HTMLDivElement>}
+    >
       {/* Keep a slim control row for Bulk Select without a section title */}
       <div className="flex items-center justify-end px-3 py-2 sm:px-4">
         <div className="flex items-center gap-2 text-neutral-500 text-xs">
-          <Badge size="sm" variant="secondary">{mockOrders.length}</Badge>
+          <Badge size="sm" variant="secondary">
+            {mockOrders.length}
+          </Badge>
           <Button
             variant="secondary"
             size="sm"
@@ -41,13 +49,21 @@ const OrdersCard: React.FC<Props> = ({ isPending, togglePending }) => {
 
       <div className="space-y-4 sm:space-y-6 px-3 sm:px-4 pb-3">
         {mockOrders.map(o => (
-          <div key={o.id} className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 lg:p-5 rounded-lg border bg-white/60 hover:bg-white transition-colors">
+          <div
+            key={o.id}
+            className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 lg:p-5 rounded-lg border bg-white/60 hover:bg-white transition-colors"
+          >
             {bulk && (
               <input
                 type="checkbox"
                 className="w-4 h-4 accent-brand-primary shrink-0"
                 checked={isPending(o.id)}
-                onChange={e => togglePending({ id: o.id, label: o.id, type: 'order' }, e.target.checked)}
+                onChange={e =>
+                  togglePending(
+                    { id: o.id, label: o.id, type: 'order' },
+                    e.target.checked
+                  )
+                }
                 title="Select order"
               />
             )}
@@ -66,8 +82,12 @@ const OrdersCard: React.FC<Props> = ({ isPending, togglePending }) => {
 
                 {/* Amount + Date */}
                 <div className="flex items-center justify-between sm:flex-col sm:text-right">
-                  <div className="text-sm sm:text-base lg:text-lg xl:text-xl font-semibold">{o.total}</div>
-                  <div className="text-xs sm:text-sm text-neutral-500">{o.date}</div>
+                  <div className="text-sm sm:text-base lg:text-lg xl:text-xl font-semibold">
+                    {o.total}
+                  </div>
+                  <div className="text-xs sm:text-sm text-neutral-500">
+                    {o.date}
+                  </div>
                 </div>
               </div>
 
@@ -75,9 +95,17 @@ const OrdersCard: React.FC<Props> = ({ isPending, togglePending }) => {
               <div className="flex items-center justify-between sm:hidden">
                 <div className="flex items-center gap-2">
                   {o.priority && (
-                    <Badge size="sm" variant="error" className="text-xs">{o.priority}</Badge>
+                    <Badge size="sm" variant="error" className="text-xs">
+                      {o.priority}
+                    </Badge>
                   )}
-                  <Badge size="sm" variant={o.status === 'Processing' ? 'info' : 'warning'} className="text-xs">{o.status}</Badge>
+                  <Badge
+                    size="sm"
+                    variant={o.status === 'Processing' ? 'info' : 'warning'}
+                    className="text-xs"
+                  >
+                    {o.status}
+                  </Badge>
                 </div>
               </div>
 
@@ -87,9 +115,21 @@ const OrdersCard: React.FC<Props> = ({ isPending, togglePending }) => {
               </div>
               <div className="hidden sm:flex sm:items-center sm:gap-3">
                 {o.priority && (
-                  <Badge size="sm" variant="error" className="text-xs sm:text-sm">{o.priority}</Badge>
+                  <Badge
+                    size="sm"
+                    variant="error"
+                    className="text-xs sm:text-sm"
+                  >
+                    {o.priority}
+                  </Badge>
                 )}
-                <Badge size="sm" variant={o.status === 'Processing' ? 'info' : 'warning'} className="text-xs sm:text-sm">{o.status}</Badge>
+                <Badge
+                  size="sm"
+                  variant={o.status === 'Processing' ? 'info' : 'warning'}
+                  className="text-xs sm:text-sm"
+                >
+                  {o.status}
+                </Badge>
               </div>
             </div>
 
@@ -111,5 +151,3 @@ const OrdersCard: React.FC<Props> = ({ isPending, togglePending }) => {
 };
 
 export default OrdersCard;
-
-
