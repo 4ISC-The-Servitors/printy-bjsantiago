@@ -1,4 +1,6 @@
 import type { BotMessage, ChatFlow } from '../../../types/chatFlow';
+import { createOrder } from '../../../api/orderApi';
+import type { OrderData } from '../../../api/orderApi';
 
 type Option = { label: string; next: string };
 type Node = {
@@ -229,7 +231,7 @@ export const placeOrderFlow: ChatFlow = {
     return nodeToMessages(NODES[currentNodeId]);
   },
   quickReplies: () => nodeQuickReplies(NODES[currentNodeId]),
-  respond: async (_ctx, input) => {
+  respond: async (ctx, input) => {
     const current = NODES[currentNodeId];
     const selection = current.options.find(
       o => o.label.toLowerCase() === input.trim().toLowerCase()
@@ -246,6 +248,23 @@ export const placeOrderFlow: ChatFlow = {
     const node = NODES[currentNodeId];
     const messages = nodeToMessages(node);
     const quickReplies = nodeQuickReplies(node);
+
+    // Trigger createOrder when reaching 'create_quote'
+    if (currentNodeId === 'create_quote') {
+      const order: OrderData = {
+        service_id: typeof ctx.serviceId === 'string' ? ctx.serviceId : 'default_service_id',
+        customer_id: typeof ctx.customerId === 'string' ? ctx.customerId : 'default_customer_id',
+        order_status: 'pending',
+        delivery_mode: typeof ctx.deliveryMode === 'string' ? ctx.deliveryMode : 'pickup',
+        order_date_time: new Date().toISOString(),
+        completed_date_time: null,
+        page_size: typeof ctx.pageSize === 'string' ? ctx.pageSize : 'A4',
+        quantity: typeof ctx.quantity === 'number' ? ctx.quantity : 100,
+        priority_level: typeof ctx.priorityLevel === 'string' ? ctx.priorityLevel : 'normal',
+      };
+      await createOrder(order);
+    }
+
     // If user chose End Chat option, still provide the closing message and a single End Chat button
     if (currentNodeId === 'end') {
       return { messages, quickReplies: ['End Chat'] };
