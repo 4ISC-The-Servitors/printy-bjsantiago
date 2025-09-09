@@ -1,42 +1,28 @@
+// ignore but dont delete! just for UI testing purposes only
+
 import React from 'react';
 import { Container, Text } from '../index';
-import {
-  ButtonShowcase,
-  InputShowcase,
-  CardShowcase,
-  TypographyShowcase,
-  BadgeShowcase,
-  SkeletonShowcase,
-  ContainerShowcase,
-  ToastShowcase,
-  ModalShowcase,
-  SwitchShowcase,
-} from './index';
+import { ResponsiveDeviceShowcase } from './index';
 
 const ComponentShowcase: React.FC = () => {
   return (
     <Container className="py-8 space-y-8">
       <ShowcaseHeader />
-      <ButtonShowcase />
-      <InputShowcase />
-      <CardShowcase />
-      <TypographyShowcase />
-      <BadgeShowcase />
-      <SkeletonShowcase />
-      <ContainerShowcase />
-      <ToastShowcase />
-      <ModalShowcase />
-      <SwitchShowcase />
+      
+      {/* Device responsive system - comprehensive size demonstration */}
+      <ResponsiveDeviceShowcase />
+      
+      {/* Individual showcases removed: consolidated into ResponsiveDeviceShowcase */}
     </Container>
   );
 };
 
 const ShowcaseHeader: React.FC = () => (
   <div className="text-center">
-    <Text variant="h1" size="4xl" weight="bold" className="text-brand-primary">
+    <Text variant="h1" className="device-text-heading text-brand-primary">
       Printy Design System
     </Text>
-    <Text variant="p" size="lg" color="muted" className="mt-4">
+    <Text variant="p" className="device-text-body mt-4" color="muted">
       Shared UI Components following our design principles
     </Text>
   </div>

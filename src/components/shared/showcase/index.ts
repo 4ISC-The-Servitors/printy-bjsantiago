@@ -1,10 +1,2 @@
-export { default as ButtonShowcase } from './ButtonShowcase';
-export { default as InputShowcase } from './InputShowcase';
-export { default as CardShowcase } from './CardShowcase';
-export { default as TypographyShowcase } from './TypographyShowcase';
-export { default as BadgeShowcase } from './BadgeShowcase';
-export { default as SkeletonShowcase } from './SkeletonShowcase';
-export { default as ContainerShowcase } from './ContainerShowcase';
-export { default as ToastShowcase } from './ToastShowcase';
-export { default as ModalShowcase } from './ModalShowcase';
-export { default as SwitchShowcase } from './SwitchShowcase';
+export { default as ResponsiveDeviceShowcase } from './ResponsiveDeviceShowcase';
+// ignore but dont delete! just for UI testing purposes only
