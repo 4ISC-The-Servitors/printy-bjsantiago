@@ -313,6 +313,18 @@
     .device-card-item {
       min-height: 6.25rem; /* 100px */
     }
+
+    /* Extra-large text should not be overwhelmingly large on tablets */
+    .device-text-hero {
+      font-size: 2rem; /* ~text-3xl */
+      line-height: 1.25;
+      font-weight: 700;
+    }
+    .device-text-display {
+      font-size: 2.25rem; /* ~text-4xl */
+      line-height: 1.2;
+      font-weight: 700;
+    }
   }
 
   @media (min-width: 640px) {
@@ -876,76 +888,91 @@
 @layer components {
   /* Device-Specific Text Scaling */
   .device-text-heading {
-    @apply text-xl font-semibold;        /* Mobile: 20px */
-    @apply sm:text-2xl;                  /* Tablet: 24px */
-    @apply md:text-3xl;                  /* Laptop: 30px */
-    @apply lg:text-4xl lg:font-bold;     /* Desktop: 36px */
+    @apply text-xl font-semibold; /* Mobile: 20px */
+    @apply sm:text-2xl; /* Tablet: 24px */
+    @apply md:text-3xl; /* Laptop: 30px */
+    @apply lg:text-4xl lg:font-bold; /* Desktop: 36px */
   }
 
   .device-text-body {
-    @apply text-sm leading-relaxed;      /* Mobile: 14px */
-    @apply sm:text-base;                 /* Tablet: 16px */
-    @apply md:text-lg;                   /* Laptop: 18px */
-    @apply lg:text-xl;                   /* Desktop: 20px */
+    @apply text-sm leading-relaxed; /* Mobile: 14px */
+    @apply sm:text-base; /* Tablet: 16px */
+    @apply md:text-lg; /* Laptop: 18px */
+    @apply lg:text-xl; /* Desktop: 20px */
   }
 
   .device-text-caption {
-    @apply text-xs;                      /* Mobile: 12px */
-    @apply sm:text-sm;                   /* Tablet: 14px */
-    @apply md:text-base;                 /* Laptop: 16px */
-    @apply lg:text-lg;                   /* Desktop: 18px */
+    @apply text-xs; /* Mobile: 12px */
+    @apply sm:text-sm; /* Tablet: 14px */
+    @apply md:text-base; /* Laptop: 16px */
+    @apply lg:text-lg; /* Desktop: 18px */
+  }
+
+  /* Extra-large attention-grabbing text scales */
+  .device-text-hero {
+    @apply text-3xl font-bold leading-tight; /* Mobile ~30px */
+    @apply sm:text-4xl; /* Tablet ~36px */
+    @apply md:text-5xl; /* Laptop ~48px */
+    @apply lg:text-6xl; /* Desktop ~60-64px */
+  }
+
+  .device-text-display {
+    @apply text-4xl font-bold leading-tight; /* Mobile ~36px */
+    @apply sm:text-5xl; /* Tablet ~48px */
+    @apply md:text-6xl; /* Laptop ~60-64px */
+    @apply lg:text-7xl; /* Desktop ~72px */
   }
 
   /* Device-Specific Button Scaling */
   .device-btn-primary {
-    @apply h-9 px-4 text-sm;            /* Mobile: 36px height */
+    @apply h-9 px-4 text-sm; /* Mobile: 36px height */
     @apply sm:h-10 sm:px-5 sm:text-base; /* Tablet: 40px height */
-    @apply md:h-11 md:px-6;              /* Laptop: 44px height */
-    @apply lg:h-12 lg:px-8 lg:text-lg;   /* Desktop: 48px height */
+    @apply md:h-11 md:px-6; /* Laptop: 44px height */
+    @apply lg:h-12 lg:px-8 lg:text-lg; /* Desktop: 48px height */
   }
 
   .device-btn-secondary {
-    @apply h-8 px-3 text-sm;            /* Mobile: 32px height */
-    @apply sm:h-9 sm:px-4;              /* Tablet: 36px height */
-    @apply md:h-10 md:px-5;             /* Laptop: 40px height */
-    @apply lg:h-11 lg:px-6;             /* Desktop: 44px height */
+    @apply h-8 px-3 text-sm; /* Mobile: 32px height */
+    @apply sm:h-9 sm:px-4; /* Tablet: 36px height */
+    @apply md:h-10 md:px-5; /* Laptop: 40px height */
+    @apply lg:h-11 lg:px-6; /* Desktop: 44px height */
   }
 
   .device-btn-tertiary {
-    @apply h-7 px-2 text-xs;            /* Mobile: 28px height */
-    @apply sm:h-8 sm:px-3 sm:text-sm;   /* Tablet: 32px height */
-    @apply md:h-9 md:px-4;              /* Laptop: 36px height */
-    @apply lg:h-10 lg:px-5;             /* Desktop: 40px height */
+    @apply h-7 px-2 text-xs; /* Mobile: 28px height */
+    @apply sm:h-8 sm:px-3 sm:text-sm; /* Tablet: 32px height */
+    @apply md:h-9 md:px-4; /* Laptop: 36px height */
+    @apply lg:h-10 lg:px-5; /* Desktop: 40px height */
   }
 
   .device-btn-input {
-    @apply h-9 px-4 text-sm;            /* Mobile: matches input height */
-    @apply sm:h-10 sm:px-5;             /* Tablet: 40px height */
-    @apply md:h-11 md:px-6;             /* Laptop: 44px height */
-    @apply lg:h-12 lg:px-7;             /* Desktop: 48px height */
+    @apply h-9 px-4 text-sm; /* Mobile: matches input height */
+    @apply sm:h-10 sm:px-5; /* Tablet: 40px height */
+    @apply md:h-11 md:px-6; /* Laptop: 44px height */
+    @apply lg:h-12 lg:px-7; /* Desktop: 48px height */
   }
 
   /* Device-Specific Layout Patterns */
   .device-grid {
-    @apply grid gap-3;                   /* Base grid */
-    @apply grid-cols-1;                  /* Mobile: 1 column */
-    @apply sm:grid-cols-2 sm:gap-4;      /* Tablet: 2 columns */
-    @apply md:grid-cols-3 md:gap-5;      /* Laptop: 3 columns */
-    @apply lg:grid-cols-4 lg:gap-6;      /* Desktop: 4 columns */
+    @apply grid gap-3; /* Base grid */
+    @apply grid-cols-1; /* Mobile: 1 column */
+    @apply sm:grid-cols-2 sm:gap-4; /* Tablet: 2 columns */
+    @apply md:grid-cols-3 md:gap-5; /* Laptop: 3 columns */
+    @apply lg:grid-cols-4 lg:gap-6; /* Desktop: 4 columns */
   }
 
   .device-container {
-    @apply max-w-content-sm px-4;        /* Mobile: 448px max, 16px padding */
-    @apply sm:max-w-content-md sm:px-6;  /* Tablet: 512px max, 24px padding */
-    @apply md:max-w-content-lg md:px-8;  /* Laptop: 672px max, 32px padding */
+    @apply max-w-content-sm px-4; /* Mobile: 448px max, 16px padding */
+    @apply sm:max-w-content-md sm:px-6; /* Tablet: 512px max, 24px padding */
+    @apply md:max-w-content-lg md:px-8; /* Laptop: 672px max, 32px padding */
     @apply lg:max-w-content-xl lg:px-10; /* Desktop: 896px max, 40px padding */
   }
 
   .device-card-item {
-    @apply min-h-[80px];                /* Mobile: 80px min height */
-    @apply sm:min-h-[100px];            /* Tablet: 100px min height */
-    @apply md:min-h-[120px];            /* Laptop: 120px min height */
-    @apply lg:min-h-[140px];            /* Desktop: 140px min height */
+    @apply min-h-[80px]; /* Mobile: 80px min height */
+    @apply sm:min-h-[100px]; /* Tablet: 100px min height */
+    @apply md:min-h-[120px]; /* Laptop: 120px min height */
+    @apply lg:min-h-[140px]; /* Desktop: 140px min height */
   }
 
   /* Device Category Classes (for conditional styling) */
@@ -967,24 +994,24 @@
 
   /* Device-Specific Input Scaling */
   .device-input {
-    @apply h-9 px-3 text-sm;            /* Mobile: 36px height */
+    @apply h-9 px-3 text-sm; /* Mobile: 36px height */
     @apply sm:h-10 sm:px-4 sm:text-base; /* Tablet: 40px height */
-    @apply md:h-11 md:px-5;              /* Laptop: 44px height */
-    @apply lg:h-12 lg:px-6 lg:text-lg;   /* Desktop: 48px height */
+    @apply md:h-11 md:px-5; /* Laptop: 44px height */
+    @apply lg:h-12 lg:px-6 lg:text-lg; /* Desktop: 48px height */
   }
 
   /* Device-Specific Spacing */
   .device-spacing-section {
-    @apply py-6;                         /* Mobile: 24px vertical */
-    @apply sm:py-8;                      /* Tablet: 32px vertical */
-    @apply md:py-12;                     /* Laptop: 48px vertical */
-    @apply lg:py-16;                     /* Desktop: 64px vertical */
+    @apply py-6; /* Mobile: 24px vertical */
+    @apply sm:py-8; /* Tablet: 32px vertical */
+    @apply md:py-12; /* Laptop: 48px vertical */
+    @apply lg:py-16; /* Desktop: 64px vertical */
   }
 
   .device-spacing-component {
-    @apply p-4;                          /* Mobile: 16px all sides */
-    @apply sm:p-5;                       /* Tablet: 20px all sides */
-    @apply md:p-6;                       /* Laptop: 24px all sides */
-    @apply lg:p-8;                       /* Desktop: 32px all sides */
+    @apply p-4; /* Mobile: 16px all sides */
+    @apply sm:p-5; /* Tablet: 20px all sides */
+    @apply md:p-6; /* Laptop: 24px all sides */
+    @apply lg:p-8; /* Desktop: 32px all sides */
   }
 }

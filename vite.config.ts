@@ -7,7 +7,7 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: (id) => {
+        manualChunks: id => {
           // Vendor chunks
           if (id.includes('node_modules')) {
             if (id.includes('react') || id.includes('react-dom')) {
@@ -24,12 +24,18 @@ export default defineConfig({
             }
             return 'vendor';
           }
-          
+
           // Feature chunks
-          if (id.includes('/src/components/admin/') || id.includes('/src/pages/admin/')) {
+          if (
+            id.includes('/src/components/admin/') ||
+            id.includes('/src/pages/admin/')
+          ) {
             return 'admin-components';
           }
-          if (id.includes('/src/components/customer/') || id.includes('/src/pages/customer/')) {
+          if (
+            id.includes('/src/components/customer/') ||
+            id.includes('/src/pages/customer/')
+          ) {
             return 'customer-components';
           }
           if (id.includes('/src/components/shared/')) {

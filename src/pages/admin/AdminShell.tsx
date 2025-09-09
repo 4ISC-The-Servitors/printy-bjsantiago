@@ -18,28 +18,18 @@ const AdminShellDesktop: React.FC<{
   active: 'dashboard' | 'orders' | 'portfolio' | 'settings';
   go: (route: 'dashboard' | 'orders' | 'portfolio' | 'settings') => void;
   handleLogout: () => void;
-}> = ({ active, go, handleLogout }) => {
+}> = () => {
   return (
-    <div className="h-screen bg-gradient-to-br from-neutral-50 to-brand-primary-50 flex">
-      <Sidebar active={active} onNavigate={go} onLogout={handleLogout} />
-      <div className="flex-1 hidden lg:flex">
-        <Outlet />
-      </div>
+    <div className="flex-1 hidden lg:flex">
+      <Outlet />
     </div>
   );
 };
 
-const AdminShellMobile: React.FC<{
-  active: 'dashboard' | 'orders' | 'portfolio' | 'settings';
-  go: (route: 'dashboard' | 'orders' | 'portfolio' | 'settings') => void;
-  handleLogout: () => void;
-}> = ({ active, go, handleLogout }) => {
+const AdminShellMobile: React.FC = () => {
   return (
-    <div className="h-screen bg-gradient-to-br from-neutral-50 to-brand-primary-50 flex">
-      <Sidebar active={active} onNavigate={go} onLogout={handleLogout} />
-      <div className="flex-1 lg:hidden">
-        <Outlet />
-      </div>
+    <div className="flex-1 lg:hidden">
+      <Outlet />
     </div>
   );
 };
@@ -99,7 +89,7 @@ const AdminShell: React.FC = () => {
         <Sidebar active={active} onNavigate={go} onLogout={handleLogout} />
 
         <main
-          className={`flex-1 flex flex-col ${chatOpen ? 'lg:pr-[420px]' : ''} pl-16 overflow-y-auto scrollbar-hide`}
+          className={`flex-1 flex flex-col ${chatOpen ? 'lg:pr-[420px]' : ''} pl-16 lg:pl-0 overflow-y-auto scrollbar-hide`}
         >
           <div className="px-4 sm:px-6 lg:px-8 py-4 border-b bg-white/80 backdrop-blur">
             <div className="flex items-center justify-between relative">
@@ -283,18 +273,10 @@ const AdminShell: React.FC = () => {
             </div>
             {/* Route outlet wrapped by platform-specific shells */}
             <div className="hidden lg:block">
-              <AdminShellDesktop
-                active={active}
-                go={go}
-                handleLogout={handleLogout}
-              />
+              <AdminShellDesktop />
             </div>
             <div className="lg:hidden">
-              <AdminShellMobile
-                active={active}
-                go={go}
-                handleLogout={handleLogout}
-              />
+              <AdminShellMobile />
             </div>
           </div>
         </main>

@@ -8,10 +8,10 @@ const ComponentShowcase: React.FC = () => {
   return (
     <Container className="py-8 space-y-8">
       <ShowcaseHeader />
-      
+
       {/* Device responsive system - comprehensive size demonstration */}
       <ResponsiveDeviceShowcase />
-      
+
       {/* Individual showcases removed: consolidated into ResponsiveDeviceShowcase */}
     </Container>
   );

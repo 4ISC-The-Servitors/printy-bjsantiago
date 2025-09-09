@@ -1,9 +1,10 @@
 import React from 'react';
 import {
   Bot,
-  LayoutDashboard,
-  ClipboardList,
-  Wrench,
+  LucideHome,
+  Package,
+  BriefcaseBusiness,
+  Ticket,
   Settings,
   LogOut,
 } from 'lucide-react';
@@ -52,11 +53,12 @@ const AdminMobileSidebar: React.FC<AdminMobileSidebarProps> = ({
       <div className="flex-1 w-full space-y-2 px-2">
         {item(
           'dashboard',
-          <LayoutDashboard className="w-4 h-4" />,
+          <LucideHome className="w-4 h-4" />,
           'Dashboard'
         )}
-        {item('orders', <ClipboardList className="w-4 h-4" />, 'Orders')}
-        {item('portfolio', <Wrench className="w-4 h-4" />, 'Portfolio')}
+        {item('orders', <Package className="w-4 h-4" />, 'Orders')}
+        {item('tickets', <Ticket className="w-4 h-4" />, 'Tickets')}
+        {item('portfolio', <BriefcaseBusiness className="w-4 h-4" />, 'Portfolio')}
       </div>
 
       <div className="mt-auto space-y-2 w-full px-2 pb-2">
