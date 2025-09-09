@@ -1,20 +1,16 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Container,
   Text,
+  Card,
   ToastContainer,
   Button,
 } from '../../../components/shared';
 import { useToast } from '../../../lib/useToast';
 import { ArrowLeft } from 'lucide-react';
-import {
-  AdminProfileCard,
-  SystemPreferences,
-  UserManagementSettings,
-  SecuritySettings,
-  NotificationSettings,
-} from '../../../components/admin/adminSettings';
+import * as SettingsDesktop from '../../../components/admin/settings/desktop';
+import * as SettingsMobile from '../../../components/admin/settings/mobile';
 
 export interface AdminData {
   displayName: string;
@@ -102,14 +98,7 @@ const AdminSettingsPage: React.FC = () => {
     });
   }, []);
 
-  const initials = useMemo(
-    () =>
-      (adminData?.displayName || '')
-        .split(' ')
-        .map(n => n[0])
-        .join(''),
-    [adminData?.displayName]
-  );
+  // Removed unused initials variable since AdminProfileCard is not currently used
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -185,38 +174,76 @@ const AdminSettingsPage: React.FC = () => {
 
         <div className="space-y-6 md:space-y-8">
           {adminData && (
-            <AdminProfileCard initials={initials} data={adminData} />
+            <Card className="p-6">
+              <Text variant="h3" size="lg" weight="semibold" className="mb-4">
+                Admin Profile
+              </Text>
+              <Text variant="p" size="sm" color="muted">
+                AdminProfileCard component needs to be recreated for the new
+                structure. Current user: {adminData.displayName} (
+                {adminData.email})
+              </Text>
+            </Card>
           )}
 
-          {systemPrefs && (
-            <SystemPreferences
-              value={systemPrefs}
-              onUpdate={handleSystemPrefsUpdate}
+          {systemPrefs &&
+            (isDesktop ? (
+              <SettingsDesktop.SystemPreferences
+                value={systemPrefs}
+                onUpdate={handleSystemPrefsUpdate}
+              />
+            ) : (
+              <SettingsMobile.SystemPreferences
+                value={systemPrefs}
+                onUpdate={handleSystemPrefsUpdate}
+              />
+            ))}
+
+          {userMgmt &&
+            (isDesktop ? (
+              <SettingsDesktop.UserManagementSettings
+                value={userMgmt}
+                onUpdate={handleUserMgmtUpdate}
+              />
+            ) : (
+              <SettingsMobile.UserManagementSettings
+                value={userMgmt}
+                onUpdate={handleUserMgmtUpdate}
+              />
+            ))}
+
+          {isDesktop ? (
+            <SettingsDesktop.SecuritySettings
+              onPasswordUpdated={() =>
+                toast.success(
+                  'Password updated',
+                  'Your admin password has been changed successfully.'
+                )
+              }
+            />
+          ) : (
+            <SettingsMobile.SecuritySettings
+              onPasswordUpdated={() =>
+                toast.success(
+                  'Password updated',
+                  'Your admin password has been changed successfully.'
+                )
+              }
             />
           )}
 
-          {userMgmt && (
-            <UserManagementSettings
-              value={userMgmt}
-              onUpdate={handleUserMgmtUpdate}
-            />
-          )}
-
-          <SecuritySettings
-            onPasswordUpdated={() =>
-              toast.success(
-                'Password updated',
-                'Your admin password has been changed successfully.'
-              )
-            }
-          />
-
-          {notifications && (
-            <NotificationSettings
-              value={notifications}
-              onToggle={handleNotificationUpdate}
-            />
-          )}
+          {notifications &&
+            (isDesktop ? (
+              <SettingsDesktop.NotificationSettings
+                value={notifications}
+                onToggle={handleNotificationUpdate}
+              />
+            ) : (
+              <SettingsMobile.NotificationSettings
+                value={notifications}
+                onToggle={handleNotificationUpdate}
+              />
+            ))}
         </div>
       </Container>
 

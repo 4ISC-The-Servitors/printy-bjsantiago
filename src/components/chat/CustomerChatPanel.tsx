@@ -1,10 +1,7 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import ChatHeader from './ChatHeader';
-import ChatInput from './ChatInput';
-import MessageGroup from './MessageGroup';
-import TypingIndicator from './TypingIndicator';
-import EmptyState from './EmptyState';
-import type { ChatRole, ChatMessage, QuickReply } from './types';
+import React, { useEffect, useState } from 'react';
+import DesktopChatPanel from './desktop/ChatPanel';
+import MobileChatPanel from './mobile/ChatPanel';
+import type { ChatMessage, QuickReply } from './_shared/types';
 
 interface CustomerChatPanelProps {
   title?: string;
@@ -35,121 +32,52 @@ export const CustomerChatPanel: React.FC<CustomerChatPanelProps> = ({
   showAttach = true,
   disabled = false,
 }) => {
-  const [input, setInput] = useState('');
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  const sortedMessages = useMemo(
-    () => [...messages].sort((a, b) => a.ts - b.ts),
-    [messages]
-  );
-
-  // Group messages by sender and time proximity
-  const messageGroups = useMemo(() => {
-    const groups: { messages: ChatMessage[]; quickReplies?: QuickReply[] }[] =
-      [];
-    let currentGroup: ChatMessage[] = [];
-    let lastRole: ChatRole | null = null;
-
-    sortedMessages.forEach((msg, index) => {
-      const isLastMessage = index === sortedMessages.length - 1;
-      const isBot = msg.role === 'printy';
-
-      if (
-        msg.role !== lastRole ||
-        (currentGroup.length > 0 &&
-          Math.abs(msg.ts - currentGroup[currentGroup.length - 1].ts) > 300000)
-      ) {
-        if (currentGroup.length > 0) {
-          groups.push({ messages: [...currentGroup] });
-        }
-        currentGroup = [msg];
-      } else {
-        currentGroup.push(msg);
-      }
-
-      if (isLastMessage) {
-        groups.push({
-          messages: [...currentGroup],
-          quickReplies: isBot ? quickReplies : undefined,
-        });
-      }
-
-      lastRole = msg.role;
-    });
-
-    return groups;
-  }, [sortedMessages, quickReplies]);
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
-    // Auto-scroll to bottom but leave space for input container
-    const el = scrollRef.current;
-    if (el) {
-      requestAnimationFrame(() => {
-        el.scrollTop = el.scrollHeight;
-      });
-    }
-  }, [messages, isTyping]);
+    const checkIsMobile = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
 
-  const handleSubmit = (e?: React.FormEvent) => {
-    e?.preventDefault();
-    const text = input.trim();
-    if (!text) return;
-    onSend(text);
-    setInput('');
-  };
+    checkIsMobile();
+    window.addEventListener('resize', checkIsMobile);
+    return () => window.removeEventListener('resize', checkIsMobile);
+  }, []);
 
-  const handleQuickReply = (value: string) => {
-    onQuickReply?.(value);
+  const commonProps = {
+    title,
+    messages,
+    onSend: disabled ? () => {} : onSend,
+    isTyping,
+    onAttachFiles: disabled ? undefined : onAttachFiles,
+    onBack,
+    quickReplies: disabled ? [] : quickReplies,
+    onQuickReply: disabled ? undefined : onQuickReply,
+    inputPlaceholder,
+    onEndChat: disabled ? undefined : onEndChat,
+    showAttach: disabled ? false : showAttach,
   };
 
   return (
-    <div className="bg-white flex flex-col h-full w-full relative">
-      <ChatHeader title={title} onBack={onBack} />
-
-      {/* Enhanced Message Area */}
-      <div
-        ref={scrollRef}
-        className="p-4 flex-1 overflow-y-auto space-y-6 scrollbar-hide pb-20"
-        style={{ paddingBottom: '100px' }}
-      >
-        {messageGroups.map((group, index) => (
-          <MessageGroup
-            key={index}
-            messages={group.messages}
-            quickReplies={disabled ? [] : group.quickReplies}
-            onQuickReply={disabled ? undefined : handleQuickReply}
-            onEndChat={disabled ? undefined : onEndChat}
-          />
-        ))}
-
-        {isTyping && (
-          <div className="text-left">
-            <TypingIndicator />
-          </div>
-        )}
-
-        {/* Empty state for new chats */}
-        {messageGroups.length === 0 && !isTyping && <EmptyState />}
-      </div>
-
-      {/* Fixed Input at Bottom of Chat Panel */}
-      {disabled ? (
-        <div className="absolute bottom-0 left-0 right-0 bg-neutral-50 border-t border-neutral-200 p-4 text-center">
+    <div className="h-full w-full relative">
+      {/* Disabled State Overlay */}
+      {disabled && (
+        <div className="absolute bottom-0 left-0 right-0 bg-neutral-50 border-t border-neutral-200 p-4 text-center z-50">
           <span className="text-sm text-neutral-500">
             This conversation has ended but you can view messages.
           </span>
         </div>
+      )}
+
+      {/* Render appropriate version based on screen size */}
+      {isMobile ? (
+        <MobileChatPanel
+          {...commonProps}
+          mobileFixed={true}
+          mobileOffsetLeftClass="left-16"
+        />
       ) : (
-        <div className="absolute bottom-0 left-0 right-0 bg-white border-t border-neutral-200">
-          <ChatInput
-            value={input}
-            onChange={setInput}
-            onSubmit={handleSubmit}
-            placeholder={inputPlaceholder}
-            showAttach={showAttach}
-            onAttachFiles={onAttachFiles}
-          />
-        </div>
+        <DesktopChatPanel {...commonProps} />
       )}
     </div>
   );

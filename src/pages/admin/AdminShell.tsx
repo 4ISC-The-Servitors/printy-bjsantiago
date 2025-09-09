@@ -1,15 +1,48 @@
 import React, { useState } from 'react';
 import { useNavigate, Outlet } from 'react-router-dom';
-import AdminDesktopSidebar from '../../components/admin/DesktopSidebar';
-import AdminMobileSidebar from '../../components/admin/MobileSidebar';
+import { Sidebar } from '../../components/admin/dashboard';
 import { Text, Button } from '../../components/shared';
 import ChatDock from '../../components/shared/ChatDock';
 import type { ChipItem } from '../../components/shared/SelectedChipsBar';
-import { ChatPanel } from '../../components/chat/ChatPanel';
-import type { ChatMessage, QuickReply } from '../../components/chat/types';
+import ChatPanel from '../../components/chat/CustomerChatPanel';
+import type {
+  ChatMessage,
+  QuickReply,
+  ChatRole,
+} from '../../components/chat/_shared/types';
 import { MessageSquare, X, Minimize2 } from 'lucide-react';
 import { AdminProvider } from './AdminContext';
 import { resolveAdminFlow, dispatchAdminCommand } from '../../chatLogic/admin';
+
+const AdminShellDesktop: React.FC<{
+  active: 'dashboard' | 'orders' | 'portfolio' | 'settings';
+  go: (route: 'dashboard' | 'orders' | 'portfolio' | 'settings') => void;
+  handleLogout: () => void;
+}> = ({ active, go, handleLogout }) => {
+  return (
+    <div className="h-screen bg-gradient-to-br from-neutral-50 to-brand-primary-50 flex">
+      <Sidebar active={active} onNavigate={go} onLogout={handleLogout} />
+      <div className="flex-1 hidden lg:flex">
+        <Outlet />
+      </div>
+    </div>
+  );
+};
+
+const AdminShellMobile: React.FC<{
+  active: 'dashboard' | 'orders' | 'portfolio' | 'settings';
+  go: (route: 'dashboard' | 'orders' | 'portfolio' | 'settings') => void;
+  handleLogout: () => void;
+}> = ({ active, go, handleLogout }) => {
+  return (
+    <div className="h-screen bg-gradient-to-br from-neutral-50 to-brand-primary-50 flex">
+      <Sidebar active={active} onNavigate={go} onLogout={handleLogout} />
+      <div className="flex-1 lg:hidden">
+        <Outlet />
+      </div>
+    </div>
+  );
+};
 
 const AdminShell: React.FC = () => {
   const navigate = useNavigate();
@@ -63,19 +96,10 @@ const AdminShell: React.FC = () => {
       }}
     >
       <div className="h-screen bg-gradient-to-br from-neutral-50 to-brand-primary-50 flex">
-        <AdminMobileSidebar
-          active={active}
-          onNavigate={go}
-          onLogout={handleLogout}
-        />
-        <AdminDesktopSidebar
-          active={active}
-          onNavigate={go}
-          onLogout={handleLogout}
-        />
+        <Sidebar active={active} onNavigate={go} onLogout={handleLogout} />
 
         <main
-          className={`flex-1 flex flex-col ${chatOpen ? 'lg:pr-[420px]' : ''} pl-16 lg:pl-0 overflow-y-auto scrollbar-hide`}
+          className={`flex-1 flex flex-col ${chatOpen ? 'lg:pr-[420px]' : ''} pl-16 overflow-y-auto scrollbar-hide`}
         >
           <div className="px-4 sm:px-6 lg:px-8 py-4 border-b bg-white/80 backdrop-blur">
             <div className="flex items-center justify-between relative">
@@ -123,6 +147,7 @@ const AdminShell: React.FC = () => {
                       setChatOpen(true);
                       if (messages.length === 0) {
                         const flow = resolveAdminFlow('intro');
+                        if (!flow) return;
                         const initial = flow.initial({});
                         setMessages(
                           initial.map(m => ({
@@ -133,7 +158,11 @@ const AdminShell: React.FC = () => {
                           }))
                         );
                         setQuickReplies(
-                          flow.quickReplies().map(l => ({ label: l, value: l }))
+                          flow.quickReplies().map((l, index) => ({
+                            id: `qr-${index}`,
+                            label: l,
+                            value: l,
+                          }))
                         );
                       }
                     }}
@@ -143,7 +172,7 @@ const AdminShell: React.FC = () => {
                   </Button>
                 )}
 
-                {/* Desktop button with text */}
+                {/* Desktop button with icon only */}
                 <Button
                   variant="secondary"
                   size="sm"
@@ -153,6 +182,7 @@ const AdminShell: React.FC = () => {
                     setChatOpen(true);
                     if (messages.length === 0) {
                       const flow = resolveAdminFlow('intro');
+                      if (!flow) return;
                       const initial = flow.initial({});
                       setMessages(
                         initial.map(m => ({
@@ -163,14 +193,17 @@ const AdminShell: React.FC = () => {
                         }))
                       );
                       setQuickReplies(
-                        flow.quickReplies().map(l => ({ label: l, value: l }))
+                        flow.quickReplies().map((l, index) => ({
+                          id: `qr-${index}`,
+                          label: l,
+                          value: l,
+                        }))
                       );
                     }
                   }}
                   aria-label="Ask Printy"
                 >
-                  <MessageSquare className="w-4 h-4 mr-2 lg:mr-2" />
-                  <span className="hidden lg:inline">Ask Printy</span>
+                  <MessageSquare className="w-4 h-4" />
                 </Button>
               </div>
             </div>
@@ -195,23 +228,33 @@ const AdminShell: React.FC = () => {
                   setIsTyping(true);
                   const dispatched = dispatchAdminCommand(text);
                   if (dispatched) {
-                    const botMessages = dispatched.messages.map(m => ({
-                      id: crypto.randomUUID(),
-                      role: m.role as ChatRole,
-                      text: m.text,
-                      ts: Date.now(),
-                    }));
+                    const d = dispatched as {
+                      messages?: { role: string; text: string }[];
+                      quickReplies?: string[];
+                    };
+                    const botMessages = (d.messages || []).map(
+                      (m: { role: string; text: string }) => ({
+                        id: crypto.randomUUID(),
+                        role: m.role as ChatRole,
+                        text: m.text,
+                        ts: Date.now(),
+                      })
+                    );
                     setMessages(prev => [...prev, ...botMessages]);
                     setQuickReplies(
-                      (dispatched.quickReplies || []).map(l => ({
-                        label: l,
-                        value: l,
-                      }))
+                      (d.quickReplies || []).map(
+                        (l: string, index: number) => ({
+                          id: `qr-${index}`,
+                          label: l,
+                          value: l,
+                        })
+                      )
                     );
                     setIsTyping(false);
                   } else {
                     const flow = resolveAdminFlow('intro');
-                    flow.respond({}, text).then(resp => {
+                    if (!flow) return;
+                    void flow.respond({}, text).then(resp => {
                       const botMessages = resp.messages.map(m => ({
                         id: crypto.randomUUID(),
                         role: m.role as ChatRole,
@@ -220,7 +263,8 @@ const AdminShell: React.FC = () => {
                       }));
                       setMessages(prev => [...prev, ...botMessages]);
                       setQuickReplies(
-                        (resp.quickReplies || []).map(l => ({
+                        (resp.quickReplies || []).map((l, index) => ({
+                          id: `qr-${index}`,
                           label: l,
                           value: l,
                         }))
@@ -235,12 +279,22 @@ const AdminShell: React.FC = () => {
                   if (v.toLowerCase().includes('end')) setMessages([]);
                 }}
                 onEndChat={() => setChatOpen(false)}
-                mobileFixed
-                mobileOffsetLeftClass="left-16"
               />
             </div>
-            <div className={`${chatOpen ? 'hidden lg:block' : 'block'}`}>
-              <Outlet />
+            {/* Route outlet wrapped by platform-specific shells */}
+            <div className="hidden lg:block">
+              <AdminShellDesktop
+                active={active}
+                go={go}
+                handleLogout={handleLogout}
+              />
+            </div>
+            <div className="lg:hidden">
+              <AdminShellMobile
+                active={active}
+                go={go}
+                handleLogout={handleLogout}
+              />
             </div>
           </div>
         </main>
@@ -297,7 +351,8 @@ const AdminShell: React.FC = () => {
               setMessages(prev => [...prev, userMsg]);
               setIsTyping(true);
               const flow = resolveAdminFlow('intro');
-              flow.respond({}, text).then(resp => {
+              if (!flow) return;
+              void flow.respond({}, text).then(resp => {
                 const botMessages = resp.messages.map(m => ({
                   id: crypto.randomUUID(),
                   role: m.role as ChatRole,
@@ -306,7 +361,11 @@ const AdminShell: React.FC = () => {
                 }));
                 setMessages(prev => [...prev, ...botMessages]);
                 setQuickReplies(
-                  (resp.quickReplies || []).map(l => ({ label: l, value: l }))
+                  (resp.quickReplies || []).map((l, index) => ({
+                    id: `qr-${index}`,
+                    label: l,
+                    value: l,
+                  }))
                 );
                 setIsTyping(false);
               });
@@ -319,7 +378,8 @@ const AdminShell: React.FC = () => {
                 return;
               }
               const flow = resolveAdminFlow('intro');
-              flow.respond({}, v).then(resp => {
+              if (!flow) return;
+              void flow.respond({}, v).then(resp => {
                 const botMessages = resp.messages.map(m => ({
                   id: crypto.randomUUID(),
                   role: m.role as ChatRole,
@@ -328,12 +388,15 @@ const AdminShell: React.FC = () => {
                 }));
                 setMessages(prev => [...prev, ...botMessages]);
                 setQuickReplies(
-                  (resp.quickReplies || []).map(l => ({ label: l, value: l }))
+                  (resp.quickReplies || []).map((l, index) => ({
+                    id: `qr-${index}`,
+                    label: l,
+                    value: l,
+                  }))
                 );
               });
             }}
             onEndChat={endChatWithDelay}
-            hideHeader
           />
         </ChatDock>
       </div>

@@ -57,12 +57,7 @@ export { default as SelectedChipsBar } from './SelectedChipsBar';
 // Social auth button
 export { default as SocialAuthButton } from './SocialAuthButton';
 export type { SocialAuthButtonProps } from './SocialAuthButton';
+// Tooltip
+export { default as Tooltip } from './Tooltip';
+export type { TooltipProps } from './Tooltip';
 export { default as ChatDock } from './ChatDock';
-
-// Admin components
-export { default as NotificationCenter } from '../admin/NotificationCenter';
-export type { AdminNotification } from '../admin/NotificationCenter';
-export { default as DataInsights } from '../admin/DataInsights';
-export type { ChartData } from '../admin/DataInsights';
-export { default as MobileWorkflow } from '../admin/MobileWorkflow';
-export type { WorkflowAction } from '../admin/MobileWorkflow';
