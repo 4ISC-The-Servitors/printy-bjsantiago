@@ -40,8 +40,11 @@ const NODES: Record<string, Node> = {
   no_order_number: {
     id: 'no_order_number',
     question: 'No Order Number',
+    // ====================
+    // Prompt user that we'll show their historical orders to pick from
     answer:
-      'No problem! I can still help you create a ticket. What issue are you experiencing?',
+      'I will display all orders you have. Please select the order you have an issue for.',
+    // ====================
     options: [
       { label: 'Printing quality issue', next: 'quality_issue' },
       { label: 'Delivery problem', next: 'delivery_issue' },
@@ -112,6 +115,10 @@ const NODES: Record<string, Node> = {
 
 let currentNodeId: keyof typeof NODES = 'issue_ticket_start';
 let collectedIssueDetails = '';
+// ====================
+// Holds the selected issue category (quality/delivery/billing/other)
+let currentInquiryType: string = '';
+// ====================
 
 const DETAIL_NODE_IDS = new Set<keyof typeof NODES>([
   'quality_issue',
@@ -136,6 +143,10 @@ export const issueTicketFlow: ChatFlow = {
   initial: () => {
     currentNodeId = 'issue_ticket_start';
     collectedIssueDetails = '';
+    // ====================
+    // Reset category on new flow start
+    currentInquiryType = '';
+    // ====================
     return nodeToMessages(NODES[currentNodeId]);
   },
   quickReplies: () => nodeQuickReplies(NODES[currentNodeId]),
@@ -172,17 +183,22 @@ export const issueTicketFlow: ChatFlow = {
       // ====================
       // Hardcoded test order(s) so you can verify the flow without DB
       if (orderNumber.toUpperCase() === 'TEST123' || orderNumber === '12345') {
-        const mockItems = [
-          { name: 'Business Cards (Matte)', quantity: 2, price: '₱250.00' },
-          { name: 'A4 Flyers (Full Color)', quantity: 500, price: '₱1,750.00' },
-        ];
+        const mockOrder = {
+          order_id: orderNumber,
+          order_status: 'processing',
+          order_datetime: new Date(Date.now() - 7 * 86400000), // 7 days ago
+          completed_datetime: null,
+          page_size: 'A4',
+          quantity: 500,
+        };
         const mockLines = [
-          `Order ${orderNumber} — Status: processing`,
-          `Placed: ${new Date().toLocaleString()}`,
-          'Items:',
-          ...mockItems.map(it => `- ${it.quantity} x ${it.name} @ ${it.price}`),
+          `Order ${mockOrder.order_id} — Status: ${mockOrder.order_status}`,
+          `Placed: ${mockOrder.order_datetime.toLocaleString()}`,
+          `Page Size: ${mockOrder.page_size}`,
+          `Quantity: ${mockOrder.quantity}`,
           'Total: ₱2,000.00',
         ];
+        // ====================
         currentNodeId = 'order_issue_menu';
         return {
           messages: [
@@ -195,13 +211,13 @@ export const issueTicketFlow: ChatFlow = {
       }
       // ====================
 
-      // NOTE: Adjust table/columns below to match your schema
+      // Fetch a real order by order_number (adjust table/columns to your schema)
       const { data: order, error } = await supabase
         .from('orders')
         .select(
           `
           id,
-          order_number,
+          order_id,
           status,
           created_at,
           total,
@@ -212,7 +228,7 @@ export const issueTicketFlow: ChatFlow = {
           )
         `
         )
-        .eq('order_number', orderNumber)
+        .eq('order_id', orderNumber)
         .maybeSingle();
 
       if (error || !order) {
@@ -231,7 +247,7 @@ export const issueTicketFlow: ChatFlow = {
         ? (order as any).order_items
         : [];
       const lines = [
-        `Order ${(order as any).order_number} — Status: ${(order as any).status ?? 'N/A'}`,
+        `Order ${(order as any).order_id} — Status: ${(order as any).status ?? 'N/A'}`,
         `Placed: ${
           (order as any).created_at
             ? new Date((order as any).created_at).toLocaleString()
@@ -274,6 +290,109 @@ export const issueTicketFlow: ChatFlow = {
           };
         }
       }
+      // ====================
+      // In no_order_number state: either list orders, or accept an order number selection
+      if (currentNodeId === 'no_order_number') {
+        const typed = input.trim();
+        // If user typed an order number, fetch that order and proceed
+        if (typed) {
+          const { data: orderPick, error: pickErr } = await supabase
+            .from('orders')
+            .select(`
+              id,
+              order_id,
+              status,
+              created_at,
+              total,
+              order_items (name, quantity, price)
+            `)
+            .eq('order_id', typed)
+            .maybeSingle();
+
+          if (!pickErr && orderPick) {
+            const items = Array.isArray((orderPick as any).order_items)
+              ? (orderPick as any).order_items
+              : [];
+            const lines = [
+              `Order ${(orderPick as any).order_id} — Status: ${(orderPick as any).status ?? 'N/A'}`,
+              `Placed: ${
+                (orderPick as any).created_at
+                  ? new Date((orderPick as any).created_at).toLocaleString()
+                  : 'N/A'
+              }`,
+              'Items:',
+              ...items.map((it: any) => `- ${it.quantity} x ${it.name}${it.price ? ` @ ${it.price}` : ''}`),
+              (orderPick as any).total ? `Total: ${(orderPick as any).total}` : '',
+            ].filter(Boolean) as string[];
+
+            currentNodeId = 'order_issue_menu';
+            return {
+              messages: [
+                { role: 'printy', text: lines.join('\n') },
+                { role: 'printy', text: 'Is this the correct order?' },
+                ...nodeToMessages(NODES.order_issue_menu),
+              ],
+              quickReplies: nodeQuickReplies(NODES.order_issue_menu),
+            };
+          }
+        }
+
+        // Otherwise, list recent orders for the signed-in user
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        const uid = user?.id;
+        if (!uid) {
+          return {
+            messages: [
+              { role: 'printy', text: 'You need to be signed in to view your orders.' },
+            ],
+            quickReplies: ['End Chat'],
+          };
+        }
+
+        // Query up to 10 latest orders for this user (by customer_id)
+        const { data: orders, error: ordersErr } = await supabase
+          .from('orders')
+          .select('order_id, total, created_at')
+          .eq('customer_id', uid)
+          .order('created_at', { ascending: false })
+          .limit(10);
+
+        if (ordersErr || !orders || orders.length === 0) {
+          return {
+            messages: [
+              {
+                role: 'printy',
+                text:
+                  "I couldn't find any past orders for your account. If you think this is a mistake, please try again later or contact support.",
+              },
+            ],
+            quickReplies: ['End Chat'],
+          };
+        }
+
+        // Compose a compact list: date — order number — total
+        const lines: string[] = ['Here are your recent orders:', ''];
+        for (const o of orders as any[]) {
+          lines.push(
+            `${new Date(o.created_at).toLocaleDateString()} — ${o.order_id} — Total: ${o.total ?? 'N/A'}`
+          );
+        }
+
+        return {
+          messages: [
+            {
+              role: 'printy',
+              text:
+                lines.join('\n') +
+                '\n\nPlease type or click the order number you have an issue with.',
+            },
+          ],
+          quickReplies: (orders as any[]).map(o => o.order_id as string),
+        };
+      }
+      // ====================
       return {
         messages: [
           { role: 'printy', text: 'Please choose one of the options.' },
@@ -287,6 +406,59 @@ export const issueTicketFlow: ChatFlow = {
 
     const nextNodeId = selection.next as keyof typeof NODES;
 
+    // ====================
+    // Capture inquiry_type from the chosen category button
+    if (nextNodeId === 'quality_issue') currentInquiryType = 'quality';
+    else if (nextNodeId === 'delivery_issue') currentInquiryType = 'delivery';
+    else if (nextNodeId === 'billing_issue') currentInquiryType = 'billing';
+    else if (nextNodeId === 'other_issue') currentInquiryType = 'other';
+    // ====================
+
+    if (nextNodeId === 'no_order_number') {
+      // ====================
+      // Immediately list orders when entering the no_order_number node
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      const uid = user?.id;
+      if (!uid) {
+        return {
+          messages: [
+            { role: 'printy', text: 'You need to be signed in to view your orders.' },
+          ],
+          quickReplies: ['End Chat'],
+        };
+      }
+
+      const { data: orders } = await supabase
+        .from('orders')
+        .select('order_id, total, created_at')
+        .eq('customer_id', uid)
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      const lines: string[] = ['Here are your recent orders:', ''];
+      for (const o of (orders as any[]) ?? []) {
+        lines.push(
+          `${new Date(o.created_at).toLocaleDateString()} — ${o.order_id} — Total: ${o.total ?? 'N/A'}`
+        );
+      }
+
+      currentNodeId = 'no_order_number';
+      return {
+        messages: [
+          {
+            role: 'printy',
+            text:
+              lines.join('\n') +
+              '\n\nPlease type or click the order number you have an issue with.',
+          },
+        ],
+        quickReplies: ((orders as any[]) ?? []).map(o => o.order_id as string),
+      };
+      // ====================
+    }
+
     if (nextNodeId === 'submit_ticket') {
       const inquiryId = (crypto as any)?.randomUUID?.()
         ? (crypto as any).randomUUID()
@@ -299,6 +471,10 @@ export const issueTicketFlow: ChatFlow = {
             inquiry_message: message,
             inquiry_status: 'new',
             received_at: new Date().toISOString(),
+            // ====================
+            // Persist the selected category for triage/reporting
+            inquiry_type: currentInquiryType || null,
+            // ====================
           },
         ]);
         if (error) {
