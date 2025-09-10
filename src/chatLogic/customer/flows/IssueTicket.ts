@@ -1,4 +1,5 @@
 import type { BotMessage, ChatFlow } from '../../../types/chatFlow';
+import { supabase } from '../../../lib/supabase';
 
 type Option = { label: string; next: string };
 type Node = {
@@ -94,6 +95,14 @@ const NODES: Record<string, Node> = {
 };
 
 let currentNodeId: keyof typeof NODES = 'issue_ticket_start';
+let collectedIssueDetails = '';
+
+const DETAIL_NODE_IDS = new Set<keyof typeof NODES>([
+  'quality_issue',
+  'delivery_issue',
+  'billing_issue',
+  'other_issue',
+]);
 
 function nodeToMessages(node: Node): BotMessage[] {
   if (node.message) return [{ role: 'printy', text: node.message }];
@@ -110,6 +119,7 @@ export const issueTicketFlow: ChatFlow = {
   title: 'Issue a Ticket',
   initial: () => {
     currentNodeId = 'issue_ticket_start';
+    collectedIssueDetails = '';
     return nodeToMessages(NODES[currentNodeId]);
   },
   quickReplies: () => nodeQuickReplies(NODES[currentNodeId]),
@@ -119,6 +129,24 @@ export const issueTicketFlow: ChatFlow = {
       o => o.label.toLowerCase() === input.trim().toLowerCase()
     );
     if (!selection) {
+      if (DETAIL_NODE_IDS.has(currentNodeId)) {
+        const detail = input.trim();
+        if (detail) {
+          collectedIssueDetails = collectedIssueDetails
+            ? `${collectedIssueDetails}\n${detail}`
+            : detail;
+          return {
+            messages: [
+              {
+                role: 'printy',
+                text:
+                  "Got it. I've added that to your ticket notes. You can add more details or choose 'Submit ticket' when ready.",
+              },
+            ],
+            quickReplies: nodeQuickReplies(current),
+          };
+        }
+      }
       return {
         messages: [
           { role: 'printy', text: 'Please choose one of the options.' },
@@ -126,7 +154,53 @@ export const issueTicketFlow: ChatFlow = {
         quickReplies: nodeQuickReplies(current),
       };
     }
-    currentNodeId = selection.next as keyof typeof NODES;
+
+    const nextNodeId = selection.next as keyof typeof NODES;
+
+    if (nextNodeId === 'submit_ticket') {
+      const inquiryId = (crypto as any)?.randomUUID?.()
+        ? (crypto as any).randomUUID()
+        : `${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
+      const message = collectedIssueDetails || '(no details provided)';
+      try {
+        const { error } = await supabase.from('inquiries').insert([
+          {
+            inquiry_id: inquiryId,
+            inquiry_message: message,
+            inquiry_status: 'new',
+            received_at: new Date().toISOString(),
+          },
+        ]);
+        if (error) {
+          console.error('Insert into inquiries failed:', error);
+          return {
+            messages: [
+              {
+                role: 'printy',
+                text:
+                  `I couldn't create the ticket right now (db error). Please try 'Submit ticket' again in a moment.`,
+              },
+            ],
+            quickReplies: nodeQuickReplies(current),
+          };
+        }
+        collectedIssueDetails = '';
+      } catch (_e) {
+        console.error('Network or unexpected error inserting inquiry:', _e);
+        return {
+          messages: [
+            {
+              role: 'printy',
+              text:
+                "I ran into a network issue while creating your ticket. Please try 'Submit ticket' again.",
+            },
+          ],
+          quickReplies: nodeQuickReplies(current),
+        };
+      }
+    }
+
+    currentNodeId = nextNodeId;
     const node = NODES[currentNodeId];
     const messages = nodeToMessages(node);
     const quickReplies = nodeQuickReplies(node);
