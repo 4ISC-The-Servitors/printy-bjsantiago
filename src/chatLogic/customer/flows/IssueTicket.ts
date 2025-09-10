@@ -1,4 +1,7 @@
 import type { BotMessage, ChatFlow } from '../../../types/chatFlow';
+// ====================
+import { supabase } from '../../../lib/supabase';
+// ==================== - jorrel i added this to know where changes were its a before and after
 
 type Option = { label: string; next: string };
 type Node = {
@@ -19,6 +22,20 @@ const NODES: Record<string, Node> = {
       { label: 'End Chat', next: 'end' },
     ],
   },
+  // ====================
+  order_issue_menu: {
+    id: 'order_issue_menu',
+    answer:
+      'What issue are you experiencing with this order? Choose one so I can create a ticket.',
+    options: [
+      { label: 'Printing quality issue', next: 'quality_issue' },
+      { label: 'Delivery problem', next: 'delivery_issue' },
+      { label: 'Billing question', next: 'billing_issue' },
+      { label: 'Other concern', next: 'other_issue' },
+      { label: 'End Chat', next: 'end' },
+    ],
+  },
+  // ====================
 
   no_order_number: {
     id: 'no_order_number',
@@ -118,12 +135,126 @@ export const issueTicketFlow: ChatFlow = {
     const selection = current.options.find(
       o => o.label.toLowerCase() === input.trim().toLowerCase()
     );
+    // ====================
+    // Support going back to the order issue menu via free text
+    if (/^(go\s*back|see\s*menu\s*again|back|menu)$/i.test(input.trim())) {
+      currentNodeId = 'order_issue_menu';
+      return {
+        messages: nodeToMessages(NODES.order_issue_menu),
+        quickReplies: nodeQuickReplies(NODES.order_issue_menu),
+      };
+    }
+    // ====================
+    // ====================
+    // Free-text handling at start: treat input as an order number and look it up
+    if (!selection && currentNodeId === 'issue_ticket_start') {
+      const orderNumber = input.trim();
+      if (!orderNumber) {
+        return {
+          messages: [
+            {
+              role: 'printy',
+              text: 'Please enter a valid order number or choose an option.',
+            },
+          ],
+          quickReplies: nodeQuickReplies(current),
+        };
+      }
+      // ====================
+      // Hardcoded test order(s) so you can verify the flow without DB
+      if (orderNumber.toUpperCase() === 'TEST123' || orderNumber === '12345') {
+        const mockItems = [
+          { name: 'Business Cards (Matte)', quantity: 2, price: '₱250.00' },
+          { name: 'A4 Flyers (Full Color)', quantity: 500, price: '₱1,750.00' },
+        ];
+        const mockLines = [
+          `Order ${orderNumber} — Status: processing`,
+          `Placed: ${new Date().toLocaleString()}`,
+          'Items:',
+          ...mockItems.map(it => `- ${it.quantity} x ${it.name} @ ${it.price}`),
+          'Total: ₱2,000.00',
+        ];
+        currentNodeId = 'order_issue_menu';
+        return {
+          messages: [
+            { role: 'printy', text: mockLines.join('\n') },
+            { role: 'printy', text: 'Is this the correct order?' },
+            ...nodeToMessages(NODES.order_issue_menu),
+          ],
+          quickReplies: nodeQuickReplies(NODES.order_issue_menu),
+        };
+      }
+      // ====================
+
+      // NOTE: Adjust table/columns below to match your schema
+      const { data: order, error } = await supabase
+        .from('orders')
+        .select(
+          `
+          id,
+          order_number,
+          status,
+          created_at,
+          total,
+          order_items (
+            name,
+            quantity,
+            price
+          )
+        `
+        )
+        .eq('order_number', orderNumber)
+        .maybeSingle();
+
+      if (error || !order) {
+        return {
+          messages: [
+            {
+              role: 'printy',
+              text: `I couldn't find an order with number "${orderNumber}". Please check and try again.`,
+            },
+          ],
+          quickReplies: nodeQuickReplies(NODES.issue_ticket_start),
+        };
+      }
+
+      const items = Array.isArray((order as any).order_items)
+        ? (order as any).order_items
+        : [];
+      const lines = [
+        `Order ${(order as any).order_number} — Status: ${(order as any).status ?? 'N/A'}`,
+        `Placed: ${
+          (order as any).created_at
+            ? new Date((order as any).created_at).toLocaleString()
+            : 'N/A'
+        }`,
+        'Items:',
+        ...items.map((it: any) =>
+          `- ${it.quantity} x ${it.name}${it.price ? ` @ ${it.price}` : ''}`
+        ),
+        (order as any).total ? `Total: ${(order as any).total}` : '',
+      ].filter(Boolean) as string[];
+
+      currentNodeId = 'order_issue_menu';
+      return {
+        messages: [
+          { role: 'printy', text: lines.join('\n') },
+          { role: 'printy', text: 'Is this the correct order?' },
+          ...nodeToMessages(NODES.order_issue_menu),
+        ],
+        quickReplies: nodeQuickReplies(NODES.order_issue_menu),
+      };
+    }
+//
     if (!selection) {
       return {
         messages: [
           { role: 'printy', text: 'Please choose one of the options.' },
         ],
-        quickReplies: nodeQuickReplies(current),
+        // ====================
+        // When input is not a listed option, show the order issue menu buttons
+        quickReplies: nodeQuickReplies(NODES.order_issue_menu),
+        // ====================
       };
     }
     currentNodeId = selection.next as keyof typeof NODES;
