@@ -293,12 +293,30 @@ export const issueTicketFlow: ChatFlow = {
         : `${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
       const message = collectedIssueDetails || '(no details provided)';
       try {
+        // Resolve current authenticated user's customer_id
+        let customerId: string | null = null;
+        try {
+          const { data: session } = await supabase.auth.getUser();
+          const authId = session?.user?.id || null;
+          if (authId) {
+            const { data: customerRow } = await supabase
+              .from('customer')
+              .select('customer_id')
+              .eq('customer_id', authId)
+              .maybeSingle();
+            customerId = (customerRow as any)?.customer_id || null;
+          }
+        } catch (_e) {
+          // ignore; fallback keeps customerId null
+        }
+
         const { error } = await supabase.from('inquiries').insert([
           {
             inquiry_id: inquiryId,
             inquiry_message: message,
             inquiry_status: 'new',
             received_at: new Date().toISOString(),
+            customer_id: customerId,
           },
         ]);
         if (error) {

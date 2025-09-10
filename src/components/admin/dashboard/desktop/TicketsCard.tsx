@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, Badge, Button } from '../../../shared';
-import { mockTickets } from '../../../../data/tickets';
 import { useAdmin } from '../../../../pages/admin/AdminContext';
+import { supabase } from '../../../../lib/supabase';
 import { MessageSquare, Plus } from 'lucide-react';
 
 const getBadgeVariantForStatus = (
@@ -20,8 +20,75 @@ const TicketsCard: React.FC = () => {
     new Set()
   );
 
-  // Limit to max 5 tickets
-  const displayTickets = mockTickets.slice(0, 5);
+  type InquiryRecord = {
+    inquiry_id: string;
+    inquiry_type: string | null;
+    inquiry_status: string | null;
+    inquiry_message?: string | null;
+    customer_id?: string | null;
+    customer_full_name?: string | null;
+    customer_first_name?: string | null;
+    customer_last_name?: string | null;
+  };
+
+  const [inquiries, setInquiries] = useState<InquiryRecord[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    const loadInquiries = async () => {
+      setLoading(true);
+      setErrorMessage(null);
+      const { data, error } = await supabase
+        .from('inquiries')
+        .select(`
+          inquiry_id,
+          inquiry_type,
+          inquiry_status,
+          inquiry_message,
+          customer_id,
+          customer:customer_id (
+            first_name,
+            last_name
+          )
+        `)
+        .order('received_at', { ascending: false })
+        .limit(5);
+
+      if (!isMounted) return;
+      if (error) {
+        console.error('Failed to load inquiries', error);
+        setErrorMessage('Unable to load inquiries.');
+        setInquiries([]);
+      } else {
+        const normalized: InquiryRecord[] = (data as any[]).map(row => {
+          const first = row?.customer?.first_name || '';
+          const last = row?.customer?.last_name || '';
+          const full = `${first} ${last}`.trim() || null;
+          return {
+            inquiry_id: row.inquiry_id,
+            inquiry_type: row.inquiry_type,
+            inquiry_status: row.inquiry_status,
+            inquiry_message: row.inquiry_message,
+            customer_id: row.customer_id,
+            customer_full_name: full,
+            customer_first_name: first || null,
+            customer_last_name: last || null,
+          };
+        });
+        setInquiries(normalized);
+      }
+      setLoading(false);
+    };
+    loadInquiries();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Display latest inquiries (already limited in query)
+  const displayInquiries = inquiries;
 
   const toggleTicketSelection = (ticketId: string) => {
     setSelectedTickets(prev => {
@@ -49,15 +116,24 @@ const TicketsCard: React.FC = () => {
         <div className="flex items-center justify-end px-3 py-2 sm:px-4">
           <div className="flex items-center gap-2 text-neutral-500 text-xs">
             <Badge size="sm" variant="secondary">
-              {displayTickets.length}
+              {displayInquiries.length}
             </Badge>
           </div>
         </div>
 
         <div className="space-y-4 sm:space-y-6 px-3 sm:px-4 pb-3">
-          {displayTickets.map(t => (
+          {loading && (
+            <div className="p-4 text-sm text-neutral-500">Loading inquiries…</div>
+          )}
+          {!loading && errorMessage && (
+            <div className="p-4 text-sm text-error-600">{errorMessage}</div>
+          )}
+          {!loading && !errorMessage && displayInquiries.length === 0 && (
+            <div className="p-4 text-sm text-neutral-500">No inquiries found.</div>
+          )}
+          {!loading && !errorMessage && displayInquiries.map(t => (
             <div
-              key={t.id}
+              key={t.inquiry_id}
               className="group flex items-center gap-3 sm:gap-4 p-3 sm:p-4 lg:p-5 rounded-lg border bg-white/60 hover:bg-white transition-colors relative"
             >
               {/* Hover checkbox on left */}
@@ -65,8 +141,8 @@ const TicketsCard: React.FC = () => {
                 <input
                   type="checkbox"
                   className="w-4 h-4 accent-brand-primary"
-                  checked={selectedTickets.has(t.id)}
-                  onChange={() => toggleTicketSelection(t.id)}
+                  checked={selectedTickets.has(t.inquiry_id)}
+                  onChange={() => toggleTicketSelection(t.inquiry_id)}
                   title="Select ticket"
                 />
               </div>
@@ -76,36 +152,32 @@ const TicketsCard: React.FC = () => {
                 <div className="flex-1 min-w-0 space-y-1 sm:space-y-2">
                   <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                     <span className="text-xs sm:text-sm lg:text-base font-medium text-neutral-500 truncate">
-                      {t.id}
+                      {t.inquiry_id}
                     </span>
                     <div className="text-sm sm:text-base lg:text-lg font-medium text-neutral-900 text-pretty sm:hidden truncate">
-                      {t.subject}
+                      {t.inquiry_type || '—'}
                     </div>
                   </div>
-                  <div className="text-xs sm:text-sm text-neutral-500 sm:self-start">
-                    {t.time}
-                  </div>
-
                   <div className="hidden sm:block text-sm sm:text-base lg:text-lg font-medium text-neutral-900 text-pretty truncate">
-                    {t.subject}
+                    {t.inquiry_type || '—'}
                   </div>
 
                   <div className="flex justify-start sm:hidden">
                     <Badge
                       size="sm"
-                      variant={getBadgeVariantForStatus(t.status)}
+                      variant={getBadgeVariantForStatus(t.inquiry_status || '')}
                       className="text-xs"
                     >
-                      {t.status}
+                      {t.inquiry_status}
                     </Badge>
                   </div>
                   <div className="hidden sm:flex sm:items-center sm:gap-3">
                     <Badge
                       size="sm"
-                      variant={getBadgeVariantForStatus(t.status)}
+                      variant={getBadgeVariantForStatus(t.inquiry_status || '')}
                       className="text-xs sm:text-sm"
                     >
-                      {t.status}
+                      {t.inquiry_status}
                     </Badge>
                   </div>
                 </div>
@@ -115,8 +187,25 @@ const TicketsCard: React.FC = () => {
                   <Button
                     variant="secondary"
                     size="sm"
-                    aria-label={`Ask about ${t.id}`}
-                    onClick={() => openChat()}
+                    aria-label={`Ask about ${t.inquiry_id}`}
+                    onClick={() => {
+                      const parts = [
+                        t.customer_full_name ? `Customer: ${t.customer_full_name}` : null,
+                        t.inquiry_type ? `Type: ${t.inquiry_type}` : null,
+                        t.inquiry_message ? `Message: ${t.inquiry_message}` : null,
+                      ].filter(Boolean);
+                      const prefill = parts.join('\n');
+                      openChat(
+                        prefill
+                          ? {
+                              text: prefill,
+                              role: 'printy',
+                              skipIntro: true,
+                              followupBotText: 'What would you like to do about this ticket?',
+                            }
+                          : undefined
+                      );
+                    }}
                     className="shrink-0"
                   >
                     <MessageSquare className="w-4 h-4" />
@@ -148,3 +237,4 @@ const TicketsCard: React.FC = () => {
 };
 
 export default TicketsCard;
+

@@ -6,12 +6,19 @@ export type SelectedItem = {
   type?: 'order' | 'ticket' | 'service' | 'other';
 };
 
+export type ChatPrefill = {
+  text: string;
+  role?: 'printy' | 'user';
+  skipIntro?: boolean;
+  followupBotText?: string;
+};
+
 export interface AdminContextValue {
   selected: SelectedItem[];
   addSelected: (item: SelectedItem) => void;
   removeSelected: (id: string) => void;
   clearSelected: () => void;
-  openChat: () => void;
+  openChat: (prefill?: string | ChatPrefill) => void;
 }
 
 const AdminContext = createContext<AdminContextValue | undefined>(undefined);

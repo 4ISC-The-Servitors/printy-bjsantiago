@@ -12,6 +12,7 @@ import type {
 } from '../../components/chat/_shared/types';
 import { MessageSquare, X, Minimize2 } from 'lucide-react';
 import { AdminProvider } from './AdminContext';
+import type { ChatPrefill } from './AdminContext';
 import { resolveAdminFlow, dispatchAdminCommand } from '../../chatLogic/admin';
 
 const AdminShellDesktop: React.FC<{
@@ -92,7 +93,50 @@ const AdminShell: React.FC = () => {
         removeSelected: (id: string) =>
           setSelected(prev => prev.filter(i => i.id !== id)),
         clearSelected: () => setSelected([]),
-        openChat: () => setChatOpen(true),
+        openChat: (prefill?: string | ChatPrefill) => {
+          setChatOpen(true);
+          if (prefill) {
+            const payload = typeof prefill === 'string' ? { text: prefill } : prefill;
+            const role = (payload.role || 'printy') as ChatRole;
+            const pre = {
+              id: crypto.randomUUID(),
+              role,
+              text: payload.text,
+              ts: Date.now(),
+            };
+            setMessages(prev => (prev.length === 0 ? [pre] : [...prev, pre]));
+          }
+          if (!(typeof prefill === 'object' && prefill?.skipIntro) && messages.length === 0) {
+            const flow = resolveAdminFlow('intro');
+            if (!flow) return;
+            const initial = flow.initial({});
+            setMessages(prev => [
+              ...prev,
+              ...initial.map(m => ({
+                id: crypto.randomUUID(),
+                role: m.role as ChatRole,
+                text: m.text,
+                ts: Date.now(),
+              })),
+            ]);
+            setQuickReplies(
+              flow.quickReplies().map((l, index) => ({
+                id: `qr-${index}`,
+                label: l,
+                value: l,
+              }))
+            );
+          }
+          if (typeof prefill === 'object' && prefill?.followupBotText) {
+            const msg = {
+              id: crypto.randomUUID(),
+              role: 'printy' as ChatRole,
+              text: prefill.followupBotText,
+              ts: Date.now(),
+            };
+            setMessages(prev => [...prev, msg]);
+          }
+        },
       }}
     >
       <div className="h-screen bg-gradient-to-br from-neutral-50 to-brand-primary-50 flex">
