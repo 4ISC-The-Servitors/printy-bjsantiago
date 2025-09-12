@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Card, Badge, Button } from '../../../shared';
 import { useAdmin } from '../../../../pages/admin/AdminContext';
 import { supabase } from '../../../../lib/supabase';
@@ -35,57 +35,70 @@ const TicketsCard: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  useEffect(() => {
-    let isMounted = true;
-    const loadInquiries = async () => {
-      setLoading(true);
-      setErrorMessage(null);
-      const { data, error } = await supabase
-        .from('inquiries')
-        .select(`
-          inquiry_id,
-          inquiry_type,
-          inquiry_status,
-          inquiry_message,
-          customer_id,
-          customer:customer_id (
-            first_name,
-            last_name
-          )
-        `)
-        .order('received_at', { ascending: false })
-        .limit(5);
+  const loadInquiries = useCallback(async () => {
+    setLoading(true);
+    setErrorMessage(null);
+    const { data, error } = await supabase
+      .from('inquiries')
+      .select(`
+        inquiry_id,
+        inquiry_type,
+        inquiry_status,
+        inquiry_message,
+        customer_id,
+        customer:customer_id (
+          first_name,
+          last_name
+        )
+      `)
+      .order('received_at', { ascending: false })
+      .limit(5);
 
-      if (!isMounted) return;
-      if (error) {
-        console.error('Failed to load inquiries', error);
-        setErrorMessage('Unable to load inquiries.');
-        setInquiries([]);
-      } else {
-        const normalized: InquiryRecord[] = (data as any[]).map(row => {
-          const first = row?.customer?.first_name || '';
-          const last = row?.customer?.last_name || '';
-          const full = `${first} ${last}`.trim() || null;
-          return {
-            inquiry_id: row.inquiry_id,
-            inquiry_type: row.inquiry_type,
-            inquiry_status: row.inquiry_status,
-            inquiry_message: row.inquiry_message,
-            customer_id: row.customer_id,
-            customer_full_name: full,
-            customer_first_name: first || null,
-            customer_last_name: last || null,
-          };
-        });
-        setInquiries(normalized);
-      }
-      setLoading(false);
-    };
-    loadInquiries();
-    return () => {
-      isMounted = false;
-    };
+    if (error) {
+      console.error('Failed to load inquiries', error);
+      setErrorMessage('Unable to load inquiries.');
+      setInquiries([]);
+    } else {
+      const normalized: InquiryRecord[] = (data as any[]).map(row => {
+        const first = row?.customer?.first_name || '';
+        const last = row?.customer?.last_name || '';
+        const full = `${first} ${last}`.trim() || null;
+        return {
+          inquiry_id: row.inquiry_id,
+          inquiry_type: row.inquiry_type,
+          inquiry_status: row.inquiry_status,
+          inquiry_message: row.inquiry_message,
+          customer_id: row.customer_id,
+          customer_full_name: full,
+          customer_first_name: first || null,
+          customer_last_name: last || null,
+        };
+      });
+      setInquiries(normalized);
+    }
+    setLoading(false);
   }, []);
+
+  useEffect(() => {
+    void loadInquiries();
+  }, [loadInquiries]);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('inquiries-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'inquiries' },
+        () => {
+          void loadInquiries();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [loadInquiries]);
 
   // Display latest inquiries (already limited in query)
   const displayInquiries = inquiries;
@@ -202,6 +215,7 @@ const TicketsCard: React.FC = () => {
                               role: 'printy',
                               skipIntro: true,
                               followupBotText: 'What would you like to do about this ticket?',
+                              context: { inquiryId: t.inquiry_id, customerId: t.customer_id || undefined },
                             }
                           : undefined
                       );

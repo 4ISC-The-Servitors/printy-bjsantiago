@@ -14,6 +14,7 @@ import { MessageSquare, X, Minimize2 } from 'lucide-react';
 import { AdminProvider } from './AdminContext';
 import type { ChatPrefill } from './AdminContext';
 import { resolveAdminFlow, dispatchAdminCommand } from '../../chatLogic/admin';
+import { supabase } from '../../lib/supabase';
 
 const AdminShellDesktop: React.FC<{
   active: 'dashboard' | 'orders' | 'portfolio' | 'settings';
@@ -55,6 +56,161 @@ const AdminShell: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [quickReplies, setQuickReplies] = useState<QuickReply[]>([]);
+  const [pendingAction, setPendingAction] = useState<null | 'resolution' | 'assign'>(null);
+  const [currentInquiryId, setCurrentInquiryId] = useState<string | null>(null);
+  const [inputPlaceholder, setInputPlaceholder] = useState<string | undefined>(undefined);
+
+  const setTicketActionReplies = () =>
+    setQuickReplies([
+      { id: 'qr-res', label: 'Create Resolution comment', value: 'Create Resolution comment' },
+      { id: 'qr-end', label: 'End Ticket', value: 'End Ticket' },
+      { id: 'qr-assign', label: 'Assign to', value: 'Assign to' },
+    ]);
+
+  const handleAdminQuickReply = async (v: string) => {
+    const val = v.trim();
+    if (val === 'Create Resolution comment') {
+      setPendingAction('resolution');
+      setInputPlaceholder('Type the resolution comment to send to the customer…');
+      setQuickReplies([{ id: 'qr-cancel', label: 'Cancel', value: 'Cancel' }]);
+      setMessages(prev => [
+        ...prev,
+        { id: crypto.randomUUID(), role: 'printy', text: 'Please type the resolution comment.', ts: Date.now() },
+      ]);
+      return;
+    }
+    if (val === 'Assign to') {
+      setPendingAction('assign');
+      setInputPlaceholder('Enter the staff name to assign…');
+      setQuickReplies([{ id: 'qr-cancel', label: 'Cancel', value: 'Cancel' }]);
+      setMessages(prev => [
+        ...prev,
+        { id: crypto.randomUUID(), role: 'printy', text: 'Who should resolve this ticket? Type the staff name.', ts: Date.now() },
+      ]);
+      return;
+    }
+    if (val === 'End Ticket') {
+      if (!currentInquiryId) {
+        setMessages(prev => [
+          ...prev,
+          { id: crypto.randomUUID(), role: 'printy', text: 'No ticket is currently selected.', ts: Date.now() },
+        ]);
+        return;
+      }
+      const { error } = await supabase
+        .from('inquiries')
+        .update({ inquiry_status: 'resolved' })
+        .eq('inquiry_id', currentInquiryId);
+      if (error) {
+        setMessages(prev => [
+          ...prev,
+          { id: crypto.randomUUID(), role: 'printy', text: `Failed to resolve ticket: ${error.message}`, ts: Date.now() },
+        ]);
+        return;
+      }
+      setMessages(prev => [
+        ...prev,
+        { id: crypto.randomUUID(), role: 'printy', text: 'Ticket has been marked as resolved.', ts: Date.now() },
+      ]);
+      // Force refresh list in case realtime is blocked by RLS
+      try {
+        // Emit a noop select to cause client-side refetch in cards via subscription or manual reload
+        // If you have a global refetch trigger, call it here instead.
+        // No-op
+      } catch {}
+      setPendingAction(null);
+      setInputPlaceholder(undefined);
+      setTicketActionReplies();
+      return;
+    }
+    if (val === 'Cancel') {
+      setPendingAction(null);
+      setInputPlaceholder(undefined);
+      setTicketActionReplies();
+      return;
+    }
+    // fallback to existing flow
+    const dispatched = dispatchAdminCommand(val);
+    if (dispatched) {
+      const d = (await dispatched) as { messages?: { role: string; text: string }[]; quickReplies?: string[] };
+      const botMessages = (d.messages || []).map(m => ({ id: crypto.randomUUID(), role: m.role as ChatRole, text: m.text, ts: Date.now() }));
+      setMessages(prev => [...prev, ...botMessages]);
+      setQuickReplies((d.quickReplies || []).map((l, index) => ({ id: `qr-${index}`, label: l, value: l })));
+      setIsTyping(false);
+    }
+  };
+
+  const handleAdminSend = async (text: string) => {
+    const trimmed = text.trim();
+    const userMsg = { id: crypto.randomUUID(), role: 'user' as const, text, ts: Date.now() };
+    setMessages(prev => [...prev, userMsg]);
+    if (pendingAction === 'resolution') {
+      if (!currentInquiryId) {
+        setMessages(prev => [
+          ...prev,
+          { id: crypto.randomUUID(), role: 'printy', text: 'No ticket is currently selected.', ts: Date.now() },
+        ]);
+        return;
+      }
+      const { error } = await supabase
+        .from('inquiries')
+        .update({ resolution_comments: trimmed })
+        .eq('inquiry_id', currentInquiryId);
+      if (error) {
+        setMessages(prev => [
+          ...prev,
+          { id: crypto.randomUUID(), role: 'printy', text: `Failed to save resolution: ${error.message}`, ts: Date.now() },
+        ]);
+        return;
+      }
+      setMessages(prev => [
+        ...prev,
+        { id: crypto.randomUUID(), role: 'printy', text: 'Resolution comment saved and sent to the customer.', ts: Date.now() },
+      ]);
+      setPendingAction(null);
+      setInputPlaceholder(undefined);
+      setTicketActionReplies();
+      return;
+    }
+    if (pendingAction === 'assign') {
+      if (!currentInquiryId) {
+        setMessages(prev => [
+          ...prev,
+          { id: crypto.randomUUID(), role: 'printy', text: 'No ticket is currently selected.', ts: Date.now() },
+        ]);
+        return;
+      }
+      const { error } = await supabase
+        .from('inquiries')
+        .update({ assigned_to: trimmed })
+        .eq('inquiry_id', currentInquiryId);
+      if (error) {
+        setMessages(prev => [
+          ...prev,
+          { id: crypto.randomUUID(), role: 'printy', text: `Failed to assign ticket: ${error.message}`, ts: Date.now() },
+        ]);
+        return;
+      }
+      setMessages(prev => [
+        ...prev,
+        { id: crypto.randomUUID(), role: 'printy', text: `Ticket assigned to ${trimmed}.`, ts: Date.now() },
+      ]);
+      setPendingAction(null);
+      setInputPlaceholder(undefined);
+      setTicketActionReplies();
+      return;
+    }
+    // default behavior: existing flow
+    setIsTyping(true);
+    const dispatched = dispatchAdminCommand(text);
+    if (dispatched) {
+      const d = (await dispatched) as { messages?: { role: string; text: string }[]; quickReplies?: string[] };
+      const botMessages = (d.messages || []).map(m => ({ id: crypto.randomUUID(), role: m.role as ChatRole, text: m.text, ts: Date.now() }));
+      setMessages(prev => [...prev, ...botMessages]);
+      setQuickReplies((d.quickReplies || []).map((l, index) => ({ id: `qr-${index}`, label: l, value: l })));
+      setIsTyping(false);
+    }
+  };
 
   const go = (route: typeof active) => {
     setActive(route);
@@ -105,6 +261,12 @@ const AdminShell: React.FC = () => {
               ts: Date.now(),
             };
             setMessages(prev => (prev.length === 0 ? [pre] : [...prev, pre]));
+            if (typeof prefill === 'object' && prefill.context?.inquiryId) {
+              setCurrentInquiryId(prefill.context.inquiryId);
+              setPendingAction(null);
+              setInputPlaceholder(undefined);
+              setTicketActionReplies();
+            }
           }
           if (!(typeof prefill === 'object' && prefill?.skipIntro) && messages.length === 0) {
             const flow = resolveAdminFlow('intro');
@@ -261,67 +423,11 @@ const AdminShell: React.FC = () => {
               <ChatPanel
                 title="Printy Assistant"
                 messages={messages}
-                onSend={text => {
-                  const userMsg = {
-                    id: crypto.randomUUID(),
-                    role: 'user' as const,
-                    text,
-                    ts: Date.now(),
-                  };
-                  setMessages(prev => [...prev, userMsg]);
-                  setIsTyping(true);
-                  const dispatched = dispatchAdminCommand(text);
-                  if (dispatched) {
-                    const d = dispatched as {
-                      messages?: { role: string; text: string }[];
-                      quickReplies?: string[];
-                    };
-                    const botMessages = (d.messages || []).map(
-                      (m: { role: string; text: string }) => ({
-                        id: crypto.randomUUID(),
-                        role: m.role as ChatRole,
-                        text: m.text,
-                        ts: Date.now(),
-                      })
-                    );
-                    setMessages(prev => [...prev, ...botMessages]);
-                    setQuickReplies(
-                      (d.quickReplies || []).map(
-                        (l: string, index: number) => ({
-                          id: `qr-${index}`,
-                          label: l,
-                          value: l,
-                        })
-                      )
-                    );
-                    setIsTyping(false);
-                  } else {
-                    const flow = resolveAdminFlow('intro');
-                    if (!flow) return;
-                    void flow.respond({}, text).then(resp => {
-                      const botMessages = resp.messages.map(m => ({
-                        id: crypto.randomUUID(),
-                        role: m.role as ChatRole,
-                        text: m.text,
-                        ts: Date.now(),
-                      }));
-                      setMessages(prev => [...prev, ...botMessages]);
-                      setQuickReplies(
-                        (resp.quickReplies || []).map((l, index) => ({
-                          id: `qr-${index}`,
-                          label: l,
-                          value: l,
-                        }))
-                      );
-                      setIsTyping(false);
-                    });
-                  }
-                }}
+                onSend={handleAdminSend}
                 isTyping={isTyping}
                 quickReplies={quickReplies}
-                onQuickReply={v => {
-                  if (v.toLowerCase().includes('end')) setMessages([]);
-                }}
+                inputPlaceholder={inputPlaceholder}
+                onQuickReply={handleAdminQuickReply}
                 onEndChat={() => setChatOpen(false)}
               />
             </div>
@@ -385,61 +491,11 @@ const AdminShell: React.FC = () => {
           <ChatPanel
             title="Printy Assistant"
             messages={messages}
-            onSend={text => {
-              const userMsg = {
-                id: crypto.randomUUID(),
-                role: 'user' as const,
-                text,
-                ts: Date.now(),
-              };
-              setMessages(prev => [...prev, userMsg]);
-              setIsTyping(true);
-              const flow = resolveAdminFlow('intro');
-              if (!flow) return;
-              void flow.respond({}, text).then(resp => {
-                const botMessages = resp.messages.map(m => ({
-                  id: crypto.randomUUID(),
-                  role: m.role as ChatRole,
-                  text: m.text,
-                  ts: Date.now(),
-                }));
-                setMessages(prev => [...prev, ...botMessages]);
-                setQuickReplies(
-                  (resp.quickReplies || []).map((l, index) => ({
-                    id: `qr-${index}`,
-                    label: l,
-                    value: l,
-                  }))
-                );
-                setIsTyping(false);
-              });
-            }}
+            onSend={handleAdminSend}
             isTyping={isTyping}
             quickReplies={quickReplies}
-            onQuickReply={v => {
-              if (v.toLowerCase().includes('end')) {
-                endChatWithDelay();
-                return;
-              }
-              const flow = resolveAdminFlow('intro');
-              if (!flow) return;
-              void flow.respond({}, v).then(resp => {
-                const botMessages = resp.messages.map(m => ({
-                  id: crypto.randomUUID(),
-                  role: m.role as ChatRole,
-                  text: m.text,
-                  ts: Date.now(),
-                }));
-                setMessages(prev => [...prev, ...botMessages]);
-                setQuickReplies(
-                  (resp.quickReplies || []).map((l, index) => ({
-                    id: `qr-${index}`,
-                    label: l,
-                    value: l,
-                  }))
-                );
-              });
-            }}
+            inputPlaceholder={inputPlaceholder}
+            onQuickReply={handleAdminQuickReply}
             onEndChat={endChatWithDelay}
           />
         </ChatDock>

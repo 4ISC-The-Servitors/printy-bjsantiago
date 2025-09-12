@@ -11,6 +11,10 @@ export type ChatPrefill = {
   role?: 'printy' | 'user';
   skipIntro?: boolean;
   followupBotText?: string;
+  context?: {
+    inquiryId: string;
+    customerId?: string | null;
+  };
 };
 
 export interface AdminContextValue {
