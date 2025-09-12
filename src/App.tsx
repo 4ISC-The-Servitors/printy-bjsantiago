@@ -7,14 +7,17 @@ import ForgotPassword from './pages/auth/ForgotPassword';
 import ResetPassword from './pages/auth/ResetPassword';
 import CustomerDashboard from './pages/customer/Dashboard';
 import AccountSettingsPage from './pages/customer/accountSettings/AccountSettingsPage';
-import AdminShell from './pages/admin/AdminShell';
+import DashboardLayout from './components/admin/dashboard/DashboardLayout';
+import OrdersDesktopLayout from './components/admin/orders/desktop/OrdersDesktopLayout';
+import TicketsLayout from './components/admin/tickets/TicketsLayout';
+import PortfolioLayout from './components/admin/portfolio/PortfolioLayout';
+import SettingsLayout from './components/admin/settings/SettingsLayout';
 import './index.css';
 
 // Lazy load heavy components
 const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'));
-const AdminSettingsPage = lazy(
-  () => import('./pages/admin/adminSettings/AdminSettingsPage')
-);
+const AdminTickets = lazy(() => import('./pages/admin/Tickets'));
+const AdminSettingsPage = lazy(() => import('./pages/admin/AdminSettings'));
 const AdminPortfolio = lazy(() => import('./pages/admin/Portfolio'));
 const SuperAdminDashboard = lazy(() => import('./pages/superadmin/Dashboard'));
 const ComponentShowcase = lazy(
@@ -32,40 +35,54 @@ function App() {
       <Route path="/customer" element={<CustomerDashboard />} />
       <Route path="/valued" element={<CustomerDashboard />} />
       <Route path="/account" element={<AccountSettingsPage />} />
-      <Route path="/admin" element={<AdminShell />}>
-        <Route
-          index
-          element={
+      <Route
+        path="/admin"
+        element={
+          <DashboardLayout>
             <Suspense fallback={<div>Loading...</div>}>
               <AdminDashboard />
             </Suspense>
-          }
-        />
-        <Route
-          path="orders"
-          element={
+          </DashboardLayout>
+        }
+      />
+      <Route
+        path="/admin/orders"
+        element={
+          <Suspense fallback={<div>Loading...</div>}>
+            <OrdersDesktopLayout />
+          </Suspense>
+        }
+      />
+      <Route
+        path="/admin/tickets"
+        element={
+          <TicketsLayout>
             <Suspense fallback={<div>Loading...</div>}>
-              <AdminDashboard />
+              <AdminTickets />
             </Suspense>
-          }
-        />
-        <Route
-          path="portfolio"
-          element={
+          </TicketsLayout>
+        }
+      />
+      <Route
+        path="/admin/portfolio"
+        element={
+          <PortfolioLayout>
             <Suspense fallback={<div>Loading...</div>}>
               <AdminPortfolio />
             </Suspense>
-          }
-        />
-        <Route
-          path="settings"
-          element={
+          </PortfolioLayout>
+        }
+      />
+      <Route
+        path="/admin/settings"
+        element={
+          <SettingsLayout>
             <Suspense fallback={<div>Loading...</div>}>
               <AdminSettingsPage />
             </Suspense>
-          }
-        />
-      </Route>
+          </SettingsLayout>
+        }
+      />
       <Route
         path="/superadmin"
         element={

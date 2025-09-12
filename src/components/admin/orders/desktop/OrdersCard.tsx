@@ -1,33 +1,33 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, Badge, Button } from '../../../shared';
 import { mockOrders } from '../../../../data/orders';
-import { useAdmin } from '../../../../pages/admin/AdminContext';
+import { useOrderSelection } from '../../../../hooks/admin/SelectionContext';
+import { createOrderSelectionItems } from '../../../../utils/admin/selectionUtils';
+import { getOrderStatusBadgeVariant } from '../../../../utils/admin/statusColors';
 import { MessageSquare, Plus } from 'lucide-react';
+import { useAdmin } from '../../../../pages/admin/AdminContext';
 
 const OrdersCard: React.FC = () => {
-  const { openChat } = useAdmin();
-  const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
+  const orderSelection = useOrderSelection();
+  const { addSelected, openChatWithTopic } = useAdmin();
 
   // Limit to max 5 orders
   const displayOrders = mockOrders.slice(0, 5);
+  const orderItems = createOrderSelectionItems(displayOrders);
 
   const toggleOrderSelection = (orderId: string) => {
-    setSelectedOrders(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(orderId)) {
-        newSet.delete(orderId);
-      } else {
-        newSet.add(orderId);
-      }
-      return newSet;
-    });
+    const orderItem = orderItems.find(item => item.id === orderId);
+    if (orderItem) {
+      orderSelection.toggle(orderItem);
+    }
   };
 
   const addSelectedToChat = () => {
-    // Add selected orders to chat context
-    void selectedOrders; // Acknowledge the usage for now
+    orderSelection.selected.forEach(item => {
+      addSelected({ id: item.id, label: item.label, type: 'order' });
+    });
+    orderSelection.clear();
     openChat();
-    setSelectedOrders(new Set()); // Clear selections after adding to chat
   };
 
   return (
@@ -52,7 +52,7 @@ const OrdersCard: React.FC = () => {
                 <input
                   type="checkbox"
                   className="w-4 h-4 accent-brand-primary"
-                  checked={selectedOrders.has(o.id)}
+                  checked={orderSelection.isSelected(o.id)}
                   onChange={() => toggleOrderSelection(o.id)}
                   title="Select order"
                 />
@@ -80,7 +80,7 @@ const OrdersCard: React.FC = () => {
                       )}
                       <Badge
                         size="sm"
-                        variant={o.status === 'Processing' ? 'info' : 'warning'}
+                        variant={getOrderStatusBadgeVariant(o.status)}
                         className="text-xs"
                       >
                         {o.status}
@@ -104,7 +104,7 @@ const OrdersCard: React.FC = () => {
                     )}
                     <Badge
                       size="sm"
-                      variant={o.status === 'Processing' ? 'info' : 'warning'}
+                      variant={getOrderStatusBadgeVariant(o.status)}
                       className="text-xs sm:text-sm"
                     >
                       {o.status}
@@ -125,8 +125,9 @@ const OrdersCard: React.FC = () => {
                   <Button
                     variant="secondary"
                     size="sm"
+                    threeD
                     aria-label={`Ask about ${o.id}`}
-                    onClick={() => openChat()}
+                    onClick={() => openChatWithTopic?.('orders')}
                     className="shrink-0"
                   >
                     <MessageSquare className="w-4 h-4" />
@@ -139,7 +140,7 @@ const OrdersCard: React.FC = () => {
       </Card>
 
       {/* Floating Add to Chat button */}
-      {selectedOrders.size > 0 && (
+      {orderSelection.hasSelections && (
         <div className="fixed bottom-6 right-6 z-50">
           <Button
             variant="primary"
@@ -149,7 +150,7 @@ const OrdersCard: React.FC = () => {
             className="shadow-lg flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
-            Add to Chat ({selectedOrders.size})
+            Add to Chat ({orderSelection.selectionCount})
           </Button>
         </div>
       )}

@@ -1,46 +1,35 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, Badge, Button } from '../../../shared';
 import { mockTickets } from '../../../../data/tickets';
 import { useAdmin } from '../../../../pages/admin/AdminContext';
+import { useTicketSelection } from '../../../../hooks/admin/SelectionContext';
+import { createTicketSelectionItems } from '../../../../utils/admin/selectionUtils';
+import { getTicketStatusBadgeVariant } from '../../../../utils/admin/statusColors';
 import { MessageSquare, Plus } from 'lucide-react';
 
-const getBadgeVariantForStatus = (
-  status: string
-): 'info' | 'warning' | 'secondary' => {
-  const s = (status || '').toLowerCase();
-  if (s === 'open') return 'info';
-  if (s === 'pending' || s === 'in progress' || s === 'awaiting')
-    return 'warning';
-  return 'secondary'; // closed/resolved/other
-};
+// variant derived by getTicketStatusBadgeVariant
 
 const TicketsCard: React.FC = () => {
-  const { openChat } = useAdmin();
-  const [selectedTickets, setSelectedTickets] = useState<Set<string>>(
-    new Set()
-  );
+  const { addSelected, openChat } = useAdmin();
+  const ticketSelection = useTicketSelection();
 
   // Limit to max 5 tickets
   const displayTickets = mockTickets.slice(0, 5);
+  const ticketItems = createTicketSelectionItems(displayTickets);
 
   const toggleTicketSelection = (ticketId: string) => {
-    setSelectedTickets(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(ticketId)) {
-        newSet.delete(ticketId);
-      } else {
-        newSet.add(ticketId);
-      }
-      return newSet;
-    });
+    const ticketItem = ticketItems.find(item => item.id === ticketId);
+    if (ticketItem) {
+      ticketSelection.toggle(ticketItem);
+    }
   };
 
   const addSelectedToChat = () => {
-    selectedTickets.forEach(() => {
-      // Add selected tickets to chat context
+    ticketSelection.selected.forEach(item => {
+      addSelected({ id: item.id, label: item.label, type: 'ticket' });
     });
+    ticketSelection.clear();
     openChat();
-    setSelectedTickets(new Set()); // Clear selections after adding to chat
   };
 
   return (
@@ -65,7 +54,7 @@ const TicketsCard: React.FC = () => {
                 <input
                   type="checkbox"
                   className="w-4 h-4 accent-brand-primary"
-                  checked={selectedTickets.has(t.id)}
+                  checked={ticketSelection.isSelected(t.id)}
                   onChange={() => toggleTicketSelection(t.id)}
                   title="Select ticket"
                 />
@@ -93,7 +82,7 @@ const TicketsCard: React.FC = () => {
                   <div className="flex justify-start sm:hidden">
                     <Badge
                       size="sm"
-                      variant={getBadgeVariantForStatus(t.status)}
+                      variant={getTicketStatusBadgeVariant(t.status)}
                       className="text-xs"
                     >
                       {t.status}
@@ -102,7 +91,7 @@ const TicketsCard: React.FC = () => {
                   <div className="hidden sm:flex sm:items-center sm:gap-3">
                     <Badge
                       size="sm"
-                      variant={getBadgeVariantForStatus(t.status)}
+                      variant={getTicketStatusBadgeVariant(t.status)}
                       className="text-xs sm:text-sm"
                     >
                       {t.status}
@@ -129,7 +118,7 @@ const TicketsCard: React.FC = () => {
       </Card>
 
       {/* Floating Add to Chat button */}
-      {selectedTickets.size > 0 && (
+      {ticketSelection.hasSelections && (
         <div className="fixed bottom-6 right-6 z-50">
           <Button
             variant="primary"
@@ -139,7 +128,7 @@ const TicketsCard: React.FC = () => {
             className="shadow-lg flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
-            Add to Chat ({selectedTickets.size})
+            Add to Chat ({ticketSelection.selectionCount})
           </Button>
         </div>
       )}

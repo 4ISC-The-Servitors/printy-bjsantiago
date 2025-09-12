@@ -61,3 +61,7 @@ export type { SocialAuthButtonProps } from './SocialAuthButton';
 export { default as Tooltip } from './Tooltip';
 export type { TooltipProps } from './Tooltip';
 export { default as ChatDock } from './ChatDock';
+
+// Checkbox Component
+export { default as Checkbox } from './Checkbox';
+export type { CheckboxProps } from './Checkbox';

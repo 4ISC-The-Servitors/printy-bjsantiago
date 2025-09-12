@@ -11,9 +11,9 @@ import {
 import { Button, Text } from '../../../shared';
 
 export interface AdminSidebarProps {
-  active: 'dashboard' | 'orders' | 'portfolio' | 'settings';
+  active: 'dashboard' | 'orders' | 'tickets' | 'portfolio' | 'settings';
   onNavigate: (
-    route: 'dashboard' | 'orders' | 'portfolio' | 'settings'
+    route: 'dashboard' | 'orders' | 'tickets' | 'portfolio' | 'settings'
   ) => void;
   onLogout: () => void;
 }
@@ -42,7 +42,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
   );
 
   return (
-    <aside className="hidden lg:flex w-80 bg-white border-r border-neutral-200 flex-col">
+    <aside className="hidden lg:flex w-64 bg-white border-r border-neutral-200 flex-col">
       <div className="p-4 shrink-0">
         <div className="flex items-center gap-3 mb-6">
           <div className="w-10 h-10 rounded-lg bg-brand-primary text-white flex items-center justify-center">
@@ -64,26 +64,25 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto scrollbar-hide px-4">
+      <div className="flex-1 overflow-y-auto scrollbar-hide px-3">
         <div className="space-y-3">
-          {item(
-            'dashboard',
-            <LucideHome className="w-4 h-4" />,
-            'Dashboard'
-          )}
+          {item('dashboard', <LucideHome className="w-4 h-4" />, 'Dashboard')}
           {item('orders', <Package className="w-4 h-4" />, 'Orders')}
           {item('tickets', <Ticket className="w-4 h-4" />, 'Tickets')}
-          {item('portfolio', <BriefcaseBusiness className="w-4 h-4" />, 'Portfolio')}
-
+          {item(
+            'portfolio',
+            <BriefcaseBusiness className="w-4 h-4" />,
+            'Portfolio'
+          )}
         </div>
       </div>
 
-      <div className="p-4 border-t border-neutral-200 shrink-0">
+      <div className="p-3 border-t border-neutral-200 shrink-0">
         <div className="space-y-4">
           <Button
             onClick={() => onNavigate('settings')}
             variant="secondary"
-            className="w-full justify-start px-3 py-3"
+            className="w-full justify-start px-3 py-2"
             threeD
           >
             <Settings className="w-4 h-4 mr-2" /> Settings
@@ -91,7 +90,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
           <Button
             onClick={onLogout}
             variant="accent"
-            className="w-full justify-start px-3 py-3"
+            className="w-full justify-start px-3 py-2"
             threeD
           >
             <LogOut className="w-4 h-4 mr-2" /> Logout

@@ -6,11 +6,11 @@ import {
   Card,
   ToastContainer,
   Button,
-} from '../../../components/shared';
-import { useToast } from '../../../lib/useToast';
+} from '../../components/shared';
+import { useToast } from '../../lib/useToast';
 import { ArrowLeft } from 'lucide-react';
-import * as SettingsDesktop from '../../../components/admin/settings/desktop';
-import * as SettingsMobile from '../../../components/admin/settings/mobile';
+import * as SettingsDesktop from '../../components/admin/settings/desktop';
+import * as SettingsMobile from '../../components/admin/settings/mobile';
 
 export interface AdminData {
   displayName: string;

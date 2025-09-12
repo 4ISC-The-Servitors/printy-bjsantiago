@@ -1,13 +1,12 @@
 import React, { useEffect, useState } from 'react';
 
 // Import mobile components
-import MobileOrdersCard from './mobile/OrdersCard';
-import MobileTicketsCard from './mobile/TicketsCard';
-import MobileSidebar from './mobile/Sidebar';
+import MobileOrdersCard from '../orders/mobile/OrdersCard';
+import MobileTicketsCard from '../tickets/mobile/TicketsCard';
 
 // Import desktop components
-import DesktopOrdersCard from './desktop/OrdersCard';
-import DesktopTicketsCard from './desktop/TicketsCard';
+import DesktopOrdersCard from '../orders/desktop/OrdersCard';
+import DesktopTicketsCard from '../tickets/desktop/TicketsCard';
 import DesktopSidebar from './desktop/Sidebar';
 
 // Platform detection hook
@@ -43,10 +42,5 @@ export const Sidebar: React.FC<{
   onNavigate: any;
   onLogout: any;
 }> = props => {
-  const isMobile = useIsMobile();
-  return isMobile ? (
-    <MobileSidebar {...props} />
-  ) : (
-    <DesktopSidebar {...props} />
-  );
+  return <DesktopSidebar {...props} />;
 };

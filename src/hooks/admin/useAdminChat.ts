@@ -1,0 +1,169 @@
+import { useState } from 'react';
+import type { ChatMessage, QuickReply, ChatRole } from '../../components/chat/_shared/types';
+import { resolveAdminFlow, dispatchAdminCommand } from '../../chatLogic/admin';
+
+export interface UseAdminChatReturn {
+  chatOpen: boolean;
+  setChatOpen: (open: boolean) => void;
+  messages: ChatMessage[];
+  isTyping: boolean;
+  quickReplies: QuickReply[];
+  handleChatOpen: () => void;
+  handleChatOpenWithTopic: (topic: string, orderId?: string, updateOrder?: (orderId: string, updates: any) => void, orders?: any[], refreshOrders?: () => void, orderIds?: string[]) => void;
+  endChatWithDelay: () => void;
+  handleSendMessage: (text: string) => void;
+  handleQuickReply: (value: string) => void;
+}
+
+export const useAdminChat = (): UseAdminChatReturn => {
+  const [chatOpen, setChatOpen] = useState(false);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [isTyping, setIsTyping] = useState(false);
+  const [quickReplies, setQuickReplies] = useState<QuickReply[]>([]);
+  const [currentFlow, setCurrentFlow] = useState<string>('intro');
+  const [currentContext, setCurrentContext] = useState<any>({});
+
+  const endChatWithDelay = () => {
+    const endMessage = {
+      id: crypto.randomUUID(),
+      role: 'printy' as const,
+      text: 'Thank you for chatting with Printy! Have a great day. 👋',
+      ts: Date.now(),
+    };
+    setMessages(prev => [...prev, endMessage]);
+    setQuickReplies([]);
+    setTimeout(() => {
+      setChatOpen(false);
+      setMessages([]);
+    }, 2000);
+  };
+
+  const handleChatOpen = () => {
+    setChatOpen(true);
+    if (messages.length === 0) {
+      setCurrentFlow('intro');
+      setCurrentContext({});
+      const flow = resolveAdminFlow('intro');
+      if (!flow) return;
+      const initial = flow.initial({});
+      setMessages(
+        initial.map(m => ({
+          id: crypto.randomUUID(),
+          role: m.role as ChatRole,
+          text: m.text,
+          ts: Date.now(),
+        }))
+      );
+      setQuickReplies(
+        flow.quickReplies().map((l, index) => ({ id: `qr-${index}`, label: l, value: l }))
+      );
+    }
+  };
+
+  const handleChatOpenWithTopic = (topic: string, orderId?: string, updateOrder?: (orderId: string, updates: any) => void, orders?: any[], refreshOrders?: () => void, orderIds?: string[]) => {
+    setChatOpen(true);
+    const nextTopic = topic || 'intro';
+
+    // If switching topics or explicitly provided orderIds (multi-select), always (re)initialize
+    const shouldReset = currentFlow !== nextTopic || (orderIds && orderIds.length > 0);
+
+    if (messages.length === 0 || shouldReset) {
+      setCurrentFlow(nextTopic);
+
+      // Pass context
+      const context = orderId ? { orderId, updateOrder, orders, refreshOrders, orderIds } : { updateOrder, orders, refreshOrders, orderIds };
+      setCurrentContext(context);
+
+      const flow = resolveAdminFlow(nextTopic);
+      if (!flow) return;
+      const initial = flow.initial(context);
+      setMessages(
+        initial.map(m => ({
+          id: crypto.randomUUID(),
+          role: m.role as ChatRole,
+          text: m.text,
+          ts: Date.now(),
+        }))
+      );
+      setQuickReplies(
+        flow.quickReplies().map((l, index) => ({ id: `qr-${index}`, label: l, value: l }))
+      );
+      return;
+    }
+  };
+
+  const handleSendMessage = (text: string) => {
+    const userMsg = { id: crypto.randomUUID(), role: 'user' as const, text, ts: Date.now() };
+    setMessages(prev => [...prev, userMsg]);
+    setIsTyping(true);
+    
+    // Always use the current flow when we have context (like order-specific chats)
+    const flow = resolveAdminFlow(currentFlow);
+    if (flow) {
+      void flow.respond(currentContext, text).then(resp => {
+        const botMessages = resp.messages.map(m => ({
+          id: crypto.randomUUID(),
+          role: m.role as ChatRole,
+          text: m.text,
+          ts: Date.now(),
+        }));
+        setMessages(prev => [...prev, ...botMessages]);
+        setQuickReplies((resp.quickReplies || []).map((l, index) => ({ id: `qr-${index}`, label: l, value: l })));
+        setIsTyping(false);
+      });
+    } else {
+      // Fallback to dispatchAdminCommand for general cases
+      const dispatched = dispatchAdminCommand(text);
+      if (dispatched) {
+        const d = dispatched as { messages?: { role: string; text: string }[]; quickReplies?: string[] };
+        const botMessages = (d.messages || []).map(m => ({
+          id: crypto.randomUUID(),
+          role: m.role as ChatRole,
+          text: m.text,
+          ts: Date.now(),
+        }));
+        setMessages(prev => [...prev, ...botMessages]);
+        setQuickReplies((d.quickReplies || []).map((l, index) => ({ id: `qr-${index}`, label: l, value: l })));
+        setIsTyping(false);
+      } else {
+        setIsTyping(false);
+      }
+    }
+  };
+
+  const handleQuickReply = (v: string) => {
+    if (v.toLowerCase().includes('end')) {
+      setMessages([]);
+      return;
+    }
+    const flow = resolveAdminFlow(currentFlow);
+    if (!flow) return;
+    void flow.respond(currentContext, v).then(resp => {
+      const botMessages = resp.messages.map(m => ({
+        id: crypto.randomUUID(),
+        role: m.role as ChatRole,
+        text: m.text,
+        ts: Date.now(),
+      }));
+      setMessages(prev => [...prev, ...botMessages]);
+      setQuickReplies((resp.quickReplies || []).map((l, index) => ({ id: `qr-${index}`, label: l, value: l })));
+    });
+  };
+
+  return {
+    chatOpen,
+    setChatOpen,
+    messages,
+    isTyping,
+    quickReplies,
+    handleChatOpen,
+    handleChatOpenWithTopic,
+    endChatWithDelay,
+    handleSendMessage,
+    handleQuickReply,
+  };
+};
+
+export default useAdminChat;
+
+

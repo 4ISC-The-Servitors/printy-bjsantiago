@@ -1,7 +1,7 @@
 export type Order = {
   id: string;
   customer: string;
-  status: 'Pending' | 'Processing' | 'Completed';
+  status: 'Pending' | 'Processing' | 'Awaiting Payment' | 'For Delivery/Pick-up' | 'Completed' | 'Cancelled';
   priority?: 'Urgent';
   total: string;
   date: string;
@@ -11,8 +11,8 @@ export const mockOrders: Order[] = [
   {
     id: 'ORD-12353',
     customer: 'Gabriel Santos',
-    status: 'Pending',
-    priority: 'Urgent',
+    status: 'Processing',
+    priority: 'Urgent', // Valued customer
     total: '₱15,000',
     date: 'May 2',
   },
@@ -26,7 +26,7 @@ export const mockOrders: Order[] = [
   {
     id: 'ORD-12350',
     customer: 'Sophia Cruz',
-    status: 'Processing',
+    status: 'Awaiting Payment',
     total: '₱1,200',
     date: 'May 30',
   },

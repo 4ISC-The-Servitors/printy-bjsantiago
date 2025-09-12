@@ -28,32 +28,7 @@ build
 .env.test.local
 .env.production.local
 
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
 
-# OS generated files
-Thumbs.db
-ehthumbs.db
-Desktop.ini
-
-# Testing
-coverage
-.nyc_output
-*.lcov
-
-# Temporary files
-*.tmp
-*.temp
-.cache
-.temp
 
 # Supabase
 .supabase
@@ -95,24 +70,8 @@ pids
 # Output of 'npm pack'
 *.tgz
 
-# Yarn Integrity file
-.yarn-integrity
-
-# parcel-bundler cache (https://parceljs.org/)
-.parcel-cache
-
-# Next.js build output
-.next
-
-# Nuxt.js build / generate output
-.nuxt
-
-# Storybook build outputs
-.out
-.storybook-out
-
 # Temporary folders
 tmp/
 temp/
-.cursor/
 forContext/
+.cursor/
