@@ -9,7 +9,7 @@ import CustomerDashboard from './pages/customer/Dashboard';
 import AccountSettingsPage from './pages/customer/accountSettings/AccountSettingsPage';
 import DashboardLayout from './components/admin/dashboard/DashboardLayout';
 import OrdersDesktopLayout from './components/admin/orders/desktop/OrdersDesktopLayout';
-import TicketsLayout from './components/admin/tickets/TicketsLayout';
+// TicketsLayout removed; tickets page handles layout internally
 import PortfolioLayout from './components/admin/portfolio/PortfolioLayout';
 import SettingsLayout from './components/admin/settings/SettingsLayout';
 import './index.css';
@@ -56,11 +56,9 @@ function App() {
       <Route
         path="/admin/tickets"
         element={
-          <TicketsLayout>
-            <Suspense fallback={<div>Loading...</div>}>
-              <AdminTickets />
-            </Suspense>
-          </TicketsLayout>
+          <Suspense fallback={<div>Loading...</div>}>
+            <AdminTickets />
+          </Suspense>
         }
       />
       <Route

@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { mockTickets } from '../../data/tickets';
 import TicketsMobileLayout from '../../components/admin/tickets/mobile/TicketsMobileLayout';
 import TicketsDesktopLayout from '../../components/admin/tickets/desktop/TicketsDesktopLayout';
-import { useAdmin } from './AdminContext';
 import { useToast } from '../../components/shared';
 
 const AdminTickets: React.FC = () => {
@@ -11,7 +10,6 @@ const AdminTickets: React.FC = () => {
   const [hoveredTicket, setHoveredTicket] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const navigate = useNavigate();
-  const { addSelected, openChat, selected } = useAdmin();
   const [, toast] = useToast();
 
   useEffect(() => {
@@ -33,28 +31,10 @@ const AdminTickets: React.FC = () => {
   };
 
   const addSelectedToChat = () => {
-    const hasDifferentEntity = selected.some(
-      s => s.type && s.type !== 'ticket'
-    );
-    if (hasDifferentEntity) {
-      toast.error(
-        'Cannot mix entities',
-        'You have non-Ticket items selected. Clear selection first.'
-      );
-      return;
-    }
-    selectedTickets.forEach(ticketId => {
-      const ticket = mockTickets.find(t => t.id === ticketId);
-      if (ticket) {
-        addSelected({
-          id: ticket.id,
-          label: ticket.id,
-          type: 'ticket',
-        });
-      }
-    });
+    if (selectedTickets.length === 0) return;
+    // For mobile only: keep UX feedback and clear selection; desktop handles chat inside its layout
     setSelectedTickets([]);
-    openChat();
+    toast.success('Added to chat', 'Selected tickets queued for chat');
   };
 
   const getStatusColor = (status: string) => {
@@ -74,22 +54,18 @@ const AdminTickets: React.FC = () => {
     navigate('/admin/portfolio');
   };
 
-  const commonProps = {
-    mockTickets,
-    selectedTickets,
-    hoveredTicket,
-    setSelectedTickets,
-    setHoveredTicket,
-    handleTicketSelect,
-    addSelectedToChat,
-    getStatusColor,
-    handlePortfolioNavigation,
-  };
-
   return isMobile ? (
-    <TicketsMobileLayout {...commonProps} />
+    <TicketsMobileLayout
+      mockTickets={mockTickets}
+      selectedTickets={selectedTickets}
+      setSelectedTickets={setSelectedTickets}
+      setHoveredTicket={setHoveredTicket}
+      handleTicketSelect={handleTicketSelect}
+      addSelectedToChat={addSelectedToChat}
+      getStatusColor={getStatusColor}
+    />
   ) : (
-    <TicketsDesktopLayout {...commonProps} />
+    <TicketsDesktopLayout />
   );
 };
 

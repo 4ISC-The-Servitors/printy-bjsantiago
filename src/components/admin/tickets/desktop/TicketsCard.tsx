@@ -10,7 +10,7 @@ import { MessageSquare, Plus } from 'lucide-react';
 // variant derived by getTicketStatusBadgeVariant
 
 const TicketsCard: React.FC = () => {
-  const { addSelected, openChat } = useAdmin();
+  const { addSelected, openChatWithTopic, openChat } = useAdmin();
   const ticketSelection = useTicketSelection();
 
   // Limit to max 5 tickets
@@ -105,7 +105,7 @@ const TicketsCard: React.FC = () => {
                     variant="secondary"
                     size="sm"
                     aria-label={`Ask about ${t.id}`}
-                    onClick={() => openChat()}
+                    onClick={() => openChatWithTopic?.('tickets', t.id)}
                     className="shrink-0"
                   >
                     <MessageSquare className="w-4 h-4" />
