@@ -3,7 +3,7 @@ import React, { createContext, useContext } from 'react';
 export type SelectedItem = {
   id: string;
   label: string;
-  type?: 'order' | 'ticket' | 'service' | 'other';
+  type?: 'order' | 'ticket' | 'portfolio';
 };
 
 export interface AdminContextValue {

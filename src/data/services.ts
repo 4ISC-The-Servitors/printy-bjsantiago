@@ -36,7 +36,7 @@ export const mockServices: ServiceItem[] = [
     status: 'Retired',
     category: 'BIR Registered Forms',
   },
-  
+
   // Commercial Forms
   {
     id: 'SRV-CP005',
@@ -59,7 +59,7 @@ export const mockServices: ServiceItem[] = [
     status: 'Inactive',
     category: 'Commercial Forms',
   },
-  
+
   // Business Forms
   {
     id: 'SRV-CP011',
@@ -89,7 +89,7 @@ export const mockServices: ServiceItem[] = [
     status: 'Retired',
     category: 'Business Forms',
   },
-  
+
   // Commercial Printing
   {
     id: 'SRV-CO001',
@@ -119,7 +119,7 @@ export const mockServices: ServiceItem[] = [
     status: 'Active',
     category: 'Commercial Printing',
   },
-  
+
   // Packaging
   {
     id: 'SRV-PK001',
@@ -156,7 +156,7 @@ export const mockServices: ServiceItem[] = [
     status: 'Retired',
     category: 'Packaging',
   },
-  
+
   // Digital Printing
   {
     id: 'SRV-DP001',
@@ -186,7 +186,7 @@ export const mockServices: ServiceItem[] = [
     status: 'Active',
     category: 'Digital Printing',
   },
-  
+
   // Large Format Printing
   {
     id: 'SRV-LF001',
@@ -229,7 +229,7 @@ export const getServicesByCategory = (services: ServiceItem[]) => {
     }
     categoryMap.get(category)!.push(service);
   });
-  
+
   return Array.from(categoryMap.entries()).map(([name, services]) => ({
     id: name.toLowerCase().replace(/\s+/g, '-'),
     name,
@@ -238,7 +238,7 @@ export const getServicesByCategory = (services: ServiceItem[]) => {
       id: s.id,
       name: s.name,
       code: s.code,
-      status: s.status as 'Active' | 'Inactive' | 'Retired'
-    }))
+      status: s.status as 'Active' | 'Inactive' | 'Retired',
+    })),
   }));
 };

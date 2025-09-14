@@ -1,7 +1,10 @@
 import React from 'react';
 import { Button, Text, Badge } from '../../../shared';
 import { X, Plus, MessageSquare } from 'lucide-react';
-import type { SelectionItem, SelectionEntity } from '../../../../hooks/admin/useSelection';
+import type {
+  SelectionItem,
+  SelectionEntity,
+} from '../../../../hooks/admin/useSelection';
 
 interface SelectionChipProps {
   item: SelectionItem;

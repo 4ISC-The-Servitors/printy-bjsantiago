@@ -9,16 +9,57 @@ export const createSelectionItem = (
 ): SelectionItem => ({ id, label, type, data });
 
 export const createOrderSelectionItems = (
-  orders: Array<{ id: string; customer: string; total: string; status: string; [key: string]: any }>
-): SelectionItem[] => orders.map(order => createSelectionItem(order.id, `${order.id} - ${order.customer} (${order.total})`, 'order', order));
+  orders: Array<{
+    id: string;
+    customer: string;
+    total: string;
+    status: string;
+    [key: string]: any;
+  }>
+): SelectionItem[] =>
+  orders.map(order =>
+    createSelectionItem(
+      order.id,
+      `${order.id} - ${order.customer} (${order.total})`,
+      'order',
+      order
+    )
+  );
 
 export const createTicketSelectionItems = (
-  tickets: Array<{ id: string; subject: string; status: string; [key: string]: any }>
-): SelectionItem[] => tickets.map(ticket => createSelectionItem(ticket.id, `${ticket.id} - ${ticket.subject}`, 'ticket', ticket));
+  tickets: Array<{
+    id: string;
+    subject: string;
+    status: string;
+    [key: string]: any;
+  }>
+): SelectionItem[] =>
+  tickets.map(ticket =>
+    createSelectionItem(
+      ticket.id,
+      `${ticket.id} - ${ticket.subject}`,
+      'ticket',
+      ticket
+    )
+  );
 
 export const createServiceSelectionItems = (
-  services: Array<{ id: string; name: string; code: string; status: string; [key: string]: any }>
-): SelectionItem[] => services.map(service => createSelectionItem(service.id, `${service.name} (${service.code})`, 'service', service));
+  services: Array<{
+    id: string;
+    name: string;
+    code: string;
+    status: string;
+    [key: string]: any;
+  }>
+): SelectionItem[] =>
+  services.map(service =>
+    createSelectionItem(
+      service.id,
+      `${service.name} (${service.code})`,
+      'service',
+      service
+    )
+  );
 
 export const groupSelectionByType = (items: SelectionItem[]) => {
   return items.reduce(
@@ -41,16 +82,27 @@ export const getSelectionSummary = (items: SelectionItem[]): string => {
   if (items.length === 0) return 'No items selected';
   const grouped = groupSelectionByType(items);
   const summary = Object.entries(grouped)
-    .map(([type, typeItems]) => `${typeItems.length} ${type}${typeItems.length > 1 ? 's' : ''}`)
+    .map(
+      ([type, typeItems]) =>
+        `${typeItems.length} ${type}${typeItems.length > 1 ? 's' : ''}`
+    )
     .join(', ');
   return `${items.length} item${items.length > 1 ? 's' : ''} selected (${summary})`;
 };
 
-export const areAllItemsSelected = (allItems: string[], selectedItems: string[]): boolean => {
-  return allItems.length > 0 && allItems.every(id => selectedItems.includes(id));
+export const areAllItemsSelected = (
+  allItems: string[],
+  selectedItems: string[]
+): boolean => {
+  return (
+    allItems.length > 0 && allItems.every(id => selectedItems.includes(id))
+  );
 };
 
-export const areSomeItemsSelected = (allItems: string[], selectedItems: string[]): boolean => {
+export const areSomeItemsSelected = (
+  allItems: string[],
+  selectedItems: string[]
+): boolean => {
   return allItems.some(id => selectedItems.includes(id));
 };
 
@@ -62,5 +114,3 @@ export const getCheckboxState = (
   if (areSomeItemsSelected(allItems, selectedItems)) return 'indeterminate';
   return 'unchecked';
 };
-
-

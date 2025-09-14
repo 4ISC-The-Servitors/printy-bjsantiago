@@ -147,5 +147,3 @@ export const useSelection = (
 };
 
 export default useSelection;
-
-

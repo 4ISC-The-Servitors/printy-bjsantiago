@@ -16,10 +16,15 @@ const servicesWithStatus = mockServices.map((service, index) => ({
   status: index % 3 === 0 ? 'active' : index % 3 === 1 ? 'inactive' : 'retired',
 }));
 
-const ServicePortfolioCard: React.FC<Props> = ({ expanded, setExpanded, onServiceChat, services }) => {
+const ServicePortfolioCard: React.FC<Props> = ({
+  expanded,
+  setExpanded,
+  onServiceChat,
+  services,
+}) => {
   // Use provided services or fallback to mock data
   const servicesToUse = services || servicesWithStatus;
-  
+
   const map = new Map<string, typeof servicesToUse>();
   servicesToUse.forEach(s => {
     const arr = map.get(s.category) || [];

@@ -1,6 +1,11 @@
 import { useNavigate } from 'react-router-dom';
 
-export type AdminRoute = 'dashboard' | 'orders' | 'tickets' | 'portfolio' | 'settings';
+export type AdminRoute =
+  | 'dashboard'
+  | 'orders'
+  | 'tickets'
+  | 'portfolio'
+  | 'settings';
 
 export interface UseAdminNavReturn {
   go: (route: AdminRoute) => void;
@@ -21,5 +26,3 @@ export const useAdminNav = (): UseAdminNavReturn => {
 };
 
 export default useAdminNav;
-
-

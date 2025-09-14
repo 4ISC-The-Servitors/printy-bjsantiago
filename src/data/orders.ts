@@ -1,7 +1,13 @@
 export type Order = {
   id: string;
   customer: string;
-  status: 'Pending' | 'Processing' | 'Awaiting Payment' | 'For Delivery/Pick-up' | 'Completed' | 'Cancelled';
+  status:
+    | 'Pending'
+    | 'Processing'
+    | 'Awaiting Payment'
+    | 'For Delivery/Pick-up'
+    | 'Completed'
+    | 'Cancelled';
   priority?: 'Urgent';
   total: string;
   date: string;

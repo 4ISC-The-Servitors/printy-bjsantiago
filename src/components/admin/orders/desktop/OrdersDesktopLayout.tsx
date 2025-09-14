@@ -5,16 +5,18 @@ import { Text, Button, Card, Badge, Checkbox, useToast } from '../../../shared';
 import ChatDock from '../../../shared/ChatDock';
 import type { SelectedItem } from '../../../../pages/admin/AdminContext';
 import ChatPanel from '../../../chat/CustomerChatPanel';
-import { MessageSquare, X, Minimize2, MessageCircle, Trash2, Plus } from 'lucide-react';
+import { MessageSquare, X, Minimize2, Trash2, Plus } from 'lucide-react';
 import { AdminProvider } from '../../../../pages/admin/AdminContext';
 import useAdminChat from '../../../../hooks/admin/useAdminChat';
 import useAdminNav from '../../../../hooks/admin/useAdminNav';
 import { useIsMobile } from '../../dashboard/index';
 import { SelectionProvider } from '../../../../hooks/admin/SelectionContext';
 import { getOrderStatusBadgeVariant } from '../../../../utils/admin/statusColors';
-import { OrdersProvider, useOrders } from '../../../../hooks/admin/OrdersContext';
+import {
+  OrdersProvider,
+  useOrders,
+} from '../../../../hooks/admin/OrdersContext';
 import { cn } from '../../../../lib/utils';
-
 
 const OrdersDesktopLayoutContent: React.FC = () => {
   const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
@@ -76,9 +78,15 @@ const OrdersDesktopLayoutContent: React.FC = () => {
     const orderIds = selectedOrders.slice();
     setSelectedOrders([]);
     // Initialize multiple-orders flow with selected IDs so bot greets immediately
-    handleChatOpenWithTopic('multiple-orders', undefined, updateOrder, orders, refreshOrders, orderIds);
+    handleChatOpenWithTopic(
+      'multiple-orders',
+      undefined,
+      updateOrder,
+      orders,
+      refreshOrders,
+      orderIds
+    );
   };
-
 
   const hasSelectedItems = selectedOrders.length > 0;
 
@@ -94,7 +102,14 @@ const OrdersDesktopLayoutContent: React.FC = () => {
           setSelected(prev => prev.filter(i => i.id !== id)),
         clearSelected: () => setSelected([]),
         openChat: () => setChatOpen(true),
-        openChatWithTopic: (topic: string, orderId?: string) => handleChatOpenWithTopic(topic, orderId, updateOrder, orders, refreshOrders),
+        openChatWithTopic: (topic: string, orderId?: string) =>
+          handleChatOpenWithTopic(
+            topic,
+            orderId,
+            updateOrder,
+            orders,
+            refreshOrders
+          ),
       }}
     >
       <SelectionProvider
@@ -108,7 +123,14 @@ const OrdersDesktopLayoutContent: React.FC = () => {
           });
           const orderIds = items.map(i => i.id);
           // Open chat and initialize the multiple-orders flow with selected IDs
-          handleChatOpenWithTopic('multiple-orders', undefined, updateOrder, orders, refreshOrders, orderIds);
+          handleChatOpenWithTopic(
+            'multiple-orders',
+            undefined,
+            updateOrder,
+            orders,
+            refreshOrders,
+            orderIds
+          );
         }}
         onOpenChat={() => setChatOpen(true)}
       >
@@ -234,10 +256,13 @@ const OrdersDesktopLayoutContent: React.FC = () => {
                               <div className="absolute -left-3 top-1/2 -translate-y-1/2 z-10">
                                 <Checkbox
                                   checked={selectedOrders.includes(order.id)}
-                                  onCheckedChange={() => handleOrderSelect(order.id)}
+                                  onCheckedChange={() =>
+                                    handleOrderSelect(order.id)
+                                  }
                                   className={cn(
                                     'transition-opacity bg-white border-2 border-gray-300 w-5 h-5 rounded data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500',
-                                    hoveredOrder === order.id || selectedOrders.length > 0
+                                    hoveredOrder === order.id ||
+                                      selectedOrders.length > 0
                                       ? 'opacity-100'
                                       : 'opacity-0'
                                   )}
@@ -272,7 +297,9 @@ const OrdersDesktopLayoutContent: React.FC = () => {
                                       </Badge>
                                     )}
                                     <Badge
-                                      variant={getOrderStatusBadgeVariant(order.status)}
+                                      variant={getOrderStatusBadgeVariant(
+                                        order.status
+                                      )}
                                       className="text-sm px-3 py-1"
                                     >
                                       {order.status}
@@ -293,9 +320,17 @@ const OrdersDesktopLayoutContent: React.FC = () => {
                                   threeD
                                   className="mt-2 min-h-[44px] min-w-[44px]"
                                   title="View in Chat"
-                                  onClick={() => handleChatOpenWithTopic('orders', order.id, updateOrder, orders, refreshOrders)}
+                                  onClick={() =>
+                                    handleChatOpenWithTopic(
+                                      'orders',
+                                      order.id,
+                                      updateOrder,
+                                      orders,
+                                      refreshOrders
+                                    )
+                                  }
                                 >
-                                  <MessageCircle className="h-4 w-4" />
+                                  <MessageSquare className="h-4 w-4" />
                                 </Button>
                               </div>
                             </div>

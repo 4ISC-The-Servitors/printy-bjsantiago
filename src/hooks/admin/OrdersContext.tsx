@@ -9,21 +9,23 @@ interface OrdersContextValue {
 
 const OrdersContext = createContext<OrdersContextValue | undefined>(undefined);
 
-export const OrdersProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const OrdersProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [orders, setOrders] = useState<Order[]>(mockOrders);
 
   const updateOrder = (orderId: string, updates: Partial<Order>) => {
     console.log('updateOrder called:', orderId, updates);
-    
+
     // Update the reactive state
     setOrders(prevOrders => {
-      const newOrders = prevOrders.map(order => 
+      const newOrders = prevOrders.map(order =>
         order.id === orderId ? { ...order, ...updates } : order
       );
       console.log('Orders updated:', newOrders);
       return newOrders;
     });
-    
+
     // Also update the mock data for consistency
     const orderIndex = mockOrders.findIndex(o => o.id === orderId);
     if (orderIndex !== -1) {

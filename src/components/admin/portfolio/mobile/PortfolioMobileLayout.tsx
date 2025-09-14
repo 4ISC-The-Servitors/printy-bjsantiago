@@ -77,35 +77,42 @@ const PortfolioMobileLayout: React.FC<PortfolioMobileLayoutProps> = ({
   const hasSelectedItems = selectedServices.length > 0;
 
   // Create dynamic portfolio data from services if available, otherwise use mock data
-  const portfolioData = services ? (() => {
-    const categoryMap = new Map<string, Service[]>();
-    services.forEach(service => {
-      const category = service.category || 'Uncategorized';
-      if (!categoryMap.has(category)) {
-        categoryMap.set(category, []);
-      }
-      categoryMap.get(category)!.push({
-        id: service.id,
-        name: service.name,
-        code: service.code,
-        status: service.status as 'Active' | 'Inactive' | 'Retired'
-      });
-    });
-    
-    return Array.from(categoryMap.entries()).map(([name, services]) => ({
-      id: name.toLowerCase().replace(/\s+/g, '-'),
-      name,
-      count: services.length,
-      services
-    }));
-  })() : mockPortfolioData;
+  const portfolioData = services
+    ? (() => {
+        const categoryMap = new Map<string, Service[]>();
+        services.forEach(service => {
+          const category = service.category || 'Uncategorized';
+          if (!categoryMap.has(category)) {
+            categoryMap.set(category, []);
+          }
+          categoryMap.get(category)!.push({
+            id: service.id,
+            name: service.name,
+            code: service.code,
+            status: service.status as 'Active' | 'Inactive' | 'Retired',
+          });
+        });
+
+        return Array.from(categoryMap.entries()).map(([name, services]) => ({
+          id: name.toLowerCase().replace(/\s+/g, '-'),
+          name,
+          count: services.length,
+          services,
+        }));
+      })()
+    : mockPortfolioData;
 
   // Create Services Offered data by filtering portfolio data for Active services only
-  const servicesOfferedData = portfolioData.map(category => ({
-    ...category,
-    services: category.services.filter(service => service.status === 'Active'),
-    count: category.services.filter(service => service.status === 'Active').length
-  })).filter(category => category.count > 0);
+  const servicesOfferedData = portfolioData
+    .map(category => ({
+      ...category,
+      services: category.services.filter(
+        service => service.status === 'Active'
+      ),
+      count: category.services.filter(service => service.status === 'Active')
+        .length,
+    }))
+    .filter(category => category.count > 0);
 
   return (
     <div className="p-4 space-y-6">
@@ -226,7 +233,10 @@ const PortfolioMobileLayout: React.FC<PortfolioMobileLayoutProps> = ({
                             {openMenuId === service.id && (
                               <div className="absolute right-0 top-8 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[140px]">
                                 <Button
-                                  onClick={() => handleServiceChat?.(service) || handleViewInChat(service)}
+                                  onClick={() =>
+                                    handleServiceChat?.(service) ||
+                                    handleViewInChat(service)
+                                  }
                                   className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
                                 >
                                   <MessageCircle className="w-4 h-4" />

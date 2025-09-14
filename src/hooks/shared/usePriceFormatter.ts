@@ -1,5 +1,10 @@
 import { useCallback } from 'react';
-import { formatPriceInput, isValidPriceInput, extractNumericValue, formatCurrency } from '../../utils/shared';
+import {
+  formatPriceInput,
+  isValidPriceInput,
+  extractNumericValue,
+  formatCurrency,
+} from '../../utils/shared';
 
 /**
  * Hook for price formatting functionality
@@ -30,29 +35,33 @@ export const usePriceFormatter = () => {
   /**
    * Formats a numeric amount as currency
    */
-  const formatAsCurrency = useCallback((
-    amount: number, 
-    currency: string = 'PHP', 
-    locale: string = 'en-PH'
-  ): string => {
-    return formatCurrency(amount, currency, locale);
-  }, []);
+  const formatAsCurrency = useCallback(
+    (
+      amount: number,
+      currency: string = 'PHP',
+      locale: string = 'en-PH'
+    ): string => {
+      return formatCurrency(amount, currency, locale);
+    },
+    []
+  );
 
   /**
    * Creates a price input handler that formats the value as the user types
    */
-  const createPriceInputHandler = useCallback((
-    onChange: (formattedValue: string, numericValue: number) => void
-  ) => {
-    return (inputValue: string) => {
-      const formatted = formatPriceInput(inputValue);
-      const numeric = extractNumericValue(formatted);
-      
-      if (isValidPriceInput(inputValue)) {
-        onChange(formatted, numeric);
-      }
-    };
-  }, []);
+  const createPriceInputHandler = useCallback(
+    (onChange: (formattedValue: string, numericValue: number) => void) => {
+      return (inputValue: string) => {
+        const formatted = formatPriceInput(inputValue);
+        const numeric = extractNumericValue(formatted);
+
+        if (isValidPriceInput(inputValue)) {
+          onChange(formatted, numeric);
+        }
+      };
+    },
+    []
+  );
 
   return {
     formatPrice: formatPriceValue,

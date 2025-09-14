@@ -46,36 +46,42 @@ const PortfolioDesktopLayout: React.FC<PortfolioDesktopLayoutProps> = ({
   const [hoveredService, setHoveredService] = useState<string | null>(null);
 
   // Create dynamic portfolio data from services if available, otherwise use mock data
-  const portfolioData = services ? (() => {
-    const categoryMap = new Map<string, Service[]>();
-    services.forEach(service => {
-      const category = service.category || 'Uncategorized';
-      if (!categoryMap.has(category)) {
-        categoryMap.set(category, []);
-      }
-      categoryMap.get(category)!.push({
-        id: service.id,
-        name: service.name,
-        code: service.code,
-        status: service.status as 'Active' | 'Inactive' | 'Retired'
-      });
-    });
-    
-    return Array.from(categoryMap.entries()).map(([name, services]) => ({
-      id: name.toLowerCase().replace(/\s+/g, '-'),
-      name,
-      count: services.length,
-      services
-    }));
-  })() : mockPortfolioData;
+  const portfolioData = services
+    ? (() => {
+        const categoryMap = new Map<string, Service[]>();
+        services.forEach(service => {
+          const category = service.category || 'Uncategorized';
+          if (!categoryMap.has(category)) {
+            categoryMap.set(category, []);
+          }
+          categoryMap.get(category)!.push({
+            id: service.id,
+            name: service.name,
+            code: service.code,
+            status: service.status as 'Active' | 'Inactive' | 'Retired',
+          });
+        });
+
+        return Array.from(categoryMap.entries()).map(([name, services]) => ({
+          id: name.toLowerCase().replace(/\s+/g, '-'),
+          name,
+          count: services.length,
+          services,
+        }));
+      })()
+    : mockPortfolioData;
 
   // Create Services Offered data by filtering portfolio data for Active services only
-  const servicesOfferedData = portfolioData.map(category => ({
-    ...category,
-    services: category.services.filter(service => service.status === 'Active'),
-    count: category.services.filter(service => service.status === 'Active').length
-  })).filter(category => category.count > 0);
-  
+  const servicesOfferedData = portfolioData
+    .map(category => ({
+      ...category,
+      services: category.services.filter(
+        service => service.status === 'Active'
+      ),
+      count: category.services.filter(service => service.status === 'Active')
+        .length,
+    }))
+    .filter(category => category.count > 0);
 
   const togglePortfolioDropdown = (categoryId: string) => {
     setOpenPortfolioDropdown(
@@ -108,11 +114,14 @@ const PortfolioDesktopLayout: React.FC<PortfolioDesktopLayoutProps> = ({
                 Service Portfolio
               </Text>
               <Badge size="sm" variant="secondary">
-                {portfolioData.reduce((total, category) => total + category.count, 0)}
+                {portfolioData.reduce(
+                  (total, category) => total + category.count,
+                  0
+                )}
               </Badge>
             </div>
             <div className="flex items-center gap-3">
-              <Button 
+              <Button
                 variant="secondary"
                 size="sm"
                 threeD
@@ -143,7 +152,11 @@ const PortfolioDesktopLayout: React.FC<PortfolioDesktopLayoutProps> = ({
                     >
                       {category.name}
                     </Text>
-                    <Badge size="sm" variant="secondary" className="align-middle">
+                    <Badge
+                      size="sm"
+                      variant="secondary"
+                      className="align-middle"
+                    >
                       {category.count}
                     </Badge>
                   </div>
@@ -167,10 +180,13 @@ const PortfolioDesktopLayout: React.FC<PortfolioDesktopLayoutProps> = ({
                           <div className="absolute -left-3 top-1/2 -translate-y-1/2 z-10">
                             <Checkbox
                               checked={selectedServices.includes(service.id)}
-                              onCheckedChange={() => handleServiceSelect(service)}
+                              onCheckedChange={() =>
+                                handleServiceSelect(service)
+                              }
                               className={cn(
                                 'transition-opacity bg-white border-2 border-gray-300 w-5 h-5 rounded data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500',
-                                hoveredService === service.id || selectedServices.length > 0
+                                hoveredService === service.id ||
+                                  selectedServices.length > 0
                                   ? 'opacity-100'
                                   : 'opacity-0'
                               )}
@@ -197,7 +213,9 @@ const PortfolioDesktopLayout: React.FC<PortfolioDesktopLayoutProps> = ({
                               </Text>
                               <div className="flex items-center gap-2 mt-2">
                                 <Badge
-                                  variant={getServiceStatusBadgeVariant(service.status)}
+                                  variant={getServiceStatusBadgeVariant(
+                                    service.status
+                                  )}
                                   className="text-sm px-3 py-1"
                                 >
                                   {service.status}
@@ -212,7 +230,10 @@ const PortfolioDesktopLayout: React.FC<PortfolioDesktopLayoutProps> = ({
                               threeD
                               className="min-h-[44px] min-w-[44px]"
                               title="Chat about this service"
-                              onClick={() => handleServiceChat?.(service) || handleViewInChat(service)}
+                              onClick={() =>
+                                handleServiceChat?.(service) ||
+                                handleViewInChat(service)
+                              }
                             >
                               <MessageSquare className="h-4 w-4" />
                             </Button>
@@ -240,7 +261,10 @@ const PortfolioDesktopLayout: React.FC<PortfolioDesktopLayoutProps> = ({
                 Services Offered
               </Text>
               <Badge size="sm" variant="secondary">
-                {servicesOfferedData.reduce((total, category) => total + category.count, 0)}
+                {servicesOfferedData.reduce(
+                  (total, category) => total + category.count,
+                  0
+                )}
               </Badge>
             </div>
           </div>
@@ -264,7 +288,11 @@ const PortfolioDesktopLayout: React.FC<PortfolioDesktopLayoutProps> = ({
                     >
                       {category.name}
                     </Text>
-                    <Badge size="sm" variant="secondary" className="align-middle">
+                    <Badge
+                      size="sm"
+                      variant="secondary"
+                      className="align-middle"
+                    >
                       {category.count}
                     </Badge>
                   </div>
@@ -303,7 +331,9 @@ const PortfolioDesktopLayout: React.FC<PortfolioDesktopLayoutProps> = ({
                               </Text>
                               <div className="flex items-center gap-2 mt-2">
                                 <Badge
-                                  variant={getServiceStatusBadgeVariant(service.status)}
+                                  variant={getServiceStatusBadgeVariant(
+                                    service.status
+                                  )}
                                   className="text-sm px-3 py-1"
                                 >
                                   {service.status}

@@ -1,5 +1,9 @@
 import { useState } from 'react';
-import type { ChatMessage, QuickReply, ChatRole } from '../../components/chat/_shared/types';
+import type {
+  ChatMessage,
+  QuickReply,
+  ChatRole,
+} from '../../components/chat/_shared/types';
 import { resolveAdminFlow, dispatchAdminCommand } from '../../chatLogic/admin';
 
 export interface UseAdminChatReturn {
@@ -9,7 +13,14 @@ export interface UseAdminChatReturn {
   isTyping: boolean;
   quickReplies: QuickReply[];
   handleChatOpen: () => void;
-  handleChatOpenWithTopic: (topic: string, orderId?: string, updateOrder?: (orderId: string, updates: any) => void, orders?: any[], refreshOrders?: () => void, orderIds?: string[]) => void;
+  handleChatOpenWithTopic: (
+    topic: string,
+    orderId?: string,
+    updateOrder?: (orderId: string, updates: any) => void,
+    orders?: any[],
+    refreshOrders?: () => void,
+    orderIds?: string[]
+  ) => void;
   endChatWithDelay: () => void;
   handleSendMessage: (text: string) => void;
   handleQuickReply: (value: string) => void;
@@ -55,17 +66,27 @@ export const useAdminChat = (): UseAdminChatReturn => {
         }))
       );
       setQuickReplies(
-        flow.quickReplies().map((l, index) => ({ id: `qr-${index}`, label: l, value: l }))
+        flow
+          .quickReplies()
+          .map((l, index) => ({ id: `qr-${index}`, label: l, value: l }))
       );
     }
   };
 
-  const handleChatOpenWithTopic = (topic: string, orderId?: string, updateOrder?: (orderId: string, updates: any) => void, orders?: any[], refreshOrders?: () => void, orderIds?: string[]) => {
+  const handleChatOpenWithTopic = (
+    topic: string,
+    orderId?: string,
+    updateOrder?: (orderId: string, updates: any) => void,
+    orders?: any[],
+    refreshOrders?: () => void,
+    orderIds?: string[]
+  ) => {
     setChatOpen(true);
     const nextTopic = topic || 'intro';
 
     // If switching topics or explicitly provided orderIds (multi-select), always (re)initialize
-    const shouldReset = currentFlow !== nextTopic || (orderIds && orderIds.length > 0);
+    const shouldReset =
+      currentFlow !== nextTopic || (orderIds && orderIds.length > 0);
 
     if (messages.length === 0 || shouldReset) {
       setCurrentFlow(nextTopic);
@@ -73,23 +94,25 @@ export const useAdminChat = (): UseAdminChatReturn => {
       // Pass context - handle both order and service contexts
       let context;
       if (nextTopic === 'multiple-portfolio') {
-        context = { 
+        context = {
           serviceIds: orderIds,
           services: orders,
           updateService: updateOrder,
-          refreshServices: refreshOrders
+          refreshServices: refreshOrders,
         };
       } else if (nextTopic === 'portfolio') {
-        context = { 
+        context = {
           serviceId: orderId,
           services: orders,
           updateService: updateOrder,
-          refreshServices: refreshOrders
+          refreshServices: refreshOrders,
         };
       } else {
-        context = orderId ? { orderId, updateOrder, orders, refreshOrders, orderIds } : { updateOrder, orders, refreshOrders, orderIds };
+        context = orderId
+          ? { orderId, updateOrder, orders, refreshOrders, orderIds }
+          : { updateOrder, orders, refreshOrders, orderIds };
       }
-      
+
       setCurrentContext(context);
 
       console.log('🎯 useAdminChat opening with topic:', nextTopic);
@@ -102,10 +125,10 @@ export const useAdminChat = (): UseAdminChatReturn => {
         return;
       }
       const initial = flow.initial(context);
-      
+
       console.log('💬 Initial messages from useAdminChat:', initial);
       console.log('⚡ Quick replies from flow:', flow.quickReplies());
-      
+
       setMessages(
         initial.map(m => ({
           id: crypto.randomUUID(),
@@ -115,17 +138,24 @@ export const useAdminChat = (): UseAdminChatReturn => {
         }))
       );
       setQuickReplies(
-        flow.quickReplies().map((l, index) => ({ id: `qr-${index}`, label: l, value: l }))
+        flow
+          .quickReplies()
+          .map((l, index) => ({ id: `qr-${index}`, label: l, value: l }))
       );
       return;
     }
   };
 
   const handleSendMessage = (text: string) => {
-    const userMsg = { id: crypto.randomUUID(), role: 'user' as const, text, ts: Date.now() };
+    const userMsg = {
+      id: crypto.randomUUID(),
+      role: 'user' as const,
+      text,
+      ts: Date.now(),
+    };
     setMessages(prev => [...prev, userMsg]);
     setIsTyping(true);
-    
+
     // Always use the current flow when we have context (like order-specific chats)
     const flow = resolveAdminFlow(currentFlow);
     if (flow) {
@@ -137,14 +167,23 @@ export const useAdminChat = (): UseAdminChatReturn => {
           ts: Date.now(),
         }));
         setMessages(prev => [...prev, ...botMessages]);
-        setQuickReplies((resp.quickReplies || []).map((l, index) => ({ id: `qr-${index}`, label: l, value: l })));
+        setQuickReplies(
+          (resp.quickReplies || []).map((l, index) => ({
+            id: `qr-${index}`,
+            label: l,
+            value: l,
+          }))
+        );
         setIsTyping(false);
       });
     } else {
       // Fallback to dispatchAdminCommand for general cases
       const dispatched = dispatchAdminCommand(text);
       if (dispatched) {
-        const d = dispatched as { messages?: { role: string; text: string }[]; quickReplies?: string[] };
+        const d = dispatched as {
+          messages?: { role: string; text: string }[];
+          quickReplies?: string[];
+        };
         const botMessages = (d.messages || []).map(m => ({
           id: crypto.randomUUID(),
           role: m.role as ChatRole,
@@ -152,7 +191,13 @@ export const useAdminChat = (): UseAdminChatReturn => {
           ts: Date.now(),
         }));
         setMessages(prev => [...prev, ...botMessages]);
-        setQuickReplies((d.quickReplies || []).map((l, index) => ({ id: `qr-${index}`, label: l, value: l })));
+        setQuickReplies(
+          (d.quickReplies || []).map((l, index) => ({
+            id: `qr-${index}`,
+            label: l,
+            value: l,
+          }))
+        );
         setIsTyping(false);
       } else {
         setIsTyping(false);
@@ -175,7 +220,13 @@ export const useAdminChat = (): UseAdminChatReturn => {
         ts: Date.now(),
       }));
       setMessages(prev => [...prev, ...botMessages]);
-      setQuickReplies((resp.quickReplies || []).map((l, index) => ({ id: `qr-${index}`, label: l, value: l })));
+      setQuickReplies(
+        (resp.quickReplies || []).map((l, index) => ({
+          id: `qr-${index}`,
+          label: l,
+          value: l,
+        }))
+      );
     });
   };
 
@@ -194,5 +245,3 @@ export const useAdminChat = (): UseAdminChatReturn => {
 };
 
 export default useAdminChat;
-
-

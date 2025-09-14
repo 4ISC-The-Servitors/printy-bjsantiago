@@ -36,9 +36,21 @@ export const SelectionProvider: React.FC<SelectionProviderProps> = ({
   onAddToChat,
   onOpenChat,
 }) => {
-  const orderSelection = useSelection({ entityType: 'order', maxSelections: 5, allowMixedTypes: false });
-  const ticketSelection = useSelection({ entityType: 'ticket', maxSelections: 5, allowMixedTypes: false });
-  const serviceSelection = useSelection({ entityType: 'service', maxSelections: 10, allowMixedTypes: false });
+  const orderSelection = useSelection({
+    entityType: 'order',
+    maxSelections: 5,
+    allowMixedTypes: false,
+  });
+  const ticketSelection = useSelection({
+    entityType: 'ticket',
+    maxSelections: 5,
+    allowMixedTypes: false,
+  });
+  const serviceSelection = useSelection({
+    entityType: 'service',
+    maxSelections: 10,
+    allowMixedTypes: false,
+  });
 
   const allSelected = [
     ...orderSelection.selected,
@@ -76,16 +88,24 @@ export const SelectionProvider: React.FC<SelectionProviderProps> = ({
     let items: SelectionItem[] = [];
     switch (entityType) {
       case 'order':
-        items = orderSelection.selected; orderSelection.clear(); break;
+        items = orderSelection.selected;
+        orderSelection.clear();
+        break;
       case 'ticket':
-        items = ticketSelection.selected; ticketSelection.clear(); break;
+        items = ticketSelection.selected;
+        ticketSelection.clear();
+        break;
       case 'service':
-        items = serviceSelection.selected; serviceSelection.clear(); break;
+        items = serviceSelection.selected;
+        serviceSelection.clear();
+        break;
     }
     if (items.length > 0 && onAddToChat) onAddToChat(items, entityType);
   };
 
-  const openChat = () => { onOpenChat?.(); };
+  const openChat = () => {
+    onOpenChat?.();
+  };
 
   const value: SelectionContextValue = {
     orderSelection,
@@ -97,13 +117,18 @@ export const SelectionProvider: React.FC<SelectionProviderProps> = ({
   };
 
   return (
-    <SelectionContext.Provider value={value}>{children}</SelectionContext.Provider>
+    <SelectionContext.Provider value={value}>
+      {children}
+    </SelectionContext.Provider>
   );
 };
 
 export const useSelectionContext = () => {
   const context = useContext(SelectionContext);
-  if (!context) throw new Error('useSelectionContext must be used within a SelectionProvider');
+  if (!context)
+    throw new Error(
+      'useSelectionContext must be used within a SelectionProvider'
+    );
   return context;
 };
 
@@ -113,5 +138,3 @@ export const useServiceSelection = () => useSelectionContext().serviceSelection;
 export const useGlobalSelection = () => useSelectionContext().globalSelection;
 
 export default SelectionProvider;
-
-

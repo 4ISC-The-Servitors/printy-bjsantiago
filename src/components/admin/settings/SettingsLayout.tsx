@@ -30,13 +30,9 @@ const SettingsLayout: React.FC<{ children: React.ReactNode }> = ({
   } = useAdminChat();
   const [selected, setSelected] = useState<SelectedItem[]>([]);
 
-  
-
   const handleLogout = () => {
     navigate('/auth/signin');
   };
-
-
 
   return (
     <AdminProvider

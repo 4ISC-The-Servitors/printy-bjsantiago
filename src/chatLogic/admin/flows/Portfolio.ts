@@ -1,10 +1,15 @@
-import type { ChatFlow, BotMessage } from '../../../types/chatFlow';
+// Refactored Portfolio Flow using shared utilities and base framework
+
 import { mockServices } from '../../../data/services';
+import {
+  FlowBase,
+  SERVICE_STATUS_OPTIONS,
+  createServiceUpdatedMessage,
+} from '../shared';
+import { normalizeServiceStatus } from '../shared/utils/StatusNormalizers';
+import type { FlowState, FlowContext, NodeHandler } from '../shared';
 
-type Status = 'Active' | 'Inactive' | 'Retired';
-
-type NodeId = 
-  | 'start'
+type PortfolioNodeId =
   | 'action'
   | 'edit_service'
   | 'edit_category'
@@ -15,449 +20,539 @@ type NodeId =
   | 'add_service'
   | 'done';
 
-const STATUS_OPTIONS: Status[] = ['Active', 'Inactive', 'Retired'];
-
-function normalizeServiceStatus(input: string): Status | null {
-  const t = (input || '').toLowerCase();
-  if (t.startsWith('act')) return 'Active';
-  if (t.startsWith('inact') || t.startsWith('deac') || t.startsWith('dis')) return 'Inactive';
-  if (t.startsWith('ret') || t.startsWith('arch')) return 'Retired';
-  return null;
+interface PortfolioState extends FlowState {
+  currentNodeId: PortfolioNodeId;
+  currentServiceId: string | null;
+  currentServices: any[];
 }
 
-let currentNodeId: NodeId = 'action';
-let currentServiceId: string | null = null;
-let currentServices: any[] = [];
-let updateServiceRef: ((serviceId: string, updates: Partial<any>) => void) | null = null;
-let refreshServicesRef: (() => void) | null = null;
+class PortfolioFlow extends FlowBase {
+  id = 'admin-portfolio';
+  title = 'Admin Portfolio';
 
-function getExistingCategories(): string[] {
-  const categories = new Set<string>();
-  currentServices.forEach(service => {
-    if (service.category) {
-      categories.add(service.category);
-    }
-  });
-  return Array.from(categories).sort();
-}
+  constructor() {
+    super({
+      currentNodeId: 'action',
+      currentServiceId: null,
+      currentServices: [],
+    });
+    this.registerNodes();
+  }
 
-function findService(idOrCode: string) {
-  const id = (idOrCode || '').toUpperCase();
-  return currentServices.find(s => 
-    (s.id || '').toUpperCase() === id || 
-    (s.code || '').toUpperCase() === id
-  ) || mockServices.find(s => 
-    (s.id || '').toUpperCase() === id || 
-    (s.code || '').toUpperCase() === id
-  );
-}
+  protected initializeState(context: FlowContext): void {
+    this.state.currentServiceId = (context?.serviceId as string) || null;
+    this.state.currentServices = (context?.services as any[]) || mockServices;
+    this.state.currentNodeId = 'action';
+  }
 
-function nodeToMessages(node: NodeId): BotMessage[] {
-  const service = currentServiceId ? findService(currentServiceId) : null;
-  
-  switch (node) {
-    case 'start':
-    case 'action': {
-      if (service) {
+  private registerNodes(): void {
+    // Action node
+    this.registerNode('action', this.createActionNode());
+
+    // Edit service node
+    this.registerNode('edit_service', this.createEditServiceNode());
+
+    // Edit name node
+    this.registerNode('edit_name', this.createEditNameNode());
+
+    // Edit category node
+    this.registerNode('edit_category', this.createEditCategoryNode());
+
+    // Edit status node
+    this.registerNode('edit_status', this.createEditStatusNode());
+
+    // Move category node
+    this.registerNode('move_category', this.createMoveCategoryNode());
+
+    // Choose category node
+    this.registerNode('choose_category', this.createChooseCategoryNode());
+
+    // Add service node
+    this.registerNode('add_service', this.createAddServiceNode());
+
+    // Done node
+    this.registerNode('done', this.createDoneNode());
+  }
+
+  private getExistingCategories(): string[] {
+    const categories = new Set<string>();
+    this.state.currentServices.forEach((service: any) => {
+      if (service.category) {
+        categories.add(service.category);
+      }
+    });
+    return Array.from(categories).sort();
+  }
+
+  private findService(idOrCode: string): any {
+    const id = (idOrCode || '').toUpperCase();
+    return (
+      this.state.currentServices.find(
+        (s: any) =>
+          (s.id || '').toUpperCase() === id ||
+          (s.code || '').toUpperCase() === id
+      ) ||
+      mockServices.find(
+        (s: any) =>
+          (s.id || '').toUpperCase() === id ||
+          (s.code || '').toUpperCase() === id
+      )
+    );
+  }
+
+  private getCurrentService(): any {
+    const serviceState = this.state as PortfolioState;
+    if (!serviceState.currentServiceId) return null;
+    return this.findService(serviceState.currentServiceId);
+  }
+
+  private createActionNode(): NodeHandler {
+    return {
+      messages: () => {
+        const service = this.getCurrentService();
+
+        if (service) {
+          return [
+            {
+              role: 'printy',
+              text: `Looking at ${service.name} (${service.code}). Current status: ${service.status}. What would you like to do?`,
+            },
+          ];
+        }
         return [
-          { 
-            role: 'printy', 
-            text: `Looking at ${service.name} (${service.code}). Current status: ${service.status}. What would you like to do?` 
-          }
+          {
+            role: 'printy',
+            text: 'Portfolio assistant ready. What would you like to do?',
+          },
         ];
-      }
-      return [
-        { 
-          role: 'printy', 
-          text: 'Portfolio assistant ready. What would you like to do?' 
+      },
+      quickReplies: () => {
+        const serviceState = this.state as PortfolioState;
+        return serviceState.currentServiceId
+          ? ['Edit Service', 'End Chat']
+          : ['Add Service', 'End Chat'];
+      },
+      handleInput: (input: string) => {
+        const lower = input.toLowerCase();
+
+        if (lower === 'edit service' || lower === 'edit') {
+          return { nextNodeId: 'edit_service' };
         }
-      ];
-    }
-    case 'edit_service': {
-      if (!service) return [];
-      return [
-        { 
-          role: 'printy', 
-          text: `What would you like to edit for ${service.name}?` 
+
+        if (lower === 'add service' || lower === 'add') {
+          return { nextNodeId: 'add_service' };
         }
-      ];
-    }
-    case 'edit_category': {
-      if (!service) return [];
-      return [
-        { 
-          role: 'printy', 
-          text: `Current category: ${service.category}. What should the new category be?` 
+
+        return null;
+      },
+    };
+  }
+
+  private createEditServiceNode(): NodeHandler {
+    return {
+      messages: () => {
+        const service = this.getCurrentService();
+        if (!service) return [{ role: 'printy', text: 'Service not found.' }];
+        return [
+          {
+            role: 'printy',
+            text: `What would you like to edit for ${service.name}?`,
+          },
+        ];
+      },
+      quickReplies: () => [
+        'Edit Name',
+        'Edit Category',
+        'Move to Another Category',
+        'Edit Status',
+        'End Chat',
+      ],
+      handleInput: (input: string) => {
+        const lower = input.toLowerCase();
+
+        if (lower === 'edit name' || lower === 'name') {
+          return { nextNodeId: 'edit_name' };
         }
-      ];
-    }
-    case 'edit_status': {
-      if (!service) return [];
-      return [
-        { 
-          role: 'printy', 
-          text: `Current status: ${service.status}. What should the new status be?` 
+
+        if (lower === 'edit category' || lower === 'category') {
+          return { nextNodeId: 'edit_category' };
         }
-      ];
-    }
-    case 'edit_name': {
-      if (!service) return [];
-      return [
-        { 
-          role: 'printy', 
-          text: `Current name: ${service.name}. What should the new name be?` 
+
+        if (lower === 'edit status' || lower === 'status') {
+          return { nextNodeId: 'edit_status' };
         }
-      ];
-    }
-    case 'move_category': {
-      if (!service) return [];
-      const categories = getExistingCategories();
-      const otherCategories = categories.filter(cat => cat !== service.category);
-      return [
-        { 
-          role: 'printy', 
-          text: `Moving ${service.name} from "${service.category}" to another category.` 
+
+        if (lower === 'move to another category' || lower === 'move category') {
+          return { nextNodeId: 'move_category' };
+        }
+
+        return null;
+      },
+    };
+  }
+
+  private createEditNameNode(): NodeHandler {
+    return {
+      messages: () => {
+        const service = this.getCurrentService();
+        if (!service) return [{ role: 'printy', text: 'Service not found.' }];
+        return [
+          {
+            role: 'printy',
+            text: `Current name: ${service.name}. What should the new name be?`,
+          },
+        ];
+      },
+      quickReplies: () => ['End Chat'],
+      handleInput: (input: string, state: FlowState) => {
+        const service = this.getCurrentService();
+        if (!service) {
+          return {
+            messages: [{ role: 'printy', text: 'Service not found.' }],
+            quickReplies: ['End Chat'],
+          };
+        }
+
+        const newName = input.trim();
+        if (!newName) {
+          return {
+            messages: [
+              {
+                role: 'printy',
+                text: 'Please provide a new name for the service.',
+              },
+            ],
+            quickReplies: ['End Chat'],
+          };
+        }
+
+        const oldName = service.name;
+        this.updateService(
+          service.id,
+          { name: newName },
+          state as PortfolioState
+        );
+
+        return {
+          nextNodeId: 'action',
+          messages: [
+            createServiceUpdatedMessage(
+              service.code || service.id,
+              'name',
+              oldName,
+              newName
+            ),
+          ],
+        };
+      },
+    };
+  }
+
+  private createEditCategoryNode(): NodeHandler {
+    return {
+      messages: () => {
+        const service = this.getCurrentService();
+        if (!service) return [{ role: 'printy', text: 'Service not found.' }];
+        return [
+          {
+            role: 'printy',
+            text: `Current category: ${service.category}. What should the new category be?`,
+          },
+        ];
+      },
+      quickReplies: () => ['End Chat'],
+      handleInput: (input: string, state: FlowState) => {
+        const service = this.getCurrentService();
+        if (!service) {
+          return {
+            messages: [{ role: 'printy', text: 'Service not found.' }],
+            quickReplies: ['End Chat'],
+          };
+        }
+
+        const newCategory = input.trim();
+        if (!newCategory) {
+          return {
+            messages: [
+              {
+                role: 'printy',
+                text: 'Please provide a new category for the service.',
+              },
+            ],
+            quickReplies: ['End Chat'],
+          };
+        }
+
+        const oldCategory = service.category;
+        this.updateService(
+          service.id,
+          { category: newCategory },
+          state as PortfolioState
+        );
+
+        return {
+          nextNodeId: 'action',
+          messages: [
+            createServiceUpdatedMessage(
+              service.code || service.id,
+              'category',
+              oldCategory,
+              newCategory
+            ),
+          ],
+        };
+      },
+    };
+  }
+
+  private createEditStatusNode(): NodeHandler {
+    return {
+      messages: () => {
+        const service = this.getCurrentService();
+        if (!service) return [{ role: 'printy', text: 'Service not found.' }];
+        return [
+          {
+            role: 'printy',
+            text: `Current status: ${service.status}. What should the new status be?`,
+          },
+        ];
+      },
+      quickReplies: () => [...SERVICE_STATUS_OPTIONS, 'End Chat'],
+      handleInput: (input: string, state: FlowState) => {
+        const service = this.getCurrentService();
+        if (!service) {
+          return {
+            messages: [{ role: 'printy', text: 'Service not found.' }],
+            quickReplies: ['End Chat'],
+          };
+        }
+
+        const newStatus = normalizeServiceStatus(input);
+        if (!newStatus) {
+          return {
+            messages: [
+              {
+                role: 'printy',
+                text: `Valid statuses: ${SERVICE_STATUS_OPTIONS.join(', ')}`,
+              },
+            ],
+            quickReplies: [...SERVICE_STATUS_OPTIONS, 'End Chat'],
+          };
+        }
+
+        const oldStatus = service.status;
+        this.updateService(
+          service.id,
+          { status: newStatus },
+          state as PortfolioState
+        );
+
+        return {
+          nextNodeId: 'action',
+          messages: [
+            createServiceUpdatedMessage(
+              service.code || service.id,
+              'status',
+              oldStatus,
+              newStatus
+            ),
+          ],
+        };
+      },
+    };
+  }
+
+  private createMoveCategoryNode(): NodeHandler {
+    return {
+      messages: () => {
+        const service = this.getCurrentService();
+        if (!service) return [{ role: 'printy', text: 'Service not found.' }];
+        const categories = this.getExistingCategories();
+        const otherCategories = categories.filter(
+          cat => cat !== service.category
+        );
+        return [
+          {
+            role: 'printy',
+            text: `Moving ${service.name} from "${service.category}" to another category.`,
+          },
+          {
+            role: 'printy',
+            text: `Available categories: ${otherCategories.join(', ')}`,
+          },
+        ];
+      },
+      quickReplies: () => {
+        const service = this.getCurrentService();
+        if (!service) return ['End Chat'];
+        const categories = this.getExistingCategories();
+        const otherCategories = categories.filter(
+          cat => cat !== service.category
+        );
+        return [...otherCategories, 'End Chat'];
+      },
+      handleInput: (input: string, state: FlowState) => {
+        const service = this.getCurrentService();
+        if (!service) {
+          return {
+            messages: [{ role: 'printy', text: 'Service not found.' }],
+            quickReplies: ['End Chat'],
+          };
+        }
+
+        const categories = this.getExistingCategories();
+        const otherCategories = categories.filter(
+          cat => cat !== service.category
+        );
+        const selectedCategory = otherCategories.find(
+          cat =>
+            cat.toLowerCase() === input.toLowerCase() ||
+            cat.toLowerCase().includes(input.toLowerCase()) ||
+            input.toLowerCase().includes(cat.toLowerCase())
+        );
+
+        if (!selectedCategory) {
+          return {
+            messages: [
+              {
+                role: 'printy',
+                text: `Please select a valid category: ${otherCategories.join(', ')}`,
+              },
+            ],
+            quickReplies: [...otherCategories, 'End Chat'],
+          };
+        }
+
+        const oldCategory = service.category;
+        this.updateService(
+          service.id,
+          { category: selectedCategory },
+          state as PortfolioState
+        );
+
+        return {
+          nextNodeId: 'action',
+          messages: [
+            {
+              role: 'printy',
+              text: `✅ Moved ${service.name} from "${oldCategory}" to "${selectedCategory}"`,
+            },
+          ],
+        };
+      },
+    };
+  }
+
+  private createChooseCategoryNode(): NodeHandler {
+    return {
+      messages: () => {
+        const service = this.getCurrentService();
+        if (!service) return [{ role: 'printy', text: 'Service not found.' }];
+        return [
+          {
+            role: 'printy',
+            text: `Which category should ${service.name} be moved to?`,
+          },
+        ];
+      },
+      quickReplies: () => {
+        const service = this.getCurrentService();
+        if (!service) return ['End Chat'];
+        const categories = this.getExistingCategories();
+        const otherCategories = categories.filter(
+          cat => cat !== service.category
+        );
+        return [...otherCategories, 'End Chat'];
+      },
+      handleInput: (input: string, state: FlowState) => {
+        return this.createMoveCategoryNode().handleInput!(
+          input,
+          state,
+          this.context
+        );
+      },
+    };
+  }
+
+  private createAddServiceNode(): NodeHandler {
+    return {
+      messages: () => [
+        {
+          role: 'printy',
+          text: 'To add a new service, provide: Name=Service Name; Code=SRV-XXX; Category=Category Name',
         },
-        { 
-          role: 'printy', 
-          text: `Available categories: ${otherCategories.join(', ')}` 
+      ],
+      quickReplies: () => ['End Chat'],
+      handleInput: (input: string) => {
+        const addMatch = /name=(.+?);\s*code=(.+?);\s*category=(.+)$/i.exec(
+          input
+        );
+        if (addMatch) {
+          const name = addMatch[1].trim();
+          const code = addMatch[2].trim().toUpperCase();
+          const category = addMatch[3].trim();
+
+          return {
+            messages: [
+              {
+                role: 'printy',
+                text: `Creating service ${name} (${code}) in category "${category}"…`,
+              },
+              {
+                role: 'printy',
+                text: 'Mock service created (status Active by default).',
+              },
+            ],
+            quickReplies: ['End Chat'],
+          };
         }
-      ];
-    }
-    case 'choose_category': {
-      if (!service) return [];
-      return [
-        { 
-          role: 'printy', 
-          text: `Which category should ${service.name} be moved to?` 
-        }
-      ];
-    }
-    case 'add_service': {
-      return [
-        { 
-          role: 'printy', 
-          text: 'To add a new service, provide: Name=Service Name; Code=SRV-XXX; Category=Category Name' 
-        }
-      ];
-    }
-    case 'done':
-      return [{ role: 'printy', text: 'Done. Anything else?' }];
-  }
-}
 
-function nodeQuickReplies(node: NodeId): string[] {
-  switch (node) {
-    case 'start':
-    case 'action':
-      return currentServiceId 
-        ? ['Edit Service', 'End Chat'] 
-        : ['Add Service', 'End Chat'];
-    case 'edit_service':
-      return ['Edit Name', 'Edit Category', 'Move to Another Category', 'Edit Status', 'End Chat'];
-    case 'edit_category':
-    case 'edit_name':
-      return ['End Chat'];
-    case 'edit_status':
-      return [...STATUS_OPTIONS, 'End Chat'];
-    case 'move_category': {
-      const service = currentServiceId ? findService(currentServiceId) : null;
-      if (!service) return ['End Chat'];
-      const categories = getExistingCategories();
-      const otherCategories = categories.filter(cat => cat !== service.category);
-      return [...otherCategories, 'End Chat'];
-    }
-    case 'choose_category': {
-      const service = currentServiceId ? findService(currentServiceId) : null;
-      if (!service) return ['End Chat'];
-      const categories = getExistingCategories();
-      const otherCategories = categories.filter(cat => cat !== service.category);
-      return [...otherCategories, 'End Chat'];
-    }
-    case 'add_service':
-      return ['End Chat'];
-    case 'done':
-      return ['Edit Service', 'End Chat'];
-  }
-}
-
-export const portfolioFlow: ChatFlow = {
-  id: 'admin-portfolio',
-  title: 'Admin Portfolio',
-  initial: (ctx) => {
-    currentServiceId = (ctx?.serviceId as string) || null;
-    updateServiceRef = (ctx?.updateService as any) || null;
-    currentServices = (ctx?.services as any[]) || mockServices;
-    refreshServicesRef = (ctx?.refreshServices as any) || null;
-    currentNodeId = 'action';
-    return nodeToMessages(currentNodeId);
-  },
-  quickReplies: () => nodeQuickReplies(currentNodeId),
-  respond: async (_ctx, input) => {
-    const text = input.trim();
-    const lower = text.toLowerCase();
-
-    // End chat
-    if (lower === 'end chat' || lower === 'end') {
-      return { 
-        messages: [{ role: 'printy', text: 'Thanks! Chat ended.' }], 
-        quickReplies: ['End Chat'] 
-      };
-    }
-
-    // Action selection
-    if (currentNodeId === 'action' || currentNodeId === 'start') {
-      if (lower === 'edit service' || lower === 'edit') {
-        currentNodeId = 'edit_service';
-        return { 
-          messages: nodeToMessages(currentNodeId), 
-          quickReplies: nodeQuickReplies(currentNodeId) 
-        };
-      }
-      if (lower === 'add service' || lower === 'add') {
-        currentNodeId = 'add_service';
-        return { 
-          messages: nodeToMessages(currentNodeId), 
-          quickReplies: nodeQuickReplies(currentNodeId) 
-        };
-      }
-      return { 
-        messages: nodeToMessages('action'), 
-        quickReplies: nodeQuickReplies('action') 
-      };
-    }
-
-    // Edit service selection
-    if (currentNodeId === 'edit_service') {
-      if (lower === 'edit name' || lower === 'name') {
-        currentNodeId = 'edit_name';
-        return { 
-          messages: nodeToMessages(currentNodeId), 
-          quickReplies: nodeQuickReplies(currentNodeId) 
-        };
-      }
-      if (lower === 'edit category' || lower === 'category') {
-        currentNodeId = 'edit_category';
-        return { 
-          messages: nodeToMessages(currentNodeId), 
-          quickReplies: nodeQuickReplies(currentNodeId) 
-        };
-      }
-      if (lower === 'edit status' || lower === 'status') {
-        currentNodeId = 'edit_status';
-        return { 
-          messages: nodeToMessages(currentNodeId), 
-          quickReplies: nodeQuickReplies(currentNodeId) 
-        };
-      }
-      if (lower === 'move to another category' || lower === 'move category') {
-        currentNodeId = 'move_category';
-        return { 
-          messages: nodeToMessages(currentNodeId), 
-          quickReplies: nodeQuickReplies(currentNodeId) 
-        };
-      }
-      return { 
-        messages: nodeToMessages('edit_service'), 
-        quickReplies: nodeQuickReplies('edit_service') 
-      };
-    }
-
-    // Edit name
-    if (currentNodeId === 'edit_name' && currentServiceId) {
-      const service = findService(currentServiceId);
-      if (!service) return { 
-        messages: nodeToMessages('action'), 
-        quickReplies: nodeQuickReplies('action') 
-      };
-      
-      const newName = text.trim();
-      if (!newName) {
-        return { 
-          messages: [{ role: 'printy', text: 'Please provide a new name for the service.' }], 
-          quickReplies: nodeQuickReplies('edit_name') 
-        };
-      }
-
-      if (updateServiceRef) updateServiceRef(service.id, { name: newName });
-      const mi = mockServices.findIndex(s => s.id === service.id);
-      if (mi !== -1) mockServices[mi].name = newName;
-      if (refreshServicesRef) {
-        refreshServicesRef();
-        currentServices = currentServices.map(s => 
-          s.id === service.id ? { ...s, name: newName } : s
-        );
-      }
-
-      currentNodeId = 'action';
-      return { 
-        messages: [{ 
-          role: 'printy', 
-          text: `✅ Updated ${service.code} name: "${service.name}" → "${newName}"` 
-        }], 
-        quickReplies: nodeQuickReplies(currentNodeId) 
-      };
-    }
-
-    // Edit category
-    if (currentNodeId === 'edit_category' && currentServiceId) {
-      const service = findService(currentServiceId);
-      if (!service) return { 
-        messages: nodeToMessages('action'), 
-        quickReplies: nodeQuickReplies('action') 
-      };
-      
-      const newCategory = text.trim();
-      if (!newCategory) {
-        return { 
-          messages: [{ role: 'printy', text: 'Please provide a new category for the service.' }], 
-          quickReplies: nodeQuickReplies('edit_category') 
-        };
-      }
-
-      if (updateServiceRef) updateServiceRef(service.id, { category: newCategory });
-      const mi = mockServices.findIndex(s => s.id === service.id);
-      if (mi !== -1) mockServices[mi].category = newCategory;
-      if (refreshServicesRef) {
-        refreshServicesRef();
-        currentServices = currentServices.map(s => 
-          s.id === service.id ? { ...s, category: newCategory } : s
-        );
-      }
-
-      currentNodeId = 'action';
-      return { 
-        messages: [{ 
-          role: 'printy', 
-          text: `✅ Updated ${service.code} category: "${service.category}" → "${newCategory}"` 
-        }], 
-        quickReplies: nodeQuickReplies(currentNodeId) 
-      };
-    }
-
-    // Edit status
-    if (currentNodeId === 'edit_status' && currentServiceId) {
-      const service = findService(currentServiceId);
-      if (!service) return { 
-        messages: nodeToMessages('action'), 
-        quickReplies: nodeQuickReplies('action') 
-      };
-      
-      const newStatus = normalizeServiceStatus(lower);
-      if (!newStatus) {
-        return { 
-          messages: [{ 
-            role: 'printy', 
-            text: `Valid statuses: ${STATUS_OPTIONS.join(', ')}` 
-          }], 
-          quickReplies: nodeQuickReplies('edit_status') 
-        };
-      }
-
-      if (updateServiceRef) updateServiceRef(service.id, { status: newStatus as any });
-      const mi = mockServices.findIndex(s => s.id === service.id);
-      if (mi !== -1) (mockServices[mi] as any).status = newStatus;
-      if (refreshServicesRef) {
-        refreshServicesRef();
-        currentServices = currentServices.map(s => 
-          s.id === service.id ? { ...s, status: newStatus } : s
-        );
-      }
-
-      currentNodeId = 'action';
-      return { 
-        messages: [{ 
-          role: 'printy', 
-          text: `✅ Updated ${service.code} status: ${service.status} → ${newStatus}` 
-        }], 
-        quickReplies: nodeQuickReplies(currentNodeId) 
-      };
-    }
-
-    // Move category
-    if (currentNodeId === 'move_category' && currentServiceId) {
-      const service = findService(currentServiceId);
-      if (!service) return { 
-        messages: nodeToMessages('action'), 
-        quickReplies: nodeQuickReplies('action') 
-      };
-      
-      const categories = getExistingCategories();
-      const otherCategories = categories.filter(cat => cat !== service.category);
-      const selectedCategory = otherCategories.find(cat => 
-        cat.toLowerCase() === lower || 
-        cat.toLowerCase().includes(lower) ||
-        lower.includes(cat.toLowerCase())
-      );
-      
-      if (!selectedCategory) {
-        return { 
-          messages: [{ 
-            role: 'printy', 
-            text: `Please select a valid category: ${otherCategories.join(', ')}` 
-          }], 
-          quickReplies: nodeQuickReplies('move_category') 
-        };
-      }
-
-      if (updateServiceRef) updateServiceRef(service.id, { category: selectedCategory });
-      const mi = mockServices.findIndex(s => s.id === service.id);
-      if (mi !== -1) (mockServices[mi] as any).category = selectedCategory;
-      if (refreshServicesRef) {
-        refreshServicesRef();
-        currentServices = currentServices.map(s => 
-          s.id === service.id ? { ...s, category: selectedCategory } : s
-        );
-      }
-
-      currentNodeId = 'action';
-      return { 
-        messages: [{ 
-          role: 'printy', 
-          text: `✅ Moved ${service.name} from "${service.category}" to "${selectedCategory}"` 
-        }], 
-        quickReplies: nodeQuickReplies(currentNodeId) 
-      };
-    }
-
-    // Add service
-    if (currentNodeId === 'add_service') {
-      const addMatch = /name=(.+?);\s*code=(.+?);\s*category=(.+)$/i.exec(text);
-      if (addMatch) {
-        const name = addMatch[1].trim();
-        const code = addMatch[2].trim().toUpperCase();
-        const category = addMatch[3].trim();
-        
         return {
           messages: [
             {
               role: 'printy',
-              text: `Creating service ${name} (${code}) in category "${category}"…`,
-            },
-            {
-              role: 'printy',
-              text: 'Mock service created (status Active by default).',
+              text: 'Please provide: Name=Service Name; Code=SRV-XXX; Category=Category Name',
             },
           ],
           quickReplies: ['End Chat'],
         };
-      }
-      
-      return {
-        messages: [
-          {
-            role: 'printy',
-            text: 'Please provide: Name=Service Name; Code=SRV-XXX; Category=Category Name',
-          },
-        ],
-        quickReplies: nodeQuickReplies('add_service'),
-      };
+      },
+    };
+  }
+
+  private createDoneNode(): NodeHandler {
+    return {
+      messages: () => [{ role: 'printy', text: 'Done. Anything else?' }],
+      quickReplies: () => ['Edit Service', 'End Chat'],
+    };
+  }
+
+  private updateService(
+    serviceId: string,
+    updates: Partial<any>,
+    state: PortfolioState
+  ): void {
+    // Update via context if available
+    if (this.context.updateService) {
+      this.context.updateService(serviceId, updates);
     }
 
-    // Fallback
-    return { 
-      messages: [{ role: 'printy', text: 'Please use the options below.' }], 
-      quickReplies: nodeQuickReplies(currentNodeId) 
-    };
-  },
-};
+    // Update mock data
+    const mi = mockServices.findIndex(s => s.id === serviceId);
+    if (mi !== -1) {
+      mockServices[mi] = { ...mockServices[mi], ...updates };
+    }
+
+    // Update local state
+    state.currentServices = state.currentServices.map(s =>
+      s.id === serviceId ? { ...s, ...updates } : s
+    );
+
+    // Refresh if available
+    if (this.context.refreshServices) {
+      this.context.refreshServices();
+    }
+  }
+}
+
+export const portfolioFlow = new PortfolioFlow();

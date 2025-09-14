@@ -2,6 +2,7 @@ import type { ChatFlow } from '../../types/chatFlow';
 import { ordersFlow } from './flows/Orders';
 import { multipleOrdersFlow } from './flows/MultipleOrders';
 import { ticketsFlow } from './flows/Tickets';
+import { multipleTicketsFlow } from './flows/MultipleTickets';
 import { portfolioFlow } from './flows/Portfolio';
 import { multiplePortfolioFlow } from './flows/MultiplePortfolio';
 
@@ -76,14 +77,23 @@ export const adminFlows: Record<string, ChatFlow> = {
   orders: ordersFlow,
   multipleOrders: multipleOrdersFlow,
   tickets: ticketsFlow,
+  multipleTickets: multipleTicketsFlow,
   portfolio: portfolioFlow,
   multiplePortfolio: multiplePortfolioFlow,
 };
 
 export function resolveAdminFlow(topic?: string | null): ChatFlow | null {
   const t = (topic || 'intro').toLowerCase();
-  if (t.includes('multiple-portfolio') || t.includes('multi-portfolio')) return multiplePortfolioFlow;
-  if (t.includes('multiple-orders') || t.includes('multi') || t.includes('bulk')) return multipleOrdersFlow;
+  if (t.includes('multiple-portfolio') || t.includes('multi-portfolio'))
+    return multiplePortfolioFlow;
+  if (t.includes('multiple-tickets') || t.includes('multi-tickets'))
+    return multipleTicketsFlow;
+  if (
+    t.includes('multiple-orders') ||
+    t.includes('multi') ||
+    t.includes('bulk')
+  )
+    return multipleOrdersFlow;
   if (t.includes('order')) return ordersFlow;
   if (t.includes('ticket')) return ticketsFlow;
   if (t.includes('portfolio') || t.includes('service')) return portfolioFlow;
@@ -108,7 +118,9 @@ export function dispatchAdminCommand(input: string) {
     text.includes('ticket') ||
     text.includes('reply')
   ) {
-    flow = ticketsFlow;
+    // If there are 2+ ticket ids in the message, use multipleTickets flow
+    const ticketMatches = (text.match(/\btck-\d+\b/g) || []).length;
+    flow = ticketMatches >= 2 ? multipleTicketsFlow : ticketsFlow;
   } else if (
     text.includes('srv-') ||
     text.includes('service') ||
