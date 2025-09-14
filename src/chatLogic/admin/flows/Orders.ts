@@ -60,7 +60,7 @@ class OrdersFlow extends FlowBase {
 
   private createActionNode(): NodeHandler {
     return {
-      messages: (state: FlowState, context: FlowContext) => {
+      messages: (state: FlowState) => {
         const orderState = state as OrdersState;
         const order = this.getCurrentOrder(orderState);
         if (order) {
@@ -78,14 +78,14 @@ class OrdersFlow extends FlowBase {
           },
         ];
       },
-      quickReplies: (state: FlowState, context: FlowContext) => {
+      quickReplies: (state: FlowState) => {
         const orderState = state as OrdersState;
         const order = this.getCurrentOrder(orderState);
         return order
           ? ['View Details', 'Change Status', 'Create Quote', 'End Chat']
           : ['Change Status', 'Create Quote', 'End Chat'];
       },
-      handleInput: (input: string, state: FlowState, context: FlowContext) => {
+      handleInput: (input: string, state: FlowState) => {
         const lower = input.toLowerCase();
 
         if (lower === 'view details') {
@@ -128,7 +128,7 @@ class OrdersFlow extends FlowBase {
 
   private createDetailsNode(): NodeHandler {
     return {
-      messages: (state: FlowState, context: FlowContext) => {
+      messages: (state: FlowState) => {
         const orderState = state as OrdersState;
         const order = this.getCurrentOrder(orderState);
         if (!order) return [];
@@ -167,7 +167,7 @@ class OrdersFlow extends FlowBase {
         return msgs;
       },
       quickReplies: () => ['Change Status', 'Create Quote', 'End Chat'],
-      handleInput: (input: string, state: FlowState, context: FlowContext) => {
+      handleInput: (input: string, state: FlowState) => {
         const lower = input.toLowerCase();
 
         if (lower === 'change status' || lower === 'status') {
@@ -205,7 +205,7 @@ class OrdersFlow extends FlowBase {
 
   private createStatusChangeNode(): NodeHandler {
     return {
-      messages: (state: FlowState, context: FlowContext) => {
+      messages: (state: FlowState) => {
         const orderState = state as OrdersState;
         const order = this.getCurrentOrder(orderState);
         if (!order) return [{ role: 'printy', text: 'Order not found.' }];
@@ -217,7 +217,7 @@ class OrdersFlow extends FlowBase {
         ];
       },
       quickReplies: () => [...ORDER_STATUS_OPTIONS, 'End Chat'],
-      handleInput: (input: string, state: FlowState, context: FlowContext) => {
+      handleInput: (input: string, state: FlowState) => {
         const orderState = state as OrdersState;
         const order = this.getCurrentOrder(orderState);
         if (!order) {
@@ -254,7 +254,7 @@ class OrdersFlow extends FlowBase {
 
   private createQuotePriceNode(): NodeHandler {
     return {
-      messages: (state: FlowState, context: FlowContext) => {
+      messages: (state: FlowState) => {
         const orderState = state as OrdersState;
         const order = this.getCurrentOrder(orderState);
         if (!order) return [{ role: 'printy', text: 'Order not found.' }];
@@ -270,7 +270,7 @@ class OrdersFlow extends FlowBase {
         ];
       },
       quickReplies: () => ['End Chat'],
-      handleInput: (input: string, state: FlowState, context: FlowContext) => {
+      handleInput: (input: string, state: FlowState) => {
         const orderState = state as OrdersState;
         const order = this.getCurrentOrder(orderState);
         if (!order) {

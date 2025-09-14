@@ -90,7 +90,7 @@ const AdminOrders: React.FC = () => {
   return isMobile ? (
     <OrdersMobileLayout {...commonProps} />
   ) : (
-    <OrdersDesktopLayout {...commonProps} />
+    <OrdersDesktopLayout />
   );
 };
 

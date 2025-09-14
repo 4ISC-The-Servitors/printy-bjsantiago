@@ -1,6 +1,6 @@
 // Message building utilities for all chat flows
 
-import type { BotMessage } from '../../../types/chatFlow';
+import type { BotMessage } from '../../../../types/chatFlow';
 
 export function createEndChatMessage(): BotMessage {
   return { role: 'printy', text: 'Thanks! Chat ended.' };

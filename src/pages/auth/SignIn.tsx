@@ -1,6 +1,11 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Container, ToastContainer } from '../../components/shared';
+import {
+  Button,
+  Container,
+  ToastContainer,
+  PageLoading,
+} from '../../components/shared';
 import Header from '../../components/auth/SignIn/Header';
 import SocialDivider from '../../components/auth/SignIn/SocialDivider';
 import SignInForm from '../../components/auth/SignIn/SignInForm';
@@ -19,6 +24,7 @@ import { ArrowLeft } from 'lucide-react';
 
 const SignIn: React.FC = () => {
   const navigate = useNavigate();
+  const [isPageLoading, setIsPageLoading] = useState(true);
   const {
     toasts,
     toast,
@@ -32,6 +38,22 @@ const SignIn: React.FC = () => {
     handleSubmit,
     handleGoogleSignIn,
   } = useSignIn();
+
+  // Simulate page loading
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsPageLoading(false);
+    }, 800);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (isPageLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-brand-primary-50 flex items-center justify-center p-4">
+        <PageLoading variant="form" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-brand-primary-50 flex items-center justify-center p-4">

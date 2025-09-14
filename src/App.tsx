@@ -11,6 +11,7 @@ import DashboardLayout from './components/admin/dashboard/DashboardLayout';
 import OrdersDesktopLayout from './components/admin/orders/desktop/OrdersDesktopLayout';
 // TicketsLayout removed; tickets page handles layout internally
 import SettingsLayout from './components/admin/settings/SettingsLayout';
+import { PageLoading } from './components/shared';
 import './index.css';
 
 // Lazy load heavy components
@@ -38,7 +39,7 @@ function App() {
         path="/admin"
         element={
           <DashboardLayout>
-            <Suspense fallback={<div>Loading...</div>}>
+            <Suspense fallback={<PageLoading variant="dashboard" />}>
               <AdminDashboard />
             </Suspense>
           </DashboardLayout>
@@ -47,7 +48,7 @@ function App() {
       <Route
         path="/admin/orders"
         element={
-          <Suspense fallback={<div>Loading...</div>}>
+          <Suspense fallback={<PageLoading variant="list" />}>
             <OrdersDesktopLayout />
           </Suspense>
         }
@@ -55,7 +56,7 @@ function App() {
       <Route
         path="/admin/tickets"
         element={
-          <Suspense fallback={<div>Loading...</div>}>
+          <Suspense fallback={<PageLoading variant="list" />}>
             <AdminTickets />
           </Suspense>
         }
@@ -63,7 +64,7 @@ function App() {
       <Route
         path="/admin/portfolio"
         element={
-          <Suspense fallback={<div>Loading...</div>}>
+          <Suspense fallback={<PageLoading variant="grid" />}>
             <AdminPortfolio />
           </Suspense>
         }
@@ -72,7 +73,7 @@ function App() {
         path="/admin/settings"
         element={
           <SettingsLayout>
-            <Suspense fallback={<div>Loading...</div>}>
+            <Suspense fallback={<PageLoading variant="form" />}>
               <AdminSettingsPage />
             </Suspense>
           </SettingsLayout>
@@ -81,7 +82,7 @@ function App() {
       <Route
         path="/superadmin"
         element={
-          <Suspense fallback={<div>Loading...</div>}>
+          <Suspense fallback={<PageLoading variant="dashboard" />}>
             <SuperAdminDashboard />
           </Suspense>
         }
@@ -89,7 +90,7 @@ function App() {
       <Route
         path="/showcase"
         element={
-          <Suspense fallback={<div>Loading...</div>}>
+          <Suspense fallback={<PageLoading variant="minimal" />}>
             <ComponentShowcase />
           </Suspense>
         }

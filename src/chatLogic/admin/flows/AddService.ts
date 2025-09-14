@@ -1,11 +1,7 @@
 // Add Service Flow for creating new services in the portfolio
 
 import { mockServices } from '../../../data/services';
-import {
-  FlowBase,
-  SERVICE_STATUS_OPTIONS,
-  createServiceUpdatedMessage,
-} from '../shared';
+import { FlowBase, SERVICE_STATUS_OPTIONS } from '../shared';
 import { normalizeServiceStatus } from '../shared/utils/StatusNormalizers';
 import type { FlowState, FlowContext, NodeHandler } from '../shared';
 
@@ -89,7 +85,7 @@ class AddServiceFlow extends FlowBase {
       messages: () => [
         {
           role: 'printy',
-          text: 'Welcome! I\'ll help you add a new service to the portfolio. Let\'s start with the service name.',
+          text: "Welcome! I'll help you add a new service to the portfolio. Let's start with the service name.",
         },
         {
           role: 'printy',
@@ -230,7 +226,7 @@ class AddServiceFlow extends FlowBase {
           },
         ];
       },
-      quickReplies: (state) => {
+      quickReplies: state => {
         const serviceState = state as AddServiceState;
         return [...serviceState.existingCategories, 'End Chat'];
       },
@@ -353,7 +349,7 @@ class AddServiceFlow extends FlowBase {
       messages: () => {
         const serviceState = this.state as AddServiceState;
         const { newService } = serviceState;
-        
+
         // Create the new service
         const newServiceId = `SRV-${Date.now().toString().slice(-3)}`;
         const createdService = {

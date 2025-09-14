@@ -14,7 +14,13 @@ interface Order {
   customer: string;
   total: string;
   date: string;
-  status: 'Pending' | 'Processing' | 'Completed';
+  status:
+    | 'Pending'
+    | 'Processing'
+    | 'Awaiting Payment'
+    | 'For Delivery/Pick-up'
+    | 'Completed'
+    | 'Cancelled';
   priority?: 'Urgent';
 }
 

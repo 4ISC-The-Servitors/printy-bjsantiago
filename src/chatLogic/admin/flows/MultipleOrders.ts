@@ -92,7 +92,7 @@ class MultipleOrdersFlow extends FlowBase {
 
   private createMultiStartNode(): NodeHandler {
     return {
-      messages: (state: FlowState, context: FlowContext) => {
+      messages: (state: FlowState) => {
         const orderState = state as MultipleOrdersState;
         const selected = this.getSelectedOrders(orderState);
         const msgs: BotMessage[] = [
@@ -110,7 +110,7 @@ class MultipleOrdersFlow extends FlowBase {
         return msgs;
       },
       quickReplies: () => ['Change Status', 'Create Quote', 'End Chat'],
-      handleInput: (input: string, state: FlowState, context: FlowContext) => {
+      handleInput: (input: string) => {
         const lower = input.toLowerCase();
 
         if (lower === 'change status') {
@@ -132,7 +132,7 @@ class MultipleOrdersFlow extends FlowBase {
 
   private createActionNode(): NodeHandler {
     return {
-      messages: (state: FlowState, context: FlowContext) => {
+      messages: (state: FlowState) => {
         const orderState = state as MultipleOrdersState;
         return [
           {
@@ -142,7 +142,7 @@ class MultipleOrdersFlow extends FlowBase {
         ];
       },
       quickReplies: () => ['Change Status', 'Create Quote', 'End Chat'],
-      handleInput: (input: string, state: FlowState, context: FlowContext) => {
+      handleInput: (input: string) => {
         const lower = input.toLowerCase();
 
         if (lower === 'change status') {
@@ -164,14 +164,14 @@ class MultipleOrdersFlow extends FlowBase {
 
   private createChooseIdNode(): NodeHandler {
     return {
-      messages: (state: FlowState, context: FlowContext) => {
-        const orderState = state as MultipleOrdersState;
-        const remaining = this.getRemainingOrders(orderState);
+      messages: () => {
+        // const orderState = state as MultipleOrdersState;
+        // const remaining = this.getRemainingOrders(orderState);
         return [
           { role: 'printy', text: 'Which order ID would you like to change?' },
         ];
       },
-      quickReplies: (state: FlowState, context: FlowContext) => {
+      quickReplies: (state: FlowState) => {
         const orderState = state as MultipleOrdersState;
         const remaining = this.getRemainingOrders(orderState);
         return [
@@ -180,7 +180,7 @@ class MultipleOrdersFlow extends FlowBase {
           'End Chat',
         ];
       },
-      handleInput: (input: string, state: FlowState, context: FlowContext) => {
+      handleInput: (input: string, state: FlowState) => {
         const orderState = state as MultipleOrdersState;
         const lower = input.toLowerCase();
 
@@ -219,7 +219,7 @@ class MultipleOrdersFlow extends FlowBase {
 
   private createStatusChangeNode(): NodeHandler {
     return {
-      messages: (state: FlowState, context: FlowContext) => {
+      messages: (state: FlowState) => {
         const orderState = state as MultipleOrdersState;
         const order = this.getCurrentOrder(orderState);
         if (!order) return [{ role: 'printy', text: 'Order not found.' }];
@@ -231,7 +231,7 @@ class MultipleOrdersFlow extends FlowBase {
         ];
       },
       quickReplies: () => [...ORDER_STATUS_OPTIONS, 'End Chat'],
-      handleInput: (input: string, state: FlowState, context: FlowContext) => {
+      handleInput: (input: string, state: FlowState) => {
         const orderState = state as MultipleOrdersState;
         const order = this.getCurrentOrder(orderState);
         if (!order) {
@@ -299,7 +299,7 @@ class MultipleOrdersFlow extends FlowBase {
 
   private createBulkStatusChangeNode(): NodeHandler {
     return {
-      messages: (state: FlowState, context: FlowContext) => {
+      messages: () => {
         return [
           {
             role: 'printy',
@@ -308,7 +308,7 @@ class MultipleOrdersFlow extends FlowBase {
         ];
       },
       quickReplies: () => [...ORDER_STATUS_OPTIONS, 'End Chat'],
-      handleInput: (input: string, state: FlowState, context: FlowContext) => {
+      handleInput: (input: string, state: FlowState) => {
         const orderState = state as MultipleOrdersState;
         const next = normalizeOrderStatus(input);
 
@@ -346,9 +346,9 @@ class MultipleOrdersFlow extends FlowBase {
 
   private createChooseQuoteTargetNode(): NodeHandler {
     return {
-      messages: (state: FlowState, context: FlowContext) => {
-        const orderState = state as MultipleOrdersState;
-        const remaining = this.getRemainingQuoteOrders(orderState);
+      messages: () => {
+        // const orderState = state as MultipleOrdersState;
+        // const remaining = this.getRemainingQuoteOrders(orderState);
         return [
           {
             role: 'printy',
@@ -356,12 +356,12 @@ class MultipleOrdersFlow extends FlowBase {
           },
         ];
       },
-      quickReplies: (state: FlowState, context: FlowContext) => {
+      quickReplies: (state: FlowState) => {
         const orderState = state as MultipleOrdersState;
         const remaining = this.getRemainingQuoteOrders(orderState);
         return [...remaining.map(o => o.id), 'End Chat'];
       },
-      handleInput: (input: string, state: FlowState, context: FlowContext) => {
+      handleInput: (input: string, state: FlowState) => {
         const orderState = state as MultipleOrdersState;
         const remaining = this.getRemainingQuoteOrders(orderState);
         const ids = extractOrderIds(input);
@@ -391,7 +391,7 @@ class MultipleOrdersFlow extends FlowBase {
 
   private createQuotePriceNode(): NodeHandler {
     return {
-      messages: (state: FlowState, context: FlowContext) => {
+      messages: (state: FlowState) => {
         const orderState = state as MultipleOrdersState;
         const order = this.getCurrentOrder(orderState);
         if (!order) return [{ role: 'printy', text: 'Order not found.' }];
@@ -407,7 +407,7 @@ class MultipleOrdersFlow extends FlowBase {
         ];
       },
       quickReplies: () => ['End Chat'],
-      handleInput: (input: string, state: FlowState, context: FlowContext) => {
+      handleInput: (input: string, state: FlowState) => {
         const orderState = state as MultipleOrdersState;
         const order = this.getCurrentOrder(orderState);
         if (!order) {

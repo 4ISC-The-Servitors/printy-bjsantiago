@@ -1,10 +1,6 @@
 // Base node handlers for all chat flows
 
-import type { BotMessage } from '../../../types/chatFlow';
-import type { FlowState } from '../FlowState';
-import type { FlowContext } from '../FlowContext';
 import type { NodeHandler } from '../NodeHandler';
-import { isEndChat } from '../utils/InputValidators';
 import {
   createEndChatMessage,
   createErrorMessage,
@@ -16,7 +12,7 @@ export const endChatNode: NodeHandler = {
 };
 
 export const actionNode: NodeHandler = {
-  messages: (state, context) => {
+  messages: () => {
     // This will be overridden by specific flows
     return [{ role: 'printy', text: 'What would you like to do?' }];
   },

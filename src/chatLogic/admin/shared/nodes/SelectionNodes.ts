@@ -1,14 +1,11 @@
 // Selection node handlers for choosing items from lists
 
-import type { BotMessage } from '../../../types/chatFlow';
+import type { BotMessage } from '../../../../types/chatFlow';
 import type { FlowState } from '../FlowState';
 import type { FlowContext } from '../FlowContext';
 import type { NodeHandler } from '../NodeHandler';
 import { extractIds } from '../utils/IdExtractors';
-import {
-  createSelectionListMessage,
-  createRemainingCountMessage,
-} from '../utils/MessageBuilders';
+import { createSelectionListMessage } from '../utils/MessageBuilders';
 
 export interface SelectionItem {
   id: string;
@@ -19,7 +16,6 @@ export interface SelectionItem {
 
 export function createChooseItemNode(
   itemType: 'order' | 'service' | 'ticket',
-  getItems: (state: FlowState, context: FlowContext) => SelectionItem[],
   getRemainingItems: (state: FlowState, context: FlowContext) => SelectionItem[]
 ): NodeHandler {
   return {

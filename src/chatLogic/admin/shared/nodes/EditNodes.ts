@@ -1,11 +1,9 @@
 // Edit node handlers for modifying item properties
 
-import type { BotMessage } from '../../../types/chatFlow';
 import type { FlowState } from '../FlowState';
 import type { FlowContext } from '../FlowContext';
 import type { NodeHandler } from '../NodeHandler';
 import {
-  isValidTextInput,
   isValidServiceName,
   isValidCategory,
   isValidTicketReply,
@@ -26,7 +24,7 @@ export function createEditNameNode(
   getNextNode: (state: FlowState, context: FlowContext) => string
 ): NodeHandler {
   return {
-    messages: (state, context) => {
+    messages: (state: FlowState, context: FlowContext) => {
       const item = getCurrentItem(state, context);
       if (!item) return [{ role: 'printy', text: 'Item not found.' }];
       return [
@@ -37,7 +35,7 @@ export function createEditNameNode(
       ];
     },
     quickReplies: () => ['End Chat'],
-    handleInput: (input, state, context) => {
+    handleInput: (input: string, state: FlowState, context: FlowContext) => {
       const item = getCurrentItem(state, context);
       if (!item) {
         return {
@@ -88,7 +86,7 @@ export function createEditCategoryNode(
   getNextNode: (state: FlowState, context: FlowContext) => string
 ): NodeHandler {
   return {
-    messages: (state, context) => {
+    messages: (state: FlowState, context: FlowContext) => {
       const item = getCurrentItem(state, context);
       if (!item) return [{ role: 'printy', text: 'Item not found.' }];
       return [
@@ -99,7 +97,7 @@ export function createEditCategoryNode(
       ];
     },
     quickReplies: () => ['End Chat'],
-    handleInput: (input, state, context) => {
+    handleInput: (input: string, state: FlowState, context: FlowContext) => {
       const item = getCurrentItem(state, context);
       if (!item) {
         return {
@@ -150,7 +148,7 @@ export function createReplyNode(
   getNextNode: (state: FlowState, context: FlowContext) => string
 ): NodeHandler {
   return {
-    messages: (state, context) => {
+    messages: () => {
       return [
         {
           role: 'printy',
@@ -159,7 +157,7 @@ export function createReplyNode(
       ];
     },
     quickReplies: () => ['End Chat'],
-    handleInput: (input, state, context) => {
+    handleInput: (input: string, state: FlowState, context: FlowContext) => {
       const item = getCurrentItem(state, context);
       if (!item) {
         return {

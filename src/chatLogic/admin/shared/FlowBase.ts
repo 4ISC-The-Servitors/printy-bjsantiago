@@ -1,6 +1,10 @@
 // Abstract base class for all chat flows
 
-import type { ChatFlow, BotMessage } from '../../../types/chatFlow';
+import type {
+  ChatFlow,
+  BotMessage,
+  FlowResponse,
+} from '../../../types/chatFlow';
 import type { FlowState } from './FlowState';
 import type { FlowContext } from './FlowContext';
 import type { NodeHandler, NodeHandlerResult } from './NodeHandler';
@@ -31,7 +35,7 @@ export abstract class FlowBase implements ChatFlow {
 
   quickReplies = () => this.getCurrentQuickReplies();
 
-  respond = async (_ctx: FlowContext, input: string) => {
+  respond = async (_ctx: FlowContext, input: string): Promise<FlowResponse> => {
     const handler = this.nodes.get(this.state.currentNodeId);
     if (!handler) {
       return this.createEndChatResponse();
@@ -58,7 +62,14 @@ export abstract class FlowBase implements ChatFlow {
 
   protected getCurrentMessages(): BotMessage[] {
     const handler = this.nodes.get(this.state.currentNodeId);
-    return handler ? handler.messages(this.state, this.context) : [];
+    if (!handler) return [];
+
+    const messages = handler.messages(this.state, this.context);
+    // Ensure all messages have the correct role type
+    return messages.map(msg => ({
+      ...msg,
+      role: 'printy' as const,
+    }));
   }
 
   protected getCurrentQuickReplies(): string[] {
@@ -68,7 +79,7 @@ export abstract class FlowBase implements ChatFlow {
       : ['End Chat'];
   }
 
-  protected processHandlerResult(result: NodeHandlerResult) {
+  protected processHandlerResult(result: NodeHandlerResult): FlowResponse {
     // Update state if needed
     if (result.stateUpdates) {
       this.state = { ...this.state, ...result.stateUpdates };
@@ -80,20 +91,27 @@ export abstract class FlowBase implements ChatFlow {
     }
 
     // Return messages and quick replies
+    const messages = result.messages || this.getCurrentMessages();
+    // Ensure all messages have the correct role type
+    const typedMessages = messages.map(msg => ({
+      ...msg,
+      role: 'printy' as const,
+    }));
+
     return {
-      messages: result.messages || this.getCurrentMessages(),
+      messages: typedMessages,
       quickReplies: result.quickReplies || this.getCurrentQuickReplies(),
     };
   }
 
-  protected createEndChatResponse() {
+  protected createEndChatResponse(): FlowResponse {
     return {
       messages: [createEndChatMessage()],
       quickReplies: ['End Chat'],
     };
   }
 
-  protected createFallbackResponse() {
+  protected createFallbackResponse(): FlowResponse {
     return {
       messages: [{ role: 'printy', text: 'Please use the options below.' }],
       quickReplies: this.getCurrentQuickReplies(),

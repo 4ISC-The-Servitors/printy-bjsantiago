@@ -43,7 +43,7 @@ const TicketsMobileLayout: React.FC<TicketsMobileLayoutProps> = ({
 
   const hasSelectedItems = selectedTickets.length > 0;
 
-  const handleViewInChat = () => {
+  const handleViewInChat = (_ticketId: string) => {
     setActiveCardMenu(null);
   };
 

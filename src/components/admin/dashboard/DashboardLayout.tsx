@@ -12,9 +12,7 @@ import useAdminNav from '../../../hooks/admin/useAdminNav';
 import { useIsMobile } from './index';
 import { SelectionProvider } from '../../../hooks/admin/SelectionContext';
 
-const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
+const DashboardLayout: React.FC<{ children: React.ReactNode }> = () => {
   const navigate = useNavigate();
   const { go } = useAdminNav();
   const isMobile = useIsMobile();

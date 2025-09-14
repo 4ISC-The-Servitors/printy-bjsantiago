@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+// import { useNavigate } from 'react-router-dom';
 import { mockTickets } from '../../data/tickets';
 import TicketsMobileLayout from '../../components/admin/tickets/mobile/TicketsMobileLayout';
 import TicketsDesktopLayout from '../../components/admin/tickets/desktop/TicketsDesktopLayout';
@@ -7,9 +7,9 @@ import { useToast } from '../../components/shared';
 
 const AdminTickets: React.FC = () => {
   const [selectedTickets, setSelectedTickets] = useState<string[]>([]);
-  const [hoveredTicket, setHoveredTicket] = useState<string | null>(null);
+  // const [hoveredTicket, setHoveredTicket] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
   const [, toast] = useToast();
 
   useEffect(() => {
@@ -50,16 +50,16 @@ const AdminTickets: React.FC = () => {
     }
   };
 
-  const handlePortfolioNavigation = () => {
-    navigate('/admin/portfolio');
-  };
+  // const handlePortfolioNavigation = () => {
+  //   navigate('/admin/portfolio');
+  // };
 
   return isMobile ? (
     <TicketsMobileLayout
       mockTickets={mockTickets}
       selectedTickets={selectedTickets}
       setSelectedTickets={setSelectedTickets}
-      setHoveredTicket={setHoveredTicket}
+      setHoveredTicket={() => {}}
       handleTicketSelect={handleTicketSelect}
       addSelectedToChat={addSelectedToChat}
       getStatusColor={getStatusColor}
