@@ -24,11 +24,11 @@ const SelectedChipsBar: React.FC<SelectedChipsBarProps> = ({
   return (
     <div className="border-b bg-white px-3 py-2">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
+        <div className="flex items-baseline gap-2">
           <Text variant="p" size="sm" weight="medium">
             {title}
           </Text>
-          <Badge size="sm" variant="secondary">
+          <Badge size="sm" variant="secondary" className="align-middle">
             {items.length}
           </Badge>
         </div>

@@ -10,7 +10,6 @@ import AccountSettingsPage from './pages/customer/accountSettings/AccountSetting
 import DashboardLayout from './components/admin/dashboard/DashboardLayout';
 import OrdersDesktopLayout from './components/admin/orders/desktop/OrdersDesktopLayout';
 // TicketsLayout removed; tickets page handles layout internally
-import PortfolioLayout from './components/admin/portfolio/PortfolioLayout';
 import SettingsLayout from './components/admin/settings/SettingsLayout';
 import './index.css';
 
@@ -64,11 +63,9 @@ function App() {
       <Route
         path="/admin/portfolio"
         element={
-          <PortfolioLayout>
-            <Suspense fallback={<div>Loading...</div>}>
-              <AdminPortfolio />
-            </Suspense>
-          </PortfolioLayout>
+          <Suspense fallback={<div>Loading...</div>}>
+            <AdminPortfolio />
+          </Suspense>
         }
       />
       <Route

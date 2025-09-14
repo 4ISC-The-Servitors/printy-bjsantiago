@@ -27,6 +27,8 @@ export const useIsMobile = () => {
 export const ServicePortfolioCard: React.FC<{
   expanded: Record<string, boolean>;
   setExpanded: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
+  onServiceChat?: (service: any) => void;
+  services?: any[];
 }> = props => {
   const isMobile = useIsMobile();
   return isMobile ? (

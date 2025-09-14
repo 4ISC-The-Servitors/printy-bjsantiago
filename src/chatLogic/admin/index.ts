@@ -3,6 +3,7 @@ import { ordersFlow } from './flows/Orders';
 import { multipleOrdersFlow } from './flows/MultipleOrders';
 import { ticketsFlow } from './flows/Tickets';
 import { portfolioFlow } from './flows/Portfolio';
+import { multiplePortfolioFlow } from './flows/MultiplePortfolio';
 
 const introFlow: ChatFlow = {
   id: 'admin-intro',
@@ -76,10 +77,12 @@ export const adminFlows: Record<string, ChatFlow> = {
   multipleOrders: multipleOrdersFlow,
   tickets: ticketsFlow,
   portfolio: portfolioFlow,
+  multiplePortfolio: multiplePortfolioFlow,
 };
 
 export function resolveAdminFlow(topic?: string | null): ChatFlow | null {
   const t = (topic || 'intro').toLowerCase();
+  if (t.includes('multiple-portfolio') || t.includes('multi-portfolio')) return multiplePortfolioFlow;
   if (t.includes('multiple-orders') || t.includes('multi') || t.includes('bulk')) return multipleOrdersFlow;
   if (t.includes('order')) return ordersFlow;
   if (t.includes('ticket')) return ticketsFlow;
@@ -112,7 +115,9 @@ export function dispatchAdminCommand(input: string) {
     text.includes('portfolio') ||
     text.includes('add service')
   ) {
-    flow = portfolioFlow;
+    // If there are 2+ service codes in the message, use multiplePortfolio flow
+    const serviceMatches = (text.match(/\bsrv-[a-z0-9]+\b/g) || []).length;
+    flow = serviceMatches >= 2 ? multiplePortfolioFlow : portfolioFlow;
   }
   if (!flow) return null;
 

@@ -6,6 +6,8 @@ import { MessageSquare, ChevronDown, ChevronRight } from 'lucide-react';
 interface Props {
   expanded: Record<string, boolean>;
   setExpanded: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
+  onServiceChat?: (service: any) => void;
+  services?: any[];
 }
 
 // Add status badges to mock services for demonstration
@@ -14,9 +16,12 @@ const servicesWithStatus = mockServices.map((service, index) => ({
   status: index % 3 === 0 ? 'active' : index % 3 === 1 ? 'inactive' : 'retired',
 }));
 
-const ServicePortfolioCard: React.FC<Props> = ({ expanded, setExpanded }) => {
-  const map = new Map<string, typeof servicesWithStatus>();
-  servicesWithStatus.forEach(s => {
+const ServicePortfolioCard: React.FC<Props> = ({ expanded, setExpanded, onServiceChat, services }) => {
+  // Use provided services or fallback to mock data
+  const servicesToUse = services || servicesWithStatus;
+  
+  const map = new Map<string, typeof servicesToUse>();
+  servicesToUse.forEach(s => {
     const arr = map.get(s.category) || [];
     arr.push(s);
     map.set(s.category, arr);
@@ -64,11 +69,13 @@ const ServicePortfolioCard: React.FC<Props> = ({ expanded, setExpanded }) => {
                       </Text>
                       <Badge
                         variant={
-                          s.status === 'active'
+                          s.status === 'Active'
                             ? 'success'
-                            : s.status === 'inactive'
+                            : s.status === 'Inactive'
                               ? 'warning'
-                              : 'error'
+                              : s.status === 'Retired'
+                                ? 'error'
+                                : 'warning'
                         }
                         size="sm"
                       >
@@ -89,6 +96,7 @@ const ServicePortfolioCard: React.FC<Props> = ({ expanded, setExpanded }) => {
                         size="sm"
                         threeD
                         aria-label={`Ask about ${s.name}`}
+                        onClick={() => onServiceChat?.(s)}
                       >
                         <MessageSquare className="w-4 h-4" />
                       </Button>

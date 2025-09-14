@@ -82,11 +82,11 @@ export const SelectionBar: React.FC<SelectionBarProps> = ({
       className={`bg-white border border-gray-200 rounded-lg p-4 shadow-sm ${className}`}
     >
       <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
+        <div className="flex items-baseline gap-2">
           <Text variant="h4" size="sm" weight="semibold">
             Selected {getEntityLabel(entityType)}
           </Text>
-          <Badge variant="secondary" size="sm">
+          <Badge variant="secondary" size="sm" className="align-middle">
             {items.length}
           </Badge>
         </div>

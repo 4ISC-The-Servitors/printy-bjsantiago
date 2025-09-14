@@ -26,24 +26,26 @@ interface ServiceCategory {
 
 interface PortfolioMobileLayoutProps {
   mockPortfolioData: ServiceCategory[];
-  mockServicesOffered: ServiceCategory[];
   selectedServices: string[];
   setSelectedServices: (services: string[]) => void;
   handleServiceSelect: (service: Service) => void;
   handleViewInChat: (service: Service) => void;
   handleAddToChat: () => void;
+  handleServiceChat?: (service: any) => void;
   getStatusColor: (status: string) => string;
+  services?: any[];
 }
 
 const PortfolioMobileLayout: React.FC<PortfolioMobileLayoutProps> = ({
   mockPortfolioData,
-  mockServicesOffered,
   selectedServices,
   setSelectedServices,
   handleServiceSelect,
   handleViewInChat,
   handleAddToChat,
+  handleServiceChat,
   getStatusColor,
+  services,
 }) => {
   const [openPortfolioDropdown, setOpenPortfolioDropdown] = useState<
     string | null
@@ -73,6 +75,37 @@ const PortfolioMobileLayout: React.FC<PortfolioMobileLayoutProps> = ({
   };
 
   const hasSelectedItems = selectedServices.length > 0;
+
+  // Create dynamic portfolio data from services if available, otherwise use mock data
+  const portfolioData = services ? (() => {
+    const categoryMap = new Map<string, Service[]>();
+    services.forEach(service => {
+      const category = service.category || 'Uncategorized';
+      if (!categoryMap.has(category)) {
+        categoryMap.set(category, []);
+      }
+      categoryMap.get(category)!.push({
+        id: service.id,
+        name: service.name,
+        code: service.code,
+        status: service.status as 'Active' | 'Inactive' | 'Retired'
+      });
+    });
+    
+    return Array.from(categoryMap.entries()).map(([name, services]) => ({
+      id: name.toLowerCase().replace(/\s+/g, '-'),
+      name,
+      count: services.length,
+      services
+    }));
+  })() : mockPortfolioData;
+
+  // Create Services Offered data by filtering portfolio data for Active services only
+  const servicesOfferedData = portfolioData.map(category => ({
+    ...category,
+    services: category.services.filter(service => service.status === 'Active'),
+    count: category.services.filter(service => service.status === 'Active').length
+  })).filter(category => category.count > 0);
 
   return (
     <div className="p-4 space-y-6">
@@ -107,7 +140,7 @@ const PortfolioMobileLayout: React.FC<PortfolioMobileLayoutProps> = ({
         </div>
 
         <div className="p-4 space-y-3">
-          {mockPortfolioData.map(category => (
+          {portfolioData.map(category => (
             <div
               key={category.id}
               className="border border-gray-200 rounded-lg"
@@ -193,12 +226,12 @@ const PortfolioMobileLayout: React.FC<PortfolioMobileLayoutProps> = ({
                             {openMenuId === service.id && (
                               <div className="absolute right-0 top-8 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[140px]">
                                 <Button
-                                  onClick={() => handleViewInChat(service)}
+                                  onClick={() => handleServiceChat?.(service) || handleViewInChat(service)}
                                   className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
                                 >
                                   <MessageCircle className="w-4 h-4" />
                                   <Text variant="p" size="sm">
-                                    View in Chat
+                                    Chat about this service
                                   </Text>
                                 </Button>
                                 <Button
@@ -237,7 +270,7 @@ const PortfolioMobileLayout: React.FC<PortfolioMobileLayoutProps> = ({
         </div>
 
         <div className="p-4 space-y-3">
-          {mockServicesOffered.map(category => (
+          {servicesOfferedData.map(category => (
             <div
               key={category.id}
               className="border border-gray-200 rounded-lg"
@@ -275,16 +308,6 @@ const PortfolioMobileLayout: React.FC<PortfolioMobileLayoutProps> = ({
                         className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
                       >
                         <div className="flex items-center gap-3">
-                          {(isSelectionMode ||
-                            selectedServices.includes(service.id)) && (
-                            <Checkbox
-                              checked={selectedServices.includes(service.id)}
-                              onCheckedChange={() =>
-                                handleServiceSelect(service)
-                              }
-                              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                            />
-                          )}
                           <div>
                             <Text
                               variant="p"
@@ -303,39 +326,6 @@ const PortfolioMobileLayout: React.FC<PortfolioMobileLayoutProps> = ({
                           <Badge className="bg-green-100 text-green-800 rounded-full text-xs font-medium">
                             Active
                           </Badge>
-                          <div className="relative">
-                            <Button
-                              onClick={() =>
-                                setOpenMenuId(
-                                  openMenuId === service.id ? null : service.id
-                                )
-                              }
-                              className="p-1 hover:bg-gray-200 rounded"
-                            >
-                              <MoreVertical className="w-4 h-4 text-gray-500" />
-                            </Button>
-                            {openMenuId === service.id && (
-                              <div className="absolute right-0 top-8 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[140px]">
-                                <Button
-                                  onClick={() => handleViewInChat(service)}
-                                  className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
-                                >
-                                  <MessageCircle className="w-4 h-4" />
-                                  <Text variant="p" size="sm">
-                                    View in Chat
-                                  </Text>
-                                </Button>
-                                <Button
-                                  onClick={() => handleSelectFromMenu(service)}
-                                  className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50"
-                                >
-                                  <Text variant="p" size="sm">
-                                    Select
-                                  </Text>
-                                </Button>
-                              </div>
-                            )}
-                          </div>
                         </div>
                       </div>
                     ))}

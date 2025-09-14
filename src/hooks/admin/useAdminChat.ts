@@ -70,13 +70,42 @@ export const useAdminChat = (): UseAdminChatReturn => {
     if (messages.length === 0 || shouldReset) {
       setCurrentFlow(nextTopic);
 
-      // Pass context
-      const context = orderId ? { orderId, updateOrder, orders, refreshOrders, orderIds } : { updateOrder, orders, refreshOrders, orderIds };
+      // Pass context - handle both order and service contexts
+      let context;
+      if (nextTopic === 'multiple-portfolio') {
+        context = { 
+          serviceIds: orderIds,
+          services: orders,
+          updateService: updateOrder,
+          refreshServices: refreshOrders
+        };
+      } else if (nextTopic === 'portfolio') {
+        context = { 
+          serviceId: orderId,
+          services: orders,
+          updateService: updateOrder,
+          refreshServices: refreshOrders
+        };
+      } else {
+        context = orderId ? { orderId, updateOrder, orders, refreshOrders, orderIds } : { updateOrder, orders, refreshOrders, orderIds };
+      }
+      
       setCurrentContext(context);
 
+      console.log('🎯 useAdminChat opening with topic:', nextTopic);
+      console.log('📋 Context:', context);
+
       const flow = resolveAdminFlow(nextTopic);
-      if (!flow) return;
+      console.log('🔍 Resolved flow:', flow);
+      if (!flow) {
+        console.error('❌ No flow found for topic:', nextTopic);
+        return;
+      }
       const initial = flow.initial(context);
+      
+      console.log('💬 Initial messages from useAdminChat:', initial);
+      console.log('⚡ Quick replies from flow:', flow.quickReplies());
+      
       setMessages(
         initial.map(m => ({
           id: crypto.randomUUID(),
