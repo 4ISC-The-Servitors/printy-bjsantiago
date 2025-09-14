@@ -40,11 +40,8 @@ const NODES: Record<string, Node> = {
   no_order_number: {
     id: 'no_order_number',
     question: 'No Order Number',
-    // ====================
-    // Prompt user that we'll show their historical orders to pick from
     answer:
-      'I will display all orders you have. Please select the order you have an issue for.',
-    // ====================
+      'No problem! I can still help you create a ticket. What issue are you experiencing?',
     options: [
       { label: 'Printing quality issue', next: 'quality_issue' },
       { label: 'Delivery problem', next: 'delivery_issue' },
@@ -115,10 +112,7 @@ const NODES: Record<string, Node> = {
 
 let currentNodeId: keyof typeof NODES = 'issue_ticket_start';
 let collectedIssueDetails = '';
-// ====================
-// Holds the selected issue category (quality/delivery/billing/other)
-let currentInquiryType: string = '';
-// ====================
+let currentInquiryType: string | null = null; // ✅ added
 
 const DETAIL_NODE_IDS = new Set<keyof typeof NODES>([
   'quality_issue',
@@ -126,6 +120,22 @@ const DETAIL_NODE_IDS = new Set<keyof typeof NODES>([
   'billing_issue',
   'other_issue',
 ]);
+
+// Added a function to retrieve the current logged-in user's customer_id
+async function getCurrentCustomerId() {
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser();
+    if (error || !user) {
+      console.error('Error fetching user:', error);
+      return null;
+    }
+    // Ensure schema matches your DB column
+    return (user as any).customer_id || user.id || null;
+  } catch (err) {
+    console.error('Unexpected error fetching user:', err);
+    return null;
+  }
+}
 
 function nodeToMessages(node: Node): BotMessage[] {
   if (node.message) return [{ role: 'printy', text: node.message }];
@@ -143,10 +153,7 @@ export const issueTicketFlow: ChatFlow = {
   initial: () => {
     currentNodeId = 'issue_ticket_start';
     collectedIssueDetails = '';
-    // ====================
-    // Reset category on new flow start
-    currentInquiryType = '';
-    // ====================
+    currentInquiryType = null;
     return nodeToMessages(NODES[currentNodeId]);
   },
   quickReplies: () => nodeQuickReplies(NODES[currentNodeId]),
@@ -164,7 +171,6 @@ export const issueTicketFlow: ChatFlow = {
         quickReplies: nodeQuickReplies(NODES.order_issue_menu),
       };
     }
-    // ====================
     // ====================
     // Free-text handling at start: treat input as an order number and look it up
     if (!selection && currentNodeId === 'issue_ticket_start') {
@@ -198,7 +204,6 @@ export const issueTicketFlow: ChatFlow = {
           `Quantity: ${mockOrder.quantity}`,
           'Total: ₱2,000.00',
         ];
-        // ====================
         currentNodeId = 'order_issue_menu';
         return {
           messages: [
@@ -211,7 +216,7 @@ export const issueTicketFlow: ChatFlow = {
       }
       // ====================
 
-      // Fetch a real order by order_number (adjust table/columns to your schema)
+      // NOTE: Adjust table/columns below to match your schema
       const { data: order, error } = await supabase
         .from('orders')
         .select(
@@ -270,7 +275,7 @@ export const issueTicketFlow: ChatFlow = {
         quickReplies: nodeQuickReplies(NODES.order_issue_menu),
       };
     }
-//
+
     if (!selection) {
       if (DETAIL_NODE_IDS.has(currentNodeId)) {
         const detail = input.trim();
@@ -290,6 +295,7 @@ export const issueTicketFlow: ChatFlow = {
           };
         }
       }
+
       // ====================
       // In no_order_number state: either list orders, or accept an order number selection
       if (currentNodeId === 'no_order_number') {
@@ -338,9 +344,7 @@ export const issueTicketFlow: ChatFlow = {
         }
 
         // Otherwise, list recent orders for the signed-in user
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
+        const { data: { user } } = await supabase.auth.getUser();
         const uid = user?.id;
         if (!uid) {
           return {
@@ -393,14 +397,12 @@ export const issueTicketFlow: ChatFlow = {
         };
       }
       // ====================
+
       return {
         messages: [
           { role: 'printy', text: 'Please choose one of the options.' },
         ],
-        // ====================
-        // When input is not a listed option, show the order issue menu buttons
         quickReplies: nodeQuickReplies(NODES.order_issue_menu),
-        // ====================
       };
     }
 
@@ -417,9 +419,7 @@ export const issueTicketFlow: ChatFlow = {
     if (nextNodeId === 'no_order_number') {
       // ====================
       // Immediately list orders when entering the no_order_number node
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const { data: { user } } = await supabase.auth.getUser();
       const uid = user?.id;
       if (!uid) {
         return {
@@ -465,16 +465,25 @@ export const issueTicketFlow: ChatFlow = {
         : `${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
       const message = collectedIssueDetails || '(no details provided)';
       try {
+        const customerId = await getCurrentCustomerId(); // ✅ fix
+        if (!customerId) {
+          return {
+            messages: [
+              { role: 'printy', text: 'You must be signed in to submit a ticket.' },
+            ],
+            quickReplies: ['End Chat'],
+          };
+        }
+
+        const inquiryType = currentInquiryType ?? 'other'; // ✅ fix
         const { error } = await supabase.from('inquiries').insert([
           {
             inquiry_id: inquiryId,
             inquiry_message: message,
             inquiry_status: 'new',
             received_at: new Date().toISOString(),
-            // ====================
-            // Persist the selected category for triage/reporting
-            inquiry_type: currentInquiryType || null,
-            // ====================
+            inquiry_type: inquiryType,
+            customer_id: customerId,
           },
         ]);
         if (error) {
@@ -491,6 +500,7 @@ export const issueTicketFlow: ChatFlow = {
           };
         }
         collectedIssueDetails = '';
+        currentInquiryType = null;
       } catch (_e) {
         console.error('Network or unexpected error inserting inquiry:', _e);
         return {
@@ -510,10 +520,10 @@ export const issueTicketFlow: ChatFlow = {
     const node = NODES[currentNodeId];
     const messages = nodeToMessages(node);
     const quickReplies = nodeQuickReplies(node);
-    // If user chose End Chat option, still provide the closing message and a single End Chat button
     if (currentNodeId === 'end') {
       return { messages, quickReplies: ['End Chat'] };
     }
     return { messages, quickReplies };
   },
 };
+
