@@ -12,55 +12,142 @@ type Node = {
 };
 
 const NODES: Record<string, Node> = {
+  // READ THIS FIRST
+
+  // COMPLETED:
+  // 1- Option branching mapped
+  // 2- Categorized responses based on chat flow hierarchy
+
+  // ISSUES:
+  // 1- specification options are static 
+  //      (all possible sizes and specs are visible, need conditions which options are only available)
+  // 2- custom size and qty logic not yet implemented
+  //      (one that requires user input)
+  // 3- value storing logic not yet implemented 
+  //      (stores all order specs of the user to a variable)
+
   place_order_start: {
     id: 'place_order_start',
     message:
-      "Hi! I'm Printy 🤖. I'll help you place an order. What type of printing service do you need?",
+      "Hi! I'm Printy. I can help you with your printing needs. You can either place an order or track an existing one.",
     options: [
-      { label: 'Business Cards', next: 'business_cards' },
-      { label: 'Flyers & Brochures', next: 'flyers_brochures' },
-      { label: 'Large Format Printing', next: 'large_format' },
+      { label: 'Place Order', next: 'place_order' },
+      { label: 'Track Order', next: 'track_order' },
+      { label: 'End Chat', next: 'end' },
+    ],
+  },
+
+  // TYPE OPTIONS
+  place_order: {
+    id: 'place_order',
+    question: 'Place Order',
+    answer:
+      'We offer a variety of printing Services. What type are you interested in?',
+    options: [
+      { label: 'Commercial Printing', next: 'commercial_printing' },
       { label: 'Digital Printing', next: 'digital_printing' },
-      { label: 'Other Service', next: 'other_service' },
+      { label: 'Packaging', next: 'packaging_option' },
+      { label: 'Large Format Printing', next: 'large_format_printing' },
       { label: 'End Chat', next: 'end' },
     ],
   },
 
-  business_cards: {
-    id: 'business_cards',
-    question: 'Business Cards',
+  // CATEGORY OPTIONS
+  commercial_printing: {
+    id: 'commercial_printing',
+    question: 'Commercial Printing',
     answer:
-      'Great choice! Business cards are our specialty. What quantity do you need?',
+      'Excellent! Commercial printing is our go-to for high-volume, professional-grade projects. What can I help you with?',
     options: [
-      { label: '100-500 cards', next: 'quantity_100_500' },
-      { label: '500-1000 cards', next: 'quantity_500_1000' },
-      { label: '1000+ cards', next: 'quantity_1000_plus' },
+      { label: 'Marketing / Promotional Collaterals', next: 'marketing_promotional_collaterals' },
+      { label: 'School Yearbooks', next: 'school_yearbooks' },
+      { label: 'Books & Publication', next: 'books_publication' },
+      { label: 'Commercial Forms', next: 'commercial_forms' },
+      { label: 'Business Forms', next: 'business_forms' },
+      { label: 'BIR Registered Forms', next: 'bir_registered_forms' },
+      { label: 'Official Receipt', next: 'official_receipt' },
+      { label: 'Sales Invoice', next: 'sales_invoice' },
+      { label: 'Delivery Receipt', next: 'delivery_receipt' },
       { label: 'End Chat', next: 'end' },
     ],
   },
 
-  flyers_brochures: {
-    id: 'flyers_brochures',
-    question: 'Flyers & Brochures',
+  // MAIN PRODUCT OPTIONS
+  marketing_promotional_collaterals: {
+    id: 'marketing_promotional_collaterals',
+    question: 'Marketing / Promotional Collaterals',
     answer:
-      'Excellent! We offer high-quality flyers and brochures. What is your target quantity?',
+      'Great! I can help you with your marketing and promotional needs. What kind of materials are you looking to create to help your business stand out?',
     options: [
-      { label: '100-500 pieces', next: 'quantity_100_500' },
-      { label: '500-1000 pieces', next: 'quantity_500_1000' },
-      { label: '1000+ pieces', next: 'quantity_1000_plus' },
+      { label: 'Product Brochure / Catalogue', next: 'product_brochure_catalogue' },
+      { label: 'Portfolio', next: 'portfolio_option' },
+      { label: 'Invitation', next: 'invitation_option' },
+      { label: 'Product Support Manual', next: 'product_support_manual' },
+      { label: 'Poster, Flyer and Leaflet Conference Program and Registration Form', next: 'poster_flyer_leaflet' },
+      { label: 'Wobbler', next: 'wobbler_option' },
+      { label: 'Appointment Calendar', next: 'appointment_calendar' },
+      { label: 'Desk Calendar', next: 'desk_calendar' },
+      { label: 'Display Material', next: 'display_material' },
+      { label: 'Advertising Material', next: 'advertising_material' },
+      { label: 'Wall Calendar', next: 'wall_calendar' },
+      { label: 'Direct Mail', next: 'direct_mail' },
       { label: 'End Chat', next: 'end' },
     ],
   },
 
-  large_format: {
-    id: 'large_format',
-    question: 'Large Format Printing',
+  school_yearbooks: {
+    id: 'school_yearbooks',
+    question: 'School Yearbooks',
     answer:
-      'Perfect! We handle banners, posters, and large displays. What size do you need?',
+      "Excellent! We can definitely help you with school yearbooks. They're a perfect way to capture memories.",
     options: [
-      { label: 'Small (A3-A2)', next: 'size_small' },
-      { label: 'Medium (A1-A0)', next: 'size_medium' },
-      { label: 'Large (Custom)', next: 'size_large' },
+      { label: 'Design & Layout', next: 'design_layout' },
+      { label: 'Proofing & Editing', next: 'proofing_editing' },
+      { label: 'Project Management', next: 'project_management' },
+      { label: 'Print & Delivery', next: 'print_delivery' },
+      { label: 'End Chat', next: 'end' },
+    ],
+  },
+
+  books_publication: {
+    id: 'books_publication',
+    question: 'Books & Publication',
+    answer:
+      "Excellent choice! We specialize in professional book and publication printing. We can help you bring your story to life. What type of book or publication are you looking to create?",
+    options: [
+      { label: 'Magazine', next: 'magazine_option' },
+      { label: 'Annual Report', next: 'annual_report' },
+      { label: 'Coffee Table Book', next: 'coffee_table_book' },
+      { label: 'Notebook', next: 'notebook_option' },
+      { label: 'End Chat', next: 'end' },
+    ],
+  },
+
+  commercial_forms: {
+    id: 'commercial_forms',
+    question: 'Commercial Forms',
+    answer:
+      "Got it! We can help with your commercial forms to keep your business running smoothly. What kind of forms are you looking for?",
+    options: [
+      { label: 'Bank Form', next: 'bank_form' },
+      { label: 'Insurance Form', next: 'insurance_form' },
+      { label: 'Office Form', next: 'office_form' },
+      { label: 'School Form', next: 'school_form' },
+      { label: 'End Chat', next: 'end' },
+    ],
+  },
+
+  business_forms: {
+    id: 'business_forms',
+    question: 'Business Forms',
+    answer:
+      "Got it! We can help with your business forms to keep your company running smoothly. What kind of forms are you looking for?",
+    options: [
+      { label: 'Letterhead', next: 'letterhead_option' },
+      { label: 'Memo Pad', next: 'memo_pad' },
+      { label: 'Letter Envelope', next: 'letter_envelope' },
+      { label: 'Company Folder', next: 'company_folder' },
+      { label: 'Calling Card', next: 'calling_card' },
       { label: 'End Chat', next: 'end' },
     ],
   },
@@ -69,125 +156,359 @@ const NODES: Record<string, Node> = {
     id: 'digital_printing',
     question: 'Digital Printing',
     answer:
-      'Great! Digital printing is perfect for quick turnaround jobs. What is your project?',
+      "Great choice! Digital Printing is perfect for quick, high-quality projects. We can print a wide variety of items for you. What are you looking to create today?", 
     options: [
-      { label: 'Documents', next: 'documents' },
-      { label: 'Photos', next: 'photos' },
-      { label: 'Artwork', next: 'artwork' },
+      { label: 'Menu Card / Placemat', next: 'menu_card_placemat' },
+      { label: 'Calling Card', next: 'calling_card' },
+      { label: 'Greeting Card', next: 'greeting_card' },
+      { label: 'Invitation', next: 'invitation_option' },
+      { label: 'Certificate', next: 'certificate_option' },
+      { label: 'Diploma', next: 'diploma_option' },
+      { label: 'Magazine', next: 'magazine_option' },
+      { label: 'Memory Book', next: 'memory_book' },
+      { label: 'Personalized Calendar', next: 'personalized_calendar' },
+      { label: 'Mini-Poster', next: 'mini_poster' },
       { label: 'End Chat', next: 'end' },
     ],
   },
 
-  other_service: {
-    id: 'other_service',
-    question: 'Other Service',
+  packaging_option: {
+    id: 'packaging_option',
+    question: 'Packaging',
     answer:
-      "I'm here to help with any other printing needs. Please describe what you're looking for.",
+      "Awesome! I can help you with your custom packaging needs. We offer a variety of options to make your product stand out. What kind of packaging are you looking for?", 
     options: [
-      { label: 'Submit inquiry', next: 'submit_inquiry' },
+      { label: 'Soap Box', next: 'soap_box' },
+      { label: 'Coffee / Tea Box', next: 'coffee_tea_box' },
+      { label: 'Pharmaceutical Box', next: 'pharmaceutical_box' },
+      { label: 'Labels & Sticker', next: 'labels_sticker' },
+      { label: 'Product Box', next: 'product_box' },
+      { label: 'Paper Bag', next: 'paper_bag' },
+      { label: 'Hand Tag', next: 'hand_tag' },
       { label: 'End Chat', next: 'end' },
     ],
   },
 
-  quantity_100_500: {
-    id: 'quantity_100_500',
-    question: '100-500 Pieces',
+  large_format_printing: {
+    id: 'large_format_printing',
+    question: 'Large Format Printing',
     answer:
-      'Good quantity! This range typically takes 3-5 business days. Would you like me to create a quote for you?',
+      "Great choice! Large format printing is perfect for making a big impression. We can help you create a variety of materials for your business.", 
     options: [
-      { label: 'Yes, create quote', next: 'create_quote' },
+      { label: 'Tarpulin', next: 'tarpulin_option' },
+      { label: 'Vinyl / Mesh Banner', next: 'vinyl_mesh_banner' },
+      { label: 'Pole Banner', next: 'pole_banner' },
+      { label: 'Retractable Banner', next: 'retractable_banner' },
+      { label: 'Reflectorized Signage', next: 'reflectorized_signage' },
+      { label: 'Safety Sign / Parking Sign', next: 'safety_sign_parking_sign' },
+      { label: 'A-Frame Sign', next: 'a_frame_sign' },
+      { label: 'Poster / Wall Mural', next: 'poster_wall_mural' },
+      { label: 'Window Decal / Wall Decal', next: 'window_decal_wall_decal' },
+      { label: 'Bumper Sticker', next: 'bumper_sticker' },
+      { label: 'Floor Graphic', next: 'floor_graphic' },
+      { label: 'Counter Card', next: 'counter_card' },
+      { label: 'Life-sized Standee', next: 'life_sized_standee' },
+      { label: 'Wrap-around Vehicle Sticker', next: 'wrap_around_vehicle_sticker' },
       { label: 'End Chat', next: 'end' },
     ],
   },
 
-  quantity_500_1000: {
-    id: 'quantity_500_1000',
-    question: '500-1000 Pieces',
+  // PRODUCT DESCRIPTION (64 products)
+  bir_registered_forms: {
+    id: 'bir_registered_forms',
+    question: 'BIR Registered Forms',
     answer:
-      'Great volume! This range typically takes 5-7 business days. Should I prepare a quote?',
+      "text description here", 
     options: [
-      { label: 'Yes, create quote', next: 'create_quote' },
+      { label: 'Black and White', next: 'black_and_white' },
+      { label: 'Matte', next: 'matte_option' },
+      { label: 'Glossy', next: 'glossy_option' },
+      { label: 'Spiral Bound', next: 'spiral_bound' },
+      { label: 'Coil Bound', next: 'coil_bound' },
+      { label: 'Hard Bound', next: 'hard_bound' },
       { label: 'End Chat', next: 'end' },
     ],
   },
 
-  quantity_1000_plus: {
-    id: 'quantity_1000_plus',
-    question: '1000+ Pieces',
+  // SPECIFICATION OPTIONS
+  black_and_white: {
+    id: 'black_and_white',
+    question: 'Black and White',
     answer:
-      'Excellent! For large quantities, we offer special pricing and 7-10 business day turnaround. Ready for a quote?',
+      "Great! Now, let's talk about the size. You can choose from one of our popular options or set your own custom dimensions.", 
     options: [
-      { label: 'Yes, create quote', next: 'create_quote' },
+      { label: '5.5" x 8.5" (Standard Paperback)', next: 'standard_paperback' },
+      { label: '6" x 9" (Common Book Size)', next: 'common_book_size' },
+      { label: '8.5" x 11" (Standard Letter)', next: 'standard_letter' },
+      { label: '2 ft x 3 ft (Small Banner)', next: 'small_banner' },
+      { label: '3 ft x 4 ft (Standard Size)', next: 'standard_size' },
+      { label: '4 ft x 6 ft (Large Banner)', next: 'large_banner' },
       { label: 'End Chat', next: 'end' },
     ],
   },
 
-  size_small: {
-    id: 'size_small',
-    question: 'Small Size (A3-A2)',
+  matte_option: {
+    id: 'matte_option',
+    question: 'Matte',
     answer:
-      'Perfect! Small formats are quick to produce. Would you like a quote for this project?',
+      "Great! Now, let's talk about the size. You can choose from one of our popular options or set your own custom dimensions.", 
     options: [
-      { label: 'Yes, create quote', next: 'create_quote' },
+      { label: '5.5" x 8.5" (Standard Paperback)', next: 'standard_paperback' },
+      { label: '6" x 9" (Common Book Size)', next: 'common_book_size' },
+      { label: '8.5" x 11" (Standard Letter)', next: 'standard_letter' },
+      { label: '2 ft x 3 ft (Small Banner)', next: 'small_banner' },
+      { label: '3 ft x 4 ft (Standard Size)', next: 'standard_size' },
+      { label: '4 ft x 6 ft (Large Banner)', next: 'large_banner' },
       { label: 'End Chat', next: 'end' },
     ],
   },
 
-  size_medium: {
-    id: 'size_medium',
-    question: 'Medium Size (A1-A0)',
+  glossy_option: {
+    id: 'glossy_option',
+    question: 'Glossy',
     answer:
-      'Great choice! Medium formats offer good visibility. Should I prepare a quote for you?',
+      "Great! Now, let's talk about the size. You can choose from one of our popular options or set your own custom dimensions.", 
     options: [
-      { label: 'Yes, create quote', next: 'create_quote' },
+      { label: '5.5" x 8.5" (Standard Paperback)', next: 'standard_paperback' },
+      { label: '6" x 9" (Common Book Size)', next: 'common_book_size' },
+      { label: '8.5" x 11" (Standard Letter)', next: 'standard_letter' },
+      { label: '2 ft x 3 ft (Small Banner)', next: 'small_banner' },
+      { label: '3 ft x 4 ft (Standard Size)', next: 'standard_size' },
+      { label: '4 ft x 6 ft (Large Banner)', next: 'large_banner' },
       { label: 'End Chat', next: 'end' },
     ],
   },
 
-  size_large: {
-    id: 'size_large',
-    question: 'Large Size (Custom)',
+  spiral_bound: {
+    id: 'spiral_bound',
+    question: 'Spiral Bound',
     answer:
-      'Impressive! Custom large formats make a statement. Ready for a custom quote?',
+      "Great! Now, let's talk about the size. You can choose from one of our popular options or set your own custom dimensions.", 
     options: [
-      { label: 'Yes, create quote', next: 'create_quote' },
+      { label: '5.5" x 8.5" (Standard Paperback)', next: 'standard_paperback' },
+      { label: '6" x 9" (Common Book Size)', next: 'common_book_size' },
+      { label: '8.5" x 11" (Standard Letter)', next: 'standard_letter' },
+      { label: '2 ft x 3 ft (Small Banner)', next: 'small_banner' },
+      { label: '3 ft x 4 ft (Standard Size)', next: 'standard_size' },
+      { label: '4 ft x 6 ft (Large Banner)', next: 'large_banner' },
       { label: 'End Chat', next: 'end' },
     ],
   },
 
-  documents: {
-    id: 'documents',
-    question: 'Documents',
+  coil_bound: {
+    id: 'coil_bound',
+    question: 'Coil Bound',
     answer:
-      'Perfect! We handle all types of documents with quick turnaround. Would you like a quote?',
+      "Great! Now, let's talk about the size. You can choose from one of our popular options or set your own custom dimensions.", 
     options: [
-      { label: 'Yes, create quote', next: 'create_quote' },
+      { label: '5.5" x 8.5" (Standard Paperback)', next: 'standard_paperback' },
+      { label: '6" x 9" (Common Book Size)', next: 'common_book_size' },
+      { label: '8.5" x 11" (Standard Letter)', next: 'standard_letter' },
+      { label: '2 ft x 3 ft (Small Banner)', next: 'small_banner' },
+      { label: '3 ft x 4 ft (Standard Size)', next: 'standard_size' },
+      { label: '4 ft x 6 ft (Large Banner)', next: 'large_banner' },
       { label: 'End Chat', next: 'end' },
     ],
   },
 
-  photos: {
-    id: 'photos',
-    question: 'Photos',
+  hard_bound: {
+    id: 'hard_bound',
+    question: 'Hard Bound',
     answer:
-      'Excellent! We offer high-quality photo printing on various papers. Ready for a quote?',
+      "Great! Now, let's talk about the size. You can choose from one of our popular options or set your own custom dimensions.", 
     options: [
-      { label: 'Yes, create quote', next: 'create_quote' },
+      { label: '5.5" x 8.5" (Standard Paperback)', next: 'standard_paperback' },
+      { label: '6" x 9" (Common Book Size)', next: 'common_book_size' },
+      { label: '8.5" x 11" (Standard Letter)', next: 'standard_letter' },
+      { label: '2 ft x 3 ft (Small Banner)', next: 'small_banner' },
+      { label: '3 ft x 4 ft (Standard Size)', next: 'standard_size' },
+      { label: '4 ft x 6 ft (Large Banner)', next: 'large_banner' },
       { label: 'End Chat', next: 'end' },
     ],
   },
 
-  artwork: {
-    id: 'artwork',
-    question: 'Artwork',
+  // SIZE OPTIONS
+  standard_paperback: {
+    id: 'standard_paperback',
+    question: '5.5" x 8.5" (Standard Paperback)',
     answer:
-      'Wonderful! We love working with artists. We can print on canvas, fine art paper, and more. Should I create a quote?',
+      "Okay, let's nail down the page count. How many pages will your project have?", 
     options: [
-      { label: 'Yes, create quote', next: 'create_quote' },
+      { label: '1000 Pages', next: 'one_thousand_pages' },
+      { label: '500 Pages', next: 'five_hundred_pages' },
+      { label: '250 Pages', next: 'two_hundred_fifty_pages' },
+      { label: '100 Pages', next: 'one_hundred_pages' },
+      { label: '50 Pages', next: 'fifty_pages' },
+      { label: '20 Pages', next: 'twenty_pages' },
+      { label: '10 Pages', next: 'ten_pages' },
       { label: 'End Chat', next: 'end' },
     ],
   },
 
+  common_book_size: {
+    id: 'common_book_size',
+    question: '6" x 9" (Common Book Size)',
+    answer:
+      "Okay, let's nail down the page count. How many pages will your project have?", 
+    options: [
+      { label: '1000 Pages', next: 'one_thousand_pages' },
+      { label: '500 Pages', next: 'five_hundred_pages' },
+      { label: '250 Pages', next: 'two_hundred_fifty_pages' },
+      { label: '100 Pages', next: 'one_hundred_pages' },
+      { label: '50 Pages', next: 'fifty_pages' },
+      { label: '20 Pages', next: 'twenty_pages' },
+      { label: '10 Pages', next: 'ten_pages' },
+      { label: 'End Chat', next: 'end' },
+    ],
+  },
+
+  standard_letter: {
+    id: 'standard_letter',
+    question: '8.5" x 11" (Standard Letter)',
+    answer:
+      "Okay, let's nail down the page count. How many pages will your project have?", 
+    options: [
+      { label: '1000 Pages', next: 'one_thousand_pages' },
+      { label: '500 Pages', next: 'five_hundred_pages' },
+      { label: '250 Pages', next: 'two_hundred_fifty_pages' },
+      { label: '100 Pages', next: 'one_hundred_pages' },
+      { label: '50 Pages', next: 'fifty_pages' },
+      { label: '20 Pages', next: 'twenty_pages' },
+      { label: '10 Pages', next: 'ten_pages' },
+      { label: 'End Chat', next: 'end' },
+    ],
+  },
+
+  small_banner: {
+    id: 'small_banner',
+    question: '2 ft x 3 ft (Small Banner)',
+    answer:
+      "Okay, let's nail down the page count. How many pages will your project have?", 
+    options: [
+      { label: '1000 Pages', next: 'one_thousand_pages' },
+      { label: '500 Pages', next: 'five_hundred_pages' },
+      { label: '250 Pages', next: 'two_hundred_fifty_pages' },
+      { label: '100 Pages', next: 'one_hundred_pages' },
+      { label: '50 Pages', next: 'fifty_pages' },
+      { label: '20 Pages', next: 'twenty_pages' },
+      { label: '10 Pages', next: 'ten_pages' },
+      { label: 'End Chat', next: 'end' },
+    ],
+  },
+
+  standard_size: {
+    id: 'standard_size',
+    question: '3 ft x 4 ft (Standard Size)',
+    answer:
+      "Okay, let's nail down the page count. How many pages will your project have?", 
+    options: [
+      { label: '1000 Pages', next: 'one_thousand_pages' },
+      { label: '500 Pages', next: 'five_hundred_pages' },
+      { label: '250 Pages', next: 'two_hundred_fifty_pages' },
+      { label: '100 Pages', next: 'one_hundred_pages' },
+      { label: '50 Pages', next: 'fifty_pages' },
+      { label: '20 Pages', next: 'twenty_pages' },
+      { label: '10 Pages', next: 'ten_pages' },
+      { label: 'End Chat', next: 'end' },
+    ],
+  },
+
+  large_banner: {
+    id: 'large_banner',
+    question: '4 ft x 6 ft (Large Banner)',
+    answer:
+      "Okay, let's nail down the page count. How many pages will your project have?", 
+    options: [
+      { label: '1000 Pages', next: 'one_thousand_pages' },
+      { label: '500 Pages', next: 'five_hundred_pages' },
+      { label: '250 Pages', next: 'two_hundred_fifty_pages' },
+      { label: '100 Pages', next: 'one_hundred_pages' },
+      { label: '50 Pages', next: 'fifty_pages' },
+      { label: '20 Pages', next: 'twenty_pages' },
+      { label: '10 Pages', next: 'ten_pages' },
+      { label: 'End Chat', next: 'end' },
+    ],
+  },
+
+  // QUANTITY OPTIONS
+  one_thousand_pages: {
+    id: 'one_thousand_pages',
+    question: '1000 Pages',
+    answer:
+      "Alright, let's get this finalized! Here is a summary of your order details.", 
+    options: [
+      { label: 'Create Quotation', next: 'create_quote' },
+      { label: 'End Chat', next: 'end' },
+    ],
+  },
+
+  five_hundred_pages: {
+    id: 'five_hundred_pages',
+    question: '500 Pages',
+    answer:
+      "Alright, let's get this finalized! Here is a summary of your order details.", 
+    options: [
+      { label: 'Create Quotation', next: 'create_quote' },
+      { label: 'End Chat', next: 'end' },
+    ],
+  },
+
+  two_hundred_fifty_pages: {
+    id: 'two_hundred_fifty_pages',
+    question: '250 Pages',
+    answer:
+      "Alright, let's get this finalized! Here is a summary of your order details.", 
+    options: [
+      { label: 'Create Quotation', next: 'create_quote' },
+      { label: 'End Chat', next: 'end' },
+    ],
+  },
+
+  one_hundred_pages: {
+    id: 'one_hundred_pages',
+    question: '100 Pages',
+    answer:
+      "Alright, let's get this finalized! Here is a summary of your order details.", 
+    options: [
+      { label: 'Create Quotation', next: 'create_quote' },
+      { label: 'End Chat', next: 'end' },
+    ],
+  },
+
+  fifty_pages: {
+    id: 'fifty_pages',
+    question: '50 Pages',
+    answer:
+      "Alright, let's get this finalized! Here is a summary of your order details.", 
+    options: [
+      { label: 'Create Quotation', next: 'create_quote' },
+      { label: 'End Chat', next: 'end' },
+    ],
+  },
+
+  twenty_pages: {
+    id: 'twenty_pages',
+    question: '20 Pages',
+    answer:
+      "Alright, let's get this finalized! Here is a summary of your order details.", 
+    options: [
+      { label: 'Create Quotation', next: 'create_quote' },
+      { label: 'End Chat', next: 'end' },
+    ],
+  },
+
+  ten_pages: {
+    id: 'ten_pages',
+    question: '10 Pages',
+    answer:
+      "Alright, let's get this finalized! Here is a summary of your order details.", 
+    options: [
+      { label: 'Create Quotation', next: 'create_quote' },
+      { label: 'End Chat', next: 'end' },
+    ],
+  },
+
+  // CREATE QUOTATION
   create_quote: {
     id: 'create_quote',
     question: 'Create Quote',
