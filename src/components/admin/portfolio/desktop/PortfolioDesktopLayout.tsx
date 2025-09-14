@@ -25,6 +25,7 @@ interface PortfolioDesktopLayoutProps {
   handleViewInChat: (service: Service) => void;
   handleAddToChat: () => void;
   handleServiceChat?: (service: any) => void;
+  handleAddService?: () => void;
   services?: any[];
 }
 
@@ -35,6 +36,7 @@ const PortfolioDesktopLayout: React.FC<PortfolioDesktopLayoutProps> = ({
   handleViewInChat,
   handleAddToChat,
   handleServiceChat,
+  handleAddService,
   services,
 }) => {
   const [openPortfolioDropdown, setOpenPortfolioDropdown] = useState<
@@ -126,6 +128,7 @@ const PortfolioDesktopLayout: React.FC<PortfolioDesktopLayoutProps> = ({
                 size="sm"
                 threeD
                 className="flex items-center gap-2"
+                onClick={handleAddService}
               >
                 <Plus className="w-4 h-4" />
                 Add Service

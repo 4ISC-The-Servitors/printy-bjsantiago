@@ -5,7 +5,7 @@ import { Badge, Text, Button } from './index';
 export interface ChipItem {
   id: string;
   label: string;
-  type?: 'order' | 'ticket' | 'service' | 'other';
+  type?: 'order' | 'ticket' | 'service' | 'portfolio' | 'other';
 }
 
 interface SelectedChipsBarProps {

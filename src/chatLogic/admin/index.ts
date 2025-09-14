@@ -5,6 +5,7 @@ import { ticketsFlow } from './flows/Tickets';
 import { multipleTicketsFlow } from './flows/MultipleTickets';
 import { portfolioFlow } from './flows/Portfolio';
 import { multiplePortfolioFlow } from './flows/MultiplePortfolio';
+import { addServiceFlow } from './flows/AddService';
 
 const introFlow: ChatFlow = {
   id: 'admin-intro',
@@ -80,10 +81,13 @@ export const adminFlows: Record<string, ChatFlow> = {
   multipleTickets: multipleTicketsFlow,
   portfolio: portfolioFlow,
   multiplePortfolio: multiplePortfolioFlow,
+  addService: addServiceFlow,
 };
 
 export function resolveAdminFlow(topic?: string | null): ChatFlow | null {
   const t = (topic || 'intro').toLowerCase();
+  if (t.includes('add-service') || t.includes('add service'))
+    return addServiceFlow;
   if (t.includes('multiple-portfolio') || t.includes('multi-portfolio'))
     return multiplePortfolioFlow;
   if (t.includes('multiple-tickets') || t.includes('multi-tickets'))
@@ -122,10 +126,16 @@ export function dispatchAdminCommand(input: string) {
     const ticketMatches = (text.match(/\btck-\d+\b/g) || []).length;
     flow = ticketMatches >= 2 ? multipleTicketsFlow : ticketsFlow;
   } else if (
+    text.includes('add service') ||
+    text.includes('add-service') ||
+    text.includes('create service') ||
+    text.includes('new service')
+  ) {
+    flow = addServiceFlow;
+  } else if (
     text.includes('srv-') ||
     text.includes('service') ||
-    text.includes('portfolio') ||
-    text.includes('add service')
+    text.includes('portfolio')
   ) {
     // If there are 2+ service codes in the message, use multiplePortfolio flow
     const serviceMatches = (text.match(/\bsrv-[a-z0-9]+\b/g) || []).length;

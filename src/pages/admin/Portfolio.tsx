@@ -124,6 +124,11 @@ const AdminPortfolio: React.FC = () => {
     handleChatOpenForService(service);
   };
 
+  const handleAddService = () => {
+    // Open chat with add service flow
+    handleChatOpenWithTopic('add-service', undefined, updateService, services, refreshServices);
+  };
+
   const addSelected = (item: SelectedItem) => {
     setSelected(prev =>
       prev.find(i => i.id === item.id) ? prev : [...prev, item]
@@ -220,6 +225,7 @@ const AdminPortfolio: React.FC = () => {
     handleViewInChat,
     handleAddToChat,
     handleServiceChat,
+    handleAddService,
     getStatusColor,
     services,
   };
