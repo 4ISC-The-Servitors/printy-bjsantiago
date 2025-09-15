@@ -63,12 +63,48 @@ const AdminShell: React.FC = () => {
   const setTicketActionReplies = () =>
     setQuickReplies([
       { id: 'qr-res', label: 'Create Resolution comment', value: 'Create Resolution comment' },
-      { id: 'qr-end', label: 'End Ticket', value: 'End Ticket' },
+      { id: 'qr-status', label: 'Change Status', value: 'Change Status' },
       { id: 'qr-assign', label: 'Assign to', value: 'Assign to' },
     ]);
 
   const handleAdminQuickReply = async (v: string) => {
     const val = v.trim();
+    // Intercept status choices immediately to avoid flowing into generic admin flow
+    if ((['Open', 'Pending', 'Closed'] as string[]).includes(val)) {
+      if (!currentInquiryId) {
+        setMessages(prev => [
+          ...prev,
+          { id: crypto.randomUUID(), role: 'printy', text: 'No ticket is currently selected.', ts: Date.now() },
+        ]);
+        return;
+      }
+      const dbStatus = (
+        {
+          Open: 'open',
+          Pending: 'in_progress', // map UI "Pending" to DB enum/value
+          Closed: 'closed',
+        } as const
+      )[val];
+      const { error } = await supabase
+        .from('inquiries')
+        .update({ inquiry_status: dbStatus })
+        .eq('inquiry_id', currentInquiryId);
+      if (error) {
+        setMessages(prev => [
+          ...prev,
+          { id: crypto.randomUUID(), role: 'printy', text: `Failed to update status: ${error.message}`, ts: Date.now() },
+        ]);
+        return;
+      }
+      setMessages(prev => [
+        ...prev,
+        { id: crypto.randomUUID(), role: 'printy', text: `Status updated to ${val}.`, ts: Date.now() },
+      ]);
+      setPendingAction(null);
+      setInputPlaceholder(undefined);
+      setTicketActionReplies();
+      return;
+    }
     if (val === 'Create Resolution comment') {
       setPendingAction('resolution');
       setInputPlaceholder('Type the resolution comment to send to the customer…');
@@ -89,7 +125,28 @@ const AdminShell: React.FC = () => {
       ]);
       return;
     }
-    if (val === 'End Ticket') {
+    if (val === 'Change Status') {
+      setPendingAction('status' as any);
+      setInputPlaceholder(undefined);
+      setQuickReplies([
+        { id: 'qr-open', label: 'Open', value: 'Open' },
+        { id: 'qr-pending', label: 'Pending', value: 'Pending' },
+        { id: 'qr-closed', label: 'Closed', value: 'Closed' },
+        { id: 'qr-back', label: 'Back', value: 'Back' },
+      ]);
+      setMessages(prev => [
+        ...prev,
+        { id: crypto.randomUUID(), role: 'printy', text: 'Select the new status: Open, Pending, or Closed.', ts: Date.now() },
+      ]);
+      return;
+    }
+    if (val === 'Back') {
+      setPendingAction(null);
+      setInputPlaceholder(undefined);
+      setTicketActionReplies();
+      return;
+    }
+    if ((pendingAction as any) === 'status' && (['Open','Pending','Closed'] as string[]).includes(val)) {
       if (!currentInquiryId) {
         setMessages(prev => [
           ...prev,
@@ -97,38 +154,34 @@ const AdminShell: React.FC = () => {
         ]);
         return;
       }
+      const dbStatus = val.toLowerCase();
       const { error } = await supabase
         .from('inquiries')
-        .update({ inquiry_status: 'resolved' })
+        .update({ inquiry_status: dbStatus })
         .eq('inquiry_id', currentInquiryId);
       if (error) {
         setMessages(prev => [
           ...prev,
-          { id: crypto.randomUUID(), role: 'printy', text: `Failed to resolve ticket: ${error.message}`, ts: Date.now() },
+          { id: crypto.randomUUID(), role: 'printy', text: `Failed to update status: ${error.message}`, ts: Date.now() },
         ]);
         return;
       }
       setMessages(prev => [
         ...prev,
-        { id: crypto.randomUUID(), role: 'printy', text: 'Ticket has been marked as resolved.', ts: Date.now() },
+        { id: crypto.randomUUID(), role: 'printy', text: `Status updated to ${val}.`, ts: Date.now() },
       ]);
-      // Force refresh list in case realtime is blocked by RLS
-      try {
-        // Emit a noop select to cause client-side refetch in cards via subscription or manual reload
-        // If you have a global refetch trigger, call it here instead.
-        // No-op
-      } catch {}
       setPendingAction(null);
       setInputPlaceholder(undefined);
       setTicketActionReplies();
       return;
     }
-    if (val === 'Cancel') {
-      setPendingAction(null);
-      setInputPlaceholder(undefined);
-      setTicketActionReplies();
+    // Prevent any stray 'End Chat' flow option from closing the chat
+    if (val.toLowerCase() === 'end chat') {
+      // ignore
       return;
     }
+    // Prevent stray flow command from ending the chat
+    if (val.toLowerCase() === 'end chat') return;
     // fallback to existing flow
     const dispatched = dispatchAdminCommand(val);
     if (dispatched) {

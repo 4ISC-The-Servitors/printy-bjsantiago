@@ -84,7 +84,15 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({
       {isBot && quickReplies && quickReplies.length > 0 && (
         <div className="flex flex-wrap gap-3 mt-3 ml-6 sm:gap-3 sm:ml-8">
           {quickReplies.map((reply, index) => {
-            const isEnd = reply.label.toLowerCase().includes('end');
+            const endLabels = new Set([
+              'end',
+              'end chat',
+              'close chat',
+              'end conversation',
+              'finish',
+              'done',
+            ]);
+            const isEnd = endLabels.has(reply.label.trim().toLowerCase());
             const handleClick = () => {
               if (isEnd) {
                 onEndChat?.();
