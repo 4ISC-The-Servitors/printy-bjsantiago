@@ -1,3 +1,5 @@
+// BACKEND_TODO: This mock data will be DELETED once Supabase `orders` table is wired.
+// Replace all imports of `mockOrders` with live queries and realtime subscriptions.
 export type Order = {
   id: string;
   customer: string;

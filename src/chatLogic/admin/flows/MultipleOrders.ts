@@ -1,7 +1,8 @@
 // Refactored MultipleOrders Flow using shared utilities and base framework
 
 import type { BotMessage } from '../../../types/chatFlow';
-import { mockOrders } from '../../../data/orders';
+// BACKEND_TODO: Remove mockOrders import; rely solely on context-provided orders from Supabase.
+import { mockOrders } from '../../../data/orders'; // DELETE when backend is wired
 import {
   FlowBase,
   ORDER_STATUS_OPTIONS,

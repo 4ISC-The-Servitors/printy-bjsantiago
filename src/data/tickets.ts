@@ -1,3 +1,5 @@
+// BACKEND_TODO: This mock data will be DELETED once Supabase `tickets` table is wired.
+// Replace all imports of `mockTickets` with live queries and realtime subscriptions.
 export type Ticket = {
   id: string;
   subject: string;

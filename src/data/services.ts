@@ -1,3 +1,5 @@
+// BACKEND_TODO: This mock data will be DELETED once Supabase `services` table is wired.
+// Replace all imports of `mockServices` and helper mappers with live queries.
 export type ServiceItem = {
   id: string;
   name: string;

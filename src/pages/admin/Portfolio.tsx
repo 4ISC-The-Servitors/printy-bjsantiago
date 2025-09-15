@@ -1,3 +1,5 @@
+// BACKEND_TODO: Ensure portfolio/services data comes from Supabase and updates realtime.
+// Remove any reliance on `mockServices` and helper mappers once live.
 import React from 'react';
 import { PortfolioDesktopCard, PortfolioMobileCard } from '@components/admin';
 

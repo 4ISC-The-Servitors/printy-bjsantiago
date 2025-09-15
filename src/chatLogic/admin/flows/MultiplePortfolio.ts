@@ -1,6 +1,7 @@
 // Refactored MultiplePortfolio Flow using shared utilities and base framework
 
-import { mockServices } from '../../../data/services';
+// BACKEND_TODO: Remove mockServices import; rely solely on context-provided services from Supabase.
+import { mockServices } from '../../../data/services'; // DELETE when backend is wired
 import {
   FlowBase,
   SERVICE_STATUS_OPTIONS,

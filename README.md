@@ -39,6 +39,19 @@
 - Removed 74 lint errors
 - Improved sign up page to check for duplicate email and phone number registrations
 
+### 2025-09-16-Andeng
+
+- COMPLETE:
+- added backend TODOs in start of admin files. search for comments with "BACKEND_TODO" exactly
+- admin desktop ui/ux
+- base chat logic for dynamically changing status, creating quote, editing service, adding service, replying to ticket
+
+- TO FOLLOW:
+- align mobile responsiveness with desktop features
+- polish chat logic
+- typing animations for chats
+- recent chats/conversation like in customer
+
 ## 🚀 Current Status
 
 **✅ COMPLETED:**
@@ -76,6 +89,82 @@ The UI is complete and instrumented with inline TODO (BACKEND) markers:
 - Call password change API and handle errors; fire success toast
 - Trigger onPasswordUpdated after successful API
 - Implement 2FA setup flow
+
+### Admin Auth & Access Control (start here)
+
+- Wire Supabase Auth for admin sign-in; remove prototype quick-access
+- Persist session; implement refresh-token handling; remember-me support
+- Fetch user profile/role on sign-in; cache minimal user profile in app state
+- Role-based routing/guards: restrict `/admin/**` to `admin|super_admin`
+- Route protection for customer-only routes; redirect unauthenticated users
+- Centralize error handling and toast messages for auth flows
+- Secure logout; clear session and cached profile
+
+### Admin Settings Backend Implementation
+
+- Replace local state with Supabase-backed tables for:
+  - admin profile (displayName, department, avatarUrl, lastLogin)
+  - system preferences (autoBackup, maintenanceMode, etc.)
+  - user management policies (maxLoginAttempts, sessionTimeout, etc.)
+  - admin notifications preferences
+- Create RPCs or row-level policies as needed
+- Hydrate on mount; optimistic UI updates with rollback on error
+- Add audit trail for settings changes (optional)
+
+### Orders Module (Admin)
+
+- Replace `mockOrders` with Supabase `orders` table
+- Implement data provider/context backed by Supabase queries
+- Realtime subscriptions for status and total changes
+- Chat flows: remove mock fallbacks; operate purely on context/DB
+- Bulk updates: atomic updates with server-side validation
+- Quote creation: store quote amount and transition status to Pending
+- Indexes/policies: RLS by tenant/user; add status/date indexes
+
+### Tickets Module (Admin)
+
+- Replace `mockTickets` with Supabase `tickets` table
+- Ticket replies: insert to `ticket_messages` and update `lastMessage`
+- Status transitions with audit history
+- Realtime subscriptions for new tickets/replies
+- Chat flows: remove mock fallbacks; operate on context/DB
+
+### Portfolio/Services Module (Admin)
+
+- Replace `mockServices` with Supabase `services` table
+- Category listing via SQL view or computed query
+- Add service creation flow: validate unique `code`, insert service
+- Status/name/category edits: persist; optimistic UI
+- Realtime subscriptions for service updates
+- Remove mock helpers `getPortfolioServices` once live
+
+### Admin Chat Orchestrator
+
+- Ensure flows receive live context from pages/hooks
+- Remove all "Update mock data" blocks in flows
+- Centralize price parsing/validation; server-side guardrails
+
+### Storage & Avatars
+
+- Supabase Storage bucket for admin avatars; signed URL handling
+- Update Admin Settings profile avatar upload; persist URL
+
+### Telemetry & Auditing
+
+- Log admin actions (status changes, quotes, settings edits)
+- Error logging to Supabase `logs` table or external service
+
+### Security & Policies
+
+- RLS for all tables; service-role and anon-read as appropriate
+- Row ownership by organization/account when multi-tenant
+- Least-privilege keys in frontend; server functions for privileged ops
+
+### Cleanup Checklist (when backend live)
+
+- Delete `src/data/orders.ts`, `src/data/tickets.ts`, `src/data/services.ts`
+- Remove mock imports from chat flows and hooks
+- Remove prototype quick-access in SignIn and any demo-only UI
 
 ## 📦 Installation
 

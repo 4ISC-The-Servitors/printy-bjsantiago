@@ -1,3 +1,6 @@
+// BACKEND_TODO: Wire Supabase Auth here (email/password + OAuth). Remove PrototypeAccess quick admin button
+// after role-based routing/guards are implemented. Persist session and support remember-me.
+// Also replace any mock/toast-only flows with real error handling from Supabase.
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {

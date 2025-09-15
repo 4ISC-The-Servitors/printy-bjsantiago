@@ -1,5 +1,6 @@
 // Message building utilities for all chat flows
 
+// BACKEND_NOTE: Utilities only; no mock data here. Safe when backend goes live.
 import type { BotMessage } from '../../../../types/chatFlow';
 
 export function createEndChatMessage(): BotMessage {

@@ -1,3 +1,5 @@
+// BACKEND_TODO: selectionUtils references selection items built from mocks in some pages.
+// Ensure selections are driven by live Supabase data when backend is wired.
 export * from './selectionUtils';
 export * from './statusColors';
 

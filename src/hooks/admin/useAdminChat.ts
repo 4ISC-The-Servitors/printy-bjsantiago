@@ -1,3 +1,5 @@
+// BACKEND_TODO: Ensure this orchestrator receives live context from pages using Supabase data (orders/services/tickets).
+// Remove any reliance on mock data within flows; flows should operate on passed context only.
 import { useState } from 'react';
 import type {
   ChatMessage,

@@ -1,3 +1,5 @@
+// BACKEND_TODO: Replace any ticket mock usage in downstream components with Supabase data.
+// Wire realtime subscriptions for ticket status/messages.
 import React from 'react';
 import { TicketsDesktopCard, TicketsMobileCard } from '@components/admin';
 

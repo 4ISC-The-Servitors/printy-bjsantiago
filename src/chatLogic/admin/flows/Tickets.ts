@@ -1,7 +1,8 @@
 // Refactored Tickets Flow using shared utilities and base framework
 
 import type { BotMessage } from '../../../types/chatFlow';
-import { mockTickets } from '../../../data/tickets';
+// BACKEND_TODO: Remove mockTickets import; rely solely on context-provided tickets from Supabase.
+import { mockTickets } from '../../../data/tickets'; // DELETE when backend is wired
 import {
   FlowBase,
   TICKET_STATUS_OPTIONS,

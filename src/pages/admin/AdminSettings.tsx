@@ -1,3 +1,5 @@
+// BACKEND_TODO: Replace local state with Supabase-backed profile, preferences, and notifications.
+// Hydrate on mount and persist via RPCs or direct table updates with RLS. Remove demo data below.
 import React, { useState, useEffect } from 'react';
 import { Container, Text, Card, ToastContainer } from '../../components/shared';
 import { useToast } from '../../lib/useToast';

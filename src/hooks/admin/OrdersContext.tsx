@@ -1,5 +1,8 @@
+// BACKEND_TODO: Replace mock-backed context with Supabase `orders` table.
+// - Load via Supabase query on mount; subscribe to realtime changes.
+// - Remove mockOrders import and periodic refresh once backend is live.
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { mockOrders, type Order } from '../../data/orders';
+import { mockOrders, type Order } from '../../data/orders'; // DELETE when Supabase is wired
 
 interface OrdersContextValue {
   orders: Order[];

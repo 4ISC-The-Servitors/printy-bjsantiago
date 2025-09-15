@@ -1,6 +1,9 @@
+// BACKEND_TODO: Replace mock portfolio getters with Supabase `services` table queries.
+// - Hydrate services from DB; add realtime subscriptions.
+// - Remove getPortfolioServices/getServicesByCategory once backend is live.
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAdminChat } from '@hooks/admin/useAdminChat';
-import { getPortfolioServices, getServicesByCategory } from '@data/services';
+import { getPortfolioServices, getServicesByCategory } from '@data/services'; // DELETE when Supabase is wired
 
 export type ServiceStatus = 'Active' | 'Inactive' | 'Retired';
 
