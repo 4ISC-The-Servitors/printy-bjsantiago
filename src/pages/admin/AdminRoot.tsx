@@ -30,7 +30,14 @@ const AdminRoot: React.FC = () => {
       ) => {
         window.dispatchEvent(
           new CustomEvent('admin-chat-open', {
-            detail: { topic, orderId, updateOrder, orders, refreshOrders, orderIds },
+            detail: {
+              topic,
+              orderId,
+              updateOrder,
+              orders,
+              refreshOrders,
+              orderIds,
+            },
           })
         );
       },

@@ -18,7 +18,7 @@ export { default as AdminSelectionHandler } from './_shared/AdminSelectionHandle
 // Layouts (single barrel)
 export { default as AdminLayout } from './layouts/AdminLayout';
 export { default as AdminMobileLayout } from './layouts/AdminMobileLayout';
-export { default as SettingsLayout } from './settings/SettingsLayout';
+// Settings page uses AdminLayout; legacy SettingsLayout removed
 export * from './layouts/adminNav';
 
 // Mobile chrome (Admin-prefixed aliases from _shared/mobile)

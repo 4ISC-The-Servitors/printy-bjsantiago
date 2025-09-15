@@ -53,7 +53,14 @@ const PortfolioCard: React.FC = () => {
       addSelected({ id, label, type: 'service' });
     });
     if (selectedIds.length > 1) {
-      openChatWithTopic?.('multiple-portfolio', undefined, undefined, servicesArr, undefined, selectedIds);
+      openChatWithTopic?.(
+        'multiple-portfolio',
+        undefined,
+        undefined,
+        servicesArr,
+        undefined,
+        selectedIds
+      );
     } else {
       openChatWithTopic?.('portfolio', selectedIds[0], undefined, servicesArr);
     }
@@ -211,7 +218,13 @@ const PortfolioCard: React.FC = () => {
                             onClick={() => {
                               const label = `${s.name} (${s.code})`;
                               addSelected({ id: s.id, label, type: 'service' });
-                              if (openChatWithTopic) openChatWithTopic('portfolio', s.id, undefined, allServices);
+                              if (openChatWithTopic)
+                                openChatWithTopic(
+                                  'portfolio',
+                                  s.id,
+                                  undefined,
+                                  allServices
+                                );
                               else openChat();
                             }}
                           >
@@ -314,7 +327,13 @@ const PortfolioCard: React.FC = () => {
                             threeD
                             title="Chat about this service"
                             onClick={() => {
-                              if (openChatWithTopic) openChatWithTopic('portfolio', s.id, undefined, allServices);
+                              if (openChatWithTopic)
+                                openChatWithTopic(
+                                  'portfolio',
+                                  s.id,
+                                  undefined,
+                                  allServices
+                                );
                               else openChat();
                             }}
                             className="min-h-[44px] min-w-[44px]"

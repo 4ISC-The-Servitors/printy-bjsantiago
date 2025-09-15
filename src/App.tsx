@@ -7,7 +7,7 @@ import ForgotPassword from './pages/auth/ForgotPassword';
 import ResetPassword from './pages/auth/ResetPassword';
 import CustomerDashboard from './pages/customer/Dashboard';
 import AccountSettingsPage from './pages/customer/accountSettings/AccountSettingsPage';
-import SettingsLayout from './components/admin/settings/SettingsLayout';
+// Legacy SettingsLayout removed; AdminLayout wraps via AdminRoot
 import AdminRoot from './pages/admin/AdminRoot';
 import { PageLoading } from './components/shared';
 import './index.css';
@@ -77,11 +77,9 @@ function App() {
         <Route
           path="settings"
           element={
-            <SettingsLayout>
-              <Suspense fallback={<PageLoading variant="form" />}>
-                <AdminSettingsPage />
-              </Suspense>
-            </SettingsLayout>
+            <Suspense fallback={<PageLoading variant="form" />}>
+              <AdminSettingsPage />
+            </Suspense>
           }
         />
       </Route>

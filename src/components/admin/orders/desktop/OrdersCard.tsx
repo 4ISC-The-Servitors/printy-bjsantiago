@@ -108,8 +108,7 @@ const OrdersCard: React.FC = () => {
     <div className="relative">
       <Card className="p-0">
         <div className="flex items-center justify-end px-3 py-2 sm:px-4">
-          <div className="flex items-center gap-2 text-neutral-500 text-xs">
-          </div>
+          <div className="flex items-center gap-2 text-neutral-500 text-xs"></div>
         </div>
 
         <div className="space-y-4 sm:space-y-6 px-3 sm:px-4 pb-3">
@@ -127,7 +126,9 @@ const OrdersCard: React.FC = () => {
                   onCheckedChange={() => toggleOrderSelection(o.id)}
                   className={cn(
                     'transition-opacity bg-white border-2 border-gray-300 w-5 h-5 rounded data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500',
-                    hoveredOrderId === o.id || orderSelection.selectionCount > 0 ? 'opacity-100' : 'opacity-0'
+                    hoveredOrderId === o.id || orderSelection.selectionCount > 0
+                      ? 'opacity-100'
+                      : 'opacity-0'
                   )}
                 />
               </div>

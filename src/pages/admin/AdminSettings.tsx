@@ -1,14 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import {
-  Container,
-  Text,
-  Card,
-  ToastContainer,
-  Button,
-} from '../../components/shared';
+import { Container, Text, Card, ToastContainer } from '../../components/shared';
 import { useToast } from '../../lib/useToast';
-import { ArrowLeft } from 'lucide-react';
+//
 import * as SettingsDesktop from '../../components/admin/settings/desktop';
 import * as SettingsMobile from '../../components/admin/settings/mobile';
 
@@ -48,7 +41,7 @@ export interface AdminNotificationData {
 
 const AdminSettingsPage: React.FC = () => {
   const [toasts, toast] = useToast();
-  const navigate = useNavigate();
+  // Wrapped by AdminLayout at route level; no internal layout duplication
 
   // TODO(BACKEND): Replace local state with data fetched from backend (Supabase)
   const [adminData, setAdminData] = useState<AdminData | null>(null);
@@ -153,25 +146,8 @@ const AdminSettingsPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-brand-primary-50">
+    <div className="min-h-[calc(100vh-0px)]">
       <Container size="xl" className="py-6 md:py-10">
-        <div className="mb-6 flex items-center gap-3">
-          <Button
-            onClick={() => navigate('/admin')}
-            variant="secondary"
-            size="sm"
-            threeD
-            className="h-9 w-9 md:h-auto md:w-auto md:px-4 md:py-2 p-0 flex items-center justify-center"
-            aria-label="Back to admin dashboard"
-          >
-            <ArrowLeft className="h-4 w-4 md:mr-2" />
-            <span className="hidden md:inline">Back</span>
-          </Button>
-          <Text variant="h1" size="2xl" weight="bold">
-            Admin Settings
-          </Text>
-        </div>
-
         <div className="space-y-6 md:space-y-8">
           {adminData && (
             <Card className="p-6">

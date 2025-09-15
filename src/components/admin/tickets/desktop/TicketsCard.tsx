@@ -40,7 +40,14 @@ const TicketsCard: React.FC = () => {
     if (selectedIds.length === 0) return;
     // Update selected chips bar
     selectedIds.forEach(id => addSelected({ id, label: id, type: 'ticket' }));
-    openChatWithTopic?.('multiple-tickets', undefined, undefined, mockTickets, undefined, selectedIds);
+    openChatWithTopic?.(
+      'multiple-tickets',
+      undefined,
+      undefined,
+      mockTickets,
+      undefined,
+      selectedIds
+    );
     ticketSelection.clear();
     if (!openChatWithTopic) openChat();
   };
@@ -148,7 +155,12 @@ const TicketsCard: React.FC = () => {
                     aria-label={`Ask about ${t.id}`}
                     onClick={() => {
                       addSelected({ id: t.id, label: t.id, type: 'ticket' });
-                      openChatWithTopic?.('tickets', t.id, undefined, mockTickets);
+                      openChatWithTopic?.(
+                        'tickets',
+                        t.id,
+                        undefined,
+                        mockTickets
+                      );
                       if (!openChatWithTopic) openChat();
                     }}
                     className="shrink-0 min-h-[40px] min-w-[40px]"

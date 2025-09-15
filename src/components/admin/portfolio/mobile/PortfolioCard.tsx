@@ -36,7 +36,14 @@ const PortfolioCard: React.FC = () => {
     if (ids.length === 0) return;
     const servicesArr = services;
     if (ids.length > 1) {
-      openChatWithTopic?.('multiple-portfolio', undefined, undefined, servicesArr, undefined, ids);
+      openChatWithTopic?.(
+        'multiple-portfolio',
+        undefined,
+        undefined,
+        servicesArr,
+        undefined,
+        ids
+      );
     } else {
       openChatWithTopic?.('portfolio', ids[0], undefined, servicesArr);
     }
@@ -168,7 +175,13 @@ const PortfolioCard: React.FC = () => {
                               <div className="absolute right-0 top-8 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[140px]">
                                 <Button
                                   onClick={() => {
-                                    if (openChatWithTopic) openChatWithTopic('portfolio', s.id, undefined, services);
+                                    if (openChatWithTopic)
+                                      openChatWithTopic(
+                                        'portfolio',
+                                        s.id,
+                                        undefined,
+                                        services
+                                      );
                                     else openChat();
                                   }}
                                   className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
