@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Sidebar from '../dashboard/desktop/Sidebar';
+import Sidebar from '../_shared/desktop/Sidebar';
 import { Text, Button } from '../../shared';
 import ChatDock from '../../shared/ChatDock';
-import type { SelectedItem } from '../../../pages/admin/AdminContext';
+import type { SelectedItem } from '../../../hooks/admin/AdminContext';
 import ChatPanel from '../../chat/CustomerChatPanel';
 import { MessageSquare, X, Minimize2 } from 'lucide-react';
-import { AdminProvider } from '../../../pages/admin/AdminContext';
+import { AdminProvider } from '../../../hooks/admin/AdminContext';
 import useAdminChat from '../../../hooks/admin/useAdminChat';
 import useAdminNav from '../../../hooks/admin/useAdminNav';
 import { useIsMobile } from '../dashboard/index';

@@ -7,15 +7,14 @@ import ForgotPassword from './pages/auth/ForgotPassword';
 import ResetPassword from './pages/auth/ResetPassword';
 import CustomerDashboard from './pages/customer/Dashboard';
 import AccountSettingsPage from './pages/customer/accountSettings/AccountSettingsPage';
-import DashboardLayout from './components/admin/dashboard/DashboardLayout';
-import OrdersDesktopLayout from './components/admin/orders/desktop/OrdersDesktopLayout';
-// TicketsLayout removed; tickets page handles layout internally
 import SettingsLayout from './components/admin/settings/SettingsLayout';
+import AdminRoot from './pages/admin/AdminRoot';
 import { PageLoading } from './components/shared';
 import './index.css';
 
 // Lazy load heavy components
 const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'));
+const AdminOrders = lazy(() => import('./pages/admin/Orders'));
 const AdminTickets = lazy(() => import('./pages/admin/Tickets'));
 const AdminSettingsPage = lazy(() => import('./pages/admin/AdminSettings'));
 const AdminPortfolio = lazy(() => import('./pages/admin/Portfolio'));
@@ -38,47 +37,54 @@ function App() {
       <Route
         path="/admin"
         element={
-          <DashboardLayout>
+          <Suspense fallback={<PageLoading variant="dashboard" />}>
+            <AdminRoot />
+          </Suspense>
+        }
+      >
+        <Route
+          index
+          element={
             <Suspense fallback={<PageLoading variant="dashboard" />}>
               <AdminDashboard />
             </Suspense>
-          </DashboardLayout>
-        }
-      />
-      <Route
-        path="/admin/orders"
-        element={
-          <Suspense fallback={<PageLoading variant="list" />}>
-            <OrdersDesktopLayout />
-          </Suspense>
-        }
-      />
-      <Route
-        path="/admin/tickets"
-        element={
-          <Suspense fallback={<PageLoading variant="list" />}>
-            <AdminTickets />
-          </Suspense>
-        }
-      />
-      <Route
-        path="/admin/portfolio"
-        element={
-          <Suspense fallback={<PageLoading variant="grid" />}>
-            <AdminPortfolio />
-          </Suspense>
-        }
-      />
-      <Route
-        path="/admin/settings"
-        element={
-          <SettingsLayout>
-            <Suspense fallback={<PageLoading variant="form" />}>
-              <AdminSettingsPage />
+          }
+        />
+        <Route
+          path="orders"
+          element={
+            <Suspense fallback={<PageLoading variant="list" />}>
+              <AdminOrders />
             </Suspense>
-          </SettingsLayout>
-        }
-      />
+          }
+        />
+        <Route
+          path="tickets"
+          element={
+            <Suspense fallback={<PageLoading variant="list" />}>
+              <AdminTickets />
+            </Suspense>
+          }
+        />
+        <Route
+          path="portfolio"
+          element={
+            <Suspense fallback={<PageLoading variant="grid" />}>
+              <AdminPortfolio />
+            </Suspense>
+          }
+        />
+        <Route
+          path="settings"
+          element={
+            <SettingsLayout>
+              <Suspense fallback={<PageLoading variant="form" />}>
+                <AdminSettingsPage />
+              </Suspense>
+            </SettingsLayout>
+          }
+        />
+      </Route>
       <Route
         path="/superadmin"
         element={

@@ -7,7 +7,7 @@ import MobileTicketsCard from '../tickets/mobile/TicketsCard';
 // Import desktop components
 import DesktopOrdersCard from '../orders/desktop/OrdersCard';
 import DesktopTicketsCard from '../tickets/desktop/TicketsCard';
-import DesktopSidebar from './desktop/Sidebar';
+import DesktopSidebar from '../_shared/desktop/Sidebar';
 
 // Platform detection hook
 export const useIsMobile = () => {

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Card, Badge, Button, Text } from '../../../shared';
 import { mockTickets } from '../../../../data/tickets';
-import { useAdmin } from '../../../../pages/admin/AdminContext';
+import { useAdmin } from '../../../../hooks/admin/AdminContext';
 import { MessageSquare, Plus, MoreVertical } from 'lucide-react';
 
 const getBadgeVariantForStatus = (
@@ -50,9 +50,6 @@ const TicketsCard: React.FC = () => {
           <Text variant="h3" size="lg" weight="semibold">
             Recent Tickets
           </Text>
-          <Badge size="sm" variant="secondary">
-            {displayTickets.length}
-          </Badge>
         </div>
 
         <div className="divide-y divide-neutral-200">
@@ -78,7 +75,7 @@ const TicketsCard: React.FC = () => {
                       {t.id}
                     </Text>
                     <Text variant="p" size="xs" color="muted">
-                      {t.time}
+                      {t.date}
                     </Text>
                   </div>
                 </div>

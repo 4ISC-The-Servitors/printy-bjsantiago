@@ -1,12 +1,19 @@
 import React from 'react';
-import { OrdersCard, TicketsCard } from '../../components/admin/dashboard';
+import { Text, Card } from '../../components/shared';
 
 const AdminDashboard: React.FC = () => {
   return (
-    <div className="space-y-6">
-      <OrdersCard />
-      <TicketsCard />
-    </div>
+    <Card className="p-8">
+      <Text
+        variant="h2"
+        size="xl"
+        weight="semibold"
+        className="text-neutral-800"
+      >
+        Admin Dashboard
+      </Text>
+      <Text className="mt-2 text-neutral-600">Coming soon.</Text>
+    </Card>
   );
 };
 

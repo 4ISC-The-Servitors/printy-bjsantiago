@@ -2,7 +2,7 @@ export type Ticket = {
   id: string;
   subject: string;
   status: 'Open' | 'Pending' | 'Closed';
-  time: string;
+  date: string;
   description?: string;
   lastMessage?: string;
   requester?: string;
@@ -14,32 +14,29 @@ export const mockTickets: Ticket[] = [
     subject: 'Printing color mismatch on recent batch',
     description:
       'Colors look dull on batch #8421 compared to proof. Please review and advise next steps.',
-    requester: 'Customer',
+    requester: 'Jorrel De Ocampo',
     status: 'Open',
-    time: 'Just now',
+    date: 'May 30',
   },
   {
     id: 'TCK-3052',
     subject: 'Delivery schedule inquiry',
+    requester: 'Andrea Salazar',
     status: 'Open',
-    time: 'Just now',
+    date: 'May 25',
   },
   {
     id: 'TCK-2981',
     subject: 'Invoice correction',
+    requester: 'Ian De Jesus',
     status: 'Pending',
-    time: '1h ago',
+    date: 'May 14',
   },
   {
     id: 'TCK-2970',
     subject: 'Reprint request',
-    status: 'Pending',
-    time: '2h ago',
-  },
-  {
-    id: 'TCK-2922',
-    subject: 'Packaging concern',
+    requester: 'Liam Vitug',
     status: 'Closed',
-    time: 'Yesterday',
+    date: 'May 10',
   },
 ];

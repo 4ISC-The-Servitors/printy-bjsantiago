@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Badge, Button, Skeleton } from '../../../shared';
+import { Card, Badge, Button, Skeleton, Checkbox } from '../../../shared';
 import { mockTickets } from '../../../../data/tickets';
-import { useAdmin } from '../../../../pages/admin/AdminContext';
+import { useAdmin } from '../../../../hooks/admin/AdminContext';
 import { useTicketSelection } from '../../../../hooks/admin/SelectionContext';
 import { createTicketSelectionItems } from '../../../../utils/admin/selectionUtils';
 import { getTicketStatusBadgeVariant } from '../../../../utils/admin/statusColors';
 import { MessageSquare, Plus } from 'lucide-react';
+import { cn } from '../../../../lib/utils';
 
 // variant derived by getTicketStatusBadgeVariant
 
@@ -13,6 +14,7 @@ const TicketsCard: React.FC = () => {
   const { addSelected, openChatWithTopic, openChat } = useAdmin();
   const ticketSelection = useTicketSelection();
   const [isLoading, setIsLoading] = useState(true);
+  const [hoveredTicketId, setHoveredTicketId] = useState<string | null>(null);
 
   // Simulate data loading
   useEffect(() => {
@@ -79,59 +81,41 @@ const TicketsCard: React.FC = () => {
     <div className="relative">
       <Card className="p-0">
         <div className="flex items-center justify-end px-3 py-2 sm:px-4">
-          <div className="flex items-center gap-2 text-neutral-500 text-xs">
-            <Badge size="sm" variant="secondary">
-              {displayTickets.length}
-            </Badge>
-          </div>
+          <div className="flex items-center gap-2 text-neutral-500 text-xs"></div>
         </div>
 
         <div className="space-y-4 sm:space-y-6 px-3 sm:px-4 pb-3">
           {displayTickets.map(t => (
             <div
               key={t.id}
-              className="group flex items-center gap-3 sm:gap-4 p-3 sm:p-4 lg:p-5 rounded-lg border bg-white/60 hover:bg-white transition-colors relative"
+              className="group p-3 sm:p-4 lg:p-5 rounded-lg border bg-white/60 hover:bg-white transition-colors relative"
+              onMouseEnter={() => setHoveredTicketId(t.id)}
+              onMouseLeave={() => setHoveredTicketId(null)}
             >
-              {/* Hover checkbox on left */}
-              <div className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                <input
-                  type="checkbox"
-                  className="w-4 h-4 accent-brand-primary"
+              {/* Hover checkbox on left (match PortfolioCard behavior) */}
+              <div className="absolute -left-3 top-1/2 -translate-y-1/2 z-10">
+                <Checkbox
                   checked={ticketSelection.isSelected(t.id)}
-                  onChange={() => toggleTicketSelection(t.id)}
-                  title="Select ticket"
+                  onCheckedChange={() => toggleTicketSelection(t.id)}
+                  className={cn(
+                    'transition-opacity bg-white border-2 border-gray-300 w-5 h-5 rounded data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500',
+                    hoveredTicketId === t.id ||
+                      ticketSelection.selectionCount > 0
+                      ? 'opacity-100'
+                      : 'opacity-0'
+                  )}
                 />
               </div>
-
-              <div className="flex w-full items-center justify-between gap-3 sm:gap-4">
-                {/* Left section: identifiers + subject/status */}
-                <div className="flex-1 min-w-0 space-y-1 sm:space-y-2">
-                  <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                    <span className="text-xs sm:text-sm lg:text-base font-medium text-neutral-500 truncate">
-                      {t.id}
-                    </span>
-                    <div className="text-sm sm:text-base lg:text-lg font-medium text-neutral-900 text-pretty sm:hidden truncate">
-                      {t.subject}
-                    </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center pl-6">
+                {/* Left grid: Ticket ID, Subject, then Status below subject */}
+                <div className="min-w-0">
+                  <div className="text-xs sm:text-sm lg:text-base font-medium text-neutral-500 truncate">
+                    {t.id}
                   </div>
-                  <div className="text-xs sm:text-sm text-neutral-500 sm:self-start">
-                    {t.time}
-                  </div>
-
-                  <div className="hidden sm:block text-sm sm:text-base lg:text-lg font-medium text-neutral-900 text-pretty truncate">
+                  <div className="mt-1 text-sm sm:text-base lg:text-lg font-medium text-neutral-900 truncate">
                     {t.subject}
                   </div>
-
-                  <div className="flex justify-start sm:hidden">
-                    <Badge
-                      size="sm"
-                      variant={getTicketStatusBadgeVariant(t.status)}
-                      className="text-xs"
-                    >
-                      {t.status}
-                    </Badge>
-                  </div>
-                  <div className="hidden sm:flex sm:items-center sm:gap-3">
+                  <div className="mt-2">
                     <Badge
                       size="sm"
                       variant={getTicketStatusBadgeVariant(t.status)}
@@ -142,14 +126,26 @@ const TicketsCard: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Right section: action aligned right */}
-                <div className="flex items-center gap-3 sm:gap-4">
+                {/* Middle grid is removed per new spec; use spacer on md+ */}
+                <div className="hidden md:block" />
+
+                {/* Right grid: Requester and Date beside Chat button */}
+                <div className="flex items-center justify-between md:justify-end gap-4">
+                  <div className="min-w-0 text-right">
+                    <div className="text-sm sm:text-base font-medium text-neutral-900 truncate">
+                      {t.requester ?? '—'}
+                    </div>
+                    <div className="text-xs sm:text-sm text-neutral-500 mt-1">
+                      {t.date}
+                    </div>
+                  </div>
                   <Button
                     variant="secondary"
                     size="sm"
+                    threeD
                     aria-label={`Ask about ${t.id}`}
                     onClick={() => openChatWithTopic?.('tickets', t.id)}
-                    className="shrink-0"
+                    className="shrink-0 min-h-[40px] min-w-[40px]"
                   >
                     <MessageSquare className="w-4 h-4" />
                   </Button>

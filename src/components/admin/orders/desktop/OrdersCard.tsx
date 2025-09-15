@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Badge, Button, Skeleton } from '../../../shared';
+import { Card, Badge, Button, Skeleton, Checkbox } from '../../../shared';
 import { mockOrders } from '../../../../data/orders';
 import { useOrderSelection } from '../../../../hooks/admin/SelectionContext';
 import { createOrderSelectionItems } from '../../../../utils/admin/selectionUtils';
 import { getOrderStatusBadgeVariant } from '../../../../utils/admin/statusColors';
 import { MessageSquare, Plus } from 'lucide-react';
-import { useAdmin } from '../../../../pages/admin/AdminContext';
+import { useAdmin } from '../../../../hooks/admin/AdminContext';
+import { cn } from '../../../../lib/utils';
 
 const OrdersCard: React.FC = () => {
   const orderSelection = useOrderSelection();
   const { addSelected, openChatWithTopic } = useAdmin();
   const [isLoading, setIsLoading] = useState(true);
+  const [hoveredOrderId, setHoveredOrderId] = useState<string | null>(null);
 
   // Simulate data loading
   useEffect(() => {
@@ -91,11 +93,7 @@ const OrdersCard: React.FC = () => {
     <div className="relative">
       <Card className="p-0">
         <div className="flex items-center justify-end px-3 py-2 sm:px-4">
-          <div className="flex items-center gap-2 text-neutral-500 text-xs">
-            <Badge size="sm" variant="secondary">
-              {displayOrders.length}
-            </Badge>
-          </div>
+          <div className="flex items-center gap-2 text-neutral-500 text-xs"></div>
         </div>
 
         <div className="space-y-4 sm:space-y-6 px-3 sm:px-4 pb-3">
@@ -103,19 +101,24 @@ const OrdersCard: React.FC = () => {
             <div
               key={o.id}
               className="group flex items-center gap-3 sm:gap-4 p-3 sm:p-4 lg:p-5 rounded-lg border bg-white/60 hover:bg-white transition-colors relative"
+              onMouseEnter={() => setHoveredOrderId(o.id)}
+              onMouseLeave={() => setHoveredOrderId(null)}
             >
-              {/* Hover checkbox on left */}
-              <div className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                <input
-                  type="checkbox"
-                  className="w-4 h-4 accent-brand-primary"
+              {/* Hover checkbox on left (matches Portfolio/Tickets behavior) */}
+              <div className="absolute -left-3 top-1/2 -translate-y-1/2 z-10">
+                <Checkbox
                   checked={orderSelection.isSelected(o.id)}
-                  onChange={() => toggleOrderSelection(o.id)}
-                  title="Select order"
+                  onCheckedChange={() => toggleOrderSelection(o.id)}
+                  className={cn(
+                    'transition-opacity bg-white border-2 border-gray-300 w-5 h-5 rounded data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500',
+                    hoveredOrderId === o.id || orderSelection.selectionCount > 0
+                      ? 'opacity-100'
+                      : 'opacity-0'
+                  )}
                 />
               </div>
 
-              <div className="flex w-full items-center justify-between gap-3 sm:gap-4">
+              <div className="flex w-full items-center justify-between gap-3 sm:gap-4 pl-6">
                 {/* Left section: identifiers, customer, badges */}
                 <div className="flex-1 min-w-0 space-y-1 sm:space-y-2">
                   <div className="flex items-center gap-2 sm:gap-3 min-w-0">

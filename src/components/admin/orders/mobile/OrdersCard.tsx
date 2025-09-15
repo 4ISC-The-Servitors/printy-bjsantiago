@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Card, Badge, Button, Text } from '../../../shared';
 import { mockOrders } from '../../../../data/orders';
-import { useAdmin } from '../../../../pages/admin/AdminContext';
+import { useAdmin } from '../../../../hooks/admin/AdminContext';
 import { MessageSquare, Plus, MoreVertical } from 'lucide-react';
 
 const OrdersCard: React.FC = () => {
@@ -37,9 +37,6 @@ const OrdersCard: React.FC = () => {
           <Text variant="h3" size="lg" weight="semibold">
             Recent Orders
           </Text>
-          <Badge size="sm" variant="secondary">
-            {displayOrders.length}
-          </Badge>
         </div>
 
         <div className="divide-y divide-neutral-200">
