@@ -25,6 +25,8 @@ const NODES: Record<string, Node> = {
   //      (one that requires user input)
   // 3- value storing logic not yet implemented 
   //      (stores all order specs of the user to a variable)
+  // 4 - if user cant find or recognize categories of products they can type instead
+  //      then mag fufunction siya as search. pwedeng ganon. tapos dapat may Back logic sa chat if ever gusto mag change ng category
 
   place_order_start: {
     id: 'place_order_start',
