@@ -121,6 +121,8 @@ const DETAIL_NODE_IDS = new Set<keyof typeof NODES>([
   'other_issue',
 ]);
 
+
+
 // Added a function to retrieve the current logged-in user's customer_id
 async function getCurrentCustomerId() {
   try {
@@ -129,7 +131,6 @@ async function getCurrentCustomerId() {
       console.error('Error fetching user:', error);
       return null;
     }
-    // Ensure schema matches your DB column
     return (user as any).customer_id || user.id || null;
   } catch (err) {
     console.error('Unexpected error fetching user:', err);
@@ -159,19 +160,86 @@ export const issueTicketFlow: ChatFlow = {
   quickReplies: () => nodeQuickReplies(NODES[currentNodeId]),
   respond: async (_ctx, input) => {
     const current = NODES[currentNodeId];
+
+// ====================
+// Blacklisted words (basic profanity filter)
+// ====================
+const BLACKLIST = ['fuck', 'shit', 'bitch', 'asshole', 'bastard', 'nigger'];
+
+function checkBlacklistedWord(input: string): string | null {
+  const lower = input.toLowerCase();
+  for (const word of BLACKLIST) {
+    if (lower.includes(word)) {
+      return word; // return the matched bad word
+    }
+  }
+  return null;
+}
+
+    // ====================
+    // Global profanity filter
+    // ====================
+    const flaggedWord = checkBlacklistedWord(input);
+    if (flaggedWord) {
+      if (currentNodeId === 'issue_ticket_start' || currentNodeId === 'no_order_number') {
+        return {
+          messages: [
+            { role: 'printy', text: `⚠️ You have entered a flagged word that is "${flaggedWord}".` },
+            { role: 'printy', text: 'Please type a valid order number.' },
+          ],
+          quickReplies: nodeQuickReplies(NODES.issue_ticket_start),
+        };
+      } else if (DETAIL_NODE_IDS.has(currentNodeId)) {
+        return {
+          messages: [
+            { role: 'printy', text: `⚠️ You have entered a flagged word that is "${flaggedWord}".` },
+            { role: 'printy', text: 'Please rephrase, use appropriate words.' },
+          ],
+          quickReplies: nodeQuickReplies(NODES[currentNodeId]),
+        };
+      }
+    }
+    // ====================
+
     const selection = current.options.find(
       o => o.label.toLowerCase() === input.trim().toLowerCase()
     );
+
     // ====================
-    // Support going back to the order issue menu via free text
+    // Backtracking handler
     if (/^(go\s*back|see\s*menu\s*again|back|menu)$/i.test(input.trim())) {
+      return {
+        messages: [
+          { role: 'printy', text: 'Where would you like to back track?' },
+        ],
+        quickReplies: [
+          '🔄 Back to start (order number check)',
+          '📋 Back to choosing issue type',
+        ],
+      };
+    }
+
+    if (/^🔄\s*Back to start/i.test(input.trim())) {
+      currentNodeId = 'issue_ticket_start';
+      collectedIssueDetails = '';
+      currentInquiryType = null;
+      return {
+        messages: nodeToMessages(NODES.issue_ticket_start),
+        quickReplies: nodeQuickReplies(NODES.issue_ticket_start),
+      };
+    }
+
+    if (/^📋\s*Back to choosing issue type/i.test(input.trim())) {
       currentNodeId = 'order_issue_menu';
+      collectedIssueDetails = '';
+      currentInquiryType = null;
       return {
         messages: nodeToMessages(NODES.order_issue_menu),
         quickReplies: nodeQuickReplies(NODES.order_issue_menu),
       };
     }
     // ====================
+
     // Free-text handling at start: treat input as an order number and look it up
     if (!selection && currentNodeId === 'issue_ticket_start') {
       const orderNumber = input.trim();
@@ -508,7 +576,7 @@ export const issueTicketFlow: ChatFlow = {
             {
               role: 'printy',
               text:
-                "I ran into a network issue while creating your ticket. Please try 'Submit ticket' again.",
+                "I ran into a network issue while creating your ticket. Please try 'Submit ticket' again shortly.",
             },
           ],
           quickReplies: nodeQuickReplies(current),
@@ -517,13 +585,9 @@ export const issueTicketFlow: ChatFlow = {
     }
 
     currentNodeId = nextNodeId;
-    const node = NODES[currentNodeId];
-    const messages = nodeToMessages(node);
-    const quickReplies = nodeQuickReplies(node);
-    if (currentNodeId === 'end') {
-      return { messages, quickReplies: ['End Chat'] };
-    }
-    return { messages, quickReplies };
+    return {
+      messages: nodeToMessages(NODES[nextNodeId]),
+      quickReplies: nodeQuickReplies(NODES[nextNodeId]),
+    };
   },
 };
-
