@@ -60,6 +60,15 @@ const AdminShell: React.FC = () => {
   const [currentInquiryId, setCurrentInquiryId] = useState<string | null>(null);
   const [inputPlaceholder, setInputPlaceholder] = useState<string | undefined>(undefined);
 
+  const toQuickReplies = (labels?: string[]) =>
+    (labels || []).map((l, index) => {
+      const t = (l || '').trim().toLowerCase();
+      const isEnd = t === 'end chat' || t === 'end';
+      const label = isEnd ? 'Back' : l;
+      const value = isEnd ? 'Back' : l;
+      return { id: `qr-${index}` , label, value } as QuickReply;
+    });
+
   const setTicketActionReplies = () =>
     setQuickReplies([
       { id: 'qr-res', label: 'Create Resolution comment', value: 'Create Resolution comment' },
@@ -108,7 +117,8 @@ const AdminShell: React.FC = () => {
     if (val === 'Create Resolution comment') {
       setPendingAction('resolution');
       setInputPlaceholder('Type the resolution comment to send to the customer…');
-      setQuickReplies([{ id: 'qr-cancel', label: 'Cancel', value: 'Cancel' }]);
+      // Keep ticket options visible so admin can switch without a Back/Cancel step
+      setTicketActionReplies();
       setMessages(prev => [
         ...prev,
         { id: crypto.randomUUID(), role: 'printy', text: 'Please type the resolution comment.', ts: Date.now() },
@@ -118,7 +128,7 @@ const AdminShell: React.FC = () => {
     if (val === 'Assign to') {
       setPendingAction('assign');
       setInputPlaceholder('Enter the staff name to assign…');
-      setQuickReplies([{ id: 'qr-cancel', label: 'Cancel', value: 'Cancel' }]);
+      setQuickReplies([{ id: 'qr-back', label: 'Back', value: 'Back' }]);
       setMessages(prev => [
         ...prev,
         { id: crypto.randomUUID(), role: 'printy', text: 'Who should resolve this ticket? Type the staff name.', ts: Date.now() },
@@ -188,7 +198,7 @@ const AdminShell: React.FC = () => {
       const d = (await dispatched) as { messages?: { role: string; text: string }[]; quickReplies?: string[] };
       const botMessages = (d.messages || []).map(m => ({ id: crypto.randomUUID(), role: m.role as ChatRole, text: m.text, ts: Date.now() }));
       setMessages(prev => [...prev, ...botMessages]);
-      setQuickReplies((d.quickReplies || []).map((l, index) => ({ id: `qr-${index}`, label: l, value: l })));
+      setQuickReplies(toQuickReplies(d.quickReplies));
       setIsTyping(false);
     }
   };
@@ -334,13 +344,7 @@ const AdminShell: React.FC = () => {
                 ts: Date.now(),
               })),
             ]);
-            setQuickReplies(
-              flow.quickReplies().map((l, index) => ({
-                id: `qr-${index}`,
-                label: l,
-                value: l,
-              }))
-            );
+            setQuickReplies(toQuickReplies(flow.quickReplies()));
           }
           if (typeof prefill === 'object' && prefill?.followupBotText) {
             const msg = {
