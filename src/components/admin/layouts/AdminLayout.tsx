@@ -3,6 +3,7 @@ import useAdminChat from '@hooks/admin/useAdminChat';
 import { useAdmin } from '@hooks/admin/AdminContext';
 import Sidebar from '../_shared/desktop/Sidebar';
 import useAdminNav from '@hooks/admin/useAdminNav';
+import { useNavigate } from 'react-router-dom';
 import { useLocation } from 'react-router-dom';
 import { Text, Button } from '@components/shared';
 import { MessageSquare, Minimize2, X } from 'lucide-react';
@@ -33,7 +34,7 @@ const useIsDesktop = () => {
 
 const AdminLayout: React.FC<Props> = ({ children }) => {
   const isDesktop = useIsDesktop();
-  const { selected, clearSelected } = useAdmin();
+  const { selected, clearSelected, removeSelected } = useAdmin();
   const {
     chatOpen,
     setChatOpen,
@@ -41,12 +42,34 @@ const AdminLayout: React.FC<Props> = ({ children }) => {
     isTyping,
     quickReplies,
     handleChatOpen,
+    handleChatOpenWithTopic,
     endChatWithDelay,
     handleSendMessage,
     handleQuickReply,
   } = useAdminChat();
   const { go } = useAdminNav();
   const location = useLocation();
+  const navigate = useNavigate();
+  // Listen for external requests to open chat and optionally set topic/context
+  React.useEffect(() => {
+    const onOpen = (e: Event) => {
+      const detail = (e as CustomEvent).detail || {};
+      if (detail && detail.topic) {
+        handleChatOpenWithTopic(
+          detail.topic,
+          detail.orderId,
+          detail.updateOrder,
+          detail.orders,
+          detail.refreshOrders,
+          detail.orderIds
+        );
+      } else {
+        handleChatOpen();
+      }
+    };
+    window.addEventListener('admin-chat-open', onOpen as EventListener);
+    return () => window.removeEventListener('admin-chat-open', onOpen as EventListener);
+  }, [handleChatOpen, handleChatOpenWithTopic]);
 
   const active: 'dashboard' | 'orders' | 'tickets' | 'portfolio' | 'settings' =
     location.pathname === '/admin'
@@ -65,7 +88,7 @@ const AdminLayout: React.FC<Props> = ({ children }) => {
         <Sidebar
           active={active}
           onNavigate={go}
-          onLogout={() => go('dashboard')}
+          onLogout={() => navigate('/auth/signin')}
         />
 
         <main
@@ -141,7 +164,7 @@ const AdminLayout: React.FC<Props> = ({ children }) => {
           open={chatOpen}
           onToggle={() => setChatOpen(false)}
           selected={selected}
-          onRemoveSelected={() => {}}
+          onRemoveSelected={removeSelected}
           onClearSelected={clearSelected}
           messages={messages}
           isTyping={isTyping}

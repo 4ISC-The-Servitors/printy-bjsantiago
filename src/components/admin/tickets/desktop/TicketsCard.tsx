@@ -11,7 +11,7 @@ import { cn } from '../../../../lib/utils';
 // variant derived by getTicketStatusBadgeVariant
 
 const TicketsCard: React.FC = () => {
-  const { addSelected, openChatWithTopic, openChat } = useAdmin();
+  const { openChatWithTopic, openChat, addSelected } = useAdmin();
   const ticketSelection = useTicketSelection();
   const [isLoading, setIsLoading] = useState(true);
   const [hoveredTicketId, setHoveredTicketId] = useState<string | null>(null);
@@ -36,11 +36,13 @@ const TicketsCard: React.FC = () => {
   };
 
   const addSelectedToChat = () => {
-    ticketSelection.selected.forEach(item => {
-      addSelected({ id: item.id, label: item.label, type: 'ticket' });
-    });
+    const selectedIds = ticketSelection.selectedIds;
+    if (selectedIds.length === 0) return;
+    // Update selected chips bar
+    selectedIds.forEach(id => addSelected({ id, label: id, type: 'ticket' }));
+    openChatWithTopic?.('multiple-tickets', undefined, undefined, mockTickets, undefined, selectedIds);
     ticketSelection.clear();
-    openChat();
+    if (!openChatWithTopic) openChat();
   };
 
   if (isLoading) {
@@ -144,7 +146,11 @@ const TicketsCard: React.FC = () => {
                     size="sm"
                     threeD
                     aria-label={`Ask about ${t.id}`}
-                    onClick={() => openChatWithTopic?.('tickets', t.id)}
+                    onClick={() => {
+                      addSelected({ id: t.id, label: t.id, type: 'ticket' });
+                      openChatWithTopic?.('tickets', t.id, undefined, mockTickets);
+                      if (!openChatWithTopic) openChat();
+                    }}
                     className="shrink-0 min-h-[40px] min-w-[40px]"
                   >
                     <MessageSquare className="w-4 h-4" />
@@ -156,17 +162,14 @@ const TicketsCard: React.FC = () => {
         </div>
       </Card>
 
-      {/* Floating Add to Chat button */}
+      {/* Floating Add to Chat button (match Portfolio style) */}
       {ticketSelection.hasSelections && (
-        <div className="fixed bottom-6 right-6 z-50">
+        <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50">
           <Button
-            variant="primary"
-            size="lg"
-            threeD
             onClick={addSelectedToChat}
-            className="shadow-lg flex items-center gap-2"
+            className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg rounded-full px-8 py-4 flex items-center gap-3 min-h-[64px] text-lg"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="h-5 w-5" />
             Add to Chat ({ticketSelection.selectionCount})
           </Button>
         </div>

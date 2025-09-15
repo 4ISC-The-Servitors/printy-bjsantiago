@@ -17,7 +17,23 @@ const AdminRoot: React.FC = () => {
       removeSelected: (id: string) =>
         setSelected(prev => prev.filter(i => i.id !== id)),
       clearSelected: () => setSelected([]),
-      openChat: () => {},
+      openChat: () => {
+        window.dispatchEvent(new CustomEvent('admin-chat-open'));
+      },
+      openChatWithTopic: (
+        topic: string,
+        orderId?: string,
+        updateOrder?: (orderId: string, updates: any) => void,
+        orders?: any[],
+        refreshOrders?: () => void,
+        orderIds?: string[]
+      ) => {
+        window.dispatchEvent(
+          new CustomEvent('admin-chat-open', {
+            detail: { topic, orderId, updateOrder, orders, refreshOrders, orderIds },
+          })
+        );
+      },
     }),
     [selected]
   );

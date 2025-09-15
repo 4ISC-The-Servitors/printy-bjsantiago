@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import SelectedChipsBar from '../../shared/SelectedChipsBar';
+import { useAdmin } from '@hooks/admin/AdminContext';
 import ChatHeader from './ChatHeader';
 import ChatInput from './ChatInput';
 import MessageGroup from '../_shared/MessageGroup';
@@ -98,6 +100,8 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   return (
     <div className="bg-white flex flex-col h-full w-full">
       {!hideHeader && <ChatHeader title={title} onBack={onBack} />}
+      {/* Selected chips directly attached under the header (outside scroll) */}
+      <ChatSelectedBarFixed />
 
       {/* Desktop Message Area */}
       <div
@@ -135,6 +139,21 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
           onAttachFiles={onAttachFiles}
         />
       </div>
+    </div>
+  );
+};
+
+const ChatSelectedBarFixed: React.FC = () => {
+  const { selected, removeSelected, clearSelected } = useAdmin();
+  if (!selected || selected.length === 0) return null;
+  return (
+    <div className="px-6 pt-2 pb-2 bg-white border-b border-neutral-200">
+      <SelectedChipsBar
+        title="Selected Components"
+        items={selected}
+        onRemove={removeSelected}
+        onClear={clearSelected}
+      />
     </div>
   );
 };

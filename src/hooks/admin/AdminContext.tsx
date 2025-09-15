@@ -12,7 +12,14 @@ export interface AdminContextValue {
   removeSelected: (id: string) => void;
   clearSelected: () => void;
   openChat: () => void;
-  openChatWithTopic?: (topic: string, orderId?: string) => void;
+  openChatWithTopic?: (
+    topic: string,
+    orderId?: string,
+    updateItem?: (id: string, updates: any) => void,
+    items?: any[],
+    refreshItems?: () => void,
+    selectedIds?: string[]
+  ) => void;
 }
 
 export const AdminContext = createContext<AdminContextValue | undefined>(

@@ -10,7 +10,7 @@ import { MessageSquare, Plus, MoreVertical, ChevronDown } from 'lucide-react';
 import { cn } from '../../../../lib/utils';
 
 const PortfolioCard: React.FC = () => {
-  const { openChat } = useAdmin();
+  const { openChat, openChatWithTopic } = useAdmin();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -32,8 +32,15 @@ const PortfolioCard: React.FC = () => {
   };
 
   const addSelectedToChat = () => {
-    // Could map to AdminContext selected items if needed later
-    openChat();
+    const ids = Array.from(selected);
+    if (ids.length === 0) return;
+    const servicesArr = services;
+    if (ids.length > 1) {
+      openChatWithTopic?.('multiple-portfolio', undefined, undefined, servicesArr, undefined, ids);
+    } else {
+      openChatWithTopic?.('portfolio', ids[0], undefined, servicesArr);
+    }
+    if (!openChatWithTopic) openChat();
     setSelected(new Set());
     setIsSelectionMode(false);
   };
@@ -161,7 +168,8 @@ const PortfolioCard: React.FC = () => {
                               <div className="absolute right-0 top-8 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[140px]">
                                 <Button
                                   onClick={() => {
-                                    openChat();
+                                    if (openChatWithTopic) openChatWithTopic('portfolio', s.id, undefined, services);
+                                    else openChat();
                                   }}
                                   className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
                                 >

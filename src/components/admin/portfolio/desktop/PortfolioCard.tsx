@@ -9,12 +9,13 @@ import { useServiceSelection } from '@hooks/admin/SelectionContext';
 import { createServiceSelectionItems } from '@utils/admin/selectionUtils';
 import { MessageSquare, Plus, ChevronDown } from 'lucide-react';
 import { useAdmin } from '@hooks/admin/AdminContext';
+//
 import { getServiceStatusBadgeVariant } from '../../../../utils/admin/statusColors';
 import { cn } from '../../../../lib/utils';
 
 const PortfolioCard: React.FC = () => {
   const serviceSelection = useServiceSelection();
-  const { addSelected, openChat } = useAdmin();
+  const { openChat, openChatWithTopic, addSelected } = useAdmin();
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -42,11 +43,22 @@ const PortfolioCard: React.FC = () => {
   };
 
   const addSelectedToChat = () => {
-    serviceSelection.selected.forEach(item => {
-      addSelected({ id: item.id, label: item.label, type: 'service' });
+    const selectedIds = serviceSelection.selectedIds;
+    if (selectedIds.length === 0) return;
+    const servicesArr = allServices;
+    // Update chips bar for UI context
+    selectedIds.forEach(id => {
+      const svc = servicesArr.find(s => s.id === id);
+      const label = svc ? `${svc.name} (${svc.code})` : id;
+      addSelected({ id, label, type: 'service' });
     });
+    if (selectedIds.length > 1) {
+      openChatWithTopic?.('multiple-portfolio', undefined, undefined, servicesArr, undefined, selectedIds);
+    } else {
+      openChatWithTopic?.('portfolio', selectedIds[0], undefined, servicesArr);
+    }
+    if (!openChatWithTopic) openChat();
     serviceSelection.clear();
-    openChat();
   };
 
   if (isLoading) {
@@ -94,7 +106,10 @@ const PortfolioCard: React.FC = () => {
               variant="primary"
               size="sm"
               threeD
-              onClick={() => openChat()}
+              onClick={() => {
+                if (openChatWithTopic) openChatWithTopic('add-service');
+                else openChat();
+              }}
               aria-label="Add Service"
               className="inline-flex items-center gap-2"
             >
@@ -193,7 +208,12 @@ const PortfolioCard: React.FC = () => {
                             threeD
                             className="min-h-[44px] min-w-[44px]"
                             title="Chat about this service"
-                            onClick={() => openChat()}
+                            onClick={() => {
+                              const label = `${s.name} (${s.code})`;
+                              addSelected({ id: s.id, label, type: 'service' });
+                              if (openChatWithTopic) openChatWithTopic('portfolio', s.id, undefined, allServices);
+                              else openChat();
+                            }}
                           >
                             <MessageSquare className="h-4 w-4" />
                           </Button>
@@ -293,7 +313,10 @@ const PortfolioCard: React.FC = () => {
                             size="sm"
                             threeD
                             title="Chat about this service"
-                            onClick={() => openChat()}
+                            onClick={() => {
+                              if (openChatWithTopic) openChatWithTopic('portfolio', s.id, undefined, allServices);
+                              else openChat();
+                            }}
                             className="min-h-[44px] min-w-[44px]"
                           >
                             <MessageSquare className="h-4 w-4" />

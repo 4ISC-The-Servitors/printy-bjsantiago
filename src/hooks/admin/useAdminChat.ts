@@ -107,6 +107,20 @@ export const useAdminChat = (): UseAdminChatReturn => {
           updateService: updateOrder,
           refreshServices: refreshOrders,
         };
+      } else if (nextTopic === 'multiple-tickets') {
+        context = {
+          ticketIds: orderIds,
+          tickets: orders,
+          updateTicket: updateOrder,
+          refreshTickets: refreshOrders,
+        };
+      } else if (nextTopic === 'tickets') {
+        context = {
+          ticketId: orderId,
+          tickets: orders,
+          updateTicket: updateOrder,
+          refreshTickets: refreshOrders,
+        };
       } else {
         context = orderId
           ? { orderId, updateOrder, orders, refreshOrders, orderIds }

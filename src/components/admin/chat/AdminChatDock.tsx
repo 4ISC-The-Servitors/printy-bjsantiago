@@ -1,6 +1,7 @@
 import React from 'react';
 import ChatDock from '../../shared/ChatDock';
 import DesktopChatPanel from '../../chat/desktop/ChatPanel';
+import SelectedChipsBar from '../../shared/SelectedChipsBar';
 
 interface Props {
   open: boolean;
@@ -49,6 +50,14 @@ const AdminChatDock: React.FC<Props> = ({
         onQuickReply={onQuickReply}
         onEndChat={onEndChat}
       />
+      {selected && selected.length > 0 && (
+        <SelectedChipsBar
+          title="Selected Components"
+          items={selected}
+          onRemove={onRemoveSelected}
+          onClear={onClearSelected}
+        />
+      )}
     </ChatDock>
   );
 };

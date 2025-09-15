@@ -26,7 +26,7 @@ export const mockOrders: Order[] = [
     id: 'ORD-12351',
     customer: 'Miguel Tan',
     status: 'Pending',
-    total: '₱3,800',
+    total: 'TBD',
     date: 'May 1',
   },
   {

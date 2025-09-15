@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Badge, Button, Skeleton, Checkbox } from '../../../shared';
-import { mockOrders } from '../../../../data/orders';
 import { useOrderSelection } from '../../../../hooks/admin/SelectionContext';
 import { createOrderSelectionItems } from '../../../../utils/admin/selectionUtils';
 import { getOrderStatusBadgeVariant } from '../../../../utils/admin/statusColors';
 import { MessageSquare, Plus } from 'lucide-react';
 import { useAdmin } from '../../../../hooks/admin/AdminContext';
+import { useOrders } from '../../../../hooks/admin/OrdersContext';
 import { cn } from '../../../../lib/utils';
 
 const OrdersCard: React.FC = () => {
   const orderSelection = useOrderSelection();
-  const { addSelected, openChatWithTopic } = useAdmin();
+  const { openChatWithTopic, openChat, addSelected } = useAdmin();
+  const { orders, updateOrder, refreshOrders } = useOrders();
   const [isLoading, setIsLoading] = useState(true);
   const [hoveredOrderId, setHoveredOrderId] = useState<string | null>(null);
 
@@ -23,7 +24,7 @@ const OrdersCard: React.FC = () => {
   }, []);
 
   // Limit to max 5 orders
-  const displayOrders = mockOrders.slice(0, 5);
+  const displayOrders = orders.slice(0, 5);
   const orderItems = createOrderSelectionItems(displayOrders);
 
   const toggleOrderSelection = (orderId: string) => {
@@ -34,11 +35,25 @@ const OrdersCard: React.FC = () => {
   };
 
   const addSelectedToChat = () => {
-    orderSelection.selected.forEach(item => {
-      addSelected({ id: item.id, label: item.label, type: 'order' });
+    const selectedIds = orderSelection.selectedIds;
+    if (selectedIds.length === 0) return;
+    // Update selected chips bar
+    selectedIds.forEach(id => {
+      addSelected({ id, label: id, type: 'order' });
     });
+    // Open MultipleOrders flow with selected IDs and orders context
+    (openChatWithTopic as any)?.(
+      'multiple-orders',
+      undefined,
+      updateOrder,
+      orders,
+      refreshOrders,
+      selectedIds
+    );
+    if (!openChatWithTopic) {
+      openChat();
+    }
     orderSelection.clear();
-    openChatWithTopic?.('orders');
   };
 
   if (isLoading) {
@@ -93,7 +108,8 @@ const OrdersCard: React.FC = () => {
     <div className="relative">
       <Card className="p-0">
         <div className="flex items-center justify-end px-3 py-2 sm:px-4">
-          <div className="flex items-center gap-2 text-neutral-500 text-xs"></div>
+          <div className="flex items-center gap-2 text-neutral-500 text-xs">
+          </div>
         </div>
 
         <div className="space-y-4 sm:space-y-6 px-3 sm:px-4 pb-3">
@@ -111,9 +127,7 @@ const OrdersCard: React.FC = () => {
                   onCheckedChange={() => toggleOrderSelection(o.id)}
                   className={cn(
                     'transition-opacity bg-white border-2 border-gray-300 w-5 h-5 rounded data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500',
-                    hoveredOrderId === o.id || orderSelection.selectionCount > 0
-                      ? 'opacity-100'
-                      : 'opacity-0'
+                    hoveredOrderId === o.id || orderSelection.selectionCount > 0 ? 'opacity-100' : 'opacity-0'
                   )}
                 />
               </div>
@@ -187,7 +201,18 @@ const OrdersCard: React.FC = () => {
                     size="sm"
                     threeD
                     aria-label={`Ask about ${o.id}`}
-                    onClick={() => openChatWithTopic?.('orders')}
+                    onClick={() => {
+                      // Add single selection to chips bar
+                      addSelected({ id: o.id, label: o.id, type: 'order' });
+                      (openChatWithTopic as any)?.(
+                        'orders',
+                        o.id,
+                        updateOrder,
+                        orders,
+                        refreshOrders
+                      );
+                      if (!openChatWithTopic) openChat();
+                    }}
                     className="shrink-0"
                   >
                     <MessageSquare className="w-4 h-4" />
@@ -199,17 +224,14 @@ const OrdersCard: React.FC = () => {
         </div>
       </Card>
 
-      {/* Floating Add to Chat button */}
+      {/* Floating Add to Chat button (match Portfolio style) */}
       {orderSelection.hasSelections && (
-        <div className="fixed bottom-6 right-6 z-50">
+        <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50">
           <Button
-            variant="primary"
-            size="lg"
-            threeD
             onClick={addSelectedToChat}
-            className="shadow-lg flex items-center gap-2"
+            className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg rounded-full px-8 py-4 flex items-center gap-3 min-h-[64px] text-lg"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="h-5 w-5" />
             Add to Chat ({orderSelection.selectionCount})
           </Button>
         </div>

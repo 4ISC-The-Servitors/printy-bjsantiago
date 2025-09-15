@@ -119,17 +119,14 @@ const TicketsCard: React.FC = () => {
         </div>
       </Card>
 
-      {/* Floating Add to Chat button */}
+      {/* Floating Add to Chat button (match Portfolio mobile style) */}
       {selectedTickets.size > 0 && (
-        <div className="fixed bottom-6 right-6 z-50">
+        <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50">
           <Button
-            variant="primary"
-            size="lg"
-            threeD
             onClick={addSelectedToChat}
-            className="shadow-lg flex items-center gap-2 rounded-full px-6"
+            className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg rounded-full px-6 py-3 flex items-center gap-2 min-h-[56px] text-sm"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-5 h-5" />
             Add to Chat ({selectedTickets.size})
           </Button>
         </div>

@@ -26,14 +26,6 @@ const ChatDock: React.FC<ChatDockProps> = ({
     <aside className="hidden lg:flex fixed right-0 top-0 bottom-0 w-[420px] bg-white border-l border-neutral-200 flex-col z-30">
       {header ? <div className="p-4 border-b">{header}</div> : null}
 
-      {selected.length > 0 && (
-        <SelectedChipsBar
-          items={selected}
-          onRemove={onRemoveSelected}
-          onClear={onClearSelected}
-        />
-      )}
-
       {/* Let child chat panel manage its own scroll & footer; avoid extra padding so it occupies full height */}
       <div className="flex-1 min-h-0 overflow-hidden">
         {children || (
@@ -53,6 +45,8 @@ const ChatDock: React.FC<ChatDockProps> = ({
           </div>
         )}
       </div>
+
+      {/* Chips bar handled inside DesktopChatPanel now to ensure placement under title */}
     </aside>
   );
 };
