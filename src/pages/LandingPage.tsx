@@ -7,7 +7,7 @@ import {
   type ChatMessage,
   type QuickReply,
   type ChatRole,
-} from '../components/chat/types';
+} from '../components/chat/_shared/types';
 import { guestFlows as flows } from '../chatLogic/guest';
 
 const LandingPage: React.FC = () => {
@@ -38,7 +38,7 @@ const LandingPage: React.FC = () => {
   const initializeFlow = (flowKey: 'about' | 'faqs' | 'place-order') => {
     const flow = flows[flowKey];
     if (!flow) return;
-    setCurrentFlow(flow);
+    setCurrentFlow(flow as any);
     setChatTitle(flow.title);
     setIsChatOpen(true);
     setIsTyping(true);
@@ -57,7 +57,11 @@ const LandingPage: React.FC = () => {
       setMessages(botMessages);
       const replies = flow
         .quickReplies()
-        .map((label: string) => ({ label, value: label }));
+        .map((label: string, index: number) => ({
+          id: `qr-${index}`,
+          label,
+          value: label,
+        }));
       setQuickReplies(replies);
       setInputPlaceholder('Type a message...');
       setIsTyping(false);
@@ -93,10 +97,13 @@ const LandingPage: React.FC = () => {
           })
         );
         setMessages(prev => [...prev, ...newBotMessages]);
-        const replies = (response.quickReplies ?? []).map((label: string) => ({
-          label,
-          value: label,
-        }));
+        const replies = (response.quickReplies ?? []).map(
+          (label: string, index: number) => ({
+            id: `qr-${index}`,
+            label,
+            value: label,
+          })
+        );
         setQuickReplies(replies);
         setInputPlaceholder('Type a message...');
         setIsTyping(false);

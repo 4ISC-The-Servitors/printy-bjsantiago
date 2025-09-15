@@ -98,6 +98,15 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+    /* Hide scrollbars across all platforms while keeping scroll enabled */
+    overflow-y: auto;
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+
+  body::-webkit-scrollbar {
+    /* Chrome, Safari */
+    display: none;
   }
 
   /* Typography */

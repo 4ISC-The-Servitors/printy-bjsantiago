@@ -8,10 +8,10 @@ import {
 } from '../../../components/shared';
 import { useToast } from '../../../lib/useToast';
 import { ArrowLeft } from 'lucide-react';
-import ProfileOverviewCard from '../../../components/customer/accountSettings/ProfileOverviewCard.tsx';
-import PersonalInfoForm from '../../../components/customer/accountSettings/PersonalInfoForm.tsx';
-import SecuritySettings from '../../../components/customer/accountSettings/SecuritySettings.tsx';
-import NotificationPreferences from '../../../components/customer/accountSettings/NotificationPreferences.tsx';
+import ProfileOverviewCard from '../../../components/customer/accountSettings/desktop/ProfileOverviewCard.tsx';
+import PersonalInfoForm from '../../../components/customer/accountSettings/desktop/PersonalInfoForm.tsx';
+import SecuritySettings from '../../../components/customer/accountSettings/desktop/SecuritySettings.tsx';
+import NotificationPreferences from '../../../components/customer/accountSettings/desktop/NotificationPreferences.tsx';
 
 export interface UserData {
   displayName: string;

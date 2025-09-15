@@ -5,10 +5,10 @@ import {
   type ChatMessage,
   type QuickReply,
   type ChatRole,
-} from '../../components/chat/types';
-import MobileSidebar from '../../components/customer/MobileSidebar';
-import DesktopSidebar from '../../components/customer/DesktopSidebar';
-import DashboardContent from '../../components/customer/DashboardContent';
+} from '../../components/chat/_shared/types';
+import DesktopSidebar from '../../components/customer/dashboard/desktop/Sidebar';
+import MobileSidebar from '../../components/customer/dashboard/mobile/Sidebar';
+import DashboardContent from '../../components/customer/dashboard/desktop/DashboardContent';
 import { ToastContainer, Modal, Text, Button } from '../../components/shared';
 import { useToast } from '../../lib/useToast';
 import { customerFlows as flows } from '../../chatLogic/customer';
@@ -185,7 +185,17 @@ const CustomerDashboard: React.FC = () => {
     const flow = flows[flowId];
     if (!flow) return;
 
-    setCurrentFlow(flow);
+    setCurrentFlow(
+      flow as unknown as {
+        id: string;
+        initial: (ctx: unknown) => { text: string }[];
+        respond: (
+          ctx: unknown,
+          input: string
+        ) => Promise<{ messages: { text: string }[]; quickReplies?: string[] }>;
+        quickReplies: () => string[];
+      }
+    );
     const initialMessages = flow.initial({});
     const botMessages: ChatMessage[] = initialMessages.map(
       (msg: { text: string }) => ({
@@ -217,9 +227,11 @@ const CustomerDashboard: React.FC = () => {
     setMessages(botMessages);
 
     // Set initial quick replies
-    const replies = flow
-      .quickReplies()
-      .map((label: string) => ({ label, value: label }));
+    const replies = flow.quickReplies().map((label: string, index: number) => ({
+      id: `qr-${index}`,
+      label,
+      value: label,
+    }));
     setQuickReplies(replies);
     updateInputPlaceholder(flowId, replies);
   };
@@ -286,10 +298,13 @@ const CustomerDashboard: React.FC = () => {
         );
 
         // Update quick replies
-        const replies = (response.quickReplies || []).map((label: string) => ({
-          label,
-          value: label,
-        }));
+        const replies = (response.quickReplies || []).map(
+          (label: string, index: number) => ({
+            id: `qr-${index}`,
+            label,
+            value: label,
+          })
+        );
         setQuickReplies(replies);
         updateInputPlaceholder(currentFlow.id, replies);
 
@@ -335,10 +350,27 @@ const CustomerDashboard: React.FC = () => {
       // Restore flow state for active conversations
       const flow = flows[conv.flowId];
       if (flow) {
-        setCurrentFlow(flow);
+        setCurrentFlow(
+          flow as unknown as {
+            id: string;
+            initial: (ctx: unknown) => { text: string }[];
+            respond: (
+              ctx: unknown,
+              input: string
+            ) => Promise<{
+              messages: { text: string }[];
+              quickReplies?: string[];
+            }>;
+            quickReplies: () => string[];
+          }
+        );
         const replies = flow
           .quickReplies()
-          .map((label: string) => ({ label, value: label }));
+          .map((label: string, index: number) => ({
+            id: `qr-${index}`,
+            label,
+            value: label,
+          }));
         setQuickReplies(replies);
         updateInputPlaceholder(conv.flowId, replies);
       }
@@ -432,14 +464,6 @@ const CustomerDashboard: React.FC = () => {
 
   return (
     <div className="h-screen bg-gradient-to-br from-neutral-50 to-brand-primary-50 flex">
-      <MobileSidebar
-        conversations={conversations}
-        activeId={activeId}
-        onSwitchConversation={switchConversation}
-        onNavigateToAccount={() => navigate('/account')}
-        onLogout={handleLogout}
-      />
-
       <DesktopSidebar
         conversations={conversations}
         activeId={activeId}
@@ -447,11 +471,15 @@ const CustomerDashboard: React.FC = () => {
         onNavigateToAccount={() => navigate('/account')}
         onLogout={handleLogout}
       />
-
+      <MobileSidebar
+        conversations={conversations}
+        activeId={activeId}
+        onSwitchConversation={switchConversation}
+        onNavigateToAccount={() => navigate('/account')}
+        onLogout={handleLogout}
+      />
       {/* Main Content - Full Screen for Chat */}
-      <main
-        className={`flex-1 flex flex-col ${activeId ? 'pl-16' : 'pl-16'} lg:pl-0`}
-      >
+      <main className={`flex-1 flex flex-col pl-16`}>
         {activeId ? (
           // Full screen chat without containers
           <CustomerChatPanel

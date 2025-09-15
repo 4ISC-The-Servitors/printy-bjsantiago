@@ -114,4 +114,5 @@ pids
 # Temporary folders
 tmp/
 temp/
-docsContext/
+.cursor/
+forContext/

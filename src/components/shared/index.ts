@@ -51,3 +51,13 @@ export type { ToastOptions, ToastMethods, ToastData } from '../../lib/useToast';
 
 // Showcase Components
 export { default as ComponentShowcase } from './showcase/ComponentShowcase';
+
+// Chat utilities
+export { default as SelectedChipsBar } from './SelectedChipsBar';
+// Social auth button
+export { default as SocialAuthButton } from './SocialAuthButton';
+export type { SocialAuthButtonProps } from './SocialAuthButton';
+// Tooltip
+export { default as Tooltip } from './Tooltip';
+export type { TooltipProps } from './Tooltip';
+export { default as ChatDock } from './ChatDock';
