@@ -1,6 +1,7 @@
 import type { BotMessage, ChatFlow } from '../../../types/chatFlow';
 import { createOrder } from '../../../api/orderApi';
 import type { OrderData } from '../../../api/orderApi';
+import { getCurrentCustomerId } from '../../../lib/utils';
 
 type Option = { label: string; next: string };
 type Node = {
@@ -536,6 +537,9 @@ const NODES: Record<string, Node> = {
 
 let currentNodeId: keyof typeof NODES = 'place_order_start';
 
+// Store order details progressively
+let orderRecord: Partial<OrderData> = {};
+
 function nodeToMessages(node: Node): BotMessage[] {
   if (node.message) return [{ role: 'printy', text: node.message }];
   if (node.answer) return [{ role: 'printy', text: node.answer }];
@@ -551,6 +555,7 @@ export const placeOrderFlow: ChatFlow = {
   title: 'Place an Order',
   initial: () => {
     currentNodeId = 'place_order_start';
+    orderRecord = {};
     return nodeToMessages(NODES[currentNodeId]);
   },
   quickReplies: () => nodeQuickReplies(NODES[currentNodeId]),
@@ -572,20 +577,89 @@ export const placeOrderFlow: ChatFlow = {
     const messages = nodeToMessages(node);
     const quickReplies = nodeQuickReplies(node);
 
-    // Trigger createOrder when reaching 'create_quote'
+    // Store user selections in orderRecord at key steps
+    // Example: page size and quantity nodes
+    if (
+      [
+        'standard_paperback',
+        'common_book_size',
+        'standard_letter',
+        'small_banner',
+        'standard_size',
+        'large_banner',
+      ].includes(currentNodeId)
+    ) {
+      orderRecord.page_size = Number(
+        currentNodeId === 'standard_paperback'
+          ? 1
+          : currentNodeId === 'common_book_size'
+          ? 2
+          : currentNodeId === 'standard_letter'
+          ? 3
+          : currentNodeId === 'small_banner'
+          ? 4
+          : currentNodeId === 'standard_size'
+          ? 5
+          : currentNodeId === 'large_banner'
+          ? 6
+          : 1
+      );
+    }
+    if (
+      [
+        'one_thousand_pages',
+        'five_hundred_pages',
+        'two_hundred_fifty_pages',
+        'one_hundred_pages',
+        'fifty_pages',
+        'twenty_pages',
+        'ten_pages',
+      ].includes(currentNodeId)
+    ) {
+      orderRecord.quantity = Number(
+        currentNodeId === 'one_thousand_pages'
+          ? 1000
+          : currentNodeId === 'five_hundred_pages'
+          ? 500
+          : currentNodeId === 'two_hundred_fifty_pages'
+          ? 250
+          : currentNodeId === 'one_hundred_pages'
+          ? 100
+          : currentNodeId === 'fifty_pages'
+          ? 50
+          : currentNodeId === 'twenty_pages'
+          ? 20
+          : currentNodeId === 'ten_pages'
+          ? 10
+          : 1
+      );
+    }
+
+    // When ready to create the order
     if (currentNodeId === 'create_quote') {
+      // Use customer_id from session/localStorage
+      const sessionCustomerId =
+        typeof ctx.customerId === 'string' && ctx.customerId.length === 36
+          ? ctx.customerId
+          : getCurrentCustomerId();
+
       const order: OrderData = {
-        service_id: typeof ctx.serviceId === 'string' ? ctx.serviceId : 'default_service_id',
-        customer_id: typeof ctx.customerId === 'string' ? ctx.customerId : 'default_customer_id',
+        order_id: crypto.randomUUID(),
+        service_id: typeof ctx.serviceId === 'string' ? ctx.serviceId : '1001',
+        customer_id: sessionCustomerId,
         order_status: 'pending',
         delivery_mode: typeof ctx.deliveryMode === 'string' ? ctx.deliveryMode : 'pickup',
         order_date_time: new Date().toISOString(),
         completed_date_time: null,
-        page_size: typeof ctx.pageSize === 'string' ? ctx.pageSize : 'A4',
-        quantity: typeof ctx.quantity === 'number' ? ctx.quantity : 100,
-        priority_level: typeof ctx.priorityLevel === 'string' ? ctx.priorityLevel : 'normal',
+        page_size: typeof orderRecord.page_size === 'number' ? orderRecord.page_size : 1,
+        quantity: typeof orderRecord.quantity === 'number' ? orderRecord.quantity : 100,
+        priority_level: typeof ctx.priorityLevel === 'number' ? ctx.priorityLevel : 1,
       };
+
+      console.log('Using customer_id:', sessionCustomerId); // <-- Add here
+
       await createOrder(order);
+      orderRecord = {};
     }
 
     // If user chose End Chat option, still provide the closing message and a single End Chat button

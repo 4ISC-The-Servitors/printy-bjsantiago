@@ -239,3 +239,21 @@ export function createIntersectionObserver(
     ...options,
   });
 }
+
+/**
+ * Get the current logged-in customer's UUID.
+ * This assumes you store the user object in localStorage after login,
+ * and that user.customer_id contains the correct UUID from the 'customers' table.
+ */
+export function getCurrentCustomerId(): string {
+  try {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    // Ensure the customer_id is a valid UUID string
+    if (typeof user.customer_id === 'string' && user.customer_id.length === 36) {
+      return user.customer_id;
+    }
+  } catch (e) {
+    // Ignore parsing errors
+  }
+  return 'e50888fb-c8df-45a7-a888-84d5deb73d2f'; // fallback invalid UUID
+}

@@ -5,21 +5,33 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export type OrderData = {
-  service_id: string;
-  customer_id: string;
-  order_status: string;
-  delivery_mode: string;
-  order_date_time: string;
-  completed_date_time: string | null;
-  page_size: string;
-  quantity: number;
-  priority_level: string;
+  order_id: string; // varchar
+  service_id: string; // varchar
+  customer_id: string; // uuid
+  order_status: string; // varchar
+  delivery_mode: string; // varchar
+  order_date_time: string; // timestamp (ISO string)
+  completed_date_time: string | null; // timestamp (ISO string or null)
+  page_size: number; // numeric
+  quantity: number; // numeric
+  priority_level: number; // numeric
 };
 
 export async function createOrder(order: OrderData) {
   const { data, error } = await supabase
     .from('orders')
-    .insert([order]);
+    .insert([{
+      order_id: order.order_id,
+      service_id: order.service_id,
+      customer_id: order.customer_id,
+      order_status: order.order_status,
+      delivery_mode: order.delivery_mode,
+      order_datetime: order.order_date_time,
+      completed_datetime: order.completed_date_time,
+      page_size: order.page_size,
+      quantity: order.quantity,
+      priority_level: order.priority_level,
+    }]);
   if (error) {
     console.error('Order creation failed:', error);
     return { success: false, error };
