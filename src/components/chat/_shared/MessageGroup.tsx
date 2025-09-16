@@ -35,7 +35,11 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({
 
   return (
     <div className={`space-y-2 ${isBot ? 'text-left' : 'text-right'}`}>
-      {messages.map(m => (
+      {messages.map(m => {
+        // ==================== 
+        const preserveNewlinesForOrder =
+          isBot && /Order .* — Status: /.test(m.text) && m.text.includes('Items:');
+        return (
         <div key={m.id} className={isBot ? 'text-left' : 'text-right'}>
           <div className="flex items-start gap-2">
             {isBot && (
@@ -45,8 +49,11 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({
             )}
             <div
               className={
-                'inline-block rounded-2xl px-3 py-2 text-sm break-words max-w-[85%] leading-relaxed transition-all duration-200 ' +
+                'inline-block rounded-2xl px-3 py-2 text-sm break-words ' +
+                (preserveNewlinesForOrder ? 'whitespace-pre-wrap ' : '') +
+                'max-w-[85%] leading-relaxed transition-all duration-200 ' +
                 'sm:px-4 sm:py-3 sm:text-base ' +
+                // ==================== next line do it for only when its on issue ticket order detail showing
                 (isBot
                   ? 'bg-brand-primary-50 text-neutral-700'
                   : 'bg-brand-primary text-white ml-auto text-left')
@@ -64,7 +71,7 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({
             )}
           </div>
         </div>
-      ))}
+      )})}
 
       {/* Relative timestamp */}
       <div
@@ -77,7 +84,15 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({
       {isBot && quickReplies && quickReplies.length > 0 && (
         <div className="flex flex-wrap gap-3 mt-3 ml-6 sm:gap-3 sm:ml-8">
           {quickReplies.map((reply, index) => {
-            const isEnd = reply.label.toLowerCase().includes('end');
+            const endLabels = new Set([
+              'end',
+              'end chat',
+              'close chat',
+              'end conversation',
+              'finish',
+              'done',
+            ]);
+            const isEnd = endLabels.has(reply.label.trim().toLowerCase());
             const handleClick = () => {
               if (isEnd) {
                 onEndChat?.();

@@ -6,6 +6,17 @@ export type SelectedItem = {
   type?: 'order' | 'ticket' | 'portfolio' | 'service';
 };
 
+export type ChatPrefill = {
+  text: string;
+  role?: 'printy' | 'user';
+  skipIntro?: boolean;
+  followupBotText?: string;
+  context?: {
+    inquiryId: string;
+    customerId?: string | null;
+  };
+};
+
 export interface AdminContextValue {
   selected: SelectedItem[];
   addSelected: (item: SelectedItem) => void;
