@@ -255,5 +255,7 @@ export function getCurrentCustomerId(): string {
   } catch (e) {
     // Ignore parsing errors
   }
-  return 'e50888fb-c8df-45a7-a888-84d5deb73d2f'; // fallback invalid UUID
+//return 'e50888fb-c8df-45a7-a888-84d5deb73d2f'; // fallback invalid UUID
+
+  return '00000000-0000-0000-0000-000000000000'; // fallback invalid UUID
 }
