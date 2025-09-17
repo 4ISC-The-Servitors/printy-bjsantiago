@@ -67,17 +67,44 @@ async function getServiceDetails(serviceId: string | null): Promise<{
   children: any[];
 }> {
   if (!serviceId) {
-    const { data, error } = await supabase
+    // First: strictly NULL parents (no active_status filter to avoid mismatches)
+    const nullParents = await supabase
       .from('printing_services')
       .select('*')
       .is('parent_service_id', null)
-      .eq('active_status', 'active')
       .order('service_name', { ascending: true });
-    if (error) {
-      console.error('Error fetching services:', error);
+    if (nullParents.error) {
+      console.error('Error fetching services (null parent):', nullParents.error);
       return { service: null, children: [] };
     }
-    return { service: null, children: data || [] };
+    let rows = nullParents.data || [];
+    // If none, try empty-string parents
+    if (!rows.length) {
+      const emptyParents = await supabase
+        .from('printing_services')
+        .select('*')
+        .eq('parent_service_id', '')
+        .order('service_name', { ascending: true });
+      if (!emptyParents.error && emptyParents.data) rows = emptyParents.data;
+    }
+    // If still none, retry both with both null and empty (already without status)
+    if (!rows.length) {
+      const nullNoStatus = await supabase
+        .from('printing_services')
+        .select('*')
+        .is('parent_service_id', null)
+        .order('service_name', { ascending: true });
+      rows = nullNoStatus.data || [];
+      if (!rows.length) {
+        const emptyNoStatus = await supabase
+          .from('printing_services')
+          .select('*')
+          .eq('parent_service_id', '')
+          .order('service_name', { ascending: true });
+        rows = emptyNoStatus.data || [];
+      }
+    }
+    return { service: null, children: rows };
   }
 
   const { data: serviceData, error: serviceError } = await supabase
@@ -90,15 +117,22 @@ async function getServiceDetails(serviceId: string | null): Promise<{
     return { service: null, children: [] };
   }
 
-  const { data: childrenData, error: childrenError } = await supabase
+  let { data: childrenData, error: childrenError } = await supabase
     .from('printing_services')
     .select('*')
     .eq('parent_service_id', serviceId)
-    .eq('active_status', 'active')
     .order('service_name', { ascending: true });
   if (childrenError) {
     console.error('Error fetching child services:', childrenError);
     return { service: serviceData, children: [] };
+  }
+  if (!childrenData || childrenData.length === 0) {
+    const retry = await supabase
+      .from('printing_services')
+      .select('*')
+      .eq('parent_service_id', serviceId)
+      .order('service_name', { ascending: true });
+    if (!retry.error && retry.data) childrenData = retry.data;
   }
 
   return { service: serviceData, children: childrenData || [] };
@@ -170,9 +204,10 @@ export const placeOrderFlow: ChatFlow = {
       }
 
       const { children } = await getServiceDetails(currentServiceId);
-      const selectedChild = children.find(
-        c => c.service_name?.toLowerCase() === normalized
-      );
+      const selectedChild = children.find(c => {
+        const name = (c.service_name || c.service_id || '').toString().toLowerCase();
+        return name === normalized;
+      });
       if (!selectedChild) {
         return {
           messages: [{ role: 'printy', text: 'Please choose one of the options.' }],
@@ -187,7 +222,9 @@ export const placeOrderFlow: ChatFlow = {
       const { service: nextService, children: nextChildren } = await getServiceDetails(
         currentServiceId
       );
-      cachedQuickReplies = nextChildren.map(c => c.service_name as string);
+      cachedQuickReplies = nextChildren
+        .map(c => (c.service_name || c.service_id) as string)
+        .filter(Boolean);
       if (currentServiceId) cachedQuickReplies = [...cachedQuickReplies, 'Back'];
       const messages = dbToMessages(
         nextService,
@@ -261,7 +298,20 @@ export const placeOrderFlow: ChatFlow = {
       dynamicMode = true;
       currentServiceId = null;
       const { children } = await getServiceDetails(null);
-      cachedQuickReplies = children.map(c => c.service_name as string);
+      // Debug: log top-level services fetched
+      try {
+        console.log('[PlaceOrder] Root services fetched:', (children || []).length);
+        if (children && children.length) {
+          console.log('[PlaceOrder] First root service sample:', {
+            service_id: children[0]?.service_id,
+            service_name: children[0]?.service_name,
+            parent_service_id: children[0]?.parent_service_id,
+          });
+        }
+      } catch {}
+      cachedQuickReplies = (children || [])
+        .map(c => ((c.service_name || c.service_id || '') as string).trim())
+        .filter(name => name.length > 0);
       const messages: BotMessage[] = [
         {
           role: 'printy',
@@ -269,7 +319,7 @@ export const placeOrderFlow: ChatFlow = {
             'We offer a variety of printing Services. What type are you interested in?',
         },
       ];
-      return { messages, quickReplies: cachedQuickReplies };
+      return { messages, quickReplies: cachedQuickReplies.length ? cachedQuickReplies : ['End Chat'] };
     }
 
     // If user chose End Chat option in static menu
@@ -282,63 +332,7 @@ export const placeOrderFlow: ChatFlow = {
     const messages = nodeToMessages(node);
     const quickReplies = nodeQuickReplies(node);
 
-    // Store user selections in orderRecord at key steps
-    // Example: page size and quantity nodes
-    if (
-      [
-        'standard_paperback',
-        'common_book_size',
-        'standard_letter',
-        'small_banner',
-        'standard_size',
-        'large_banner',
-      ].includes(currentNodeId)
-    ) {
-      orderRecord.page_size = Number(
-        currentNodeId === 'standard_paperback'
-          ? 1
-          : currentNodeId === 'common_book_size'
-          ? 2
-          : currentNodeId === 'standard_letter'
-          ? 3
-          : currentNodeId === 'small_banner'
-          ? 4
-          : currentNodeId === 'standard_size'
-          ? 5
-          : currentNodeId === 'large_banner'
-          ? 6
-          : 1
-      );
-    }
-    if (
-      [
-        'one_thousand_pages',
-        'five_hundred_pages',
-        'two_hundred_fifty_pages',
-        'one_hundred_pages',
-        'fifty_pages',
-        'twenty_pages',
-        'ten_pages',
-      ].includes(currentNodeId)
-    ) {
-      orderRecord.quantity = Number(
-        currentNodeId === 'one_thousand_pages'
-          ? 1000
-          : currentNodeId === 'five_hundred_pages'
-          ? 500
-          : currentNodeId === 'two_hundred_fifty_pages'
-          ? 250
-          : currentNodeId === 'one_hundred_pages'
-          ? 100
-          : currentNodeId === 'fifty_pages'
-          ? 50
-          : currentNodeId === 'twenty_pages'
-          ? 20
-          : currentNodeId === 'ten_pages'
-          ? 10
-          : 1
-      );
-    }
+    // Legacy static size/quantity nodes removed; specs come from database
 
     // When ready to create the order
     if (currentNodeId === 'create_quote') {
