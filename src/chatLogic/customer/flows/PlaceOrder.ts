@@ -50,6 +50,7 @@ let currentNodeId: keyof typeof NODES = 'place_order_start';
 
 // Dynamic services navigation state
 let currentServiceId: string | null = null;
+let serviceStack: string[] = [];
 let dynamicMode = false;
 
 // Cache for synchronous quickReplies API
@@ -129,6 +130,7 @@ export const placeOrderFlow: ChatFlow = {
     currentNodeId = 'place_order_start';
     dynamicMode = false;
     currentServiceId = null;
+    serviceStack = [];
     cachedQuickReplies = [];
     orderRecord = { service_choices: [] };
     return nodeToMessages(NODES[currentNodeId]);
@@ -140,9 +142,36 @@ export const placeOrderFlow: ChatFlow = {
   respond: async (ctx, input) => {
     // If in dynamic mode, handle DB-driven navigation
     if (dynamicMode) {
+      const normalized = input.trim().toLowerCase();
+
+      // Handle Back navigation
+      if (normalized === 'back') {
+        // Remove last chosen service from record
+        if (Array.isArray(orderRecord.service_choices) && orderRecord.service_choices.length > 0) {
+          orderRecord.service_choices.pop();
+        }
+
+        // Move up one level
+        currentServiceId = serviceStack.length > 0 ? serviceStack.pop() || null : null;
+
+        const { service: parentService, children: parentChildren } = await getServiceDetails(
+          currentServiceId
+        );
+        cachedQuickReplies = parentChildren.map(c => c.service_name as string);
+        if (currentServiceId) cachedQuickReplies = [...cachedQuickReplies, 'Back'];
+
+        const messages = dbToMessages(
+          parentService,
+          currentServiceId
+            ? 'Please choose one of the options.'
+            : 'We offer a variety of printing Services. What type are you interested in?'
+        );
+        return { messages, quickReplies: cachedQuickReplies };
+      }
+
       const { children } = await getServiceDetails(currentServiceId);
       const selectedChild = children.find(
-        c => c.service_name?.toLowerCase() === input.trim().toLowerCase()
+        c => c.service_name?.toLowerCase() === normalized
       );
       if (!selectedChild) {
         return {
@@ -151,6 +180,7 @@ export const placeOrderFlow: ChatFlow = {
         };
       }
 
+      if (currentServiceId) serviceStack.push(currentServiceId);
       currentServiceId = selectedChild.service_id as string;
       orderRecord.service_choices?.push(currentServiceId);
 
@@ -158,6 +188,7 @@ export const placeOrderFlow: ChatFlow = {
         currentServiceId
       );
       cachedQuickReplies = nextChildren.map(c => c.service_name as string);
+      if (currentServiceId) cachedQuickReplies = [...cachedQuickReplies, 'Back'];
       const messages = dbToMessages(
         nextService,
         "Great choice! What would you like to choose next?"
@@ -193,11 +224,9 @@ export const placeOrderFlow: ChatFlow = {
 
         await createOrder(order);
 
-        // Reset dynamic mode for next conversation
-        dynamicMode = false;
-        currentServiceId = null;
-        orderRecord = { service_choices: [] };
-        cachedQuickReplies = ['End Chat'];
+        // Allow user to go back or end after order creation
+        // Keep context so they can tweak selection with Back if desired
+        cachedQuickReplies = ['Back', 'End Chat'];
 
         return {
           messages: [
@@ -207,7 +236,7 @@ export const placeOrderFlow: ChatFlow = {
               text: "Your order has been submitted! We'll be in touch with a quote.",
             },
           ],
-          quickReplies: ['End Chat'],
+          quickReplies: cachedQuickReplies,
         };
       }
 
