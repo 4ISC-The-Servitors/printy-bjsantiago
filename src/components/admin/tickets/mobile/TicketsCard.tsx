@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Card, Badge, Button, Text } from '../../../shared';
-import { mockTickets } from '../../../../data/tickets';
 import { useAdmin } from '../../../../hooks/admin/AdminContext';
 import { MessageSquare, Plus, MoreVertical } from 'lucide-react';
+import { supabase } from '../../../../lib/supabase';
 
 const getBadgeVariantForStatus = (
   status: string
@@ -14,15 +14,98 @@ const getBadgeVariantForStatus = (
   return 'secondary'; // closed/resolved/other
 };
 
+type InquiryRecord = {
+  inquiry_id: string;
+  inquiry_type: string | null;
+  inquiry_status: string | null;
+  inquiry_message?: string | null;
+  customer_id?: string | null;
+  customer_full_name?: string | null;
+  customer_first_name?: string | null;
+  customer_last_name?: string | null;
+};
+
 const TicketsCard: React.FC = () => {
-  const { openChat } = useAdmin();
-  const [selectedTickets, setSelectedTickets] = useState<Set<string>>(
-    new Set()
-  );
+  const { openChat, openChatWithTopic } = useAdmin();
+  const [selectedTickets, setSelectedTickets] = useState<Set<string>>(new Set());
+  const [inquiries, setInquiries] = useState<InquiryRecord[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Limit to max 5 tickets
-  const displayTickets = mockTickets.slice(0, 5);
+  const loadInquiries = useCallback(async () => {
+    setLoading(true);
+    setErrorMessage(null);
+    const { data, error } = await supabase
+      .from('inquiries')
+      .select(`
+        inquiry_id,
+        inquiry_type,
+        inquiry_status,
+        inquiry_message,
+        customer_id,
+        customer:customer_id (
+          first_name,
+          last_name
+        )
+      `)
+      .order('received_at', { ascending: false })
+      .limit(5);
 
+    if (error) {
+      console.error('Failed to load inquiries', error);
+      setErrorMessage('Unable to load inquiries.');
+      setInquiries([]);
+    } else {
+      const normalized: InquiryRecord[] = (data as any[]).map(row => {
+        const first = row?.customer?.first_name || '';
+        const last = row?.customer?.last_name || '';
+        const full = `${first} ${last}`.trim() || null;
+        return {
+          inquiry_id: row.inquiry_id,
+          inquiry_type: row.inquiry_type,
+          inquiry_status: row.inquiry_status,
+          inquiry_message: row.inquiry_message,
+          customer_id: row.customer_id,
+          customer_full_name: full,
+          customer_first_name: first || null,
+          customer_last_name: last || null,
+        };
+      });
+      setInquiries(normalized);
+    }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    void loadInquiries();
+  }, [loadInquiries]);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('inquiries-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'inquiries' },
+        () => {
+          void loadInquiries();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [loadInquiries]);
+
+  const displayInquiries = inquiries;
+  const mappedTickets = displayInquiries.map(i => ({
+    id: i.inquiry_id,
+    subject: i.inquiry_type || '—',
+    status: i.inquiry_status || 'open',
+    description: i.inquiry_message || '',
+    requester: i.customer_full_name || 'Customer',
+    lastMessage: i.inquiry_message || '',
+  }));
   const toggleTicketSelection = (ticketId: string) => {
     setSelectedTickets(prev => {
       const newSet = new Set(prev);
@@ -53,7 +136,16 @@ const TicketsCard: React.FC = () => {
         </div>
 
         <div className="divide-y divide-neutral-200">
-          {displayTickets.map(t => (
+          {loading && (
+            <div className="p-4 text-sm text-neutral-500">Loading inquiries…</div>
+          )}
+          {!loading && errorMessage && (
+            <div className="p-4 text-sm text-error-600">{errorMessage}</div>
+          )}
+          {!loading && !errorMessage && displayInquiries.length === 0 && (
+            <div className="p-4 text-sm text-neutral-500">No inquiries found.</div>
+          )}
+          {!loading && !errorMessage && displayInquiries.map(t => (
             <div key={t.id} className="p-4 space-y-3">
               {/* Header row with ID and actions */}
               <div className="flex items-start justify-between">
@@ -61,8 +153,8 @@ const TicketsCard: React.FC = () => {
                   <input
                     type="checkbox"
                     className="w-5 h-5 accent-brand-primary rounded"
-                    checked={selectedTickets.has(t.id)}
-                    onChange={() => toggleTicketSelection(t.id)}
+                    checked={selectedTickets.has(t.inquiry_id)}
+                    onChange={() => toggleTicketSelection(t.inquiry_id)}
                     title="Select ticket"
                   />
                   <div className="min-w-0 flex-1">
@@ -72,10 +164,10 @@ const TicketsCard: React.FC = () => {
                       color="muted"
                       className="truncate"
                     >
-                      {t.id}
+                      {t.inquiry_id}
                     </Text>
                     <Text variant="p" size="xs" color="muted">
-                      {t.date}
+                      {t.customer_full_name ?? '—'}
                     </Text>
                   </div>
                 </div>
@@ -85,7 +177,13 @@ const TicketsCard: React.FC = () => {
                     variant="secondary"
                     size="sm"
                     aria-label={`Ask about ${t.id}`}
-                    onClick={() => openChat()}
+                    onClick={() => {
+                      if (openChatWithTopic) {
+                        openChatWithTopic('tickets', t.inquiry_id, undefined, mappedTickets);
+                      } else {
+                        openChat();
+                      }
+                    }}
                     className="w-10 h-10 p-0"
                   >
                     <MessageSquare className="w-4 h-4" />
@@ -104,14 +202,14 @@ const TicketsCard: React.FC = () => {
                   weight="medium"
                   className="line-clamp-2"
                 >
-                  {t.subject}
+                  {t.inquiry_type || '—'}
                 </Text>
               </div>
 
               {/* Status badge */}
               <div className="flex items-center justify-start">
-                <Badge size="sm" variant={getBadgeVariantForStatus(t.status)}>
-                  {t.status}
+                <Badge size="sm" variant={getBadgeVariantForStatus(t.inquiry_status || '')}>
+                  {t.inquiry_status}
                 </Badge>
               </div>
             </div>

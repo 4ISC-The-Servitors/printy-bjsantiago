@@ -7,6 +7,7 @@ import type {
   ChatRole,
 } from '../../components/chat/_shared/types';
 import { resolveAdminFlow, dispatchAdminCommand } from '../../chatLogic/admin';
+import { useInquiryActions } from './useInquiryActions';
 
 export interface UseAdminChatReturn {
   chatOpen: boolean;
@@ -35,6 +36,9 @@ export const useAdminChat = (): UseAdminChatReturn => {
   const [quickReplies, setQuickReplies] = useState<QuickReply[]>([]);
   const [currentFlow, setCurrentFlow] = useState<string>('intro');
   const [currentContext, setCurrentContext] = useState<any>({});
+  const [pendingAction, setPendingAction] = useState<null | 'resolution' | 'assign' | 'status'>(null);
+  const [currentInquiryId, setCurrentInquiryId] = useState<string | null>(null);
+  const { updateInquiryStatus, assignInquiry, saveResolutionComment } = useInquiryActions();
 
   const endChatWithDelay = () => {
     const endMessage = {
@@ -123,6 +127,7 @@ export const useAdminChat = (): UseAdminChatReturn => {
           updateTicket: updateOrder,
           refreshTickets: refreshOrders,
         };
+        setCurrentInquiryId(orderId || null);
       } else {
         context = orderId
           ? { orderId, updateOrder, orders, refreshOrders, orderIds }
@@ -171,6 +176,49 @@ export const useAdminChat = (): UseAdminChatReturn => {
     };
     setMessages(prev => [...prev, userMsg]);
     setIsTyping(true);
+
+    // Intercepts for pending actions
+    const trimmed = text.trim();
+    if (pendingAction === 'resolution' && currentInquiryId) {
+      void (async () => {
+        try {
+          await saveResolutionComment(currentInquiryId, trimmed);
+          setMessages(prev => [
+            ...prev,
+            { id: crypto.randomUUID(), role: 'printy', text: 'Resolution comment saved and sent to the customer.', ts: Date.now() },
+          ]);
+        } catch (e: any) {
+          setMessages(prev => [
+            ...prev,
+            { id: crypto.randomUUID(), role: 'printy', text: `Failed to save resolution: ${e?.message || 'Unknown error'}`, ts: Date.now() },
+          ]);
+        } finally {
+          setPendingAction(null);
+        }
+      })();
+      setIsTyping(false);
+      return;
+    }
+    if (pendingAction === 'assign' && currentInquiryId) {
+      void (async () => {
+        try {
+          await assignInquiry(currentInquiryId, trimmed);
+          setMessages(prev => [
+            ...prev,
+            { id: crypto.randomUUID(), role: 'printy', text: `Ticket assigned to ${trimmed}.`, ts: Date.now() },
+          ]);
+        } catch (e: any) {
+          setMessages(prev => [
+            ...prev,
+            { id: crypto.randomUUID(), role: 'printy', text: `Failed to assign ticket: ${e?.message || 'Unknown error'}`, ts: Date.now() },
+          ]);
+        } finally {
+          setPendingAction(null);
+        }
+      })();
+      setIsTyping(false);
+      return;
+    }
 
     // Always use the current flow when we have context (like order-specific chats)
     const flow = resolveAdminFlow(currentFlow);
@@ -222,13 +270,57 @@ export const useAdminChat = (): UseAdminChatReturn => {
   };
 
   const handleQuickReply = (v: string) => {
-    if (v.toLowerCase().includes('end')) {
+    const val = v.trim();
+    if (val.toLowerCase().includes('end')) {
       setMessages([]);
       return;
     }
+
+    // Ticket action intercepts
+    if (val === 'Create Resolution comment') {
+      setPendingAction('resolution');
+      setMessages(prev => [
+        ...prev,
+        { id: crypto.randomUUID(), role: 'printy', text: 'Please type the resolution comment.', ts: Date.now() },
+      ]);
+      return;
+    }
+    if (val === 'Assign to') {
+      setPendingAction('assign');
+      setMessages(prev => [
+        ...prev,
+        { id: crypto.randomUUID(), role: 'printy', text: 'Who should resolve this ticket? Type the staff name.', ts: Date.now() },
+      ]);
+      return;
+    }
+    if ((['Open', 'Pending', 'Closed'] as string[]).includes(val) && currentInquiryId) {
+      const dbStatus = (
+        {
+          Open: 'open',
+          Pending: 'in_progress',
+          Closed: 'closed',
+        } as const
+      )[val as 'Open' | 'Pending' | 'Closed'];
+      void (async () => {
+        try {
+          await updateInquiryStatus(currentInquiryId, dbStatus);
+          setMessages(prev => [
+            ...prev,
+            { id: crypto.randomUUID(), role: 'printy', text: `Status updated to ${val}.`, ts: Date.now() },
+          ]);
+        } catch (e: any) {
+          setMessages(prev => [
+            ...prev,
+            { id: crypto.randomUUID(), role: 'printy', text: `Failed to update status: ${e?.message || 'Unknown error'}`, ts: Date.now() },
+          ]);
+        }
+      })();
+      return;
+    }
+
     const flow = resolveAdminFlow(currentFlow);
     if (!flow) return;
-    void flow.respond(currentContext, v).then(resp => {
+    void flow.respond(currentContext, val).then(resp => {
       const botMessages = resp.messages.map(m => ({
         id: crypto.randomUUID(),
         role: m.role as ChatRole,
