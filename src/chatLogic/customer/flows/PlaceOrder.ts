@@ -67,6 +67,10 @@ async function getServiceDetails(serviceId: string | null): Promise<{
   children: any[];
 }> {
   if (!serviceId) {
+    try {
+      const { data: authUser } = await supabase.auth.getUser();
+      console.log('[PlaceOrder] Auth user for root fetch:', authUser?.user?.id || 'none');
+    } catch {}
     // First: strictly NULL parents (no active_status filter to avoid mismatches)
     const nullParents = await supabase
       .from('printing_services')
@@ -78,6 +82,9 @@ async function getServiceDetails(serviceId: string | null): Promise<{
       return { service: null, children: [] };
     }
     let rows = nullParents.data || [];
+    if (!rows.length) {
+      console.warn('[PlaceOrder] Root fetch returned 0 rows (NULL parent). Retrying with empty string parent...');
+    }
     // If none, try empty-string parents
     if (!rows.length) {
       const emptyParents = await supabase
@@ -89,6 +96,7 @@ async function getServiceDetails(serviceId: string | null): Promise<{
     }
     // If still none, retry both with both null and empty (already without status)
     if (!rows.length) {
+      console.warn('[PlaceOrder] Root fetch still 0 rows. Final retry without any parent filter normalization...');
       const nullNoStatus = await supabase
         .from('printing_services')
         .select('*')
@@ -318,6 +326,9 @@ export const placeOrderFlow: ChatFlow = {
           text:
             'We offer a variety of printing Services. What type are you interested in?',
         },
+        ...(cachedQuickReplies.length === 0
+          ? ([{ role: 'printy', text: 'No services are available at the moment. Please check your access or data.' }] as BotMessage[])
+          : ([] as BotMessage[])),
       ];
       return { messages, quickReplies: cachedQuickReplies.length ? cachedQuickReplies : ['End Chat'] };
     }
