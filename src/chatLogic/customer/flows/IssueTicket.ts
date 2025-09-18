@@ -608,106 +608,71 @@ return {
       const inquiryId = (crypto as any)?.randomUUID?.()
         ? (crypto as any).randomUUID()
         : `${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
+    
       const message = collectedIssueDetails || '(no details provided)';
+      let customerId: string | null = null;
+    
       try {
-        // Resolve current authenticated user's customer_id
-        let customerId: string | null = null;
-        try {
-          const { data: session } = await supabase.auth.getUser();
-          const authId = session?.user?.id || null;
-          if (authId) {
-            const { data: customerRow } = await supabase
-              .from('customer')
-              .select('customer_id')
-              .eq('customer_id', authId)
-              .maybeSingle();
-            customerId = (customerRow as any)?.customer_id || null;
-          }
-        } catch (_e) {
-          // ignore; fallback keeps customerId null
+        // ✅ Resolve current authenticated user's customer_id
+        const { data: session } = await supabase.auth.getUser();
+        const authId = session?.user?.id || null;
+        if (authId) {
+          const { data: customerRow } = await supabase
+            .from('customer')
+            .select('customer_id')
+            .eq('customer_id', authId)
+            .maybeSingle();
+          customerId = (customerRow as any)?.customer_id || null;
         }
-
+    
+        const inquiryType = currentInquiryType ?? 'other';
+    
         const { error } = await supabase.from('inquiries').insert([
           {
             inquiry_id: inquiryId,
             inquiry_message: message,
             inquiry_status: 'new',
             received_at: new Date().toISOString(),
-            inquiry_type: currentInquiryType,
+            inquiry_type: inquiryType,
             customer_id: customerId,
           },
         ]);
+    
         if (error) {
-          console.error('Insert into inquiries failed:', error);
+          console.error('Insert failed:', error);
           return {
             messages: [
               {
                 role: 'printy',
-                text: `I couldn't create the ticket right now (db error). Please try 'Submit ticket' again in a moment.`,
+                text: "❌ Couldn't create the ticket. Try again later.",
               },
             ],
             quickReplies: nodeQuickReplies(current),
           };
         }
+    
+        // ✅ Reset state
         collectedIssueDetails = '';
         currentInquiryType = null;
-      } catch (_e) {
-        console.error('Network or unexpected error inserting inquiry:', _e);
+    
         return {
           messages: [
-            {
-              role: 'printy',
-              text: "I ran into a network issue while creating your ticket. Please try 'Submit ticket' again shortly.",
-            },
+            { role: 'printy', text: '✅ Ticket submitted successfully!' },
+            { role: 'printy', text: `📌 Your ticket number is: ${inquiryId}` },
+          ],
+          quickReplies: ['End Chat'],
+        };
+      } catch (_e) {
+        console.error('Insert error:', _e);
+        return {
+          messages: [
+            { role: 'printy', text: '❌ Error creating ticket. Please try again.' },
           ],
           quickReplies: nodeQuickReplies(current),
         };
       }
     }
-
-    const inquiryType = currentInquiryType ?? 'other';
-    const { error } = await supabase.from('inquiries').insert([
-      {
-        inquiry_id: inquiryId,
-        inquiry_message: message,
-        inquiry_status: 'new',
-        received_at: new Date().toISOString(),
-        inquiry_type: inquiryType,
-        customer_id: customerId,
-      },
-    ]);
-
-    if (error) {
-      console.error('Insert failed:', error);
-      return {
-        messages: [
-          { role: 'printy', text: "❌ Couldn't create the ticket. Try again later." },
-        ],
-        quickReplies: nodeQuickReplies(current),
-      };
-    }
-
-    // Reset context
-    collectedIssueDetails = '';
-    currentInquiryType = null;
-
-    return {
-      messages: [
-        { role: 'printy', text: '✅ Ticket submitted successfully!' },
-        { role: 'printy', text: `📌 Your ticket number is: ${inquiryId}` }, // ✅ NEW
-      ],
-      quickReplies: ['End Chat'],
-    };
-  } catch (_e) {
-    console.error('Insert error:', _e);
-    return {
-      messages: [
-        { role: 'printy', text: '❌ Error creating ticket. Please try again.' },
-      ],
-      quickReplies: nodeQuickReplies(current),
-    };
-  }
-}
+    
 
 
     currentNodeId = nextNodeId;
