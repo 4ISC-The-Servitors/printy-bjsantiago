@@ -49,7 +49,15 @@ export const CustomerChatPanel: React.FC<CustomerChatPanelProps> = ({
     messages,
     onSend: disabled ? () => {} : onSend,
     isTyping,
-    onAttachFiles: disabled ? undefined : onAttachFiles,
+    onAttachFiles: (files: FileList) => {
+      const f = files?.[0];
+      if (f) {
+        const url = URL.createObjectURL(f);
+        // send the image URL so it renders in chat and triggers payment flow detection
+        onSend(url);
+      }
+      onAttachFiles?.(files);
+    },
     onBack,
     quickReplies: disabled ? [] : quickReplies,
     onQuickReply: disabled ? undefined : onQuickReply,

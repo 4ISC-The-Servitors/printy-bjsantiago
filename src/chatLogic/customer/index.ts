@@ -5,6 +5,7 @@ import { issueTicketFlow } from './flows/IssueTicket';
 import { placeOrderFlow } from './flows/PlaceOrder';
 import { servicesOfferedFlow } from './flows/ServicesOffered';
 import { trackTicketFlow } from './flows/TrackTicket';
+import { paymentFlow } from './flows/Payment';
 
 export const customerFlows: Record<string, ChatFlow> = {
   about: aboutUsFlow,
@@ -13,6 +14,7 @@ export const customerFlows: Record<string, ChatFlow> = {
   'place-order': placeOrderFlow,
   services: servicesOfferedFlow,
   'track-ticket': trackTicketFlow,
+  payment: paymentFlow,
 };
 
 export function resolveCustomerFlow(
@@ -25,5 +27,6 @@ export function resolveCustomerFlow(
   if (t.includes('place') || t.includes('order')) return placeOrderFlow;
   if (t.includes('service')) return servicesOfferedFlow;
   if (t.includes('track')) return trackTicketFlow;
+  if (t.includes('pay')) return paymentFlow;
   return aboutUsFlow;
 }
