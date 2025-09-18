@@ -4,9 +4,11 @@ export type Order = {
   id: string;
   customer: string;
   status:
+    | 'Needs Quote'
     | 'Pending'
     | 'Processing'
     | 'Awaiting Payment'
+    | 'Verifying Payment'
     | 'For Delivery/Pick-up'
     | 'Completed'
     | 'Cancelled';
@@ -22,27 +24,27 @@ export const mockOrders: Order[] = [
     status: 'Processing',
     priority: 'Urgent', // Valued customer
     total: '₱15,000',
-    date: 'May 2',
+    date: 'May 2, 2025',
   },
   {
     id: 'ORD-12351',
     customer: 'Miguel Tan',
-    status: 'Pending',
-    total: 'TBD',
-    date: 'May 1',
+    status: 'Needs Quote',
+    total: 'Awaiting Quote',
+    date: 'May 1, 2025',
   },
   {
     id: 'ORD-12350',
     customer: 'Sophia Cruz',
     status: 'Awaiting Payment',
     total: '₱1,200',
-    date: 'May 30',
+    date: 'May 30, 2025',
   },
   {
     id: 'ORD-12349',
     customer: 'Mark Dela Cruz',
-    status: 'Completed',
+    status: 'Verifying Payment',
     total: '₱7,400',
-    date: 'Apr 28',
+    date: 'Apr 28, 2025',
   },
 ];

@@ -20,11 +20,24 @@
 
 ## 📄 Changelogs
 
-### 2025-08-29
+### 2025-09-19-Andeng
 
-- Added Supabase SQL Migration Guide with PowerShell/psql steps
-- Added quick links to Migration Guide and Changelog
-- Kept existing setup and status sections unchanged; no breaking changes
+- added Payment chat logic for customer
+- chat renders actual images for QRPH codes as sample (gcash, may) and file uploads by user
+- added Pay Now button that only shows when order status is AWAITING PAYMENT
+
+### 2025-09-16-Andeng
+
+- COMPLETE:
+- added backend TODOs in start of admin files. search for comments with "BACKEND_TODO" exactly
+- admin desktop ui/ux
+- base chat logic for dynamically changing status, creating quote, editing service, adding service, replying to ticket
+
+- TO FOLLOW:
+- align mobile responsiveness with desktop features
+- polish chat logic
+- typing animations for chats
+- recent chats/conversation like in customer
 
 ### 2025-08-29-Andeng
 
@@ -39,18 +52,11 @@
 - Removed 74 lint errors
 - Improved sign up page to check for duplicate email and phone number registrations
 
-### 2025-09-16-Andeng
+### 2025-08-29-Liam
 
-- COMPLETE:
-- added backend TODOs in start of admin files. search for comments with "BACKEND_TODO" exactly
-- admin desktop ui/ux
-- base chat logic for dynamically changing status, creating quote, editing service, adding service, replying to ticket
-
-- TO FOLLOW:
-- align mobile responsiveness with desktop features
-- polish chat logic
-- typing animations for chats
-- recent chats/conversation like in customer
+- Added Supabase SQL Migration Guide with PowerShell/psql steps
+- Added quick links to Migration Guide and Changelog
+- Kept existing setup and status sections unchanged; no breaking changes
 
 ## 🚀 Current Status
 

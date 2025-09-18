@@ -16,6 +16,7 @@ import {
   Button,
   PageLoading,
 } from '../../components/shared';
+import { mockOrders } from '../../data/orders';
 import { useToast } from '../../lib/useToast';
 import { customerFlows as flows } from '../../chatLogic/customer';
 import {
@@ -176,15 +177,16 @@ const CustomerDashboard: React.FC = () => {
   //   .single();
 
   // Mock recent order and ticket (prototype only) - REMOVE WHEN IMPLEMENTING BACKEND
-  const recentOrder = useMemo(
-    () => ({
-      id: 'ORD-000145',
-      title: 'Business Cards · Digital Printing',
-      status: 'In Progress',
-      updatedAt: Date.now() - 1000 * 60 * 45, // 45 mins ago
-    }),
-    []
-  );
+  const [recentOrder, setRecentOrder] = useState(() => {
+    const miguel = mockOrders.find(o => o.customer === 'Miguel Tan');
+    return {
+      id: miguel?.id || 'ORD-000145',
+      title: miguel ? `Order for ${miguel.customer}` : 'Recent Order',
+      status: 'Awaiting Payment' as const,
+      updatedAt: Date.now() - 1000 * 60 * 45,
+      total: '₱5,000',
+    };
+  });
 
   const recentTicket = useMemo(
     () => ({
@@ -196,7 +198,7 @@ const CustomerDashboard: React.FC = () => {
     []
   );
 
-  const initializeFlow = (flowId: string, title: string) => {
+  const initializeFlow = (flowId: string, title: string, ctx?: any) => {
     const flow = flows[flowId];
     if (!flow) return;
 
@@ -211,7 +213,8 @@ const CustomerDashboard: React.FC = () => {
         quickReplies: () => string[];
       }
     );
-    const initialMessages = flow.initial({});
+    const initialMessages =
+      (flow as any).initial?.(ctx || {}) || flow.initial({});
     const botMessages: ChatMessage[] = initialMessages.map(
       (msg: { text: string }) => ({
         id: crypto.randomUUID(),
@@ -260,6 +263,25 @@ const CustomerDashboard: React.FC = () => {
       setInputPlaceholder('Type a message...');
     }
   };
+
+  // Listen for Pay Now from Recent Order card to open Payment chat
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { orderId?: string };
+      const orderId = detail?.orderId || recentOrder.id;
+      const title = `Payment for ${orderId}`;
+      initializeFlow('payment', title, { orderId, total: recentOrder.total });
+    };
+    window.addEventListener(
+      'customer-open-payment-chat',
+      handler as EventListener
+    );
+    return () =>
+      window.removeEventListener(
+        'customer-open-payment-chat',
+        handler as EventListener
+      );
+  }, [recentOrder.id]);
 
   const handleTopic = (key: TopicKey) => {
     const cfg = topicConfig[key];
@@ -322,6 +344,15 @@ const CustomerDashboard: React.FC = () => {
         );
         setQuickReplies(replies);
         updateInputPlaceholder(currentFlow.id, replies);
+
+        // If payment moved to verifying, update recentOrder status immediately
+        if (
+          response.messages.some((m: any) =>
+            String(m.text || '').includes('confirm your payment shortly')
+          )
+        ) {
+          setRecentOrder(prev => ({ ...prev, status: 'Verifying Payment' }));
+        }
 
         setIsTyping(false);
       }, 800);

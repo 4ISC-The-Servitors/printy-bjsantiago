@@ -41,6 +41,16 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({
           isBot &&
           /Order .* — Status: /.test(m.text) &&
           m.text.includes('Items:');
+        // Extract inline image URLs (supports public path, http(s), blob:, and data URLs)
+        const imageUrlRegex =
+          /(blob:[^\s]+|https?:\/\/[^\s]+?\.(?:jpg|jpeg|png|gif)(?:\?[^\s]*)?|\/(?:[\w.-]+)\.(?:jpg|jpeg|png|gif)|data:image\/[a-zA-Z0-9+]+;base64,[^\s)]+)/gi;
+        const imageMatches = Array.from(
+          (m.text || '').matchAll(imageUrlRegex)
+        ).map(match => match[0]);
+        const textWithoutImageTokens = (m.text || '')
+          .replace(imageUrlRegex, '')
+          .replace(/\(\s*\)/g, ' ')
+          .trim();
         return (
           <div key={m.id} className={isBot ? 'text-left' : 'text-right'}>
             <div className="flex items-start gap-2">
@@ -64,7 +74,31 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({
                 {isBot && messages.length > 1 && messages.indexOf(m) === 0 && (
                   <div className="text-xs text-neutral-500 mb-1">Assistant</div>
                 )}
-                {m.text}
+                {textWithoutImageTokens && (
+                  <div
+                    className={
+                      preserveNewlinesForOrder ? '' : 'whitespace-pre-wrap'
+                    }
+                  >
+                    {textWithoutImageTokens}
+                  </div>
+                )}
+                {imageMatches.length > 0 && (
+                  <div className="mt-3 grid grid-cols-2 gap-3">
+                    {imageMatches.map((src, idx) => (
+                      <div
+                        key={idx}
+                        className="rounded-lg overflow-hidden border border-neutral-200 bg-white"
+                      >
+                        <img
+                          src={src}
+                          alt={`attachment-${idx + 1}`}
+                          className="w-full h-auto object-contain"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
               {!isBot && (
                 <div className="w-6 h-6 rounded-md bg-neutral-600 text-white flex items-center justify-center text-xs mt-1 sm:w-8 sm:h-8">
