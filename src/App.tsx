@@ -6,15 +6,17 @@ import SignUp from './pages/auth/SignUp';
 import ForgotPassword from './pages/auth/ForgotPassword';
 import ResetPassword from './pages/auth/ResetPassword';
 import CustomerDashboard from './pages/customer/Dashboard';
-import AccountSettingsPage from './pages/customer/accountSettings/AccountSettingsPage';
-import AdminShell from './pages/admin/AdminShell';
+import AccountSettings from './pages/customer/AccountSettings';
+import CustomerRoot from './pages/customer/CustomerRoot';
+import AdminRoot from './pages/admin/AdminRoot';
+import { PageLoading } from './components/shared';
 import './index.css';
 
 // Lazy load heavy components
 const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'));
-const AdminSettingsPage = lazy(
-  () => import('./pages/admin/adminSettings/AdminSettingsPage')
-);
+const AdminOrders = lazy(() => import('./pages/admin/Orders'));
+const AdminTickets = lazy(() => import('./pages/admin/Tickets'));
+const AdminSettingsPage = lazy(() => import('./pages/admin/AdminSettings'));
 const AdminPortfolio = lazy(() => import('./pages/admin/Portfolio'));
 const SuperAdminDashboard = lazy(() => import('./pages/superadmin/Dashboard'));
 const ComponentShowcase = lazy(
@@ -29,14 +31,23 @@ function App() {
       <Route path="/auth/signup" element={<SignUp />} />
       <Route path="/auth/forgot-password" element={<ForgotPassword />} />
       <Route path="/auth/reset-password/confirm" element={<ResetPassword />} />
-      <Route path="/customer" element={<CustomerDashboard />} />
+      <Route path="/customer" element={<CustomerRoot />}>
+        <Route index element={<CustomerDashboard />} />
+        <Route path="account" element={<AccountSettings />} />
+      </Route>
       <Route path="/valued" element={<CustomerDashboard />} />
-      <Route path="/account" element={<AccountSettingsPage />} />
-      <Route path="/admin" element={<AdminShell />}>
+      <Route
+        path="/admin"
+        element={
+          <Suspense fallback={<PageLoading variant="dashboard" />}>
+            <AdminRoot />
+          </Suspense>
+        }
+      >
         <Route
           index
           element={
-            <Suspense fallback={<div>Loading...</div>}>
+            <Suspense fallback={<PageLoading variant="dashboard" />}>
               <AdminDashboard />
             </Suspense>
           }
@@ -44,15 +55,23 @@ function App() {
         <Route
           path="orders"
           element={
-            <Suspense fallback={<div>Loading...</div>}>
-              <AdminDashboard />
+            <Suspense fallback={<PageLoading variant="list" />}>
+              <AdminOrders />
+            </Suspense>
+          }
+        />
+        <Route
+          path="tickets"
+          element={
+            <Suspense fallback={<PageLoading variant="list" />}>
+              <AdminTickets />
             </Suspense>
           }
         />
         <Route
           path="portfolio"
           element={
-            <Suspense fallback={<div>Loading...</div>}>
+            <Suspense fallback={<PageLoading variant="grid" />}>
               <AdminPortfolio />
             </Suspense>
           }
@@ -60,7 +79,7 @@ function App() {
         <Route
           path="settings"
           element={
-            <Suspense fallback={<div>Loading...</div>}>
+            <Suspense fallback={<PageLoading variant="form" />}>
               <AdminSettingsPage />
             </Suspense>
           }
@@ -69,7 +88,7 @@ function App() {
       <Route
         path="/superadmin"
         element={
-          <Suspense fallback={<div>Loading...</div>}>
+          <Suspense fallback={<PageLoading variant="dashboard" />}>
             <SuperAdminDashboard />
           </Suspense>
         }
@@ -77,7 +96,7 @@ function App() {
       <Route
         path="/showcase"
         element={
-          <Suspense fallback={<div>Loading...</div>}>
+          <Suspense fallback={<PageLoading variant="minimal" />}>
             <ComponentShowcase />
           </Suspense>
         }

@@ -22,6 +22,9 @@ export type { BadgeProps } from './Badge';
 export { default as Skeleton } from './Skeleton';
 export type { SkeletonProps } from './Skeleton';
 
+// PageLoading Component
+export { default as PageLoading } from './PageLoading';
+
 // Switch Component
 export { default as Switch } from './Switch';
 export type { SwitchProps } from './Switch';
@@ -61,3 +64,7 @@ export type { SocialAuthButtonProps } from './SocialAuthButton';
 export { default as Tooltip } from './Tooltip';
 export type { TooltipProps } from './Tooltip';
 export { default as ChatDock } from './ChatDock';
+
+// Checkbox Component
+export { default as Checkbox } from './Checkbox';
+export type { CheckboxProps } from './Checkbox';

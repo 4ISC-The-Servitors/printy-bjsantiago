@@ -29,6 +29,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   // Mobile-specific props
   mobileOffsetLeftClass = 'left-16',
   hideHeader = false,
+  hideInput = false,
 }) => {
   const [input, setInput] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -127,18 +128,20 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
       </div>
 
       {/* Mobile Fixed Input Area */}
-      <div
-        className={`fixed bottom-0 ${mobileOffsetLeftClass} right-0 bg-white border-t border-neutral-200 z-40`}
-      >
-        <ChatInput
-          value={input}
-          onChange={setInput}
-          onSubmit={handleSubmit}
-          placeholder={inputPlaceholder}
-          showAttach={showAttach}
-          onAttachFiles={onAttachFiles}
-        />
-      </div>
+      {!hideInput && (
+        <div
+          className={`fixed bottom-0 ${mobileOffsetLeftClass} right-0 bg-white border-t border-neutral-200 z-40`}
+        >
+          <ChatInput
+            value={input}
+            onChange={setInput}
+            onSubmit={handleSubmit}
+            placeholder={inputPlaceholder}
+            showAttach={showAttach}
+            onAttachFiles={onAttachFiles}
+          />
+        </div>
+      )}
     </div>
   );
 };

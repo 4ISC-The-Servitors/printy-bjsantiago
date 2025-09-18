@@ -9,7 +9,13 @@ import {
 import DesktopSidebar from '../../components/customer/dashboard/desktop/Sidebar';
 import MobileSidebar from '../../components/customer/dashboard/mobile/Sidebar';
 import DashboardContent from '../../components/customer/dashboard/desktop/DashboardContent';
-import { ToastContainer, Modal, Text, Button } from '../../components/shared';
+import {
+  ToastContainer,
+  Modal,
+  Text,
+  Button,
+  PageLoading,
+} from '../../components/shared';
 import { useToast } from '../../lib/useToast';
 import { customerFlows as flows } from '../../chatLogic/customer';
 import {
@@ -77,7 +83,7 @@ const topicConfig: Record<
     label: 'Track a Ticket',
     icon: <Clock className="w-6 h-6" />,
     flowId: 'track-ticket',
-    description: 'Check the status of your orders',
+    description: 'Check the status of your tickets',
   },
   aboutUs: {
     label: 'About Us',
@@ -113,6 +119,7 @@ const CustomerDashboard: React.FC = () => {
   const [inputPlaceholder, setInputPlaceholder] = useState('Type a message...');
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -132,6 +139,14 @@ const CustomerDashboard: React.FC = () => {
         mql.removeEventListener('change', handleModern);
       else (mql as MediaQueryList).removeListener(handleLegacy);
     };
+  }, []);
+
+  // Simulate data loading
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 1500);
+    return () => clearTimeout(timer);
   }, []);
 
   const topics = useMemo(
@@ -468,19 +483,21 @@ const CustomerDashboard: React.FC = () => {
         conversations={conversations}
         activeId={activeId}
         onSwitchConversation={switchConversation}
-        onNavigateToAccount={() => navigate('/account')}
+        onNavigateToAccount={() => navigate('/customer/account')}
         onLogout={handleLogout}
       />
       <MobileSidebar
         conversations={conversations}
         activeId={activeId}
         onSwitchConversation={switchConversation}
-        onNavigateToAccount={() => navigate('/account')}
+        onNavigateToAccount={() => navigate('/customer/account')}
         onLogout={handleLogout}
       />
       {/* Main Content - Full Screen for Chat */}
-      <main className={`flex-1 flex flex-col pl-16`}>
-        {activeId ? (
+      <main className={`flex-1 flex flex-col pl-16 lg:pl-0`}>
+        {isLoading ? (
+          <PageLoading variant="dashboard" />
+        ) : activeId ? (
           // Full screen chat without containers
           <CustomerChatPanel
             title={conversations.find(c => c.id === activeId)?.title || 'Chat'}

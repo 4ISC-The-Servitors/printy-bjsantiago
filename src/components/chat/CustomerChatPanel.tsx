@@ -75,9 +75,14 @@ export const CustomerChatPanel: React.FC<CustomerChatPanelProps> = ({
           {...commonProps}
           mobileFixed={true}
           mobileOffsetLeftClass="left-16"
+          hideInput={disabled}
         />
       ) : (
-        <DesktopChatPanel {...commonProps} />
+        <DesktopChatPanel
+          {...commonProps}
+          hideSelectedBar={true}
+          hideInput={disabled}
+        />
       )}
     </div>
   );

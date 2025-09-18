@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import SelectedChipsBar from '../../shared/SelectedChipsBar';
+import { useAdmin } from '@hooks/admin/AdminContext';
 import ChatHeader from './ChatHeader';
 import ChatInput from './ChatInput';
 import MessageGroup from '../_shared/MessageGroup';
@@ -27,6 +29,8 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   onEndChat,
   showAttach = true,
   hideHeader = false,
+  hideSelectedBar = false,
+  hideInput = false,
 }) => {
   const [input, setInput] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -98,6 +102,8 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   return (
     <div className="bg-white flex flex-col h-full w-full">
       {!hideHeader && <ChatHeader title={title} onBack={onBack} />}
+      {/* Selected chips directly attached under the header (outside scroll) */}
+      {!hideSelectedBar && <ChatSelectedBarFixed />}
 
       {/* Desktop Message Area */}
       <div
@@ -125,16 +131,33 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
       </div>
 
       {/* Desktop Input Area */}
-      <div className="border-t border-neutral-200 bg-white">
-        <ChatInput
-          value={input}
-          onChange={setInput}
-          onSubmit={handleSubmit}
-          placeholder={inputPlaceholder}
-          showAttach={showAttach}
-          onAttachFiles={onAttachFiles}
-        />
-      </div>
+      {!hideInput && (
+        <div className="border-t border-neutral-200 bg-white">
+          <ChatInput
+            value={input}
+            onChange={setInput}
+            onSubmit={handleSubmit}
+            placeholder={inputPlaceholder}
+            showAttach={showAttach}
+            onAttachFiles={onAttachFiles}
+          />
+        </div>
+      )}
+    </div>
+  );
+};
+
+const ChatSelectedBarFixed: React.FC = () => {
+  const { selected, removeSelected, clearSelected } = useAdmin();
+  if (!selected || selected.length === 0) return null;
+  return (
+    <div className="px-6 pt-2 pb-2 bg-white border-b border-neutral-200">
+      <SelectedChipsBar
+        title="Selected Components"
+        items={selected}
+        onRemove={removeSelected}
+        onClear={clearSelected}
+      />
     </div>
   );
 };
