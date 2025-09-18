@@ -63,9 +63,14 @@ export const GuestChatPanel: React.FC<GuestChatPanelProps> = ({
         <MobileChatPanel
           {...commonProps}
           mobileFixed={false} // Guest panels don't use fixed positioning
+          hideInput={false}
         />
       ) : (
-        <DesktopChatPanel {...commonProps} />
+        <DesktopChatPanel
+          {...commonProps}
+          hideSelectedBar={true}
+          hideInput={false}
+        />
       )}
     </div>
   );

@@ -83,7 +83,7 @@ const topicConfig: Record<
     label: 'Track a Ticket',
     icon: <Clock className="w-6 h-6" />,
     flowId: 'track-ticket',
-    description: 'Check the status of your orders',
+    description: 'Check the status of your tickets',
   },
   aboutUs: {
     label: 'About Us',
@@ -494,7 +494,7 @@ const CustomerDashboard: React.FC = () => {
         onLogout={handleLogout}
       />
       {/* Main Content - Full Screen for Chat */}
-      <main className={`flex-1 flex flex-col pl-16`}>
+      <main className={`flex-1 flex flex-col pl-16 lg:pl-0`}>
         {isLoading ? (
           <PageLoading variant="dashboard" />
         ) : activeId ? (
