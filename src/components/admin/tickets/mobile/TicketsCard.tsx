@@ -161,7 +161,7 @@ const TicketsCard: React.FC = () => {
           {!loading &&
             !errorMessage &&
             displayInquiries.map(t => (
-              <div key={t.id} className="p-4 space-y-3">
+              <div key={t.inquiry_id} className="p-4 space-y-3">
                 {/* Header row with ID and actions */}
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -191,7 +191,7 @@ const TicketsCard: React.FC = () => {
                     <Button
                       variant="secondary"
                       size="sm"
-                      aria-label={`Ask about ${t.id}`}
+                      aria-label={`Ask about ${t.inquiry_id}`}
                       onClick={() => {
                         if (openChatWithTopic) {
                           openChatWithTopic(
