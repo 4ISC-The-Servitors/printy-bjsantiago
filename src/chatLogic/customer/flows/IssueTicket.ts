@@ -18,9 +18,18 @@ const NODES: Record<string, Node> = {
     message:
       "Hi! I'm Printy 🤖. I'll help you create a support ticket. What's your order number?",
     options: [
+      { label: 'Ticket Status Inquiry', next: 'ticket_status_start' },
       { label: "I don't have an order number", next: 'no_order_number' },
       { label: 'End Chat', next: 'end' },
     ],
+  },
+
+  ticket_status_start: {
+    id: 'ticket_status_start',
+    question: 'Ticket Status Inquiry',
+    answer:
+      'Please enter your ticket number to check its status.',
+    options: [{ label: 'Back to Start', next: 'issue_ticket_start' }],
   },
   // ====================
   order_issue_menu: {
@@ -239,6 +248,65 @@ function checkBlacklistedWord(input: string): string | null {
       };
     }
     // ====================
+
+
+    // ====================
+// Handle Ticket Status Inquiry
+// ====================
+if (!selection && currentNodeId === 'ticket_status_start') {
+  const inquiryId = input.trim().replace(/[^a-zA-Z0-9-]/g, ''); // sanitize input
+
+  if (!inquiryId) {
+    return {
+      messages: [
+        { role: 'printy', text: 'Please enter a valid ticket number (inquiry ID).' },
+      ],
+      quickReplies: nodeQuickReplies(NODES.ticket_status_start),
+    };
+  }
+
+  const { data: inquiry, error } = await supabase
+    .from('inquiries')
+    .select(
+      'inquiry_id, inquiry_message, inquiry_type, inquiry_status, resolution_comments, received_at'
+    )
+    .eq('inquiry_id', inquiryId)
+    .single();
+
+  if (error || !inquiry) {
+    return {
+      messages: [
+        {
+          role: 'printy',
+          text: `I couldn't find a ticket with ID "${inquiryId}". Please check and try again.`,
+        },
+      ],
+      quickReplies: nodeQuickReplies(NODES.ticket_status_start),
+    };
+  }
+
+  // Format output cleanly
+  const lines = [
+    `📌 Ticket ID: ${inquiry.inquiry_id}`,
+    `📝 Issue submitted: ${inquiry.inquiry_message || '(no message provided)'}`,
+    `📂 Issue type: ${inquiry.inquiry_type || '(not specified)'}`,
+    `📅 Received: ${new Date(inquiry.received_at).toLocaleString()}`,
+    `📊 Status: ${inquiry.inquiry_status}`,
+    inquiry.resolution_comments
+      ? `✅ Resolution: ${inquiry.resolution_comments}`
+      : '✅ Resolution: (not yet provided)',
+  ];
+
+  // after formatting `lines` array
+return {
+  messages: lines.map(line => ({ role: 'printy', text: line })),
+  quickReplies: nodeQuickReplies(NODES.ticket_status_start),
+};
+
+
+}
+
+
 
     // Free-text handling at start: treat input as an order number and look it up
     if (!selection && currentNodeId === 'issue_ticket_start') {
@@ -527,62 +595,70 @@ function checkBlacklistedWord(input: string): string | null {
       // ====================
     }
 
-    if (nextNodeId === 'submit_ticket') {
-      const inquiryId = (crypto as any)?.randomUUID?.()
-        ? (crypto as any).randomUUID()
-        : `${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
-      const message = collectedIssueDetails || '(no details provided)';
-      try {
-        const customerId = await getCurrentCustomerId(); // ✅ fix
-        if (!customerId) {
-          return {
-            messages: [
-              { role: 'printy', text: 'You must be signed in to submit a ticket.' },
-            ],
-            quickReplies: ['End Chat'],
-          };
-        }
+   // ====================
+// Handle Submit Ticket
+// ====================
+if (nextNodeId === 'submit_ticket') {
+  const inquiryId = (crypto as any)?.randomUUID?.()
+    ? (crypto as any).randomUUID()
+    : `${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
+  const message = collectedIssueDetails || '(no details provided)';
 
-        const inquiryType = currentInquiryType ?? 'other'; // ✅ fix
-        const { error } = await supabase.from('inquiries').insert([
-          {
-            inquiry_id: inquiryId,
-            inquiry_message: message,
-            inquiry_status: 'new',
-            received_at: new Date().toISOString(),
-            inquiry_type: inquiryType,
-            customer_id: customerId,
-          },
-        ]);
-        if (error) {
-          console.error('Insert into inquiries failed:', error);
-          return {
-            messages: [
-              {
-                role: 'printy',
-                text:
-                  `I couldn't create the ticket right now (db error). Please try 'Submit ticket' again in a moment.`,
-              },
-            ],
-            quickReplies: nodeQuickReplies(current),
-          };
-        }
-        collectedIssueDetails = '';
-        currentInquiryType = null;
-      } catch (_e) {
-        console.error('Network or unexpected error inserting inquiry:', _e);
-        return {
-          messages: [
-            {
-              role: 'printy',
-              text:
-                "I ran into a network issue while creating your ticket. Please try 'Submit ticket' again shortly.",
-            },
-          ],
-          quickReplies: nodeQuickReplies(current),
-        };
-      }
+  try {
+    const customerId = await getCurrentCustomerId();
+    if (!customerId) {
+      return {
+        messages: [
+          { role: 'printy', text: '⚠️ You must be signed in to submit a ticket.' },
+        ],
+        quickReplies: ['End Chat'],
+      };
     }
+
+    const inquiryType = currentInquiryType ?? 'other';
+    const { error } = await supabase.from('inquiries').insert([
+      {
+        inquiry_id: inquiryId,
+        inquiry_message: message,
+        inquiry_status: 'new',
+        received_at: new Date().toISOString(),
+        inquiry_type: inquiryType,
+        customer_id: customerId,
+      },
+    ]);
+
+    if (error) {
+      console.error('Insert failed:', error);
+      return {
+        messages: [
+          { role: 'printy', text: "❌ Couldn't create the ticket. Try again later." },
+        ],
+        quickReplies: nodeQuickReplies(current),
+      };
+    }
+
+    // Reset context
+    collectedIssueDetails = '';
+    currentInquiryType = null;
+
+    return {
+      messages: [
+        { role: 'printy', text: '✅ Ticket submitted successfully!' },
+        { role: 'printy', text: `📌 Your ticket number is: ${inquiryId}` }, // ✅ NEW
+      ],
+      quickReplies: ['End Chat'],
+    };
+  } catch (_e) {
+    console.error('Insert error:', _e);
+    return {
+      messages: [
+        { role: 'printy', text: '❌ Error creating ticket. Please try again.' },
+      ],
+      quickReplies: nodeQuickReplies(current),
+    };
+  }
+}
+
 
     currentNodeId = nextNodeId;
     return {
