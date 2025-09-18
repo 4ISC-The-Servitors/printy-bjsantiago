@@ -30,4 +30,8 @@ export interface ChatPanelProps {
   mobileFixed?: boolean;
   mobileOffsetLeftClass?: string;
   hideHeader?: boolean;
+  // Desktop-specific props
+  hideSelectedBar?: boolean;
+  // Hide input controls entirely
+  hideInput?: boolean;
 }

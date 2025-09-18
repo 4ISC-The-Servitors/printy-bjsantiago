@@ -36,42 +36,45 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({
   return (
     <div className={`space-y-2 ${isBot ? 'text-left' : 'text-right'}`}>
       {messages.map(m => {
-        // ==================== 
+        // ====================
         const preserveNewlinesForOrder =
-          isBot && /Order .* — Status: /.test(m.text) && m.text.includes('Items:');
+          isBot &&
+          /Order .* — Status: /.test(m.text) &&
+          m.text.includes('Items:');
         return (
-        <div key={m.id} className={isBot ? 'text-left' : 'text-right'}>
-          <div className="flex items-start gap-2">
-            {isBot && (
-              <div className="w-6 h-6 rounded-md bg-brand-primary text-white flex items-center justify-center text-xs mt-1 sm:w-8 sm:h-8">
-                <Bot className="w-3 h-3 sm:w-4 sm:h-4" />
-              </div>
-            )}
-            <div
-              className={
-                'inline-block rounded-2xl px-3 py-2 text-sm break-words ' +
-                (preserveNewlinesForOrder ? 'whitespace-pre-wrap ' : '') +
-                'max-w-[85%] leading-relaxed transition-all duration-200 ' +
-                'sm:px-4 sm:py-3 sm:text-base ' +
-                // ==================== next line do it for only when its on issue ticket order detail showing
-                (isBot
-                  ? 'bg-brand-primary-50 text-neutral-700'
-                  : 'bg-brand-primary text-white ml-auto text-left')
-              }
-            >
-              {isBot && messages.length > 1 && messages.indexOf(m) === 0 && (
-                <div className="text-xs text-neutral-500 mb-1">Assistant</div>
+          <div key={m.id} className={isBot ? 'text-left' : 'text-right'}>
+            <div className="flex items-start gap-2">
+              {isBot && (
+                <div className="w-6 h-6 rounded-md bg-brand-primary text-white flex items-center justify-center text-xs mt-1 sm:w-8 sm:h-8">
+                  <Bot className="w-3 h-3 sm:w-4 sm:h-4" />
+                </div>
               )}
-              {m.text}
-            </div>
-            {!isBot && (
-              <div className="w-6 h-6 rounded-md bg-neutral-600 text-white flex items-center justify-center text-xs mt-1 sm:w-8 sm:h-8">
-                <User className="w-3 h-3 sm:w-4 sm:h-4" />
+              <div
+                className={
+                  'inline-block rounded-2xl px-3 py-2 text-sm break-words ' +
+                  (preserveNewlinesForOrder ? 'whitespace-pre-wrap ' : '') +
+                  'max-w-[85%] leading-relaxed transition-all duration-200 ' +
+                  'sm:px-4 sm:py-3 sm:text-base ' +
+                  // ==================== next line do it for only when its on issue ticket order detail showing
+                  (isBot
+                    ? 'bg-brand-primary-50 text-neutral-700'
+                    : 'bg-brand-primary text-white ml-auto text-left')
+                }
+              >
+                {isBot && messages.length > 1 && messages.indexOf(m) === 0 && (
+                  <div className="text-xs text-neutral-500 mb-1">Assistant</div>
+                )}
+                {m.text}
               </div>
-            )}
+              {!isBot && (
+                <div className="w-6 h-6 rounded-md bg-neutral-600 text-white flex items-center justify-center text-xs mt-1 sm:w-8 sm:h-8">
+                  <User className="w-3 h-3 sm:w-4 sm:h-4" />
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      )})}
+        );
+      })}
 
       {/* Relative timestamp */}
       <div

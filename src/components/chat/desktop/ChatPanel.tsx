@@ -29,6 +29,8 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   onEndChat,
   showAttach = true,
   hideHeader = false,
+  hideSelectedBar = false,
+  hideInput = false,
 }) => {
   const [input, setInput] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -101,7 +103,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
     <div className="bg-white flex flex-col h-full w-full">
       {!hideHeader && <ChatHeader title={title} onBack={onBack} />}
       {/* Selected chips directly attached under the header (outside scroll) */}
-      <ChatSelectedBarFixed />
+      {!hideSelectedBar && <ChatSelectedBarFixed />}
 
       {/* Desktop Message Area */}
       <div
@@ -129,16 +131,18 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
       </div>
 
       {/* Desktop Input Area */}
-      <div className="border-t border-neutral-200 bg-white">
-        <ChatInput
-          value={input}
-          onChange={setInput}
-          onSubmit={handleSubmit}
-          placeholder={inputPlaceholder}
-          showAttach={showAttach}
-          onAttachFiles={onAttachFiles}
-        />
-      </div>
+      {!hideInput && (
+        <div className="border-t border-neutral-200 bg-white">
+          <ChatInput
+            value={input}
+            onChange={setInput}
+            onSubmit={handleSubmit}
+            placeholder={inputPlaceholder}
+            showAttach={showAttach}
+            onAttachFiles={onAttachFiles}
+          />
+        </div>
+      )}
     </div>
   );
 };

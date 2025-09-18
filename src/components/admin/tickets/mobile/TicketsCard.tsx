@@ -27,7 +27,9 @@ type InquiryRecord = {
 
 const TicketsCard: React.FC = () => {
   const { openChat, openChatWithTopic } = useAdmin();
-  const [selectedTickets, setSelectedTickets] = useState<Set<string>>(new Set());
+  const [selectedTickets, setSelectedTickets] = useState<Set<string>>(
+    new Set()
+  );
   const [inquiries, setInquiries] = useState<InquiryRecord[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -37,7 +39,8 @@ const TicketsCard: React.FC = () => {
     setErrorMessage(null);
     const { data, error } = await supabase
       .from('inquiries')
-      .select(`
+      .select(
+        `
         inquiry_id,
         inquiry_type,
         inquiry_status,
@@ -47,7 +50,8 @@ const TicketsCard: React.FC = () => {
           first_name,
           last_name
         )
-      `)
+      `
+      )
       .order('received_at', { ascending: false })
       .limit(5);
 
@@ -137,83 +141,97 @@ const TicketsCard: React.FC = () => {
 
         <div className="divide-y divide-neutral-200">
           {loading && (
-            <div className="p-4 text-sm text-neutral-500">Loading inquiries…</div>
+            <div className="p-4 text-sm text-neutral-500">
+              Loading inquiries…
+            </div>
           )}
           {!loading && errorMessage && (
             <div className="p-4 text-sm text-error-600">{errorMessage}</div>
           )}
           {!loading && !errorMessage && displayInquiries.length === 0 && (
-            <div className="p-4 text-sm text-neutral-500">No inquiries found.</div>
+            <div className="p-4 text-sm text-neutral-500">
+              No inquiries found.
+            </div>
           )}
-          {!loading && !errorMessage && displayInquiries.map(t => (
-            <div key={t.id} className="p-4 space-y-3">
-              {/* Header row with ID and actions */}
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <input
-                    type="checkbox"
-                    className="w-5 h-5 accent-brand-primary rounded"
-                    checked={selectedTickets.has(t.inquiry_id)}
-                    onChange={() => toggleTicketSelection(t.inquiry_id)}
-                    title="Select ticket"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <Text
-                      variant="p"
+          {!loading &&
+            !errorMessage &&
+            displayInquiries.map(t => (
+              <div key={t.id} className="p-4 space-y-3">
+                {/* Header row with ID and actions */}
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <input
+                      type="checkbox"
+                      className="w-5 h-5 accent-brand-primary rounded"
+                      checked={selectedTickets.has(t.inquiry_id)}
+                      onChange={() => toggleTicketSelection(t.inquiry_id)}
+                      title="Select ticket"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <Text
+                        variant="p"
+                        size="sm"
+                        color="muted"
+                        className="truncate"
+                      >
+                        {t.inquiry_id}
+                      </Text>
+                      <Text variant="p" size="xs" color="muted">
+                        {t.customer_full_name ?? '—'}
+                      </Text>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="secondary"
                       size="sm"
-                      color="muted"
-                      className="truncate"
+                      aria-label={`Ask about ${t.id}`}
+                      onClick={() => {
+                        if (openChatWithTopic) {
+                          openChatWithTopic(
+                            'tickets',
+                            t.inquiry_id,
+                            undefined,
+                            mappedTickets
+                          );
+                        } else {
+                          openChat();
+                        }
+                      }}
+                      className="w-10 h-10 p-0"
                     >
-                      {t.inquiry_id}
-                    </Text>
-                    <Text variant="p" size="xs" color="muted">
-                      {t.customer_full_name ?? '—'}
-                    </Text>
+                      <MessageSquare className="w-4 h-4" />
+                    </Button>
+                    <Button variant="ghost" size="sm" className="w-10 h-10 p-0">
+                      <MoreVertical className="w-4 h-4" />
+                    </Button>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    aria-label={`Ask about ${t.id}`}
-                    onClick={() => {
-                      if (openChatWithTopic) {
-                        openChatWithTopic('tickets', t.inquiry_id, undefined, mappedTickets);
-                      } else {
-                        openChat();
-                      }
-                    }}
-                    className="w-10 h-10 p-0"
+                {/* Subject */}
+                <div>
+                  <Text
+                    variant="h4"
+                    size="base"
+                    weight="medium"
+                    className="line-clamp-2"
                   >
-                    <MessageSquare className="w-4 h-4" />
-                  </Button>
-                  <Button variant="ghost" size="sm" className="w-10 h-10 p-0">
-                    <MoreVertical className="w-4 h-4" />
-                  </Button>
+                    {t.inquiry_type || '—'}
+                  </Text>
+                </div>
+
+                {/* Status badge */}
+                <div className="flex items-center justify-start">
+                  <Badge
+                    size="sm"
+                    variant={getBadgeVariantForStatus(t.inquiry_status || '')}
+                  >
+                    {t.inquiry_status}
+                  </Badge>
                 </div>
               </div>
-
-              {/* Subject */}
-              <div>
-                <Text
-                  variant="h4"
-                  size="base"
-                  weight="medium"
-                  className="line-clamp-2"
-                >
-                  {t.inquiry_type || '—'}
-                </Text>
-              </div>
-
-              {/* Status badge */}
-              <div className="flex items-center justify-start">
-                <Badge size="sm" variant={getBadgeVariantForStatus(t.inquiry_status || '')}>
-                  {t.inquiry_status}
-                </Badge>
-              </div>
-            </div>
-          ))}
+            ))}
         </div>
       </Card>
 
