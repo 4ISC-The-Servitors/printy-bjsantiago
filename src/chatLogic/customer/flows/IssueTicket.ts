@@ -121,8 +121,6 @@ const DETAIL_NODE_IDS = new Set<keyof typeof NODES>([
   'other_issue',
 ]);
 
-
-
 // Added a function to retrieve the current logged-in user's customer_id
 
 function nodeToMessages(node: Node): BotMessage[] {
@@ -148,30 +146,36 @@ export const issueTicketFlow: ChatFlow = {
   respond: async (_ctx, input) => {
     const current = NODES[currentNodeId];
 
-// ====================
-// Blacklisted words (basic profanity filter)
-// ====================
-const BLACKLIST = ['fuck', 'shit', 'bitch', 'asshole', 'bastard', 'nigger'];
+    // ====================
+    // Blacklisted words (basic profanity filter)
+    // ====================
+    const BLACKLIST = ['fuck', 'shit', 'bitch', 'asshole', 'bastard', 'nigger'];
 
-function checkBlacklistedWord(input: string): string | null {
-  const lower = input.toLowerCase();
-  for (const word of BLACKLIST) {
-    if (lower.includes(word)) {
-      return word; // return the matched bad word
+    function checkBlacklistedWord(input: string): string | null {
+      const lower = input.toLowerCase();
+      for (const word of BLACKLIST) {
+        if (lower.includes(word)) {
+          return word; // return the matched bad word
+        }
+      }
+      return null;
     }
-  }
-  return null;
-}
 
     // ====================
     // Global profanity filter
     // ====================
     const flaggedWord = checkBlacklistedWord(input);
     if (flaggedWord) {
-      if (currentNodeId === 'issue_ticket_start' || currentNodeId === 'no_order_number') {
+      if (
+        currentNodeId === 'issue_ticket_start' ||
+        currentNodeId === 'no_order_number'
+      ) {
         return {
           messages: [
-            { role: 'printy', text: `⚠️ You have entered a flagged word that is "${flaggedWord}".` },
+            {
+              role: 'printy',
+              text: `⚠️ You have entered a flagged word that is "${flaggedWord}".`,
+            },
             { role: 'printy', text: 'Please type a valid order number.' },
           ],
           quickReplies: nodeQuickReplies(NODES.issue_ticket_start),
@@ -179,7 +183,10 @@ function checkBlacklistedWord(input: string): string | null {
       } else if (DETAIL_NODE_IDS.has(currentNodeId)) {
         return {
           messages: [
-            { role: 'printy', text: `⚠️ You have entered a flagged word that is "${flaggedWord}".` },
+            {
+              role: 'printy',
+              text: `⚠️ You have entered a flagged word that is "${flaggedWord}".`,
+            },
             { role: 'printy', text: 'Please rephrase, use appropriate words.' },
           ],
           quickReplies: nodeQuickReplies(NODES[currentNodeId]),
@@ -314,8 +321,9 @@ function checkBlacklistedWord(input: string): string | null {
             : 'N/A'
         }`,
         'Items:',
-        ...items.map((it: any) =>
-          `- ${it.quantity} x ${it.name}${it.price ? ` @ ${it.price}` : ''}`
+        ...items.map(
+          (it: any) =>
+            `- ${it.quantity} x ${it.name}${it.price ? ` @ ${it.price}` : ''}`
         ),
         (order as any).total ? `Total: ${(order as any).total}` : '',
       ].filter(Boolean) as string[];
@@ -342,8 +350,7 @@ function checkBlacklistedWord(input: string): string | null {
             messages: [
               {
                 role: 'printy',
-                text:
-                  "Got it. I've added that to your ticket notes. You can add more details or choose 'Submit ticket' when ready.",
+                text: "Got it. I've added that to your ticket notes. You can add more details or choose 'Submit ticket' when ready.",
               },
             ],
             quickReplies: nodeQuickReplies(current),
@@ -359,14 +366,16 @@ function checkBlacklistedWord(input: string): string | null {
         if (typed) {
           const { data: orderPick, error: pickErr } = await supabase
             .from('orders')
-            .select(`
+            .select(
+              `
               id,
               order_id,
               status,
               created_at,
               total,
               order_items (name, quantity, price)
-            `)
+            `
+            )
             .eq('order_id', typed)
             .maybeSingle();
 
@@ -382,8 +391,13 @@ function checkBlacklistedWord(input: string): string | null {
                   : 'N/A'
               }`,
               'Items:',
-              ...items.map((it: any) => `- ${it.quantity} x ${it.name}${it.price ? ` @ ${it.price}` : ''}`),
-              (orderPick as any).total ? `Total: ${(orderPick as any).total}` : '',
+              ...items.map(
+                (it: any) =>
+                  `- ${it.quantity} x ${it.name}${it.price ? ` @ ${it.price}` : ''}`
+              ),
+              (orderPick as any).total
+                ? `Total: ${(orderPick as any).total}`
+                : '',
             ].filter(Boolean) as string[];
 
             currentNodeId = 'order_issue_menu';
@@ -399,12 +413,17 @@ function checkBlacklistedWord(input: string): string | null {
         }
 
         // Otherwise, list recent orders for the signed-in user
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
         const uid = user?.id;
         if (!uid) {
           return {
             messages: [
-              { role: 'printy', text: 'You need to be signed in to view your orders.' },
+              {
+                role: 'printy',
+                text: 'You need to be signed in to view your orders.',
+              },
             ],
             quickReplies: ['End Chat'],
           };
@@ -423,8 +442,7 @@ function checkBlacklistedWord(input: string): string | null {
             messages: [
               {
                 role: 'printy',
-                text:
-                  "I couldn't find any past orders for your account. If you think this is a mistake, please try again later or contact support.",
+                text: "I couldn't find any past orders for your account. If you think this is a mistake, please try again later or contact support.",
               },
             ],
             quickReplies: ['End Chat'],
@@ -474,12 +492,17 @@ function checkBlacklistedWord(input: string): string | null {
     if (nextNodeId === 'no_order_number') {
       // ====================
       // Immediately list orders when entering the no_order_number node
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       const uid = user?.id;
       if (!uid) {
         return {
           messages: [
-            { role: 'printy', text: 'You need to be signed in to view your orders.' },
+            {
+              role: 'printy',
+              text: 'You need to be signed in to view your orders.',
+            },
           ],
           quickReplies: ['End Chat'],
         };
@@ -553,8 +576,7 @@ function checkBlacklistedWord(input: string): string | null {
             messages: [
               {
                 role: 'printy',
-                text:
-                  `I couldn't create the ticket right now (db error). Please try 'Submit ticket' again in a moment.`,
+                text: `I couldn't create the ticket right now (db error). Please try 'Submit ticket' again in a moment.`,
               },
             ],
             quickReplies: nodeQuickReplies(current),
@@ -568,8 +590,7 @@ function checkBlacklistedWord(input: string): string | null {
           messages: [
             {
               role: 'printy',
-              text:
-                "I ran into a network issue while creating your ticket. Please try 'Submit ticket' again shortly.",
+              text: "I ran into a network issue while creating your ticket. Please try 'Submit ticket' again shortly.",
             },
           ],
           quickReplies: nodeQuickReplies(current),

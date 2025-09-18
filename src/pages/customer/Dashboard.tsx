@@ -483,14 +483,14 @@ const CustomerDashboard: React.FC = () => {
         conversations={conversations}
         activeId={activeId}
         onSwitchConversation={switchConversation}
-        onNavigateToAccount={() => navigate('/account')}
+        onNavigateToAccount={() => navigate('/customer/account')}
         onLogout={handleLogout}
       />
       <MobileSidebar
         conversations={conversations}
         activeId={activeId}
         onSwitchConversation={switchConversation}
-        onNavigateToAccount={() => navigate('/account')}
+        onNavigateToAccount={() => navigate('/customer/account')}
         onLogout={handleLogout}
       />
       {/* Main Content - Full Screen for Chat */}

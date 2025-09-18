@@ -36,9 +36,12 @@ export const useAdminChat = (): UseAdminChatReturn => {
   const [quickReplies, setQuickReplies] = useState<QuickReply[]>([]);
   const [currentFlow, setCurrentFlow] = useState<string>('intro');
   const [currentContext, setCurrentContext] = useState<any>({});
-  const [pendingAction, setPendingAction] = useState<null | 'resolution' | 'assign' | 'status'>(null);
+  const [pendingAction, setPendingAction] = useState<
+    null | 'resolution' | 'assign' | 'status'
+  >(null);
   const [currentInquiryId, setCurrentInquiryId] = useState<string | null>(null);
-  const { updateInquiryStatus, assignInquiry, saveResolutionComment } = useInquiryActions();
+  const { updateInquiryStatus, assignInquiry, saveResolutionComment } =
+    useInquiryActions();
 
   const endChatWithDelay = () => {
     const endMessage = {
@@ -185,12 +188,22 @@ export const useAdminChat = (): UseAdminChatReturn => {
           await saveResolutionComment(currentInquiryId, trimmed);
           setMessages(prev => [
             ...prev,
-            { id: crypto.randomUUID(), role: 'printy', text: 'Resolution comment saved and sent to the customer.', ts: Date.now() },
+            {
+              id: crypto.randomUUID(),
+              role: 'printy',
+              text: 'Resolution comment saved and sent to the customer.',
+              ts: Date.now(),
+            },
           ]);
         } catch (e: any) {
           setMessages(prev => [
             ...prev,
-            { id: crypto.randomUUID(), role: 'printy', text: `Failed to save resolution: ${e?.message || 'Unknown error'}`, ts: Date.now() },
+            {
+              id: crypto.randomUUID(),
+              role: 'printy',
+              text: `Failed to save resolution: ${e?.message || 'Unknown error'}`,
+              ts: Date.now(),
+            },
           ]);
         } finally {
           setPendingAction(null);
@@ -205,12 +218,22 @@ export const useAdminChat = (): UseAdminChatReturn => {
           await assignInquiry(currentInquiryId, trimmed);
           setMessages(prev => [
             ...prev,
-            { id: crypto.randomUUID(), role: 'printy', text: `Ticket assigned to ${trimmed}.`, ts: Date.now() },
+            {
+              id: crypto.randomUUID(),
+              role: 'printy',
+              text: `Ticket assigned to ${trimmed}.`,
+              ts: Date.now(),
+            },
           ]);
         } catch (e: any) {
           setMessages(prev => [
             ...prev,
-            { id: crypto.randomUUID(), role: 'printy', text: `Failed to assign ticket: ${e?.message || 'Unknown error'}`, ts: Date.now() },
+            {
+              id: crypto.randomUUID(),
+              role: 'printy',
+              text: `Failed to assign ticket: ${e?.message || 'Unknown error'}`,
+              ts: Date.now(),
+            },
           ]);
         } finally {
           setPendingAction(null);
@@ -281,7 +304,12 @@ export const useAdminChat = (): UseAdminChatReturn => {
       setPendingAction('resolution');
       setMessages(prev => [
         ...prev,
-        { id: crypto.randomUUID(), role: 'printy', text: 'Please type the resolution comment.', ts: Date.now() },
+        {
+          id: crypto.randomUUID(),
+          role: 'printy',
+          text: 'Please type the resolution comment.',
+          ts: Date.now(),
+        },
       ]);
       return;
     }
@@ -289,11 +317,19 @@ export const useAdminChat = (): UseAdminChatReturn => {
       setPendingAction('assign');
       setMessages(prev => [
         ...prev,
-        { id: crypto.randomUUID(), role: 'printy', text: 'Who should resolve this ticket? Type the staff name.', ts: Date.now() },
+        {
+          id: crypto.randomUUID(),
+          role: 'printy',
+          text: 'Who should resolve this ticket? Type the staff name.',
+          ts: Date.now(),
+        },
       ]);
       return;
     }
-    if ((['Open', 'Pending', 'Closed'] as string[]).includes(val) && currentInquiryId) {
+    if (
+      (['Open', 'Pending', 'Closed'] as string[]).includes(val) &&
+      currentInquiryId
+    ) {
       const dbStatus = (
         {
           Open: 'open',
@@ -306,12 +342,22 @@ export const useAdminChat = (): UseAdminChatReturn => {
           await updateInquiryStatus(currentInquiryId, dbStatus);
           setMessages(prev => [
             ...prev,
-            { id: crypto.randomUUID(), role: 'printy', text: `Status updated to ${val}.`, ts: Date.now() },
+            {
+              id: crypto.randomUUID(),
+              role: 'printy',
+              text: `Status updated to ${val}.`,
+              ts: Date.now(),
+            },
           ]);
         } catch (e: any) {
           setMessages(prev => [
             ...prev,
-            { id: crypto.randomUUID(), role: 'printy', text: `Failed to update status: ${e?.message || 'Unknown error'}`, ts: Date.now() },
+            {
+              id: crypto.randomUUID(),
+              role: 'printy',
+              text: `Failed to update status: ${e?.message || 'Unknown error'}`,
+              ts: Date.now(),
+            },
           ]);
         }
       })();
