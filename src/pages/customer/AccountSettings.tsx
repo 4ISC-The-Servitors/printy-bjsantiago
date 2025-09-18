@@ -5,13 +5,13 @@ import {
   Text,
   ToastContainer,
   Button,
-} from '../../../components/shared';
-import { useToast } from '../../../lib/useToast';
+} from '../../components/shared/index.ts';
+import { useToast } from '../../lib/useToast.ts';
 import { ArrowLeft } from 'lucide-react';
-import ProfileOverviewCard from '../../../components/customer/accountSettings/desktop/ProfileOverviewCard.tsx';
-import PersonalInfoForm from '../../../components/customer/accountSettings/desktop/PersonalInfoForm.tsx';
-import SecuritySettings from '../../../components/customer/accountSettings/desktop/SecuritySettings.tsx';
-import NotificationPreferences from '../../../components/customer/accountSettings/desktop/NotificationPreferences.tsx';
+import ProfileOverviewCard from '../../components/customer/accountSettings/desktop/ProfileOverviewCard.tsx';
+import PersonalInfoForm from '../../components/customer/accountSettings/desktop/PersonalInfoForm.tsx';
+import SecuritySettings from '../../components/customer/accountSettings/desktop/SecuritySettings.tsx';
+import NotificationPreferences from '../../components/customer/accountSettings/desktop/NotificationPreferences.tsx';
 
 export interface UserData {
   displayName: string;
@@ -31,7 +31,7 @@ export interface NotificationPreferencesData {
   ticketUpdates: boolean;
 }
 
-const AccountSettingsPage: React.FC = () => {
+const AccountSettings: React.FC = () => {
   const [toasts, toast] = useToast();
   const navigate = useNavigate();
 
@@ -189,4 +189,4 @@ const AccountSettingsPage: React.FC = () => {
   );
 };
 
-export default AccountSettingsPage;
+export default AccountSettings;

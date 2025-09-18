@@ -29,5 +29,3 @@ export const useInquiryActions = () => {
 };
 
 export type InquiryActions = ReturnType<typeof useInquiryActions>;
-
-

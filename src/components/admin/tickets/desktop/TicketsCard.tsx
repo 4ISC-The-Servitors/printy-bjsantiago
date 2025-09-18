@@ -24,7 +24,9 @@ const TicketsCard: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [hoveredTicketId, setHoveredTicketId] = useState<string | null>(null);
-  const [selectedTickets, setSelectedTickets] = useState<Set<string>>(new Set());
+  const [selectedTickets, setSelectedTickets] = useState<Set<string>>(
+    new Set()
+  );
   const [inquiries, setInquiries] = useState<InquiryRecord[]>([]);
   const [page, setPage] = useState<number>(1);
   const pageSize = 10;
@@ -37,7 +39,8 @@ const TicketsCard: React.FC = () => {
     const to = from + pageSize - 1;
     const { data, error, count } = await supabase
       .from('inquiries')
-      .select(`
+      .select(
+        `
         inquiry_id,
         inquiry_type,
         inquiry_status,
@@ -178,79 +181,89 @@ const TicketsCard: React.FC = () => {
             <div className="p-4 text-sm text-error-600">{errorMessage}</div>
           )}
           {!errorMessage && displayInquiries.length === 0 && (
-            <div className="p-4 text-sm text-neutral-500">No inquiries found.</div>
+            <div className="p-4 text-sm text-neutral-500">
+              No inquiries found.
+            </div>
           )}
-          {!errorMessage && displayInquiries.map(t => (
-            <div
-              key={t.inquiry_id}
-              className="group p-3 sm:p-4 lg:p-5 rounded-lg border bg-white/60 hover:bg-white transition-colors relative"
-              onMouseEnter={() => setHoveredTicketId(t.inquiry_id)}
-              onMouseLeave={() => setHoveredTicketId(null)}
-            >
-              {/* Hover checkbox on left (match PortfolioCard behavior) */}
-              <div className="absolute -left-3 top-1/2 -translate-y-1/2 z-10">
-                <Checkbox
-                  checked={selectedTickets.has(t.inquiry_id)}
-                  onCheckedChange={() => toggleTicketSelection(t.inquiry_id)}
-                  className={cn(
-                    'transition-opacity bg-white border-2 border-gray-300 w-5 h-5 rounded data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500',
-                    hoveredTicketId === t.inquiry_id ||
-                      selectedTickets.size > 0
-                      ? 'opacity-100'
-                      : 'opacity-0'
-                  )}
-                />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center pl-6">
-                {/* Left grid: Ticket ID, Subject, then Status below subject */}
-                <div className="min-w-0">
-                  <div className="text-xs sm:text-sm lg:text-base font-medium text-neutral-500 truncate">
-                    {t.inquiry_id}
-                  </div>
-                  <div className="mt-1 text-sm sm:text-base lg:text-lg font-medium text-neutral-900 truncate">
-                    {t.inquiry_type || '—'}
-                  </div>
-                  <div className="mt-2">
-                    <Badge
-                      size="sm"
-                      variant={getTicketStatusBadgeVariant(t.inquiry_status || '')}
-                      className="text-xs sm:text-sm"
-                    >
-                      {t.inquiry_status}
-                    </Badge>
-                  </div>
+          {!errorMessage &&
+            displayInquiries.map(t => (
+              <div
+                key={t.inquiry_id}
+                className="group p-3 sm:p-4 lg:p-5 rounded-lg border bg-white/60 hover:bg-white transition-colors relative"
+                onMouseEnter={() => setHoveredTicketId(t.inquiry_id)}
+                onMouseLeave={() => setHoveredTicketId(null)}
+              >
+                {/* Hover checkbox on left (match PortfolioCard behavior) */}
+                <div className="absolute -left-3 top-1/2 -translate-y-1/2 z-10">
+                  <Checkbox
+                    checked={selectedTickets.has(t.inquiry_id)}
+                    onCheckedChange={() => toggleTicketSelection(t.inquiry_id)}
+                    className={cn(
+                      'transition-opacity bg-white border-2 border-gray-300 w-5 h-5 rounded data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500',
+                      hoveredTicketId === t.inquiry_id ||
+                        selectedTickets.size > 0
+                        ? 'opacity-100'
+                        : 'opacity-0'
+                    )}
+                  />
                 </div>
-
-                {/* Middle grid is removed per new spec; use spacer on md+ */}
-                <div className="hidden md:block" />
-
-                {/* Right grid: Requester and Date beside Chat button */}
-                <div className="flex items-center justify-between md:justify-end gap-4">
-                  <div className="min-w-0 text-right">
-                    <div className="text-sm sm:text-base font-medium text-neutral-900 truncate">
-                      {t.customer_full_name ?? '—'}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center pl-6">
+                  {/* Left grid: Ticket ID, Subject, then Status below subject */}
+                  <div className="min-w-0">
+                    <div className="text-xs sm:text-sm lg:text-base font-medium text-neutral-500 truncate">
+                      {t.inquiry_id}
+                    </div>
+                    <div className="mt-1 text-sm sm:text-base lg:text-lg font-medium text-neutral-900 truncate">
+                      {t.inquiry_type || '—'}
+                    </div>
+                    <div className="mt-2">
+                      <Badge
+                        size="sm"
+                        variant={getTicketStatusBadgeVariant(
+                          t.inquiry_status || ''
+                        )}
+                        className="text-xs sm:text-sm"
+                      >
+                        {t.inquiry_status}
+                      </Badge>
                     </div>
                   </div>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    threeD
-                    aria-label={`Ask about ${t.inquiry_id}`}
-                    onClick={() => {
-                      if (openChatWithTopic) {
-                        openChatWithTopic('tickets', t.inquiry_id, undefined, mappedTickets);
-                      } else {
-                        openChat();
-                      }
-                    }}
-                    className="shrink-0 min-h-[40px] min-w-[40px]"
-                  >
-                    <MessageSquare className="w-4 h-4" />
-                  </Button>
+
+                  {/* Middle grid is removed per new spec; use spacer on md+ */}
+                  <div className="hidden md:block" />
+
+                  {/* Right grid: Requester and Date beside Chat button */}
+                  <div className="flex items-center justify-between md:justify-end gap-4">
+                    <div className="min-w-0 text-right">
+                      <div className="text-sm sm:text-base font-medium text-neutral-900 truncate">
+                        {t.customer_full_name ?? '—'}
+                      </div>
+                    </div>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      threeD
+                      aria-label={`Ask about ${t.inquiry_id}`}
+                      onClick={() => {
+                        if (openChatWithTopic) {
+                          openChatWithTopic(
+                            'tickets',
+                            t.inquiry_id,
+                            undefined,
+                            mappedTickets
+                          );
+                        } else {
+                          openChat();
+                        }
+                      }}
+                      className="shrink-0 min-h-[40px] min-w-[40px]"
+                    >
+                      <MessageSquare className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
         </div>
       </Card>
 
