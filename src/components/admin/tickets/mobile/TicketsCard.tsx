@@ -31,11 +31,16 @@ const TicketsCard: React.FC = () => {
   const [inquiries, setInquiries] = useState<InquiryRecord[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [page, setPage] = useState<number>(1);
+  const pageSize = 10;
+  const [hasMore, setHasMore] = useState<boolean>(false);
 
   const loadInquiries = useCallback(async () => {
     setLoading(true);
     setErrorMessage(null);
-    const { data, error } = await supabase
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
+    const { data, error, count } = await supabase
       .from('inquiries')
       .select(`
         inquiry_id,
@@ -47,9 +52,9 @@ const TicketsCard: React.FC = () => {
           first_name,
           last_name
         )
-      `)
+      `, { count: 'exact' })
       .order('received_at', { ascending: false })
-      .limit(5);
+      .range(from, to);
 
     if (error) {
       console.error('Failed to load inquiries', error);
@@ -72,9 +77,10 @@ const TicketsCard: React.FC = () => {
         };
       });
       setInquiries(normalized);
+      setHasMore(typeof count === 'number' ? to + 1 < count : normalized.length === pageSize);
     }
     setLoading(false);
-  }, []);
+  }, [page]);
 
   useEffect(() => {
     void loadInquiries();
@@ -229,6 +235,26 @@ const TicketsCard: React.FC = () => {
           </Button>
         </div>
       )}
+
+      {/* Pagination controls */}
+      <div className="mt-3 mb-16 flex items-center justify-center gap-3">
+        <Button
+          variant="secondary"
+          size="sm"
+          disabled={page === 1 || loading}
+          onClick={() => setPage(p => Math.max(1, p - 1))}
+        >
+          Previous
+        </Button>
+        <Button
+          variant="secondary"
+          size="sm"
+          disabled={!hasMore || loading}
+          onClick={() => setPage(p => p + 1)}
+        >
+          Next
+        </Button>
+      </div>
     </div>
   );
 };

@@ -26,11 +26,16 @@ const TicketsCard: React.FC = () => {
   const [hoveredTicketId, setHoveredTicketId] = useState<string | null>(null);
   const [selectedTickets, setSelectedTickets] = useState<Set<string>>(new Set());
   const [inquiries, setInquiries] = useState<InquiryRecord[]>([]);
+  const [page, setPage] = useState<number>(1);
+  const pageSize = 10;
+  const [hasMore, setHasMore] = useState<boolean>(false);
 
   const loadInquiries = useCallback(async () => {
     setIsLoading(true);
     setErrorMessage(null);
-    const { data, error } = await supabase
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
+    const { data, error, count } = await supabase
       .from('inquiries')
       .select(`
         inquiry_id,
@@ -42,9 +47,9 @@ const TicketsCard: React.FC = () => {
           first_name,
           last_name
         )
-      `)
+      `, { count: 'exact' })
       .order('received_at', { ascending: false })
-      .limit(5);
+      .range(from, to);
 
     if (error) {
       console.error('Failed to load inquiries', error);
@@ -67,9 +72,10 @@ const TicketsCard: React.FC = () => {
         };
       });
       setInquiries(normalized);
+      setHasMore(typeof count === 'number' ? to + 1 < count : normalized.length === pageSize);
     }
     setIsLoading(false);
-  }, []);
+  }, [page]);
 
   useEffect(() => {
     void loadInquiries();
@@ -158,7 +164,8 @@ const TicketsCard: React.FC = () => {
   return (
     <div className="relative">
       <Card className="p-0">
-        <div className="flex items-center justify-end px-3 py-2 sm:px-4">
+        <div className="flex items-center justify-between px-3 py-2 sm:px-4">
+          <div className="text-xs text-neutral-500">Page {page}</div>
           <div className="flex items-center gap-2 text-neutral-500 text-xs">
             <Badge size="sm" variant="secondary">
               {displayInquiries.length}
@@ -272,6 +279,26 @@ const TicketsCard: React.FC = () => {
           </Button>
         </div>
       )}
+
+      {/* Pagination controls */}
+      <div className="mt-3 flex items-center justify-center gap-3">
+        <Button
+          variant="secondary"
+          size="sm"
+          disabled={page === 1 || isLoading}
+          onClick={() => setPage(p => Math.max(1, p - 1))}
+        >
+          Previous
+        </Button>
+        <Button
+          variant="secondary"
+          size="sm"
+          disabled={!hasMore || isLoading}
+          onClick={() => setPage(p => p + 1)}
+        >
+          Next
+        </Button>
+      </div>
     </div>
   );
 };
