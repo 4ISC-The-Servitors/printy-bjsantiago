@@ -39,7 +39,7 @@ export const mockOrders: Order[] = [
   {
     id: 'ORD-12350',
     customer: 'Sophia Cruz',
-    status: 'Awaiting Payment',
+    status: 'Verifying Payment',
     total: '₱1,200',
     date: 'May 30, 2025',
     // Prototype: dummy proof to render in admin verification chat

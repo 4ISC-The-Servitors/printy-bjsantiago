@@ -12,6 +12,7 @@ import {
 } from '../shared';
 import { normalizeOrderStatus } from '../shared/utils/StatusNormalizers';
 import type { FlowState, FlowContext, NodeHandler } from '../shared';
+import { createVerifyPaymentNodes } from './orders/VerifyPayment';
 
 type OrderNodeId =
   | 'start'
@@ -55,6 +56,23 @@ class OrdersFlow extends FlowBase {
     // Quote price node
     this.registerNode('ask_quote_price', this.createQuotePriceNode());
 
+    // Verify payment nodes (conditionally used)
+    const verifyNodes = createVerifyPaymentNodes({
+      getOrders: (_s, _c) => (this.state as OrdersState).currentOrders,
+      getOrderById: (s, id) =>
+        (this.state as OrdersState).currentOrders.find(o => o.id === id) ||
+        mockOrders.find(o => o.id === id) ||
+        null,
+      setCurrentOrderId: (s, id) => {
+        (this.state as OrdersState).currentOrderId = id;
+      },
+      updateOrder: (id, updates, s) => {
+        this.updateOrder(id, updates, this.state as OrdersState);
+      },
+    });
+    this.registerNode('verify_payment_start', verifyNodes.verify_payment_start);
+    this.registerNode('verify_payment_proof', verifyNodes.verify_payment_proof);
+
     // Done node
     this.registerNode('done', this.createDoneNode());
   }
@@ -82,9 +100,15 @@ class OrdersFlow extends FlowBase {
       quickReplies: (state: FlowState) => {
         const orderState = state as OrdersState;
         const order = this.getCurrentOrder(orderState);
-        return order
-          ? ['View Details', 'Change Status', 'Create Quote', 'End Chat']
-          : ['Change Status', 'Create Quote', 'End Chat'];
+        const base = order
+          ? ['View Details', 'Change Status', 'Create Quote']
+          : ['Change Status', 'Create Quote'];
+        const showVerify = order
+          ? String(order.status).toLowerCase() === 'verifying payment'
+          : (this.state as OrdersState).currentOrders.some(
+              o => String(o.status).toLowerCase() === 'verifying payment'
+            );
+        return showVerify ? [...base, 'Verify Payment', 'End Chat'] : [...base, 'End Chat'];
       },
       handleInput: (input: string, state: FlowState) => {
         const lower = input.toLowerCase();
@@ -120,6 +144,25 @@ class OrdersFlow extends FlowBase {
             messages: [createInfoMessage(msg)],
             quickReplies: this.getActionQuickReplies(orderState),
           };
+        }
+
+        if (lower.includes('verify') && lower.includes('payment')) {
+          const orderState = state as OrdersState;
+          const order = this.getCurrentOrder(orderState);
+          if (order && String(order.status).toLowerCase() !== 'verifying payment') {
+            return {
+              messages: [
+                createInfoMessage(
+                  `${order.id} is ${order.status}. Verify Payment is only available for Verifying Payment.`
+                ),
+              ],
+              quickReplies: this.getActionQuickReplies(orderState),
+            };
+          }
+          const hasVerifying = (this.state as OrdersState).currentOrders.some(
+            o => String(o.status).toLowerCase() === 'verifying payment'
+          );
+          return hasVerifying ? { nextNodeId: 'verify_payment_start' } : null;
         }
 
         return null;
@@ -356,9 +399,13 @@ class OrdersFlow extends FlowBase {
 
   private getActionQuickReplies(state: OrdersState): string[] {
     const order = this.getCurrentOrder(state);
-    return order
-      ? ['View Details', 'Change Status', 'Create Quote', 'End Chat']
-      : ['Change Status', 'Create Quote', 'End Chat'];
+    const base = order
+      ? ['View Details', 'Change Status', 'Create Quote']
+      : ['Change Status', 'Create Quote'];
+    const hasVerifying = (this.state as OrdersState).currentOrders.some(
+      o => String(o.status).toLowerCase() === 'verifying payment'
+    );
+    return hasVerifying ? [...base, 'Verify Payment', 'End Chat'] : [...base, 'End Chat'];
   }
 
   private updateOrder(
