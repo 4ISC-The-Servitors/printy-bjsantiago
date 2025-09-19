@@ -23,13 +23,19 @@ const NODES: Record<string, Node> = {
     id: 'bank',
     message:
       'Here are our bank details. We only accept Instapay transfers.\n\nBPI: 1234-5678-90\nBDO: 0055-1234-5678\nUnionBank: 1092-3344-5566\n\nPlease upload your proof of payment using the file upload button beside the typing area to proceed.',
-    options: [],
+    options: [
+      { label: 'QRPH Codes instead', next: 'qrph' },
+      { label: 'End Chat', next: 'end' },
+    ],
   },
   qrph: {
     id: 'qrph',
     message:
       'Here are QRPH codes: Gcash (/gcash.jpg) and Maya (/maya.jpg).\nPlease upload your proof of payment using the file upload button beside the typing area to proceed.',
-    options: [],
+      options: [
+        { label: 'Online Bank Transfer instead', next: 'bank' },
+        { label: 'End Chat', next: 'end' },
+      ],
   },
   verifying: {
     id: 'verifying',
