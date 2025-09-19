@@ -169,6 +169,20 @@ export const useSignIn = () => {
           customerType && routeMap[customerType]
             ? routeMap[customerType]
             : '/customer';
+        // Persist minimal user info for later flows (e.g., Place Order)
+        try {
+          const existingUser = JSON.parse(localStorage.getItem('user') || '{}');
+          const storedUser = {
+            ...existingUser,
+            customer_id: userId ?? existingUser?.customer_id,
+            email: user?.email ?? existingUser?.email,
+            role: customerType ?? existingUser?.role,
+          };
+          localStorage.setItem('user', JSON.stringify(storedUser));
+        } catch {
+          // ignore storage errors
+        }
+
         toast.success('Welcome back!', 'Successfully signed in');
         setTimeout(() => navigate(destination), 1000);
       } catch (error: unknown) {
