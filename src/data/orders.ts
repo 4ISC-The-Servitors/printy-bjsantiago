@@ -42,6 +42,9 @@ export const mockOrders: Order[] = [
     status: 'Awaiting Payment',
     total: '₱1,200',
     date: 'May 30, 2025',
+    // Prototype: dummy proof to render in admin verification chat
+    proofOfPaymentUrl: '/test_payment_2.jpg',
+    proofUploadedAt: 'September 20, 2025 11:30 AM',    
   },
   {
     id: 'ORD-12349',
