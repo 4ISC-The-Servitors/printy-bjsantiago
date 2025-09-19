@@ -29,7 +29,10 @@ const NODES: Record<string, Node> = {
     question: 'Ticket Status Inquiry',
     answer:
       'Please enter your ticket number to check its status.',
-    options: [{ label: 'Back to Start', next: 'issue_ticket_start' }],
+    options: [
+      { label: 'Back to Start', next: 'issue_ticket_start' },
+      { label: 'End Chat', next: 'end' },
+    ],
   },
   // ====================
   order_issue_menu: {
@@ -139,7 +142,14 @@ function nodeToMessages(node: Node): BotMessage[] {
 }
 
 function nodeQuickReplies(node: Node): string[] {
-  return node.options.map(o => o.label);
+  const labels = node.options.map(o => o.label);
+  if (
+    node.id !== 'end' &&
+    !labels.some(l => l.trim().toLowerCase() === 'end chat')
+  ) {
+    labels.push('End Chat');
+  }
+  return labels;
 }
 
 export const issueTicketFlow: ChatFlow = {
@@ -665,51 +675,8 @@ return {
       }
     }
 
-    const inquiryType = currentInquiryType ?? 'other';
-    const { error } = await supabase.from('inquiries').insert([
-      {
-        inquiry_id: inquiryId,
-        inquiry_message: message,
-        inquiry_status: 'new',
-        received_at: new Date().toISOString(),
-        inquiry_type: inquiryType,
-        customer_id: customerId,
-      },
-    ]);
-
-    if (error) {
-      console.error('Insert failed:', error);
-      return {
-        messages: [
-          { role: 'printy', text: "❌ Couldn't create the ticket. Try again later." },
-        ],
-        quickReplies: nodeQuickReplies(current),
-      };
-    }
-
-    // Reset context
-    collectedIssueDetails = '';
-    currentInquiryType = null;
-
-    return {
-      messages: [
-        { role: 'printy', text: '✅ Ticket submitted successfully!' },
-        { role: 'printy', text: `📌 Your ticket number is: ${inquiryId}` }, // ✅ NEW
-      ],
-      quickReplies: ['End Chat'],
-    };
-  } catch (_e) {
-    console.error('Insert error:', _e);
-    return {
-      messages: [
-        { role: 'printy', text: '❌ Error creating ticket. Please try again.' },
-      ],
-      quickReplies: nodeQuickReplies(current),
-    };
-  }
-}
-
-
+    
+    // Continue to the selected next node
     currentNodeId = nextNodeId;
     return {
       messages: nodeToMessages(NODES[nextNodeId]),
