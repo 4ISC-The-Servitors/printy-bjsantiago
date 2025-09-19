@@ -12,7 +12,8 @@ export type OrderData = {
   delivery_mode: string; // varchar
   order_date_time: string; // timestamp (ISO string)
   completed_date_time: string | null; // timestamp (ISO string or null)
-  page_size: number; // numeric
+  specification: string; // varchar
+  page_size: string; // varchar
   quantity: number; // numeric
   priority_level: number; // numeric
 };
@@ -28,6 +29,7 @@ export async function createOrder(order: OrderData) {
       delivery_mode: order.delivery_mode,
       order_datetime: order.order_date_time,
       completed_datetime: order.completed_date_time,
+      specification: order.specification,
       page_size: order.page_size,
       quantity: order.quantity,
       priority_level: order.priority_level,
