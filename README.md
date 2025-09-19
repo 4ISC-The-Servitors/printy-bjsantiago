@@ -25,6 +25,8 @@
 - added Payment chat logic for customer
 - chat renders actual images for QRPH codes as sample (gcash, may) and file uploads by user
 - added Pay Now button that only shows when order status is AWAITING PAYMENT
+- Pay Now button now hides if status changes to Verifying Payment
+- added back flow if customer changes mind for payment method
 
 ### 2025-09-16-Andeng
 
