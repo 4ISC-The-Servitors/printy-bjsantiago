@@ -86,16 +86,21 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({
                 {imageMatches.length > 0 && (
                   <div className="mt-3 grid grid-cols-2 gap-3">
                     {imageMatches.map((src, idx) => (
-                      <div
+                      <a
                         key={idx}
-                        className="rounded-lg overflow-hidden border border-neutral-200 bg-white"
+                        href={src}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="rounded-lg overflow-hidden border border-neutral-200 bg-white block group"
+                        aria-label={`Open attachment ${idx + 1}`}
+                        title="Open image in new tab"
                       >
                         <img
                           src={src}
                           alt={`attachment-${idx + 1}`}
-                          className="w-full h-auto object-contain"
+                          className="w-full h-auto object-contain transition-transform duration-200 group-hover:scale-[1.02] cursor-zoom-in"
                         />
-                      </div>
+                      </a>
                     ))}
                   </div>
                 )}
