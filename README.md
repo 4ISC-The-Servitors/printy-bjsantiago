@@ -27,6 +27,7 @@
 - added Pay Now button that only shows when order status is AWAITING PAYMENT
 - Pay Now button now hides if status changes to Verifying Payment
 - added back flow if customer changes mind for payment method
+- added Admin verify payment (single & multiple) chat logic
 
 ### 2025-09-16-Andeng
 

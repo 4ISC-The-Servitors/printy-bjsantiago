@@ -15,6 +15,9 @@ export type Order = {
   priority?: 'Urgent';
   total: string;
   date: string;
+  // Prototype-only: proof of payment image (served from /public)
+  proofOfPaymentUrl?: string;
+  proofUploadedAt?: string;
 };
 
 export const mockOrders: Order[] = [
@@ -36,9 +39,12 @@ export const mockOrders: Order[] = [
   {
     id: 'ORD-12350',
     customer: 'Sophia Cruz',
-    status: 'Awaiting Payment',
+    status: 'Verifying Payment',
     total: '₱1,200',
     date: 'May 30, 2025',
+    // Prototype: dummy proof to render in admin verification chat
+    proofOfPaymentUrl: '/test_payment_2.jpg',
+    proofUploadedAt: 'September 20, 2025 11:30 AM',    
   },
   {
     id: 'ORD-12349',
@@ -46,5 +52,8 @@ export const mockOrders: Order[] = [
     status: 'Verifying Payment',
     total: '₱7,400',
     date: 'Apr 28, 2025',
+    // Prototype: dummy proof to render in admin verification chat
+    proofOfPaymentUrl: '/test_payment.jpg',
+    proofUploadedAt: 'September 19, 2025 10:30 AM',
   },
 ];
