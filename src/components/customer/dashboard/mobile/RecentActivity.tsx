@@ -69,9 +69,7 @@ export const RecentActivity: React.FC<RecentActivityProps> = ({
             </Text>
           </div>
         </div>
-        {['awaiting payment', 'verifying payment'].includes(
-          recentOrder.status.toLowerCase()
-        ) && (
+        {recentOrder.status.toLowerCase() === 'awaiting payment' && (
           <div className="flex justify-end mt-3">
             <Button
               variant="primary"
