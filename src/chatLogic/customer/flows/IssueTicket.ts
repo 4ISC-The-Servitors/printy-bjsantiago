@@ -1,6 +1,7 @@
 import type { BotMessage, ChatFlow } from '../../../types/chatFlow';
 // ====================
 import { supabase } from '../../../lib/supabase';
+import { InquiriesApi, OrdersApi } from '../../../api';
 // ==================== - jorrel i added this to know where changes were its a before and after
 
 type Option = { label: string; next: string };
@@ -154,6 +155,7 @@ export const issueTicketFlow: ChatFlow = {
   quickReplies: () => nodeQuickReplies(NODES[currentNodeId]),
   respond: async (_ctx, input) => {
     const current = NODES[currentNodeId];
+    try {
 
     // ====================
     // Blacklisted words (basic profanity filter)
@@ -259,15 +261,8 @@ if (!selection && currentNodeId === 'ticket_status_start') {
     };
   }
 
-  const { data: inquiry, error } = await supabase
-    .from('inquiries')
-    .select(
-      'inquiry_id, inquiry_message, inquiry_type, inquiry_status, resolution_comments, received_at'
-    )
-    .eq('inquiry_id', inquiryId)
-    .single();
-
-  if (error || !inquiry) {
+  const inquiry = await InquiriesApi.getInquiryById({ inquiry_id: inquiryId });
+  if (!inquiry) {
     return {
       messages: [
         {
@@ -347,26 +342,8 @@ return {
       // ====================
 
       // NOTE: Adjust table/columns below to match your schema
-      const { data: order, error } = await supabase
-        .from('orders')
-        .select(
-          `
-          id,
-          order_id,
-          status,
-          created_at,
-          total,
-          order_items (
-            name,
-            quantity,
-            price
-          )
-        `
-        )
-        .eq('order_id', orderNumber)
-        .maybeSingle();
-
-      if (error || !order) {
+      const order = await OrdersApi.getOrderByNumber({ order_id: orderNumber });
+      if (!order) {
         return {
           messages: [
             {
@@ -378,22 +355,21 @@ return {
         };
       }
 
-      const items = Array.isArray((order as any).order_items)
-        ? (order as any).order_items
+      const items = Array.isArray(order.order_items)
+        ? order.order_items
         : [];
       const lines = [
-        `Order ${(order as any).order_id} — Status: ${(order as any).status ?? 'N/A'}`,
+        `Order ${order.order_id} — Status: ${order.status ?? 'N/A'}`,
         `Placed: ${
-          (order as any).created_at
-            ? new Date((order as any).created_at).toLocaleString()
+          order.created_at
+            ? new Date(order.created_at).toLocaleString()
             : 'N/A'
         }`,
         'Items:',
         ...items.map(
-          (it: any) =>
-            `- ${it.quantity} x ${it.name}${it.price ? ` @ ${it.price}` : ''}`
+          (it) => `- ${it.quantity} x ${it.name}${it.price ? ` @ ${it.price}` : ''}`
         ),
-        (order as any).total ? `Total: ${(order as any).total}` : '',
+        order.total ? `Total: ${order.total}` : '',
       ].filter(Boolean) as string[];
 
       currentNodeId = 'order_issue_menu';
@@ -432,39 +408,24 @@ return {
         const typed = input.trim();
         // If user typed an order number, fetch that order and proceed
         if (typed) {
-          const { data: orderPick, error: pickErr } = await supabase
-            .from('orders')
-            .select(
-              `
-              id,
-              order_id,
-              status,
-              created_at,
-              total,
-              order_items (name, quantity, price)
-            `
-            )
-            .eq('order_id', typed)
-            .maybeSingle();
-
-          if (!pickErr && orderPick) {
-            const items = Array.isArray((orderPick as any).order_items)
-              ? (orderPick as any).order_items
+          const orderPick = await OrdersApi.getOrderByNumber({ order_id: typed });
+          if (orderPick) {
+            const items = Array.isArray(orderPick.order_items)
+              ? orderPick.order_items
               : [];
             const lines = [
-              `Order ${(orderPick as any).order_id} — Status: ${(orderPick as any).status ?? 'N/A'}`,
+              `Order ${orderPick.order_id} — Status: ${orderPick.status ?? 'N/A'}`,
               `Placed: ${
-                (orderPick as any).created_at
-                  ? new Date((orderPick as any).created_at).toLocaleString()
+                orderPick.created_at
+                  ? new Date(orderPick.created_at).toLocaleString()
                   : 'N/A'
               }`,
               'Items:',
               ...items.map(
-                (it: any) =>
-                  `- ${it.quantity} x ${it.name}${it.price ? ` @ ${it.price}` : ''}`
+                (it) => `- ${it.quantity} x ${it.name}${it.price ? ` @ ${it.price}` : ''}`
               ),
-              (orderPick as any).total
-                ? `Total: ${(orderPick as any).total}`
+              orderPick.total
+                ? `Total: ${orderPick.total}`
                 : '',
             ].filter(Boolean) as string[];
 
@@ -498,14 +459,8 @@ return {
         }
 
         // Query up to 10 latest orders for this user (by customer_id)
-        const { data: orders, error: ordersErr } = await supabase
-          .from('orders')
-          .select('order_id, total, created_at')
-          .eq('customer_id', uid)
-          .order('created_at', { ascending: false })
-          .limit(10);
-
-        if (ordersErr || !orders || orders.length === 0) {
+        const orders = await OrdersApi.listOrdersForCustomer({ customer_id: uid, limit: 10 });
+        if (!orders || orders.length === 0) {
           return {
             messages: [
               {
@@ -519,7 +474,7 @@ return {
 
         // Compose a compact list: date — order number — total
         const lines: string[] = ['Here are your recent orders:', ''];
-        for (const o of orders as any[]) {
+        for (const o of orders) {
           lines.push(
             `${new Date(o.created_at).toLocaleDateString()} — ${o.order_id} — Total: ${o.total ?? 'N/A'}`
           );
@@ -534,7 +489,7 @@ return {
                 '\n\nPlease type or click the order number you have an issue with.',
             },
           ],
-          quickReplies: (orders as any[]).map(o => o.order_id as string),
+        quickReplies: orders.map(o => o.order_id as string),
         };
       }
       // ====================
@@ -576,15 +531,10 @@ return {
         };
       }
 
-      const { data: orders } = await supabase
-        .from('orders')
-        .select('order_id, total, created_at')
-        .eq('customer_id', uid)
-        .order('created_at', { ascending: false })
-        .limit(10);
+      const orders = await OrdersApi.listOrdersForCustomer({ customer_id: uid, limit: 10 });
 
       const lines: string[] = ['Here are your recent orders:', ''];
-      for (const o of (orders as any[]) ?? []) {
+      for (const o of (orders ?? [])) {
         lines.push(
           `${new Date(o.created_at).toLocaleDateString()} — ${o.order_id} — Total: ${o.total ?? 'N/A'}`
         );
@@ -600,7 +550,7 @@ return {
               '\n\nPlease type or click the order number you have an issue with.',
           },
         ],
-        quickReplies: ((orders as any[]) ?? []).map(o => o.order_id as string),
+        quickReplies: (orders ?? []).map(o => o.order_id as string),
       };
       // ====================
     }
@@ -610,54 +560,28 @@ return {
         : `${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
       const message = collectedIssueDetails || '(no details provided)';
       try {
-        // Resolve current authenticated user's customer_id
-        let customerId: string | null = null;
-        try {
-          const { data: session } = await supabase.auth.getUser();
-          const authId = session?.user?.id || null;
-          if (authId) {
-            const { data: customerRow } = await supabase
-              .from('customer')
-              .select('customer_id')
-              .eq('customer_id', authId)
-              .maybeSingle();
-            customerId = (customerRow as any)?.customer_id || null;
-          }
-        } catch (_e) {
-          // ignore; fallback keeps customerId null
-        }
+        await InquiriesApi.submitInquiry({
+          inquiry_id: inquiryId,
+          inquiry_message: message,
+          inquiry_type: currentInquiryType,
+        });
 
-        const { error } = await supabase.from('inquiries').insert([
-          {
-            inquiry_id: inquiryId,
-            inquiry_message: message,
-            inquiry_status: 'new',
-            received_at: new Date().toISOString(),
-            inquiry_type: currentInquiryType,
-            customer_id: customerId,
-          },
-        ]);
-        if (error) {
-          console.error('Insert into inquiries failed:', error);
-          return {
-            messages: [
-              {
-                role: 'printy',
-                text: `I couldn't create the ticket right now (db error). Please try 'Submit ticket' again in a moment.`,
-              },
-            ],
-            quickReplies: nodeQuickReplies(current),
-          };
-        }
+        // Reset context and return success
         collectedIssueDetails = '';
         currentInquiryType = null;
+        return {
+          messages: [
+            { role: 'printy', text: '✅ Ticket submitted successfully!' },
+            { role: 'printy', text: `📌 Your ticket number is: ${inquiryId}` },
+          ],
+          quickReplies: ['End Chat'],
+        };
       } catch (_e) {
-        console.error('Network or unexpected error inserting inquiry:', _e);
         return {
           messages: [
             {
               role: 'printy',
-              text: "I ran into a network issue while creating your ticket. Please try 'Submit ticket' again shortly.",
+              text: "I ran into an issue while creating your ticket. Please try 'Submit ticket' again shortly.",
             },
           ],
           quickReplies: nodeQuickReplies(current),
@@ -665,55 +589,20 @@ return {
       }
     }
 
-    const inquiryType = currentInquiryType ?? 'other';
-    const { error } = await supabase.from('inquiries').insert([
-      {
-        inquiry_id: inquiryId,
-        inquiry_message: message,
-        inquiry_status: 'new',
-        received_at: new Date().toISOString(),
-        inquiry_type: inquiryType,
-        customer_id: customerId,
-      },
-    ]);
-
-    if (error) {
-      console.error('Insert failed:', error);
-      return {
-        messages: [
-          { role: 'printy', text: "❌ Couldn't create the ticket. Try again later." },
-        ],
-        quickReplies: nodeQuickReplies(current),
-      };
-    }
-
-    // Reset context
-    collectedIssueDetails = '';
-    currentInquiryType = null;
-
-    return {
-      messages: [
-        { role: 'printy', text: '✅ Ticket submitted successfully!' },
-        { role: 'printy', text: `📌 Your ticket number is: ${inquiryId}` }, // ✅ NEW
-      ],
-      quickReplies: ['End Chat'],
-    };
-  } catch (_e) {
-    console.error('Insert error:', _e);
-    return {
-      messages: [
-        { role: 'printy', text: '❌ Error creating ticket. Please try again.' },
-      ],
-      quickReplies: nodeQuickReplies(current),
-    };
-  }
-}
-
-
+    // After handling special nodes, move to next
     currentNodeId = nextNodeId;
     return {
       messages: nodeToMessages(NODES[nextNodeId]),
       quickReplies: nodeQuickReplies(NODES[nextNodeId]),
     };
+    } catch (e: unknown) {
+      console.error('IssueTicket flow error:', e);
+      return {
+        messages: [
+          { role: 'printy', text: '❌ Error creating ticket. Please try again.' },
+        ],
+        quickReplies: nodeQuickReplies(current),
+      };
+    }
   },
 };

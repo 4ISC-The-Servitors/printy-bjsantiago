@@ -1,28 +1,16 @@
-import { supabase } from '../../lib/supabase';
+import { InquiriesApi } from '../../api';
 
 export const useInquiryActions = () => {
   const updateInquiryStatus = async (inquiryId: string, status: string) => {
-    const { error } = await supabase
-      .from('inquiries')
-      .update({ inquiry_status: status })
-      .eq('inquiry_id', inquiryId);
-    if (error) throw error;
+    await InquiriesApi.updateInquiryStatus({ inquiry_id: inquiryId, inquiry_status: status });
   };
 
   const assignInquiry = async (inquiryId: string, assignee: string) => {
-    const { error } = await supabase
-      .from('inquiries')
-      .update({ assigned_to: assignee })
-      .eq('inquiry_id', inquiryId);
-    if (error) throw error;
+    await InquiriesApi.assignInquiry({ inquiry_id: inquiryId, assigned_to: assignee });
   };
 
   const saveResolutionComment = async (inquiryId: string, comment: string) => {
-    const { error } = await supabase
-      .from('inquiries')
-      .update({ resolution_comments: comment })
-      .eq('inquiry_id', inquiryId);
-    if (error) throw error;
+    await InquiriesApi.saveResolutionComment({ inquiry_id: inquiryId, resolution_comments: comment });
   };
 
   return { updateInquiryStatus, assignInquiry, saveResolutionComment };
