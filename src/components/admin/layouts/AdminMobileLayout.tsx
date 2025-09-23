@@ -1,6 +1,6 @@
 import React from 'react';
 import { AdminMobileHeader, AdminMobileNavbar } from '../_shared/mobile';
-import MobileChatPanel from '../../chat/mobile/ChatPanel';
+import AdminMobileChatOverlay from '../chat/AdminMobileChatOverlay';
 
 interface AdminMobileLayoutProps {
   title: string;
@@ -40,25 +40,18 @@ const AdminMobileLayout: React.FC<AdminMobileLayoutProps> = ({
           rightContent={headerRight}
         />
 
-        <main className="flex-1 overflow-auto pb-24">
-          {open ? (
-            <div className="flex flex-col min-h-screen bg-white">
-              <MobileChatPanel
-                title="Printy Assistant"
-                messages={messages}
-                onSend={onSend}
-                isTyping={isTyping}
-                quickReplies={quickReplies}
-                onQuickReply={onQuickReply}
-                onEndChat={onClose}
-              />
-            </div>
-          ) : (
-            children
-          )}
-        </main>
+        <main className="flex-1 overflow-auto pb-24">{children}</main>
 
         <AdminMobileNavbar onOpenChat={onOpen} />
+        <AdminMobileChatOverlay
+          open={open}
+          messages={messages}
+          isTyping={isTyping}
+          quickReplies={quickReplies}
+          onSend={onSend}
+          onQuickReply={onQuickReply}
+          onClose={onClose}
+        />
       </div>
     </div>
   );
