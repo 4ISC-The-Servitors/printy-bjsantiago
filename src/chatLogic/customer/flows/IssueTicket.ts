@@ -18,19 +18,12 @@ const NODES: Record<string, Node> = {
     message:
       "Hi! I'm Printy 🤖. I'll help you create a support ticket. What's your order number?",
     options: [
-      { label: 'Ticket Status Inquiry', next: 'ticket_status_start' },
       { label: "I don't have an order number", next: 'no_order_number' },
       { label: 'End Chat', next: 'end' },
     ],
   },
 
-  ticket_status_start: {
-    id: 'ticket_status_start',
-    question: 'Ticket Status Inquiry',
-    answer:
-      'Please enter your ticket number to check its status.',
-    options: [{ label: 'Back to Start', next: 'issue_ticket_start' }],
-  },
+  
   // ====================
   order_issue_menu: {
     id: 'order_issue_menu',
@@ -244,61 +237,7 @@ export const issueTicketFlow: ChatFlow = {
     // ====================
 
 
-    // ====================
-// Handle Ticket Status Inquiry
-// ====================
-if (!selection && currentNodeId === 'ticket_status_start') {
-  const inquiryId = input.trim().replace(/[^a-zA-Z0-9-]/g, ''); // sanitize input
-
-  if (!inquiryId) {
-    return {
-      messages: [
-        { role: 'printy', text: 'Please enter a valid ticket number (inquiry ID).' },
-      ],
-      quickReplies: nodeQuickReplies(NODES.ticket_status_start),
-    };
-  }
-
-  const { data: inquiry, error } = await supabase
-    .from('inquiries')
-    .select(
-      'inquiry_id, inquiry_message, inquiry_type, inquiry_status, resolution_comments, received_at'
-    )
-    .eq('inquiry_id', inquiryId)
-    .single();
-
-  if (error || !inquiry) {
-    return {
-      messages: [
-        {
-          role: 'printy',
-          text: `I couldn't find a ticket with ID "${inquiryId}". Please check and try again.`,
-        },
-      ],
-      quickReplies: nodeQuickReplies(NODES.ticket_status_start),
-    };
-  }
-
-  // Format output cleanly
-  const lines = [
-    `📌 Ticket ID: ${inquiry.inquiry_id}`,
-    `📝 Issue submitted: ${inquiry.inquiry_message || '(no message provided)'}`,
-    `📂 Issue type: ${inquiry.inquiry_type || '(not specified)'}`,
-    `📅 Received: ${new Date(inquiry.received_at).toLocaleString()}`,
-    `📊 Status: ${inquiry.inquiry_status}`,
-    inquiry.resolution_comments
-      ? `✅ Resolution: ${inquiry.resolution_comments}`
-      : '✅ Resolution: (not yet provided)',
-  ];
-
-  // after formatting `lines` array
-return {
-  messages: lines.map(line => ({ role: 'printy', text: line })),
-  quickReplies: nodeQuickReplies(NODES.ticket_status_start),
-};
-
-
-}
+   
 
 
 
