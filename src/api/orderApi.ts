@@ -1,8 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+import { supabase } from '../lib/supabase';
 
 export type OrderData = {
   order_id: string; // varchar
@@ -21,19 +17,23 @@ export type OrderData = {
 export async function createOrder(order: OrderData) {
   const { data, error } = await supabase
     .from('orders')
-    .insert([{
-      order_id: order.order_id,
-      service_id: order.service_id,
-      customer_id: order.customer_id,
-      order_status: order.order_status,
-      delivery_mode: order.delivery_mode,
-      order_datetime: order.order_date_time,
-      completed_datetime: order.completed_date_time,
-      specification: order.specification,
-      page_size: order.page_size,
-      quantity: order.quantity,
-      priority_level: order.priority_level,
-    }]);
+    .insert([
+      {
+        order_id: order.order_id,
+        service_id: order.service_id,
+        customer_id: order.customer_id,
+        order_status: order.order_status,
+        delivery_mode: order.delivery_mode,
+        order_datetime: order.order_date_time,
+        completed_datetime: order.completed_date_time,
+        specification: order.specification,
+        page_size: order.page_size,
+        quantity: order.quantity,
+        priority_level: order.priority_level,
+      },
+    ])
+    .select()
+    .single();
   if (error) {
     console.error('Order creation failed:', error);
     return { success: false, error };

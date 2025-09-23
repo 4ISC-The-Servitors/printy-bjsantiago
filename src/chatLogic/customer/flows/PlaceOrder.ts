@@ -384,6 +384,16 @@ async function createOrderFromCompilation(ctx: any): Promise<any> {
       ? ctx.customerId
       : getCurrentCustomerId();
 
+  // Block if not signed in / invalid customer id
+  if (typeof sessionCustomerId !== 'string' || sessionCustomerId.length !== 36 || sessionCustomerId === '00000000-0000-0000-0000-000000000000') {
+    return {
+      messages: [
+        { role: 'printy', text: 'You need to sign in before placing an order. Please sign in and try again.' },
+      ],
+      quickReplies: ['End Chat'],
+    };
+  }
+
   const order: OrderData = {
     order_id: crypto.randomUUID(),
     service_id: orderRecord.product_service_id || '1001',
@@ -398,7 +408,17 @@ async function createOrderFromCompilation(ctx: any): Promise<any> {
     priority_level: typeof ctx.priorityLevel === 'number' ? ctx.priorityLevel : 1,
   };
 
-  await createOrder(order);
+  const result = await createOrder(order);
+  if (!result.success) {
+    const errorMessage = (result.error && (result.error.message || result.error.details)) || 'Unknown error';
+    return {
+      messages: [
+        { role: 'printy', text: 'Sorry, we were unable to submit your order.' },
+        { role: 'printy', text: `Reason: ${errorMessage}` },
+      ],
+      quickReplies: ['End Chat'],
+    };
+  }
   
   // Reset state
   dynamicMode = false;
