@@ -16,8 +16,9 @@ export const getTicketStatusBadgeVariant = (status: string): BadgeVariant => {
 export const getOrderStatusBadgeVariant = (status: string): BadgeVariant => {
   const s = (status || '').toLowerCase();
   if (s === 'processing') return 'info';
-  if (s === 'pending') return 'warning';
+  if (s === 'awaiting quote approval') return 'warning';
   if (s === 'awaiting payment') return 'warning';
+  if (s === 'verifying payment') return 'info';
   if (s === 'for delivery/pick-up' || s === 'for delivery' || s === 'pick-up')
     return 'info';
   if (s === 'completed') return 'success';

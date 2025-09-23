@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { AdminMobileHeader } from '../_shared/mobile';
+import React from 'react';
+import { AdminMobileHeader, AdminMobileNavbar } from '../_shared/mobile';
 import MobileChatPanel from '../../chat/mobile/ChatPanel';
 
 interface AdminMobileLayoutProps {
@@ -29,8 +29,6 @@ const AdminMobileLayout: React.FC<AdminMobileLayoutProps> = ({
   onQuickReply,
   children,
 }) => {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar would be provided by parent when needed */}
@@ -38,11 +36,11 @@ const AdminMobileLayout: React.FC<AdminMobileLayoutProps> = ({
       <div className="flex-1 flex flex-col relative min-w-0">
         <AdminMobileHeader
           title={title}
-          onMenuClick={() => setIsSidebarOpen(true)}
+          onMenuClick={() => {}}
           rightContent={headerRight}
         />
 
-        <main className="flex-1 overflow-auto pb-20">
+        <main className="flex-1 overflow-auto pb-24">
           {open ? (
             <div className="flex flex-col min-h-screen bg-white">
               <MobileChatPanel
@@ -59,6 +57,8 @@ const AdminMobileLayout: React.FC<AdminMobileLayoutProps> = ({
             children
           )}
         </main>
+
+        <AdminMobileNavbar onOpenChat={onOpen} />
       </div>
     </div>
   );
