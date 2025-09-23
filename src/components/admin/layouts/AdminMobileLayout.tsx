@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { AdminMobileHeader, AdminMobileNavbar } from '../_shared/mobile';
 import { AdminMobileSidebar } from '../_shared/mobile';
 import { useToast } from '../../../lib/useToast';
@@ -17,6 +17,7 @@ interface AdminMobileLayoutProps {
   quickReplies?: any[];
   onSend: (text: string) => void;
   onQuickReply?: (value: string) => void;
+  readOnly?: boolean;
   children: React.ReactNode;
 }
 
@@ -31,11 +32,19 @@ const AdminMobileLayout: React.FC<AdminMobileLayoutProps> = ({
   quickReplies,
   onSend,
   onQuickReply,
+  readOnly,
   children,
 }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [toasts, toast] = useToast({ position: 'top-center', duration: 2500 });
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  // Close sidebar whenever any component requests to open admin chat
+  useEffect(() => {
+    const closeSidebarOnChatOpen = () => setIsSidebarOpen(false);
+    window.addEventListener('admin-chat-open', closeSidebarOnChatOpen as EventListener);
+    return () => window.removeEventListener('admin-chat-open', closeSidebarOnChatOpen as EventListener);
+  }, []);
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar would be provided by parent when needed */}
@@ -58,6 +67,7 @@ const AdminMobileLayout: React.FC<AdminMobileLayoutProps> = ({
           onSend={onSend}
           onQuickReply={onQuickReply}
           onClose={onClose}
+          readOnly={readOnly}
         />
         <AdminMobileSidebar
           isOpen={isSidebarOpen}

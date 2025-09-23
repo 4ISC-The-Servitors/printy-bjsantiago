@@ -179,7 +179,7 @@ const AdminLayout: React.FC<Props> = ({ children }) => {
                     if (activeId) {
                       // If an ended conversation is active, just show it
                       const conv = conversations.find(c => c.id === activeId);
-                      if (conv && conv.status === 'completed') {
+                      if (conv && conv.status === 'ended') {
                         setChatOpen(true);
                         return;
                       }
@@ -271,6 +271,7 @@ const AdminLayout: React.FC<Props> = ({ children }) => {
       quickReplies={quickReplies}
       onSend={handleSendMessage}
       onQuickReply={handleQuickReply}
+      readOnly={readOnly}
       headerRight={null}
     >
       {children}

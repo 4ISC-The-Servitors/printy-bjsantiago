@@ -35,12 +35,12 @@ const MobileNavbar: React.FC<MobileNavbarProps> = ({ onOpenChat }) => {
                 isActive('/admin') ? 'text-blue-600' : 'text-gray-600'
               }`}
               aria-current={isActive('/admin') ? 'page' : undefined}
-              aria-label="Home"
+              aria-label="Dashboard"
               onClick={() => navigate('/admin')}
             >
               <Home className="h-5 w-5" />
               <Text variant="p" size="xs">
-                Home
+                Dashboard
               </Text>
             </Button>
           </li>

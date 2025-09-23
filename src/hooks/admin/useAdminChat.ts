@@ -7,6 +7,7 @@ import type {
   ChatRole,
 } from '../../components/chat/_shared/types';
 import { resolveAdminFlow, dispatchAdminCommand } from '../../chatLogic/admin';
+import { useAdmin } from '@hooks/admin/AdminContext';
 import { useInquiryActions } from './useInquiryActions';
 import { useAdminConversations } from './useAdminConversations';
 
@@ -53,6 +54,7 @@ export const useAdminChat = (): UseAdminChatReturn => {
   } = useAdminConversations();
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   const [readOnly, setReadOnly] = useState<boolean>(false);
+  const { clearSelected } = useAdmin();
 
   const buildConversationTitle = (
     topic: string,
@@ -80,7 +82,14 @@ export const useAdminChat = (): UseAdminChatReturn => {
       ? conversations.find(c => c.id === currentConversationId)
       : null;
     if (readOnly || (existing && existing.status === 'ended')) {
+      // Close the dock and reset transient chat state so a fresh chat can start next time
       setChatOpen(false);
+      setMessages([]);
+      setQuickReplies([]);
+      setCurrentConversationId(null);
+      setReadOnly(false);
+      setCurrentFlow('intro');
+      setCurrentContext({});
       return;
     }
 
@@ -106,6 +115,7 @@ export const useAdminChat = (): UseAdminChatReturn => {
 
   const handleChatOpen = () => {
     setReadOnly(false);
+    try { clearSelected(); } catch {}
     setChatOpen(true);
     if (messages.length === 0) {
       setCurrentFlow('intro');
@@ -141,6 +151,7 @@ export const useAdminChat = (): UseAdminChatReturn => {
     orderIds?: string[]
   ) => {
     setReadOnly(false);
+    try { clearSelected(); } catch {}
     setChatOpen(true);
     const nextTopic = topic || 'intro';
 
@@ -232,7 +243,9 @@ export const useAdminChat = (): UseAdminChatReturn => {
     const conv = conversations.find(c => c.id === conversationId);
     if (conv) {
       setMessages((conv.messages as any).slice());
-      setQuickReplies([]);
+      // Preserve quick replies when resuming an active conversation;
+      // clear them only for ended conversations
+      if (conv.status === 'ended') setQuickReplies([]);
       setReadOnly(conv.status === 'ended');
     }
   };

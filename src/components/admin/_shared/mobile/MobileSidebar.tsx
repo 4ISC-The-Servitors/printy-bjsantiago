@@ -5,6 +5,7 @@ import ToastContainer from '../../../shared/ToastContainer';
 import { useToast } from '../../../../lib/useToast';
 import RecentChats from '../RecentChats';
 import { X, Settings, LogOut } from 'lucide-react';
+import useAdminNav from '@hooks/admin/useAdminNav';
 
 interface MobileSidebarProps {
   isOpen: boolean;
@@ -21,9 +22,13 @@ const MobileSidebar: React.FC<MobileSidebarProps> = ({
 }) => {
   const [showLogoutConfirm, setShowLogoutConfirm] = React.useState(false);
   const [toasts, toast] = useToast({ position: 'top-center', duration: 2500 });
+  const { go } = useAdminNav();
   const handleSelectChat = (id: string) => {
+    // Ensure we open existing conversation on mobile and close the sidebar
+    window.dispatchEvent(
+      new CustomEvent('admin-chat-open', { detail: { conversationId: id } })
+    );
     onClose();
-    window.dispatchEvent(new CustomEvent('admin-chat-open'));
   };
 
   const handleLogoutPress = () => {
@@ -56,16 +61,8 @@ const MobileSidebar: React.FC<MobileSidebarProps> = ({
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="p-4 border-b border-gray-200">
-          <div className="flex items-center justify-between">
-            <Text
-              variant="h2"
-              size="lg"
-              weight="bold"
-              className="text-gray-900"
-            >
-              Menu
-            </Text>
+        <div className="p-4">
+          <div className="flex items-center justify-end">
             <Button
               variant="ghost"
               size="sm"
@@ -78,25 +75,47 @@ const MobileSidebar: React.FC<MobileSidebarProps> = ({
           </div>
         </div>
 
-        <div className="p-4 space-y-4 overflow-y-auto h-[calc(100%-56px)]">
-          <RecentChats onSelect={handleSelectChat} className="mb-3" />
-          <div className="mt-auto" />
-          <Button
-            onClick={onSettingsClick}
-            variant="secondary"
-            className="w-full justify-start px-3 py-2"
-            threeD
-          >
-            <Settings className="w-4 h-4 mr-2" /> Settings
-          </Button>
-          <Button
-            onClick={handleLogoutPress}
-            variant="error"
-            className="w-full justify-start px-3 py-2"
-            threeD
-          >
-            <LogOut className="w-4 h-4 mr-2" /> Logout
-          </Button>
+        {/* Body layout: scrollable recent chats + fixed bottom actions */}
+        <div className="flex flex-col h-[calc(100%-56px)]">
+          <div className="p-4 space-y-4 overflow-y-auto flex-1">
+            {/* Recent Chats section */}
+            <div className="flex items-center justify-between px-1">
+              <Text variant="h3" size="sm" weight="semibold" className="text-neutral-700">
+                Recent Chats
+              </Text>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-neutral-500 hover:text-neutral-700 h-8 px-2"
+                onClick={() => {
+                  onClose();
+                  go('chats');
+                }}
+              >
+                View all
+              </Button>
+            </div>
+            <div className="mt-2 border-t border-neutral-200" />
+            <RecentChats onSelect={handleSelectChat} limit={4} showHeader={false} className="mb-3" />
+          </div>
+          <div className="border-t border-neutral-200 p-4 mb-5 space-y-3">
+            <Button
+              onClick={onSettingsClick}
+              variant="secondary"
+              className="w-full justify-start px-3 py-2"
+              threeD
+            >
+              <Settings className="w-4 h-4 mr-2" /> Settings
+            </Button>
+            <Button
+              onClick={handleLogoutPress}
+              variant="error"
+              className="w-full justify-start px-3 py-2"
+              threeD
+            >
+              <LogOut className="w-4 h-4 mr-2" /> Logout
+            </Button>
+          </div>
         </div>
         <Modal isOpen={showLogoutConfirm} onClose={() => setShowLogoutConfirm(false)} size="sm">
           <div className="bg-white rounded-2xl shadow-xl border border-neutral-200">

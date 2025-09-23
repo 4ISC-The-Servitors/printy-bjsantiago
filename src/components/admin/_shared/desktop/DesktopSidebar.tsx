@@ -12,9 +12,9 @@ import { Button, Text } from '../../../shared';
 import RecentChats from '../RecentChats';
 
 export interface AdminSidebarProps {
-  active: 'dashboard' | 'orders' | 'tickets' | 'portfolio' | 'settings';
+  active: 'dashboard' | 'orders' | 'tickets' | 'portfolio' | 'settings' | 'chats';
   onNavigate: (
-    route: 'dashboard' | 'orders' | 'tickets' | 'portfolio' | 'settings'
+    route: 'dashboard' | 'orders' | 'tickets' | 'portfolio' | 'settings' | 'chats'
   ) => void;
   onLogout: () => void;
 }
@@ -90,19 +90,22 @@ const DesktopSidebar: React.FC<AdminSidebarProps> = ({
           </div>
 
           <div>
-            <Text variant="h3" size="sm" weight="semibold" className="px-2 mt-10 text-neutral-700">
-              Recent Chats
-            </Text>
-            <div className="mt-2 border-t border-neutral-200" />
-            <div className="pt-3">
-              <RecentChats onSelect={handleSelectChat} limit={3} showHeader={false} />
+            <div className="flex items-center justify-between mt-10 px-2">
+              <Text variant="h3" size="sm" weight="semibold" className="text-neutral-700">
+                Recent Chats
+              </Text>
               <Button
                 variant="ghost"
-                className="w-full justify-start px-3 py-2 mt-2 text-sm"
-                onClick={() => (window.location.href = '/admin/chats')}
+                size="sm"
+                className="text-neutral-500 hover:text-neutral-700 h-7 px-2"
+                onClick={() => onNavigate('chats')}
               >
                 View all
               </Button>
+            </div>
+            <div className="mt-2 border-t border-neutral-200" />
+            <div className="pt-3">
+              <RecentChats onSelect={handleSelectChat} limit={3} showHeader={false} />
             </div>
           </div>
         </div>

@@ -5,7 +5,8 @@ export type AdminRoute =
   | 'orders'
   | 'tickets'
   | 'portfolio'
-  | 'settings';
+  | 'settings'
+  | 'chats';
 
 export interface UseAdminNavReturn {
   go: (route: AdminRoute) => void;
@@ -20,6 +21,7 @@ export const useAdminNav = (): UseAdminNavReturn => {
     if (route === 'tickets') navigate('/admin/tickets');
     if (route === 'portfolio') navigate('/admin/portfolio');
     if (route === 'settings') navigate('/admin/settings');
+    if (route === 'chats') navigate('/admin/chats');
   };
 
   return { go };

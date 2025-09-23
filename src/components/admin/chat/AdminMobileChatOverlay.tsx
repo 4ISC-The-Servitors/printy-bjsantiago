@@ -14,6 +14,7 @@ interface Props {
   onQuickReply?: (value: string) => void;
   onClose: () => void;
   onMinimize?: () => void;
+  readOnly?: boolean;
 }
 
 const AdminMobileChatOverlay: React.FC<Props> = ({
@@ -26,6 +27,7 @@ const AdminMobileChatOverlay: React.FC<Props> = ({
   onQuickReply,
   onClose,
   onMinimize,
+  readOnly,
 }) => {
   const [minimized, setMinimized] = useState(false);
   const show = open && !minimized;
@@ -90,7 +92,13 @@ const AdminMobileChatOverlay: React.FC<Props> = ({
           onEndChat={onClose}
           mobileOffsetLeftClass="left-0"
           hideHeader
+          hideInput={!!readOnly}
         />
+        {readOnly && (
+          <div className="absolute bottom-0 left-0 right-0 bg-neutral-50 border-t border-neutral-200 p-3 text-center z-50">
+            <span className="text-sm text-neutral-500">This conversation has ended but you can view messages.</span>
+          </div>
+        )}
       </div>
     </div>
   );
