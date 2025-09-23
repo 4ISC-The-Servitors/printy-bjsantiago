@@ -321,25 +321,6 @@ const PortfolioCard: React.FC = () => {
                           </div>
                         </div>
                         <div className="text-right flex-shrink-0 ml-4">
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            threeD
-                            title="Chat about this service"
-                            onClick={() => {
-                              if (openChatWithTopic)
-                                openChatWithTopic(
-                                  'portfolio',
-                                  s.id,
-                                  undefined,
-                                  allServices
-                                );
-                              else openChat();
-                            }}
-                            className="min-h-[44px] min-w-[44px]"
-                          >
-                            <MessageSquare className="h-4 w-4" />
-                          </Button>
                         </div>
                       </div>
                     ))}
