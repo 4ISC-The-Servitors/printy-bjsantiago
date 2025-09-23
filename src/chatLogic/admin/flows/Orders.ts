@@ -110,16 +110,21 @@ class OrdersFlow extends FlowBase {
     // Multi-verify picker node (when 2+ selected)
     this.registerNode('verify_payment_pick', {
       messages: () => [
-        { role: 'printy', text: 'Please choose order ID you want to verify first' },
+        {
+          role: 'printy',
+          text: 'Please choose order ID you want to verify first',
+        },
       ],
       quickReplies: (state: FlowState) => {
         const s = state as OrdersState;
-        const queue: string[] = ((state as any).__verifyQueue as string[]) || [];
+        const queue: string[] =
+          ((state as any).__verifyQueue as string[]) || [];
         return (queue.length > 0 ? queue : []) as any;
       },
       handleInput: (input: string, state: FlowState) => {
         const s = state as OrdersState;
-        const queue: string[] = ((state as any).__verifyQueue as string[]) || [];
+        const queue: string[] =
+          ((state as any).__verifyQueue as string[]) || [];
         const pick = queue.find(
           id => id.toLowerCase() === input.trim().toLowerCase()
         );
@@ -163,10 +168,12 @@ class OrdersFlow extends FlowBase {
           : ['Change Status', 'Create Quote'];
         const showVerify = order
           ? String(order.status).toLowerCase() === 'verifying payment'
-          : (this.state as OrdersState).currentOrders.some(o =>
-              String(o.status).toLowerCase() === 'verifying payment'
+          : (this.state as OrdersState).currentOrders.some(
+              o => String(o.status).toLowerCase() === 'verifying payment'
             );
-        return showVerify ? [...base, 'Verify Payment', 'End Chat'] : [...base, 'End Chat'];
+        return showVerify
+          ? [...base, 'Verify Payment', 'End Chat']
+          : [...base, 'End Chat'];
       },
       handleInput: (input: string, state: FlowState) => {
         const lower = input.toLowerCase();
@@ -224,21 +231,26 @@ class OrdersFlow extends FlowBase {
           }
 
           // Multi-selection path: build queue from selected verifying orders
-          const verifyingIds = (selected.length > 0
-            ? selected
-            : (this.state as OrdersState).currentOrders.map(o => o.id)
+          const verifyingIds = (
+            selected.length > 0
+              ? selected
+              : (this.state as OrdersState).currentOrders.map(o => o.id)
           )
             .map(id => id.toUpperCase())
             .filter(id =>
               (this.state as OrdersState).currentOrders.some(
-                o => o.id.toUpperCase() === id && String(o.status).toLowerCase() === 'verifying payment'
+                o =>
+                  o.id.toUpperCase() === id &&
+                  String(o.status).toLowerCase() === 'verifying payment'
               )
             );
 
           if (verifyingIds.length === 0) {
             return {
               messages: [
-                createInfoMessage('None of the selected orders are in Verifying Payment.'),
+                createInfoMessage(
+                  'None of the selected orders are in Verifying Payment.'
+                ),
               ],
               quickReplies: this.getActionQuickReplies(s),
             };
@@ -495,7 +507,9 @@ class OrdersFlow extends FlowBase {
     const hasVerifying = (this.state as OrdersState).currentOrders.some(
       o => String(o.status).toLowerCase() === 'verifying payment'
     );
-    return hasVerifying ? [...base, 'Verify Payment', 'End Chat'] : [...base, 'End Chat'];
+    return hasVerifying
+      ? [...base, 'Verify Payment', 'End Chat']
+      : [...base, 'End Chat'];
   }
 
   private updateOrder(

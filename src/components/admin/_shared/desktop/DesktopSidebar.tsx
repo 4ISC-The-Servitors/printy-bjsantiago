@@ -12,9 +12,21 @@ import { Button, Text } from '../../../shared';
 import RecentChats from '../RecentChats';
 
 export interface AdminSidebarProps {
-  active: 'dashboard' | 'orders' | 'tickets' | 'portfolio' | 'settings' | 'chats';
+  active:
+    | 'dashboard'
+    | 'orders'
+    | 'tickets'
+    | 'portfolio'
+    | 'settings'
+    | 'chats';
   onNavigate: (
-    route: 'dashboard' | 'orders' | 'tickets' | 'portfolio' | 'settings' | 'chats'
+    route:
+      | 'dashboard'
+      | 'orders'
+      | 'tickets'
+      | 'portfolio'
+      | 'settings'
+      | 'chats'
   ) => void;
   onLogout: () => void;
 }
@@ -73,12 +85,21 @@ const DesktopSidebar: React.FC<AdminSidebarProps> = ({
       <div className="flex-1 overflow-y-auto scrollbar-hide px-3">
         <div className="space-y-4">
           <div className="pt-2">
-            <Text variant="h3" size="sm" weight="semibold" className="px-2 text-neutral-700">
+            <Text
+              variant="h3"
+              size="sm"
+              weight="semibold"
+              className="px-2 text-neutral-700"
+            >
               Menu
             </Text>
             <div className="mt-2 border-t border-neutral-200" />
             <div className="mt-2 space-y-2">
-              {item('dashboard', <LucideHome className="w-4 h-4" />, 'Dashboard')}
+              {item(
+                'dashboard',
+                <LucideHome className="w-4 h-4" />,
+                'Dashboard'
+              )}
               {item('orders', <Package className="w-4 h-4" />, 'Orders')}
               {item('tickets', <Ticket className="w-4 h-4" />, 'Tickets')}
               {item(
@@ -91,7 +112,12 @@ const DesktopSidebar: React.FC<AdminSidebarProps> = ({
 
           <div>
             <div className="flex items-center justify-between mt-10 px-2">
-              <Text variant="h3" size="sm" weight="semibold" className="text-neutral-700">
+              <Text
+                variant="h3"
+                size="sm"
+                weight="semibold"
+                className="text-neutral-700"
+              >
                 Recent Chats
               </Text>
               <Button
@@ -105,7 +131,11 @@ const DesktopSidebar: React.FC<AdminSidebarProps> = ({
             </div>
             <div className="mt-2 border-t border-neutral-200" />
             <div className="pt-3">
-              <RecentChats onSelect={handleSelectChat} limit={3} showHeader={false} />
+              <RecentChats
+                onSelect={handleSelectChat}
+                limit={3}
+                showHeader={false}
+              />
             </div>
           </div>
         </div>

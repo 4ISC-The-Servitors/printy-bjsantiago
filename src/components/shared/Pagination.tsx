@@ -41,7 +41,11 @@ const Pagination: React.FC<PaginationProps> = ({
           <ChevronLeft className="w-4 h-4" />
         </Button>
         <div className="h-8 px-3 flex items-center">
-          <Text variant="p" size="sm" className="text-neutral-600 leading-none mt-4">
+          <Text
+            variant="p"
+            size="sm"
+            className="text-neutral-600 leading-none mt-4"
+          >
             Page {page} of {pageCount}
           </Text>
         </div>
@@ -61,5 +65,3 @@ const Pagination: React.FC<PaginationProps> = ({
 };
 
 export default Pagination;
-
-

@@ -9,7 +9,11 @@ interface RecentChatsProps {
   showHeader?: boolean;
 }
 
-const RecentChats: React.FC<RecentChatsProps> = ({ limit = 8, className, showHeader = true }) => {
+const RecentChats: React.FC<RecentChatsProps> = ({
+  limit = 8,
+  className,
+  showHeader = true,
+}) => {
   const { conversations, setActive } = useAdminConversations();
   const items = conversations
     .slice()
@@ -56,16 +60,28 @@ const RecentChats: React.FC<RecentChatsProps> = ({ limit = 8, className, showHea
                     >
                       {c.title}
                     </Text>
-                    <Badge variant={c.status === 'active' ? 'success' : 'error'} size="sm">
+                    <Badge
+                      variant={c.status === 'active' ? 'success' : 'error'}
+                      size="sm"
+                    >
                       {c.status === 'active' ? 'Active' : 'Ended'}
                     </Badge>
                   </div>
-                  <Text variant="p" size="xs" color="muted" className="truncate">
-                    {lastBotMessage?.text?.substring(0, 60) || 'No messages yet'}
+                  <Text
+                    variant="p"
+                    size="xs"
+                    color="muted"
+                    className="truncate"
+                  >
+                    {lastBotMessage?.text?.substring(0, 60) ||
+                      'No messages yet'}
                     {(lastBotMessage?.text?.length || 0) > 60 ? '...' : ''}
                   </Text>
                   <Text variant="p" size="xs" color="muted" className="mt-1">
-                    {new Date(c.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    {new Date(c.updatedAt).toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
                   </Text>
                 </div>
               </button>
@@ -78,5 +94,3 @@ const RecentChats: React.FC<RecentChatsProps> = ({ limit = 8, className, showHea
 };
 
 export default RecentChats;
-
-

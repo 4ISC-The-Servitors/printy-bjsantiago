@@ -118,7 +118,11 @@ const AdminLayout: React.FC<Props> = ({ children }) => {
   if (isDesktop) {
     return (
       <div className="h-screen bg-gradient-to-br from-neutral-50 to-brand-primary-50 flex">
-        <DesktopSidebar active={active} onNavigate={go} onLogout={handleLogout} />
+        <DesktopSidebar
+          active={active}
+          onNavigate={go}
+          onLogout={handleLogout}
+        />
 
         <main
           className={`flex-1 flex flex-col ${chatOpen ? 'lg:pr-[420px]' : ''} pl-16 lg:pl-0 overflow-y-auto scrollbar-hide`}

@@ -105,7 +105,12 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   return (
     <div className="bg-white flex flex-col h-full w-full relative">
       {!hideHeader && (
-        <ChatHeader title={title} onBack={onBack} onMinimize={onMinimize} onClose={onClose || onEndChat} />
+        <ChatHeader
+          title={title}
+          onBack={onBack}
+          onMinimize={onMinimize}
+          onClose={onClose || onEndChat}
+        />
       )}
       {/* Selected chips directly attached under the header (outside scroll) */}
       {!hideSelectedBar && <ChatSelectedBarFixed />}

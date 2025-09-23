@@ -1,5 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Badge, Button, Checkbox, Skeleton, Pagination } from '../../../shared';
+import {
+  Card,
+  Badge,
+  Button,
+  Checkbox,
+  Skeleton,
+  Pagination,
+} from '../../../shared';
 import { useAdmin } from '../../../../hooks/admin/AdminContext';
 import { Plus } from 'lucide-react';
 import { useOrders } from '../../../../hooks/admin/OrdersContext';
@@ -17,7 +24,11 @@ const OrdersCard: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
-  const responsivePageSize = useResponsivePageSize({ phone: 2, tablet: 3, desktop: 5 });
+  const responsivePageSize = useResponsivePageSize({
+    phone: 2,
+    tablet: 3,
+    desktop: 5,
+  });
   const pageSize = responsivePageSize;
 
   useEffect(() => {
@@ -60,7 +71,13 @@ const OrdersCard: React.FC = () => {
   const viewInChat = (orderId: string) => {
     // Add single selection to chips bar for context
     addSelected({ id: orderId, label: orderId, type: 'order' });
-    (openChatWithTopic as any)?.('orders', orderId, updateOrder, orders, refreshOrders);
+    (openChatWithTopic as any)?.(
+      'orders',
+      orderId,
+      updateOrder,
+      orders,
+      refreshOrders
+    );
     if (!openChatWithTopic) openChat();
   };
 
@@ -81,8 +98,16 @@ const OrdersCard: React.FC = () => {
                       <Skeleton variant="text" width="80px" height="14px" />
                       <Skeleton variant="text" width="120px" height="16px" />
                       <div className="flex gap-2">
-                        <Skeleton variant="rectangular" width="60px" height="18px" />
-                        <Skeleton variant="rectangular" width="90px" height="18px" />
+                        <Skeleton
+                          variant="rectangular"
+                          width="60px"
+                          height="18px"
+                        />
+                        <Skeleton
+                          variant="rectangular"
+                          width="90px"
+                          height="18px"
+                        />
                       </div>
                     </div>
                   </div>
@@ -106,7 +131,9 @@ const OrdersCard: React.FC = () => {
     <div className="relative">
       <Card className="p-0">
         <div className="flex items-center justify-between px-4 py-3">
-          <span className="text-base font-semibold text-neutral-800">Recent Orders</span>
+          <span className="text-base font-semibold text-neutral-800">
+            Recent Orders
+          </span>
         </div>
 
         <div className="space-y-4 px-3 pb-3">
@@ -115,69 +142,85 @@ const OrdersCard: React.FC = () => {
               key={o.id}
               className="relative rounded-2xl border bg-white/80 shadow-sm p-5 min-h-[96px]"
             >
-                {/* Checkbox (hidden until selection mode) */}
-                <div className="absolute -left-3 top-1/2 -translate-y-1/2 z-10">
-                  <Checkbox
-                    checked={orderSelection.isSelected(o.id)}
-                    onCheckedChange={() => toggleOrderSelection(o.id)}
-                    className={cn(
-                      'bg-white border-2 border-gray-300 w-5 h-5 rounded data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500',
-                      orderSelection.selectionCount > 0 ? 'opacity-100' : 'opacity-0'
-                    )}
-                  />
-                </div>
+              {/* Checkbox (hidden until selection mode) */}
+              <div className="absolute -left-3 top-1/2 -translate-y-1/2 z-10">
+                <Checkbox
+                  checked={orderSelection.isSelected(o.id)}
+                  onCheckedChange={() => toggleOrderSelection(o.id)}
+                  className={cn(
+                    'bg-white border-2 border-gray-300 w-5 h-5 rounded data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500',
+                    orderSelection.selectionCount > 0
+                      ? 'opacity-100'
+                      : 'opacity-0'
+                  )}
+                />
+              </div>
 
-                <div className="grid grid-cols-[1fr_auto] items-start gap-5 pl-6">
-                  {/* Left grid: 5 stacked rows */}
-                  <div className="min-w-0 space-y-1.5">
-                    {/* Row 1: order id */}
-                    <div className="text-[13px] sm:text-sm text-neutral-500">{o.id}</div>
-                    {/* Row 2: name */}
-                    <div className="text-[14px] sm:text-base font-semibold text-neutral-900">{o.customer}</div>
-                    {/* Row 3: badges */}
-                    <div className="flex items-center gap-2 whitespace-nowrap">
-                      {o.priority && (
-                        <Badge size="sm" variant="error" className="text-[11px] whitespace-nowrap">
-                          {o.priority}
-                        </Badge>
-                      )}
+              <div className="grid grid-cols-[1fr_auto] items-start gap-5 pl-6">
+                {/* Left grid: 5 stacked rows */}
+                <div className="min-w-0 space-y-1.5">
+                  {/* Row 1: order id */}
+                  <div className="text-[13px] sm:text-sm text-neutral-500">
+                    {o.id}
+                  </div>
+                  {/* Row 2: name */}
+                  <div className="text-[14px] sm:text-base font-semibold text-neutral-900">
+                    {o.customer}
+                  </div>
+                  {/* Row 3: badges */}
+                  <div className="flex items-center gap-2 whitespace-nowrap">
+                    {o.priority && (
                       <Badge
                         size="sm"
-                        variant={getOrderStatusBadgeVariant(o.status)}
+                        variant="error"
                         className="text-[11px] whitespace-nowrap"
                       >
-                        {o.status}
+                        {o.priority}
                       </Badge>
-                    </div>
-                    {/* Row 4: price */}
-                    <div className="text-[15px] sm:text-base font-semibold">{o.total}</div>
-                    {/* Row 5: date */}
-                    <div className="text-[12px] sm:text-sm text-neutral-500">{o.date}</div>
+                    )}
+                    <Badge
+                      size="sm"
+                      variant={getOrderStatusBadgeVariant(o.status)}
+                      className="text-[11px] whitespace-nowrap"
+                    >
+                      {o.status}
+                    </Badge>
                   </div>
-
-                  {/* Right: three-dot overflow (trigger + menu) */}
-                  <div className="flex justify-end relative">
-                    <MobileCardMenu
-                      isOpen={openMenuId === o.id}
-                      onToggle={() =>
-                        setOpenMenuId(prev => (prev === o.id ? null : o.id))
-                      }
-                      actions={[
-                        { label: 'View in Chat', onClick: () => viewInChat(o.id) },
-                        {
-                          label: orderSelection.isSelected(o.id)
-                            ? 'Unselect'
-                            : 'Select',
-                          onClick: () => toggleOrderSelection(o.id),
-                        },
-                      ]}
-                    />
+                  {/* Row 4: price */}
+                  <div className="text-[15px] sm:text-base font-semibold">
+                    {o.total}
+                  </div>
+                  {/* Row 5: date */}
+                  <div className="text-[12px] sm:text-sm text-neutral-500">
+                    {o.date}
                   </div>
                 </div>
+
+                {/* Right: three-dot overflow (trigger + menu) */}
+                <div className="flex justify-end relative">
+                  <MobileCardMenu
+                    isOpen={openMenuId === o.id}
+                    onToggle={() =>
+                      setOpenMenuId(prev => (prev === o.id ? null : o.id))
+                    }
+                    actions={[
+                      {
+                        label: 'View in Chat',
+                        onClick: () => viewInChat(o.id),
+                      },
+                      {
+                        label: orderSelection.isSelected(o.id)
+                          ? 'Unselect'
+                          : 'Select',
+                        onClick: () => toggleOrderSelection(o.id),
+                      },
+                    ]}
+                  />
+                </div>
+              </div>
             </div>
           ))}
         </div>
-
       </Card>
 
       {/* Pagination outside the card container */}

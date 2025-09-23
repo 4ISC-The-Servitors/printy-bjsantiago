@@ -68,15 +68,6 @@ export const CustomerChatPanel: React.FC<CustomerChatPanelProps> = ({
 
   return (
     <div className="h-full w-full relative">
-      {/* Disabled State Overlay */}
-      {disabled && (
-        <div className="absolute bottom-0 left-0 right-0 bg-neutral-50 border-t border-neutral-200 p-4 text-center z-50">
-          <span className="text-sm text-neutral-500">
-            This conversation has ended but you can view messages.
-          </span>
-        </div>
-      )}
-
       {/* Render appropriate version based on screen size */}
       {isMobile ? (
         <MobileChatPanel
@@ -90,6 +81,7 @@ export const CustomerChatPanel: React.FC<CustomerChatPanelProps> = ({
           {...commonProps}
           hideSelectedBar={true}
           hideInput={disabled}
+          readOnly={!!disabled}
         />
       )}
     </div>

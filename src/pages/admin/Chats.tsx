@@ -28,13 +28,19 @@ const AdminChatsPage: React.FC = () => {
   return (
     <div className="p-4">
       <div className="mb-4">
-        <Text variant="h3" size="xl" weight="bold">All Chats</Text>
-        <Text variant="p" size="sm" color="muted">Recent conversations across admin assistants</Text>
+        <Text variant="h3" size="xl" weight="bold">
+          All Chats
+        </Text>
+        <Text variant="p" size="sm" color="muted">
+          Recent conversations across admin assistants
+        </Text>
       </div>
 
       {total === 0 ? (
         <Card className="p-4">
-          <Text variant="p" size="sm" color="muted">No conversations yet.</Text>
+          <Text variant="p" size="sm" color="muted">
+            No conversations yet.
+          </Text>
         </Card>
       ) : (
         <div className="space-y-2">
@@ -58,16 +64,26 @@ const AdminChatsPage: React.FC = () => {
                     >
                       {c.title}
                     </Text>
-                    <Badge variant={c.status === 'active' ? 'success' : 'error'} size="sm">
+                    <Badge
+                      variant={c.status === 'active' ? 'success' : 'error'}
+                      size="sm"
+                    >
                       {c.status === 'active' ? 'Active' : 'Ended'}
                     </Badge>
                   </div>
-                  <Text variant="p" size="xs" color="muted" className="truncate">
-                    {lastBotMessage?.text?.substring(0, 100) || 'No messages yet'}
+                  <Text
+                    variant="p"
+                    size="xs"
+                    color="muted"
+                    className="truncate"
+                  >
+                    {lastBotMessage?.text?.substring(0, 100) ||
+                      'No messages yet'}
                     {(lastBotMessage?.text?.length || 0) > 100 ? '...' : ''}
                   </Text>
                   <Text variant="p" size="xs" color="muted" className="mt-1">
-                    {formatLongDate(c.updatedAt)} • {formatShortTime(c.updatedAt)}
+                    {formatLongDate(c.updatedAt)} •{' '}
+                    {formatShortTime(c.updatedAt)}
                   </Text>
                 </div>
               </button>
@@ -87,5 +103,3 @@ const AdminChatsPage: React.FC = () => {
 };
 
 export default AdminChatsPage;
-
-

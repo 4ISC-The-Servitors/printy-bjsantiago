@@ -30,6 +30,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   mobileOffsetLeftClass = 'left-16',
   hideHeader = false,
   hideInput = false,
+  readOnly = false,
 }) => {
   const [input, setInput] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -142,6 +143,9 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
           />
         </div>
       )}
+
+      {/* Read-only bottom spacer to avoid overlap with any external banners */}
+      {readOnly && <div className="h-12" />}
     </div>
   );
 };

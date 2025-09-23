@@ -40,8 +40,9 @@ const AdminConversationsContext = createContext<
   AdminConversationsContextValue | undefined
 >(undefined);
 
-export const AdminConversationsProvider: React.FC<{ children: React.ReactNode }>
-  = ({ children }) => {
+export const AdminConversationsProvider: React.FC<{
+  children: React.ReactNode;
+}> = ({ children }) => {
   const [conversations, setConversations] = useState<AdminConversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const idCounter = useRef(0);
@@ -117,5 +118,3 @@ export const useAdminConversations = () => {
     );
   return ctx;
 };
-
-

@@ -42,8 +42,15 @@ const AdminMobileLayout: React.FC<AdminMobileLayoutProps> = ({
   // Close sidebar whenever any component requests to open admin chat
   useEffect(() => {
     const closeSidebarOnChatOpen = () => setIsSidebarOpen(false);
-    window.addEventListener('admin-chat-open', closeSidebarOnChatOpen as EventListener);
-    return () => window.removeEventListener('admin-chat-open', closeSidebarOnChatOpen as EventListener);
+    window.addEventListener(
+      'admin-chat-open',
+      closeSidebarOnChatOpen as EventListener
+    );
+    return () =>
+      window.removeEventListener(
+        'admin-chat-open',
+        closeSidebarOnChatOpen as EventListener
+      );
   }, []);
   return (
     <div className="flex h-screen bg-gray-50">
@@ -81,13 +88,22 @@ const AdminMobileLayout: React.FC<AdminMobileLayoutProps> = ({
             setShowLogoutConfirm(true);
           }}
         />
-        <Modal isOpen={showLogoutConfirm} onClose={() => setShowLogoutConfirm(false)} size="sm">
+        <Modal
+          isOpen={showLogoutConfirm}
+          onClose={() => setShowLogoutConfirm(false)}
+          size="sm"
+        >
           <div className="bg-white rounded-2xl shadow-xl border border-neutral-200">
             <Modal.Header onClose={() => setShowLogoutConfirm(false)}>
-              <div className="text-base font-semibold text-neutral-900">Confirm Logout</div>
+              <div className="text-base font-semibold text-neutral-900">
+                Confirm Logout
+              </div>
             </Modal.Header>
             <Modal.Body>
-              <p className="text-sm text-neutral-600">Are you sure you want to log out? You'll need to sign in again to access your account.</p>
+              <p className="text-sm text-neutral-600">
+                Are you sure you want to log out? You'll need to sign in again
+                to access your account.
+              </p>
             </Modal.Body>
             <Modal.Footer>
               <button
@@ -100,7 +116,10 @@ const AdminMobileLayout: React.FC<AdminMobileLayoutProps> = ({
                 className="btn btn-error px-3 py-2 text-sm"
                 onClick={() => {
                   setShowLogoutConfirm(false);
-                  toast.success('Successfully logged out', 'You have been signed out of your account');
+                  toast.success(
+                    'Successfully logged out',
+                    'You have been signed out of your account'
+                  );
                   window.location.href = '/auth/signin';
                 }}
               >
@@ -109,7 +128,11 @@ const AdminMobileLayout: React.FC<AdminMobileLayoutProps> = ({
             </Modal.Footer>
           </div>
         </Modal>
-        <ToastContainer toasts={toasts} onRemoveToast={toast.remove} position="top-center" />
+        <ToastContainer
+          toasts={toasts}
+          onRemoveToast={toast.remove}
+          position="top-center"
+        />
       </div>
     </div>
   );

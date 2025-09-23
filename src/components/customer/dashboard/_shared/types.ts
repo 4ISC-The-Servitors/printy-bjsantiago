@@ -15,6 +15,7 @@ export interface RecentOrder {
   title: string;
   status: string;
   updatedAt: number;
+  total?: string;
 }
 
 export interface RecentTicket {

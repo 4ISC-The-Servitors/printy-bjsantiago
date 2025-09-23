@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Badge, Button, Skeleton, Checkbox, Pagination } from '../../../shared';
+import {
+  Card,
+  Badge,
+  Button,
+  Skeleton,
+  Checkbox,
+  Pagination,
+} from '../../../shared';
 import { useOrderSelection } from '../../../../hooks/admin/SelectionContext';
 import { createOrderSelectionItems } from '../../../../utils/admin/selectionUtils';
 import { getOrderStatusBadgeVariant } from '../../../../utils/admin/statusColors';
@@ -25,7 +32,11 @@ const OrdersCard: React.FC = () => {
   }, []);
 
   // Adjust responsiveness: phones=2, laptops=3, desktops=4
-  const basePageSize = useResponsivePageSize({ phone: 2, tablet: 3, desktop: 4 });
+  const basePageSize = useResponsivePageSize({
+    phone: 2,
+    tablet: 3,
+    desktop: 4,
+  });
   const [page, setPage] = useState(1);
   const pageSize = React.useMemo(() => {
     if (typeof window === 'undefined') return basePageSize;

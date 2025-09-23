@@ -41,7 +41,10 @@ const MobileSidebar: React.FC<MobileSidebarProps> = ({
 
   const confirmLogout = () => {
     setShowLogoutConfirm(false);
-    toast.success('Successfully logged out', 'You have been signed out of your account');
+    toast.success(
+      'Successfully logged out',
+      'You have been signed out of your account'
+    );
     window.location.href = '/auth/signin';
   };
 
@@ -49,10 +52,7 @@ const MobileSidebar: React.FC<MobileSidebarProps> = ({
     <>
       {/* Mobile Sidebar Overlay */}
       {isOpen && (
-        <div
-          className="fixed inset-0 bg-black/20 z-30"
-          onClick={onClose}
-        />
+        <div className="fixed inset-0 bg-black/20 z-30" onClick={onClose} />
       )}
 
       {/* Mobile Sidebar */}
@@ -80,7 +80,12 @@ const MobileSidebar: React.FC<MobileSidebarProps> = ({
           <div className="p-4 space-y-4 overflow-y-auto flex-1">
             {/* Recent Chats section */}
             <div className="flex items-center justify-between px-1">
-              <Text variant="h3" size="sm" weight="semibold" className="text-neutral-700">
+              <Text
+                variant="h3"
+                size="sm"
+                weight="semibold"
+                className="text-neutral-700"
+              >
                 Recent Chats
               </Text>
               <Button
@@ -96,7 +101,12 @@ const MobileSidebar: React.FC<MobileSidebarProps> = ({
               </Button>
             </div>
             <div className="mt-2 border-t border-neutral-200" />
-            <RecentChats onSelect={handleSelectChat} limit={4} showHeader={false} className="mb-3" />
+            <RecentChats
+              onSelect={handleSelectChat}
+              limit={4}
+              showHeader={false}
+              className="mb-3"
+            />
           </div>
           <div className="border-t border-neutral-200 p-4 mb-5 space-y-3">
             <Button
@@ -117,7 +127,11 @@ const MobileSidebar: React.FC<MobileSidebarProps> = ({
             </Button>
           </div>
         </div>
-        <Modal isOpen={showLogoutConfirm} onClose={() => setShowLogoutConfirm(false)} size="sm">
+        <Modal
+          isOpen={showLogoutConfirm}
+          onClose={() => setShowLogoutConfirm(false)}
+          size="sm"
+        >
           <div className="bg-white rounded-2xl shadow-xl border border-neutral-200">
             <div className="flex items-center justify-between p-6 pb-4">
               <Text variant="h3" size="lg" weight="semibold">
@@ -135,13 +149,16 @@ const MobileSidebar: React.FC<MobileSidebarProps> = ({
 
             <div className="px-6 pb-4">
               <Text variant="p">
-                Are you sure you want to log out? You'll need to sign in again to
-                access your account.
+                Are you sure you want to log out? You'll need to sign in again
+                to access your account.
               </Text>
             </div>
 
             <div className="flex items-center justify-end gap-3 p-6 pt-4">
-              <Button variant="ghost" onClick={() => setShowLogoutConfirm(false)}>
+              <Button
+                variant="ghost"
+                onClick={() => setShowLogoutConfirm(false)}
+              >
                 Cancel
               </Button>
               <Button variant="error" threeD onClick={confirmLogout}>
@@ -151,7 +168,11 @@ const MobileSidebar: React.FC<MobileSidebarProps> = ({
           </div>
         </Modal>
       </div>
-      <ToastContainer toasts={toasts} onRemoveToast={toast.remove} position="top-center" />
+      <ToastContainer
+        toasts={toasts}
+        onRemoveToast={toast.remove}
+        position="top-center"
+      />
     </>
   );
 };

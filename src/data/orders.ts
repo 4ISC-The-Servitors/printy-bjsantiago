@@ -11,7 +11,9 @@ export type Order = {
     | 'Verifying Payment'
     | 'For Delivery/Pick-up'
     | 'Completed'
-    | 'Cancelled';
+    | 'Cancelled'
+    | 'Requesting Cancellation';
+
   priority?: 'Urgent';
   total: string;
   date: string;
@@ -32,7 +34,7 @@ export const mockOrders: Order[] = [
   {
     id: 'ORD-12351',
     customer: 'Miguel Tan',
-    status: 'Awaiting Quote Approval',
+    status: 'Requesting Cancellation',
     total: '₱5,000',
     date: 'May 1, 2025',
   },
@@ -44,7 +46,7 @@ export const mockOrders: Order[] = [
     date: 'May 30, 2025',
     // Prototype: dummy proof to render in admin verification chat
     proofOfPaymentUrl: '/test_payment_2.jpg',
-    proofUploadedAt: 'September 20, 2025 11:30 AM',    
+    proofUploadedAt: 'September 20, 2025 11:30 AM',
   },
   {
     id: 'ORD-12349',
@@ -115,5 +117,5 @@ export const mockOrders: Order[] = [
     // Prototype: dummy proof to render in admin verification chat
     proofOfPaymentUrl: '/test_payment.jpg',
     proofUploadedAt: 'January 30, 2025 10:30 AM',
-  }
+  },
 ];

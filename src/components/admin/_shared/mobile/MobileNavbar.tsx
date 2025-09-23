@@ -51,9 +51,7 @@ const MobileNavbar: React.FC<MobileNavbarProps> = ({ onOpenChat }) => {
               className={`w-full flex flex-col items-center gap-1 min-h-[56px] ${
                 isActive('/admin/orders') ? 'text-blue-600' : 'text-gray-600'
               }`}
-              aria-current={
-                isActive('/admin/orders') ? 'page' : undefined
-              }
+              aria-current={isActive('/admin/orders') ? 'page' : undefined}
               aria-label="Orders"
               onClick={() => navigate('/admin/orders')}
             >
@@ -70,9 +68,7 @@ const MobileNavbar: React.FC<MobileNavbarProps> = ({ onOpenChat }) => {
               className={`w-full flex flex-col items-center gap-1 min-h-[56px] ${
                 isActive('/admin/tickets') ? 'text-blue-600' : 'text-gray-600'
               }`}
-              aria-current={
-                isActive('/admin/tickets') ? 'page' : undefined
-              }
+              aria-current={isActive('/admin/tickets') ? 'page' : undefined}
               aria-label="Tickets"
               onClick={() => navigate('/admin/tickets')}
             >
@@ -89,9 +85,7 @@ const MobileNavbar: React.FC<MobileNavbarProps> = ({ onOpenChat }) => {
               className={`w-full flex flex-col items-center gap-1 min-h-[56px] ${
                 isActive('/admin/portfolio') ? 'text-blue-600' : 'text-gray-600'
               }`}
-              aria-current={
-                isActive('/admin/portfolio') ? 'page' : undefined
-              }
+              aria-current={isActive('/admin/portfolio') ? 'page' : undefined}
               aria-label="Portfolio"
               onClick={() => navigate('/admin/portfolio')}
             >
@@ -123,5 +117,3 @@ const MobileNavbar: React.FC<MobileNavbarProps> = ({ onOpenChat }) => {
 };
 
 export default MobileNavbar;
-
-

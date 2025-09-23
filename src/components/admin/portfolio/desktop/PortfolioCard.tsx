@@ -320,8 +320,7 @@ const PortfolioCard: React.FC = () => {
                             </div>
                           </div>
                         </div>
-                        <div className="text-right flex-shrink-0 ml-4">
-                        </div>
+                        <div className="text-right flex-shrink-0 ml-4"></div>
                       </div>
                     ))}
                   </div>

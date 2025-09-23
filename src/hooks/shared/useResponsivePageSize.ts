@@ -60,5 +60,3 @@ export function useResponsivePageSize(
 }
 
 export default useResponsivePageSize;
-
-

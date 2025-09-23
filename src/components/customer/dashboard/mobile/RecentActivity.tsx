@@ -1,6 +1,10 @@
 import React from 'react';
 import { Text, Badge, Card, Button } from '../../../shared';
-import { formatLongDate } from '../../../../utils/shared';
+import {
+  formatLongDate,
+  formatCurrency,
+  extractNumericValue,
+} from '../../../../utils/shared';
 import type { RecentActivityProps } from '../_shared/types';
 
 export const RecentActivity: React.FC<RecentActivityProps> = ({
@@ -20,18 +24,19 @@ export const RecentActivity: React.FC<RecentActivityProps> = ({
     | 'info' => {
     const s = status.toLowerCase();
     if (s === 'needs quote') return 'error';
-    if (s === 'pending') return 'secondary';
+    if (s === 'awaiting quote approval') return 'secondary';
     if (s === 'processing') return 'primary';
     if (s === 'awaiting payment') return 'warning';
     if (s === 'verifying payment') return 'info';
     if (s === 'for delivery/pick-up') return 'accent';
     if (s === 'completed') return 'success';
+    if (s === 'requesting cancellation') return 'error';
     if (s === 'cancelled') return 'error';
     return 'info';
   };
   return (
     <div className="space-y-3">
-      {/* Recent Order */}
+      {/* Recent Order A (as-is) */}
       <Card className="p-4">
         <div className="grid grid-cols-2 gap-3 items-start">
           {/* Left column */}
@@ -57,11 +62,13 @@ export const RecentActivity: React.FC<RecentActivityProps> = ({
               <Text variant="p" size="sm" weight="semibold">
                 Awaiting Quote
               </Text>
-            ) : ['pending', 'awaiting payment', 'verifying payment'].includes(
-                recentOrder.status.toLowerCase()
-              ) ? (
+            ) : [
+                'awaiting quote approval',
+                'awaiting payment',
+                'verifying payment',
+              ].includes(recentOrder.status.toLowerCase()) ? (
               <Text variant="p" size="sm" weight="semibold">
-                ₱5,000
+                {formatCurrency(extractNumericValue(recentOrder.total || '₱0'))}
               </Text>
             ) : null}
             <Text variant="p" size="xs" color="muted">
@@ -69,23 +76,58 @@ export const RecentActivity: React.FC<RecentActivityProps> = ({
             </Text>
           </div>
         </div>
-        {recentOrder.status.toLowerCase() === 'awaiting payment' && (
-          <div className="flex justify-end mt-3">
-            <Button
-              variant="primary"
-              size="sm"
-              threeD
-              onClick={() => {
-                const event = new CustomEvent('customer-open-payment-chat', {
-                  detail: { orderId: recentOrder.id },
-                });
-                window.dispatchEvent(event);
-              }}
+        {/* Actions: Cancel Order (default) and Pay Now (only if Awaiting Payment) */}
+        {(() => {
+          const s = recentOrder.status.toLowerCase();
+          const hideCancel =
+            s === 'completed' ||
+            s === 'cancelled' ||
+            s === 'for delivery/pick-up';
+          const isAwaitingPayment = s === 'awaiting payment';
+          if (hideCancel && !isAwaitingPayment) return null;
+          return (
+            <div
+              className={`flex justify-end mt-3 ${isAwaitingPayment ? 'gap-2' : ''}`}
             >
-              Pay Now
-            </Button>
-          </div>
-        )}
+              {!hideCancel && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  threeD
+                  onClick={() => {
+                    const event = new CustomEvent('customer-open-cancel-chat', {
+                      detail: {
+                        orderId: recentOrder.id,
+                        orderStatus: recentOrder.status,
+                      },
+                    });
+                    window.dispatchEvent(event);
+                  }}
+                >
+                  Cancel Order
+                </Button>
+              )}
+              {isAwaitingPayment && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  threeD
+                  onClick={() => {
+                    const event = new CustomEvent(
+                      'customer-open-payment-chat',
+                      {
+                        detail: { orderId: recentOrder.id },
+                      }
+                    );
+                    window.dispatchEvent(event);
+                  }}
+                >
+                  Pay Now
+                </Button>
+              )}
+            </div>
+          );
+        })()}
       </Card>
 
       {/* Recent Ticket */}

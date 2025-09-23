@@ -18,11 +18,13 @@ export const getOrderStatusBadgeVariant = (status: string): BadgeVariant => {
   if (s === 'processing') return 'info';
   if (s === 'awaiting quote approval') return 'warning';
   if (s === 'awaiting payment') return 'warning';
+  if (s === 'needs quote') return 'warning';
   if (s === 'verifying payment') return 'info';
   if (s === 'for delivery/pick-up' || s === 'for delivery' || s === 'pick-up')
     return 'info';
   if (s === 'completed') return 'success';
   if (s === 'cancelled') return 'error';
+  if (s === 'requesting cancellation') return 'error';
   return 'secondary';
 };
 

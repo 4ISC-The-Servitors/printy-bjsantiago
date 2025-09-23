@@ -51,7 +51,12 @@ const MobileCardMenu: React.FC<MobileCardMenuProps> = ({
                   : ''
               }`}
             >
-              <Text variant="p" size="sm" weight="medium" className="text-neutral-700">
+              <Text
+                variant="p"
+                size="sm"
+                weight="medium"
+                className="text-neutral-700"
+              >
                 {action.label}
               </Text>
             </Button>

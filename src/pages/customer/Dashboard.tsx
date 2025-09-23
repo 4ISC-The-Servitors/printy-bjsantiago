@@ -182,7 +182,7 @@ const CustomerDashboard: React.FC = () => {
     return {
       id: miguel?.id || 'ORD-000145',
       title: miguel ? `Order for ${miguel.customer}` : 'Recent Order',
-      status: 'Awaiting Payment' as const,
+      status: 'Awaiting Payment',
       updatedAt: Date.now() - 1000 * 60 * 45,
       total: '₱5,000',
     };
@@ -215,14 +215,6 @@ const CustomerDashboard: React.FC = () => {
     );
     const initialMessages =
       (flow as any).initial?.(ctx || {}) || flow.initial({});
-    const botMessages: ChatMessage[] = initialMessages.map(
-      (msg: { text: string }) => ({
-        id: crypto.randomUUID(),
-        role: 'printy' as ChatRole,
-        text: msg.text,
-        ts: Date.now(),
-      })
-    );
 
     // Find the topic config to get the icon
     const topicEntry = Object.entries(topicConfig).find(
@@ -234,7 +226,7 @@ const CustomerDashboard: React.FC = () => {
       id: crypto.randomUUID(),
       title,
       createdAt: Date.now(),
-      messages: botMessages,
+      messages: [],
       flowId,
       status: 'active',
       icon,
@@ -242,16 +234,48 @@ const CustomerDashboard: React.FC = () => {
 
     setConversations(prev => [conversation, ...prev]);
     setActiveId(conversation.id);
-    setMessages(botMessages);
 
-    // Set initial quick replies
-    const replies = flow.quickReplies().map((label: string, index: number) => ({
-      id: `qr-${index}`,
-      label,
-      value: label,
-    }));
-    setQuickReplies(replies);
-    updateInputPlaceholder(flowId, replies);
+    // Sequentially render initial bot messages with typing indicator before each
+    const msgs = initialMessages as { text: string }[];
+    let index = 0;
+    const renderNext = () => {
+      if (index >= msgs.length) {
+        // Set initial quick replies after all messages are rendered
+        let rawReplies = flow.quickReplies();
+        if (!rawReplies || rawReplies.length === 0) {
+          rawReplies = ['End Chat'];
+        }
+        const replies = rawReplies.map((label: string, i: number) => ({
+          id: `qr-${i}`,
+          label,
+          value: label,
+        }));
+        setQuickReplies(replies);
+        updateInputPlaceholder(flowId, replies);
+        setIsTyping(false);
+        return;
+      }
+      setIsTyping(true);
+      setTimeout(() => {
+        const m = msgs[index++];
+        const botMsg: ChatMessage = {
+          id: crypto.randomUUID(),
+          role: 'printy' as ChatRole,
+          text: m.text,
+          ts: Date.now(),
+        };
+        setMessages(prev => [...prev, botMsg]);
+        setConversations(prev =>
+          prev.map(c =>
+            c.id === conversation.id
+              ? { ...c, messages: [...c.messages, botMsg] }
+              : c
+          )
+        );
+        renderNext();
+      }, 1000);
+    };
+    renderNext();
   };
 
   const updateInputPlaceholder = (flowId: string, replies: QuickReply[]) => {
@@ -279,6 +303,31 @@ const CustomerDashboard: React.FC = () => {
     return () =>
       window.removeEventListener(
         'customer-open-payment-chat',
+        handler as EventListener
+      );
+  }, [recentOrder.id]);
+
+  // Listen for Cancel Order button to open Cancel chat
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as {
+        orderId?: string;
+        orderStatus?: string;
+      };
+      const orderId = detail?.orderId || recentOrder.id;
+      const title = `Cancel Order ${orderId}`;
+      initializeFlow('cancel-order', title, {
+        orderId,
+        orderStatus: detail?.orderStatus,
+      });
+    };
+    window.addEventListener(
+      'customer-open-cancel-chat',
+      handler as EventListener
+    );
+    return () =>
+      window.removeEventListener(
+        'customer-open-cancel-chat',
         handler as EventListener
       );
   }, [recentOrder.id]);
@@ -315,47 +364,52 @@ const CustomerDashboard: React.FC = () => {
     try {
       const response = await currentFlow.respond({}, text);
 
-      setTimeout(() => {
-        const botMessages: ChatMessage[] = response.messages.map(
-          (msg: { text: string }) => ({
-            id: crypto.randomUUID(),
-            role: 'printy' as ChatRole,
-            text: msg.text,
-            ts: Date.now(),
-          })
-        );
-
-        setMessages(prev => [...prev, ...botMessages]);
-        setConversations(prev =>
-          prev.map(c =>
-            c.id === activeId
-              ? { ...c, messages: [...c.messages, ...botMessages] }
-              : c
-          )
-        );
-
-        // Update quick replies
-        const replies = (response.quickReplies || []).map(
-          (label: string, index: number) => ({
-            id: `qr-${index}`,
+      // Sequentially render response messages with typing indicator before each
+      const msgs = (response.messages || []) as { text: string }[];
+      let index = 0;
+      const renderNext = () => {
+        if (index >= msgs.length) {
+          const rr = response.quickReplies || [];
+          const rawReplies = rr.length === 0 ? ['End Chat'] : rr;
+          const replies = rawReplies.map((label: string, i: number) => ({
+            id: `qr-${i}`,
             label,
             value: label,
-          })
-        );
-        setQuickReplies(replies);
-        updateInputPlaceholder(currentFlow.id, replies);
-
-        // If payment moved to verifying, update recentOrder status immediately
-        if (
-          response.messages.some((m: any) =>
-            String(m.text || '').includes('confirm your payment shortly')
-          )
-        ) {
-          setRecentOrder(prev => ({ ...prev, status: 'Verifying Payment' }));
+          }));
+          setQuickReplies(replies);
+          updateInputPlaceholder(currentFlow.id, replies);
+          // If payment moved to verifying, update recentOrder status immediately
+          if (
+            msgs.some((m: any) =>
+              String(m.text || '').includes('confirm your payment shortly')
+            )
+          ) {
+            setRecentOrder(prev => ({ ...prev, status: 'Verifying Payment' }));
+          }
+          setIsTyping(false);
+          return;
         }
-
-        setIsTyping(false);
-      }, 800);
+        setIsTyping(true);
+        setTimeout(() => {
+          const m = msgs[index++];
+          const botMsg: ChatMessage = {
+            id: crypto.randomUUID(),
+            role: 'printy' as ChatRole,
+            text: m.text,
+            ts: Date.now(),
+          };
+          setMessages(prev => [...prev, botMsg]);
+          setConversations(prev =>
+            prev.map(c =>
+              c.id === activeId
+                ? { ...c, messages: [...c.messages, botMsg] }
+                : c
+            )
+          );
+          renderNext();
+        }, 600);
+      };
+      renderNext();
     } catch (error) {
       console.error('Flow error:', error);
       toastMethods.error(

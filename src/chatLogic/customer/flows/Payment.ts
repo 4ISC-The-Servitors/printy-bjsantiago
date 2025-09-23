@@ -32,10 +32,10 @@ const NODES: Record<string, Node> = {
     id: 'qrph',
     message:
       'Here are QRPH codes: Gcash (/gcash.jpg) and Maya (/maya.jpg).\nPlease upload your proof of payment using the file upload button beside the typing area to proceed.',
-      options: [
-        { label: 'Online Bank Transfer instead', next: 'bank' },
-        { label: 'End Chat', next: 'end' },
-      ],
+    options: [
+      { label: 'Online Bank Transfer instead', next: 'bank' },
+      { label: 'End Chat', next: 'end' },
+    ],
   },
   verifying: {
     id: 'verifying',

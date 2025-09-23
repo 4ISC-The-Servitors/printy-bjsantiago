@@ -96,7 +96,9 @@ const AdminMobileChatOverlay: React.FC<Props> = ({
         />
         {readOnly && (
           <div className="absolute bottom-0 left-0 right-0 bg-neutral-50 border-t border-neutral-200 p-3 text-center z-50">
-            <span className="text-sm text-neutral-500">This conversation has ended but you can view messages.</span>
+            <span className="text-sm text-neutral-500">
+              This conversation has ended but you can view messages.
+            </span>
           </div>
         )}
       </div>

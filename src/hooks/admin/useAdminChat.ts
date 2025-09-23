@@ -52,14 +52,13 @@ export const useAdminChat = (): UseAdminChatReturn => {
     addMessage: addConvMessage,
     endConversation,
   } = useAdminConversations();
-  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
+  const [currentConversationId, setCurrentConversationId] = useState<
+    string | null
+  >(null);
   const [readOnly, setReadOnly] = useState<boolean>(false);
   const { clearSelected } = useAdmin();
 
-  const buildConversationTitle = (
-    topic: string,
-    orderId?: string
-  ): string => {
+  const buildConversationTitle = (topic: string, orderId?: string): string => {
     const t = (topic || '').toLowerCase();
     if (t.includes('orders') || t.includes('order')) {
       return orderId ? `Orders • ${orderId}` : 'Orders';
@@ -100,7 +99,8 @@ export const useAdminChat = (): UseAdminChatReturn => {
       ts: Date.now(),
     };
     setMessages(prev => [...prev, endMessage]);
-    if (currentConversationId) addConvMessage('printy', endMessage.text, currentConversationId);
+    if (currentConversationId)
+      addConvMessage('printy', endMessage.text, currentConversationId);
     setQuickReplies([]);
     setTimeout(() => {
       if (currentConversationId) {
@@ -115,7 +115,9 @@ export const useAdminChat = (): UseAdminChatReturn => {
 
   const handleChatOpen = () => {
     setReadOnly(false);
-    try { clearSelected(); } catch {}
+    try {
+      clearSelected();
+    } catch {}
     setChatOpen(true);
     if (messages.length === 0) {
       setCurrentFlow('intro');
@@ -151,7 +153,9 @@ export const useAdminChat = (): UseAdminChatReturn => {
     orderIds?: string[]
   ) => {
     setReadOnly(false);
-    try { clearSelected(); } catch {}
+    try {
+      clearSelected();
+    } catch {}
     setChatOpen(true);
     const nextTopic = topic || 'intro';
 
@@ -259,7 +263,8 @@ export const useAdminChat = (): UseAdminChatReturn => {
       ts: Date.now(),
     };
     setMessages(prev => [...prev, userMsg]);
-    if (currentConversationId) addConvMessage('user', text, currentConversationId);
+    if (currentConversationId)
+      addConvMessage('user', text, currentConversationId);
     setIsTyping(true);
 
     // Intercepts for pending actions
@@ -278,7 +283,11 @@ export const useAdminChat = (): UseAdminChatReturn => {
             },
           ]);
           if (currentConversationId)
-            addConvMessage('printy', 'Resolution comment saved and sent to the customer.', currentConversationId);
+            addConvMessage(
+              'printy',
+              'Resolution comment saved and sent to the customer.',
+              currentConversationId
+            );
         } catch (e: any) {
           setMessages(prev => [
             ...prev,
@@ -290,7 +299,11 @@ export const useAdminChat = (): UseAdminChatReturn => {
             },
           ]);
           if (currentConversationId)
-            addConvMessage('printy', `Failed to save resolution: ${e?.message || 'Unknown error'}`, currentConversationId);
+            addConvMessage(
+              'printy',
+              `Failed to save resolution: ${e?.message || 'Unknown error'}`,
+              currentConversationId
+            );
         } finally {
           setPendingAction(null);
         }
@@ -312,7 +325,11 @@ export const useAdminChat = (): UseAdminChatReturn => {
             },
           ]);
           if (currentConversationId)
-            addConvMessage('printy', `Ticket assigned to ${trimmed}.`, currentConversationId);
+            addConvMessage(
+              'printy',
+              `Ticket assigned to ${trimmed}.`,
+              currentConversationId
+            );
         } catch (e: any) {
           setMessages(prev => [
             ...prev,
@@ -324,7 +341,11 @@ export const useAdminChat = (): UseAdminChatReturn => {
             },
           ]);
           if (currentConversationId)
-            addConvMessage('printy', `Failed to assign ticket: ${e?.message || 'Unknown error'}`, currentConversationId);
+            addConvMessage(
+              'printy',
+              `Failed to assign ticket: ${e?.message || 'Unknown error'}`,
+              currentConversationId
+            );
         } finally {
           setPendingAction(null);
         }
@@ -345,7 +366,9 @@ export const useAdminChat = (): UseAdminChatReturn => {
         }));
         setMessages(prev => [...prev, ...botMessages]);
         if (currentConversationId) {
-          resp.messages.forEach(m => addConvMessage('printy', m.text, currentConversationId));
+          resp.messages.forEach(m =>
+            addConvMessage('printy', m.text, currentConversationId)
+          );
         }
         setQuickReplies(
           (resp.quickReplies || []).map((l, index) => ({
@@ -465,7 +488,8 @@ export const useAdminChat = (): UseAdminChatReturn => {
       ts: Date.now(),
     };
     setMessages(prev => [...prev, userMsg]);
-    if (currentConversationId) addConvMessage('user', val, currentConversationId);
+    if (currentConversationId)
+      addConvMessage('user', val, currentConversationId);
     setIsTyping(true);
 
     const flow = resolveAdminFlow(currentFlow);
@@ -486,7 +510,9 @@ export const useAdminChat = (): UseAdminChatReturn => {
         }))
       );
       if (currentConversationId) {
-        resp.messages.forEach(m => addConvMessage('printy', m.text, currentConversationId));
+        resp.messages.forEach(m =>
+          addConvMessage('printy', m.text, currentConversationId)
+        );
       }
       setIsTyping(false);
     });
