@@ -586,7 +586,7 @@ const CustomerDashboard: React.FC = () => {
             <Button variant="ghost" onClick={() => setShowLogoutModal(false)}>
               Cancel
             </Button>
-            <Button variant="error" threeD onClick={confirmLogout}>
+            <Button variant="error" onClick={confirmLogout}>
               Logout
             </Button>
           </div>

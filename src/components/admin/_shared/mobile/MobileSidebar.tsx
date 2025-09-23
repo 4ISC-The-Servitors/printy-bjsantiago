@@ -1,5 +1,8 @@
 import React from 'react';
 import { Button, Text } from '../../../shared';
+import Modal from '../../../shared/Modal';
+import ToastContainer from '../../../shared/ToastContainer';
+import { useToast } from '../../../../lib/useToast';
 import { X, Settings, LogOut } from 'lucide-react';
 
 interface MobileSidebarProps {
@@ -15,20 +18,36 @@ const MobileSidebar: React.FC<MobileSidebarProps> = ({
   onSettingsClick,
   onLogoutClick,
 }) => {
+  const [showLogoutConfirm, setShowLogoutConfirm] = React.useState(false);
+  const [toasts, toast] = useToast({ position: 'top-center', duration: 2500 });
+
+  const handleLogoutPress = () => {
+    if (onLogoutClick) {
+      onLogoutClick();
+      return;
+    }
+    setShowLogoutConfirm(true);
+  };
+
+  const confirmLogout = () => {
+    setShowLogoutConfirm(false);
+    toast.success('Successfully logged out', 'You have been signed out of your account');
+    window.location.href = '/auth/signin';
+  };
+
   return (
     <>
       {/* Mobile Sidebar Overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/10 backdrop-blur-sm z-40"
+          className="fixed inset-0 bg-black/20 z-30"
           onClick={onClose}
-          style={{ backdropFilter: 'blur(4px)' }}
         />
       )}
 
       {/* Mobile Sidebar */}
       <div
-        className={`fixed left-0 top-0 h-full bg-white border-r border-gray-200 z-50 transform transition-transform duration-300 ease-in-out w-64 shadow-xl ${
+        className={`fixed left-0 top-0 h-full bg-white border-r border-gray-200 z-40 transform transition-transform duration-300 ease-in-out w-64 shadow-xl ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -54,29 +73,59 @@ const MobileSidebar: React.FC<MobileSidebarProps> = ({
           </div>
         </div>
 
-        <div className="p-4 space-y-2">
+        <div className="p-4 space-y-4">
           <Button
-            variant="ghost"
-            className="w-full justify-start gap-3 min-h-[44px] text-left"
             onClick={onSettingsClick}
+            variant="secondary"
+            className="w-full justify-start px-3 py-2"
+            threeD
           >
-            <Settings className="h-5 w-5" />
-            <Text variant="p" size="sm">
-              Settings
-            </Text>
+            <Settings className="w-4 h-4 mr-2" /> Settings
           </Button>
           <Button
-            variant="ghost"
-            className="w-full justify-start gap-3 min-h-[44px] text-left text-red-600 hover:text-red-700 hover:bg-red-50"
-            onClick={onLogoutClick}
+            onClick={handleLogoutPress}
+            variant="error"
+            className="w-full justify-start px-3 py-2"
+            threeD
           >
-            <LogOut className="h-5 w-5" />
-            <Text variant="p" size="sm" className="text-red-600">
-              Logout
-            </Text>
+            <LogOut className="w-4 h-4 mr-2" /> Logout
           </Button>
         </div>
+        <Modal isOpen={showLogoutConfirm} onClose={() => setShowLogoutConfirm(false)} size="sm">
+          <div className="bg-white rounded-2xl shadow-xl border border-neutral-200">
+            <div className="flex items-center justify-between p-6 pb-4">
+              <Text variant="h3" size="lg" weight="semibold">
+                Confirm Logout
+              </Text>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowLogoutConfirm(false)}
+                className="ml-4 h-8 w-8 p-0 hover:bg-neutral-100"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+
+            <div className="px-6 pb-4">
+              <Text variant="p">
+                Are you sure you want to log out? You'll need to sign in again to
+                access your account.
+              </Text>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 p-6 pt-4">
+              <Button variant="ghost" onClick={() => setShowLogoutConfirm(false)}>
+                Cancel
+              </Button>
+              <Button variant="error" threeD onClick={confirmLogout}>
+                Logout
+              </Button>
+            </div>
+          </div>
+        </Modal>
       </div>
+      <ToastContainer toasts={toasts} onRemoveToast={toast.remove} position="top-center" />
     </>
   );
 };
