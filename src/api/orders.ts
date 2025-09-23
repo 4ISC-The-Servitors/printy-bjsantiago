@@ -22,10 +22,7 @@ export interface GetOrderByNumberResponse {
 export const getOrderByNumber = async (
   payload: GetOrderByNumberPayload
 ): Promise<GetOrderByNumberResponse | null> => {
-  return invokeEdge<GetOrderByNumberResponse | null, GetOrderByNumberPayload>(
-    'orders-get-by-number',
-    payload
-  );
+  return invokeEdge<GetOrderByNumberResponse | null, GetOrderByNumberPayload>('orders-get-by-number', payload);
 };
 
 export interface ListOrdersForCustomerPayload {
@@ -42,10 +39,7 @@ export interface ListOrdersForCustomerResponseItem {
 export const listOrdersForCustomer = async (
   payload: ListOrdersForCustomerPayload
 ): Promise<ListOrdersForCustomerResponseItem[]> => {
-  return invokeEdge<ListOrdersForCustomerResponseItem[], ListOrdersForCustomerPayload>(
-    'orders-list-for-customer',
-    payload
-  );
+  return invokeEdge<ListOrdersForCustomerResponseItem[], ListOrdersForCustomerPayload>('orders-list-for-customer', payload);
 };
 
 

@@ -59,10 +59,7 @@ export interface GetInquiryByIdResponse {
 export const getInquiryById = async (
   payload: GetInquiryByIdPayload
 ): Promise<GetInquiryByIdResponse | null> => {
-  return invokeEdge<GetInquiryByIdResponse | null, GetInquiryByIdPayload>(
-    'inquiries-get-by-id',
-    payload
-  );
+  return invokeEdge<GetInquiryByIdResponse | null, GetInquiryByIdPayload>('inquiries-get-by-id', payload);
 };
 
 
