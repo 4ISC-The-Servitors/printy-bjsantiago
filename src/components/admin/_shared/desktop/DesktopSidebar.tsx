@@ -9,6 +9,7 @@ import {
   LogOut,
 } from 'lucide-react';
 import { Button, Text } from '../../../shared';
+import RecentChats from '../RecentChats';
 
 export interface AdminSidebarProps {
   active: 'dashboard' | 'orders' | 'tickets' | 'portfolio' | 'settings';
@@ -18,11 +19,16 @@ export interface AdminSidebarProps {
   onLogout: () => void;
 }
 
-const AdminSidebar: React.FC<AdminSidebarProps> = ({
+const DesktopSidebar: React.FC<AdminSidebarProps> = ({
   active,
   onNavigate,
   onLogout,
 }) => {
+  const handleSelectChat = (id: string) => {
+    // Set active conversation and open chat dock via global event
+    window.dispatchEvent(new CustomEvent('admin-chat-open'));
+    onNavigate('dashboard');
+  };
   const item = (
     id: AdminSidebarProps['active'],
     icon: React.ReactNode,
@@ -65,15 +71,40 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
       </div>
 
       <div className="flex-1 overflow-y-auto scrollbar-hide px-3">
-        <div className="space-y-3">
-          {item('dashboard', <LucideHome className="w-4 h-4" />, 'Dashboard')}
-          {item('orders', <Package className="w-4 h-4" />, 'Orders')}
-          {item('tickets', <Ticket className="w-4 h-4" />, 'Tickets')}
-          {item(
-            'portfolio',
-            <BriefcaseBusiness className="w-4 h-4" />,
-            'Portfolio'
-          )}
+        <div className="space-y-4">
+          <div className="pt-2">
+            <Text variant="h3" size="sm" weight="semibold" className="px-2 text-neutral-700">
+              Menu
+            </Text>
+            <div className="mt-2 border-t border-neutral-200" />
+            <div className="mt-2 space-y-2">
+              {item('dashboard', <LucideHome className="w-4 h-4" />, 'Dashboard')}
+              {item('orders', <Package className="w-4 h-4" />, 'Orders')}
+              {item('tickets', <Ticket className="w-4 h-4" />, 'Tickets')}
+              {item(
+                'portfolio',
+                <BriefcaseBusiness className="w-4 h-4" />,
+                'Portfolio'
+              )}
+            </div>
+          </div>
+
+          <div>
+            <Text variant="h3" size="sm" weight="semibold" className="px-2 mt-10 text-neutral-700">
+              Recent Chats
+            </Text>
+            <div className="mt-2 border-t border-neutral-200" />
+            <div className="pt-3">
+              <RecentChats onSelect={handleSelectChat} limit={3} showHeader={false} />
+              <Button
+                variant="ghost"
+                className="w-full justify-start px-3 py-2 mt-2 text-sm"
+                onClick={() => (window.location.href = '/admin/chats')}
+              >
+                View all
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -101,4 +132,4 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
   );
 };
 
-export default AdminSidebar;
+export default DesktopSidebar;

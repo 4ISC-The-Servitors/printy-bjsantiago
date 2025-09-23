@@ -8,6 +8,7 @@ import type {
 } from '../../components/chat/_shared/types';
 import { resolveAdminFlow, dispatchAdminCommand } from '../../chatLogic/admin';
 import { useInquiryActions } from './useInquiryActions';
+import { useAdminConversations } from './useAdminConversations';
 
 export interface UseAdminChatReturn {
   chatOpen: boolean;
@@ -24,9 +25,11 @@ export interface UseAdminChatReturn {
     refreshOrders?: () => void,
     orderIds?: string[]
   ) => void;
+  handleShowConversation: (conversationId: string) => void;
   endChatWithDelay: () => void;
   handleSendMessage: (text: string) => void;
   handleQuickReply: (value: string) => void;
+  readOnly: boolean;
 }
 
 export const useAdminChat = (): UseAdminChatReturn => {
@@ -42,8 +45,45 @@ export const useAdminChat = (): UseAdminChatReturn => {
   const [currentInquiryId, setCurrentInquiryId] = useState<string | null>(null);
   const { updateInquiryStatus, assignInquiry, saveResolutionComment } =
     useInquiryActions();
+  const {
+    conversations,
+    startConversation,
+    addMessage: addConvMessage,
+    endConversation,
+  } = useAdminConversations();
+  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
+  const [readOnly, setReadOnly] = useState<boolean>(false);
+
+  const buildConversationTitle = (
+    topic: string,
+    orderId?: string
+  ): string => {
+    const t = (topic || '').toLowerCase();
+    if (t.includes('orders') || t.includes('order')) {
+      return orderId ? `Orders • ${orderId}` : 'Orders';
+    }
+    if (t.includes('tickets') || t.includes('ticket')) {
+      return orderId ? `Tickets • ${orderId}` : 'Tickets';
+    }
+    if (t.includes('add-service') || t.includes('add service')) {
+      return 'Add Service';
+    }
+    if (t.includes('portfolio') || t.includes('service')) {
+      return orderId ? `Portfolio • ${orderId}` : 'Portfolio';
+    }
+    return 'Admin Chat';
+  };
 
   const endChatWithDelay = () => {
+    // If viewing an already-ended conversation, just close the panel
+    const existing = currentConversationId
+      ? conversations.find(c => c.id === currentConversationId)
+      : null;
+    if (readOnly || (existing && existing.status === 'ended')) {
+      setChatOpen(false);
+      return;
+    }
+
     const endMessage = {
       id: crypto.randomUUID(),
       role: 'printy' as const,
@@ -51,18 +91,27 @@ export const useAdminChat = (): UseAdminChatReturn => {
       ts: Date.now(),
     };
     setMessages(prev => [...prev, endMessage]);
+    if (currentConversationId) addConvMessage('printy', endMessage.text, currentConversationId);
     setQuickReplies([]);
     setTimeout(() => {
+      if (currentConversationId) {
+        endConversation(currentConversationId);
+        setCurrentConversationId(null);
+      }
+      setReadOnly(false);
       setChatOpen(false);
       setMessages([]);
     }, 2000);
   };
 
   const handleChatOpen = () => {
+    setReadOnly(false);
     setChatOpen(true);
     if (messages.length === 0) {
       setCurrentFlow('intro');
       setCurrentContext({});
+      const convId = startConversation('Admin Chat');
+      setCurrentConversationId(convId);
       const flow = resolveAdminFlow('intro');
       if (!flow) return;
       const initial = flow.initial({});
@@ -74,6 +123,7 @@ export const useAdminChat = (): UseAdminChatReturn => {
           ts: Date.now(),
         }))
       );
+      initial.forEach(m => addConvMessage('printy', m.text, convId));
       setQuickReplies(
         flow
           .quickReplies()
@@ -90,6 +140,7 @@ export const useAdminChat = (): UseAdminChatReturn => {
     refreshOrders?: () => void,
     orderIds?: string[]
   ) => {
+    setReadOnly(false);
     setChatOpen(true);
     const nextTopic = topic || 'intro';
 
@@ -148,6 +199,9 @@ export const useAdminChat = (): UseAdminChatReturn => {
         console.error('❌ No flow found for topic:', nextTopic);
         return;
       }
+      const title = buildConversationTitle(nextTopic, orderId);
+      const convId = startConversation(title);
+      setCurrentConversationId(convId);
       const initial = flow.initial(context);
 
       console.log('💬 Initial messages from useAdminChat:', initial);
@@ -161,6 +215,7 @@ export const useAdminChat = (): UseAdminChatReturn => {
           ts: Date.now(),
         }))
       );
+      initial.forEach(m => addConvMessage('printy', m.text, convId));
       setQuickReplies(
         flow
           .quickReplies()
@@ -170,7 +225,20 @@ export const useAdminChat = (): UseAdminChatReturn => {
     }
   };
 
+  // Open an existing conversation in read-only if ended; do not start a new flow
+  const handleShowConversation = (conversationId: string) => {
+    setChatOpen(true);
+    setCurrentConversationId(conversationId);
+    const conv = conversations.find(c => c.id === conversationId);
+    if (conv) {
+      setMessages((conv.messages as any).slice());
+      setQuickReplies([]);
+      setReadOnly(conv.status === 'ended');
+    }
+  };
+
   const handleSendMessage = (text: string) => {
+    if (readOnly) return; // prevent sending in read-only view
     const userMsg = {
       id: crypto.randomUUID(),
       role: 'user' as const,
@@ -178,6 +246,7 @@ export const useAdminChat = (): UseAdminChatReturn => {
       ts: Date.now(),
     };
     setMessages(prev => [...prev, userMsg]);
+    if (currentConversationId) addConvMessage('user', text, currentConversationId);
     setIsTyping(true);
 
     // Intercepts for pending actions
@@ -195,6 +264,8 @@ export const useAdminChat = (): UseAdminChatReturn => {
               ts: Date.now(),
             },
           ]);
+          if (currentConversationId)
+            addConvMessage('printy', 'Resolution comment saved and sent to the customer.', currentConversationId);
         } catch (e: any) {
           setMessages(prev => [
             ...prev,
@@ -205,6 +276,8 @@ export const useAdminChat = (): UseAdminChatReturn => {
               ts: Date.now(),
             },
           ]);
+          if (currentConversationId)
+            addConvMessage('printy', `Failed to save resolution: ${e?.message || 'Unknown error'}`, currentConversationId);
         } finally {
           setPendingAction(null);
         }
@@ -225,6 +298,8 @@ export const useAdminChat = (): UseAdminChatReturn => {
               ts: Date.now(),
             },
           ]);
+          if (currentConversationId)
+            addConvMessage('printy', `Ticket assigned to ${trimmed}.`, currentConversationId);
         } catch (e: any) {
           setMessages(prev => [
             ...prev,
@@ -235,6 +310,8 @@ export const useAdminChat = (): UseAdminChatReturn => {
               ts: Date.now(),
             },
           ]);
+          if (currentConversationId)
+            addConvMessage('printy', `Failed to assign ticket: ${e?.message || 'Unknown error'}`, currentConversationId);
         } finally {
           setPendingAction(null);
         }
@@ -254,6 +331,9 @@ export const useAdminChat = (): UseAdminChatReturn => {
           ts: Date.now(),
         }));
         setMessages(prev => [...prev, ...botMessages]);
+        if (currentConversationId) {
+          resp.messages.forEach(m => addConvMessage('printy', m.text, currentConversationId));
+        }
         setQuickReplies(
           (resp.quickReplies || []).map((l, index) => ({
             id: `qr-${index}`,
@@ -364,6 +444,17 @@ export const useAdminChat = (): UseAdminChatReturn => {
       return;
     }
 
+    // Echo the user's quick reply as a user message for proper transcript
+    const userMsg = {
+      id: crypto.randomUUID(),
+      role: 'user' as const,
+      text: val,
+      ts: Date.now(),
+    };
+    setMessages(prev => [...prev, userMsg]);
+    if (currentConversationId) addConvMessage('user', val, currentConversationId);
+    setIsTyping(true);
+
     const flow = resolveAdminFlow(currentFlow);
     if (!flow) return;
     void flow.respond(currentContext, val).then(resp => {
@@ -381,6 +472,10 @@ export const useAdminChat = (): UseAdminChatReturn => {
           value: l,
         }))
       );
+      if (currentConversationId) {
+        resp.messages.forEach(m => addConvMessage('printy', m.text, currentConversationId));
+      }
+      setIsTyping(false);
     });
   };
 
@@ -392,9 +487,11 @@ export const useAdminChat = (): UseAdminChatReturn => {
     quickReplies,
     handleChatOpen,
     handleChatOpenWithTopic,
+    handleShowConversation,
     endChatWithDelay,
     handleSendMessage,
     handleQuickReply,
+    readOnly,
   };
 };
 

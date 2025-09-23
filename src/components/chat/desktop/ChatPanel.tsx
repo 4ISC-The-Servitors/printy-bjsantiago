@@ -31,6 +31,9 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   hideHeader = false,
   hideSelectedBar = false,
   hideInput = false,
+  readOnly = false,
+  onMinimize,
+  onClose,
 }) => {
   const [input, setInput] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -100,8 +103,10 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   };
 
   return (
-    <div className="bg-white flex flex-col h-full w-full">
-      {!hideHeader && <ChatHeader title={title} onBack={onBack} />}
+    <div className="bg-white flex flex-col h-full w-full relative">
+      {!hideHeader && (
+        <ChatHeader title={title} onBack={onBack} onMinimize={onMinimize} onClose={onClose || onEndChat} />
+      )}
       {/* Selected chips directly attached under the header (outside scroll) */}
       {!hideSelectedBar && <ChatSelectedBarFixed />}
 
@@ -130,6 +135,9 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
         {messageGroups.length === 0 && !isTyping && <EmptyState />}
       </div>
 
+      {/* Spacer to avoid overlay overlap when read-only banner is shown */}
+      {readOnly && <div className="h-12" />}
+
       {/* Desktop Input Area */}
       {!hideInput && (
         <div className="border-t border-neutral-200 bg-white">
@@ -141,6 +149,15 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
             showAttach={showAttach}
             onAttachFiles={onAttachFiles}
           />
+        </div>
+      )}
+
+      {/* Disabled State Overlay (read-only) */}
+      {readOnly && (
+        <div className="absolute bottom-0 left-0 right-0 bg-neutral-50 border-t border-neutral-200 p-3 text-center z-10">
+          <span className="text-sm text-neutral-500">
+            This conversation has ended but you can view messages.
+          </span>
         </div>
       )}
     </div>

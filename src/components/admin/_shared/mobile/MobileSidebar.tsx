@@ -3,6 +3,7 @@ import { Button, Text } from '../../../shared';
 import Modal from '../../../shared/Modal';
 import ToastContainer from '../../../shared/ToastContainer';
 import { useToast } from '../../../../lib/useToast';
+import RecentChats from '../RecentChats';
 import { X, Settings, LogOut } from 'lucide-react';
 
 interface MobileSidebarProps {
@@ -20,6 +21,10 @@ const MobileSidebar: React.FC<MobileSidebarProps> = ({
 }) => {
   const [showLogoutConfirm, setShowLogoutConfirm] = React.useState(false);
   const [toasts, toast] = useToast({ position: 'top-center', duration: 2500 });
+  const handleSelectChat = (id: string) => {
+    onClose();
+    window.dispatchEvent(new CustomEvent('admin-chat-open'));
+  };
 
   const handleLogoutPress = () => {
     if (onLogoutClick) {
@@ -73,7 +78,9 @@ const MobileSidebar: React.FC<MobileSidebarProps> = ({
           </div>
         </div>
 
-        <div className="p-4 space-y-4">
+        <div className="p-4 space-y-4 overflow-y-auto h-[calc(100%-56px)]">
+          <RecentChats onSelect={handleSelectChat} className="mb-3" />
+          <div className="mt-auto" />
           <Button
             onClick={onSettingsClick}
             variant="secondary"

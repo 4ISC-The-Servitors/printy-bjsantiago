@@ -18,6 +18,7 @@ const AdminOrders = lazy(() => import('./pages/admin/Orders'));
 const AdminTickets = lazy(() => import('./pages/admin/Tickets'));
 const AdminSettingsPage = lazy(() => import('./pages/admin/AdminSettings'));
 const AdminPortfolio = lazy(() => import('./pages/admin/Portfolio'));
+const AdminChats = lazy(() => import('./pages/admin/Chats'));
 const SuperAdminDashboard = lazy(() => import('./pages/superadmin/Dashboard'));
 const ComponentShowcase = lazy(
   () => import('./components/shared/showcase/ComponentShowcase')
@@ -73,6 +74,14 @@ function App() {
           element={
             <Suspense fallback={<PageLoading variant="grid" />}>
               <AdminPortfolio />
+            </Suspense>
+          }
+        />
+        <Route
+          path="chats"
+          element={
+            <Suspense fallback={<PageLoading variant="list" />}>
+              <AdminChats />
             </Suspense>
           }
         />
