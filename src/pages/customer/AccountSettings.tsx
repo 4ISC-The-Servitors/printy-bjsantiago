@@ -1,5 +1,8 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import SidebarPanel from '../../components/customer/shared/sidebar/SidebarPanel';
+import LogoutButton from '../../components/customer/shared/sidebar/LogoutButton';
+import LogoutModal from '../../components/customer/shared/sidebar/LogoutModal';
 import {
   Container,
   Text,
@@ -42,6 +45,7 @@ const AccountSettings: React.FC = () => {
     useState<NotificationPreferencesData | null>(null);
 
   const [isDesktop, setIsDesktop] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   useEffect(() => {
     // TODO(BACKEND): Fetch profile and preferences for current user
@@ -126,64 +130,93 @@ const AccountSettings: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-brand-primary-50">
-      <Container size="xl" className="py-6 md:py-10">
-        <div className="mb-6 flex items-center gap-3">
-          <Button
-            onClick={() => navigate('/customer')}
-            variant="secondary"
-            size="sm"
-            threeD
-            className="h-9 w-9 md:h-auto md:w-auto md:px-4 md:py-2 p-0 flex items-center justify-center"
-            aria-label="Back to dashboard"
-          >
-            <ArrowLeft className="h-4 w-4 md:mr-2" />
-            <span className="hidden md:inline">Back</span>
-          </Button>
-          <Text variant="h1" size="2xl" weight="bold">
-            Account Settings
-          </Text>
-        </div>
+    <div className="h-screen bg-gradient-to-br from-neutral-50 to-brand-primary-50 flex">
+      {/* Sidebar fixed placements */}
+      <div className="hidden lg:flex w-64 bg-white border-r border-neutral-200 flex-col">
+        <SidebarPanel
+          conversations={[] as any}
+          activeId={null}
+          onSwitchConversation={() => {}}
+          onNavigateToAccount={() => navigate('/customer/account')}
+          bottomActions={<LogoutButton onClick={() => setShowLogoutModal(true)} />}
+        />
+      </div>
+      <div className="lg:hidden fixed left-0 top-0 bottom-0 w-16 bg-white border-r border-neutral-200 z-50">
+        <SidebarPanel
+          conversations={[] as any}
+          activeId={null}
+          onSwitchConversation={() => {}}
+          onNavigateToAccount={() => navigate('/customer/account')}
+          bottomActions={<LogoutButton onClick={() => setShowLogoutModal(true)} />}
+        />
+      </div>
 
-        <div className="space-y-6 md:space-y-8">
-          {userData && (
-            <ProfileOverviewCard
-              initials={initials}
-              displayName={userData.displayName}
-              email={userData.email}
-              membership="Valued"
+      {/* Main content */}
+      <main className="flex-1 flex flex-col pl-16 lg:pl-0">
+        <Container size="xl" className="py-6 md:py-10">
+          <div className="mb-6 flex items-center gap-3">
+            <Button
+              onClick={() => navigate('/customer')}
+              variant="secondary"
+              size="sm"
+              threeD
+              className="h-9 w-9 md:h-auto md:w-auto md:px-4 md:py-2 p-0 flex items-center justify-center"
+              aria-label="Back to dashboard"
+            >
+              <ArrowLeft className="h-4 w-4 md:mr-2" />
+              <span className="hidden md:inline">Back</span>
+            </Button>
+            <Text variant="h1" size="2xl" weight="bold">
+              Account Settings
+            </Text>
+          </div>
+
+          <div className="space-y-6 md:space-y-8">
+            {userData && (
+              <ProfileOverviewCard
+                initials={initials}
+                displayName={userData.displayName}
+                email={userData.email}
+                membership="Valued"
+              />
+            )}
+
+            {userData && (
+              <PersonalInfoForm
+                value={userData}
+                onSave={handleSavePersonalInfo}
+              />
+            )}
+
+            <SecuritySettings
+              onPasswordUpdated={() =>
+                toast.success(
+                  'Password updated',
+                  'Your password has been changed successfully.'
+                )
+              }
             />
-          )}
 
-          {userData && (
-            <PersonalInfoForm
-              value={userData}
-              onSave={handleSavePersonalInfo}
-            />
-          )}
+            {preferences && (
+              <NotificationPreferences
+                value={preferences}
+                onToggle={handleTogglePreference}
+              />
+            )}
+          </div>
+        </Container>
 
-          <SecuritySettings
-            onPasswordUpdated={() =>
-              toast.success(
-                'Password updated',
-                'Your password has been changed successfully.'
-              )
-            }
-          />
+        <ToastContainer
+          toasts={toasts}
+          onRemoveToast={toast.remove}
+          position={isDesktop ? 'bottom-right' : 'top-center'}
+        />
+      </main>
 
-          {preferences && (
-            <NotificationPreferences
-              value={preferences}
-              onToggle={handleTogglePreference}
-            />
-          )}
-        </div>
-      </Container>
-
-      <ToastContainer
-        toasts={toasts}
-        onRemoveToast={toast.remove}
-        position={isDesktop ? 'bottom-right' : 'top-center'}
+      <LogoutModal
+        isOpen={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        onConfirm={() => navigate('/auth/signin')}
       />
     </div>
   );

@@ -8,6 +8,7 @@ import ResetPassword from './pages/auth/ResetPassword';
 import CustomerDashboard from './pages/customer/Dashboard';
 import AccountSettings from './pages/customer/AccountSettings';
 import CustomerRoot from './pages/customer/CustomerRoot';
+import CustomerChatHistory from './pages/customer/ChatHistory';
 import AdminRoot from './pages/admin/AdminRoot';
 import { PageLoading } from './components/shared';
 import './index.css';
@@ -35,6 +36,7 @@ function App() {
       <Route path="/customer" element={<CustomerRoot />}>
         <Route index element={<CustomerDashboard />} />
         <Route path="account" element={<AccountSettings />} />
+        <Route path="chats" element={<CustomerChatHistory />} />
       </Route>
       <Route path="/valued" element={<CustomerDashboard />} />
       <Route

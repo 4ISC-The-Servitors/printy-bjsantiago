@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import DesktopChatPanel from './desktop/ChatPanel';
-import MobileChatPanel from './mobile/ChatPanel';
-import type { ChatMessage, QuickReply } from './_shared/types';
+import DesktopChatPanel from '../chat/desktop/ChatPanel';
+import MobileChatPanel from '../chat/mobile/ChatPanel';
+import type { ChatMessage, QuickReply } from '../chat/_shared/types';
 
-interface CustomerChatPanelProps {
+interface GuestChatPanelProps {
   title?: string;
   messages: ChatMessage[];
   onSend: (text: string) => void;
@@ -15,10 +15,9 @@ interface CustomerChatPanelProps {
   inputPlaceholder?: string;
   onEndChat?: () => void;
   showAttach?: boolean;
-  disabled?: boolean;
 }
 
-export const CustomerChatPanel: React.FC<CustomerChatPanelProps> = ({
+export const GuestChatPanel: React.FC<GuestChatPanelProps> = ({
   title = 'Chat',
   messages,
   onSend,
@@ -30,7 +29,6 @@ export const CustomerChatPanel: React.FC<CustomerChatPanelProps> = ({
   inputPlaceholder = 'Type a message...',
   onEndChat,
   showAttach = true,
-  disabled = false,
 }) => {
   const [isMobile, setIsMobile] = useState(false);
 
@@ -47,45 +45,35 @@ export const CustomerChatPanel: React.FC<CustomerChatPanelProps> = ({
   const commonProps = {
     title,
     messages,
-    onSend: disabled ? () => {} : onSend,
+    onSend,
     isTyping,
-    onAttachFiles: (files: FileList) => {
-      const f = files?.[0];
-      if (f) {
-        const url = URL.createObjectURL(f);
-        // send the image URL so it renders in chat and triggers payment flow detection
-        onSend(url);
-      }
-      onAttachFiles?.(files);
-    },
+    onAttachFiles,
     onBack,
-    quickReplies: disabled ? [] : quickReplies,
-    onQuickReply: disabled ? undefined : onQuickReply,
+    quickReplies,
+    onQuickReply,
     inputPlaceholder,
-    onEndChat: disabled ? undefined : onEndChat,
-    showAttach: disabled ? false : showAttach,
+    onEndChat,
+    showAttach,
   };
 
   return (
-    <div className="h-full w-full relative">
+    <div className="w-full relative h-96 max-h-96">
       {/* Render appropriate version based on screen size */}
       {isMobile ? (
         <MobileChatPanel
           {...commonProps}
-          mobileFixed={true}
-          mobileOffsetLeftClass="left-16"
-          hideInput={disabled}
+          mobileFixed={false} // Guest panels don't use fixed positioning
+          hideInput={false}
         />
       ) : (
         <DesktopChatPanel
           {...commonProps}
           hideSelectedBar={true}
-          hideInput={disabled}
-          readOnly={!!disabled}
+          hideInput={false}
         />
       )}
     </div>
   );
 };
 
-export default CustomerChatPanel;
+export default GuestChatPanel;
