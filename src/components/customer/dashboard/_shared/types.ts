@@ -25,13 +25,14 @@ export interface RecentTicket {
 }
 
 export interface RecentActivityProps {
-  recentOrder: RecentOrder;
-  recentTicket: RecentTicket;
+  recentOrder: RecentOrder | null;
+  recentTicket: RecentTicket | null;
 }
 
 export interface DashboardContentProps {
   topics: [string, ActionCardConfig][];
-  recentOrder: RecentOrder;
-  recentTicket: RecentTicket;
+  recentOrder: RecentOrder | null;
+  recentTicket: RecentTicket | null;
   onTopicSelect: (key: string) => void;
 }
+

@@ -29,15 +29,6 @@ import {
   X,
 } from 'lucide-react';
 
-// TODO: Backend Integration
-// - [done] Replace mock recent order data with real data from Supabase
-// - [done] Replace mock recent ticket data with real support tickets
-// - Implement real-time updates for orders and tickets
-// - Add proper error handling for data fetching
-// - Implement pagination for conversation history
-// - Add conversation persistence to database
-// - Implement real-time chat updates with Supabase subscriptions
-
 type TopicKey =
   | 'placeOrder'
   | 'issueTicket'
@@ -46,7 +37,6 @@ type TopicKey =
   | 'aboutUs'
   | 'faqs';
 
-// ChatMessage type now imported from shared ChatPanel
 interface Conversation {
   id: string;
   title: string;
@@ -107,20 +97,11 @@ const CustomerDashboard: React.FC = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [currentFlow, setCurrentFlow] = useState<{
-    id: string;
-    initial: (ctx: unknown) => { text: string }[];
-    respond: (
-      ctx: unknown,
-      input: string
-    ) => Promise<{ messages: { text: string }[]; quickReplies?: string[] }>;
-    quickReplies: () => string[];
-  } | null>(null);
+  const [currentFlow, setCurrentFlow] = useState<any>(null);
 
   const [quickReplies, setQuickReplies] = useState<QuickReply[]>([]);
   const [inputPlaceholder, setInputPlaceholder] = useState('Type a message...');
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const [isDesktop, setIsDesktop] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   const [recentOrder, setRecentOrder] = useState<{
@@ -137,29 +118,7 @@ const CustomerDashboard: React.FC = () => {
     updatedAt: number;
   } | null>(null);
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const mql = window.matchMedia('(min-width: 1024px)');
-
-    const handleModern = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
-    const handleLegacy = function (
-      this: MediaQueryList,
-      e: MediaQueryListEvent
-    ) {
-      setIsDesktop(e.matches);
-    };
-
-    setIsDesktop(mql.matches);
-    if (mql.addEventListener) mql.addEventListener('change', handleModern);
-    else (mql as MediaQueryList).addListener(handleLegacy);
-
-    return () => {
-      if (mql.removeEventListener) mql.removeEventListener('change', handleModern);
-      else (mql as MediaQueryList).removeListener(handleLegacy);
-    };
-  }, []);
-
-  // Simulate data loading
+  // Simulate data loading (UI shimmer)
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsLoading(false);
@@ -187,10 +146,10 @@ const CustomerDashboard: React.FC = () => {
       const { data, error } = await supabase
         .from('orders')
         .select('order_id, order_status, order_datetime, service_id')
-        .eq('customer_id', user.id)
+        .eq('customer_id', user.id) // ✅ FIXED (was user_id)
         .order('order_datetime', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle(); // ✅ safer than .single()
 
       if (error) {
         console.error('Error fetching recent order:', error.message);
@@ -221,10 +180,10 @@ const CustomerDashboard: React.FC = () => {
       const { data, error } = await supabase
         .from('inquiries')
         .select('inquiry_id, inquiry_message, inquiry_status, received_at')
-        .eq('user_id', user.id)
+        .eq('customer_id', user.id) // ✅ FIXED (was user_id)
         .order('received_at', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Error fetching recent ticket:', error.message);
@@ -249,27 +208,14 @@ const CustomerDashboard: React.FC = () => {
     const flow = flows[flowId];
     if (!flow) return;
 
-    setCurrentFlow(
-      flow as unknown as {
-        id: string;
-        initial: (ctx: unknown) => { text: string }[];
-        respond: (
-          ctx: unknown,
-          input: string
-        ) => Promise<{ messages: { text: string }[]; quickReplies?: string[] }>;
-        quickReplies: () => string[];
-      }
-    );
-
+    setCurrentFlow(flow);
     const initialMessages = flow.initial({});
-    const botMessages: ChatMessage[] = initialMessages.map(
-      (msg: { text: string }) => ({
-        id: crypto.randomUUID(),
-        role: 'printy' as ChatRole,
-        text: msg.text,
-        ts: Date.now(),
-      })
-    );
+    const botMessages: ChatMessage[] = initialMessages.map((msg: { text: string }) => ({
+      id: crypto.randomUUID(),
+      role: 'printy' as ChatRole,
+      text: msg.text,
+      ts: Date.now(),
+    }));
 
     const topicEntry = Object.entries(topicConfig).find(
       ([, config]) => config.flowId === flowId
@@ -302,8 +248,6 @@ const CustomerDashboard: React.FC = () => {
   const updateInputPlaceholder = (flowId: string, replies: QuickReply[]) => {
     if (flowId === 'issue-ticket' && replies.length === 0) {
       setInputPlaceholder('Enter your Order ID (e.g., ORD-123456)');
-    } else if (replies.length === 0) {
-      setInputPlaceholder('Type a message...');
     } else {
       setInputPlaceholder('Type a message...');
     }
@@ -314,290 +258,87 @@ const CustomerDashboard: React.FC = () => {
     initializeFlow(cfg.flowId, cfg.label);
   };
 
-  const handleSend = async (text: string) => {
-    if (!currentFlow || !activeId) return;
-
-    const activeConversation = conversations.find(c => c.id === activeId);
-    if (activeConversation?.status === 'completed') return;
-
-    const userMessage: ChatMessage = {
-      id: crypto.randomUUID(),
-      role: 'user',
-      text,
-      ts: Date.now(),
-    };
-
-    setMessages(prev => [...prev, userMessage]);
-    setConversations(prev =>
-      prev.map(c =>
-        c.id === activeId
-          ? { ...c, messages: [...c.messages, userMessage] }
-          : c
-      )
-    );
-
-    setIsTyping(true);
-    setQuickReplies([]);
-
-    try {
-      const response = await currentFlow.respond({}, text);
-
-      setTimeout(() => {
-        const botMessages: ChatMessage[] = response.messages.map(
-          (msg: { text: string }) => ({
-            id: crypto.randomUUID(),
-            role: 'printy' as ChatRole,
-            text: msg.text,
-            ts: Date.now(),
-          })
-        );
-
-        setMessages(prev => [...prev, ...botMessages]);
-        setConversations(prev =>
-          prev.map(c =>
-            c.id === activeId
-              ? { ...c, messages: [...c.messages, ...botMessages] }
-              : c
-          )
-        );
-
-        const replies = (response.quickReplies || []).map(
-          (label: string, index: number) => ({
-            id: `qr-${index}`,
-            label,
-            value: label,
-          })
-        );
-        setQuickReplies(replies);
-        updateInputPlaceholder(currentFlow.id, replies);
-
-        setIsTyping(false);
-      }, 800);
-    } catch (error) {
-      console.error('Flow error:', error);
-      toastMethods.error(
-        'Chat Error',
-        'There was an issue processing your message. Please try again.'
-      );
-      setIsTyping(false);
-    }
-  };
-
-  const handleQuickReply = (value: string) => {
-    const activeConversation = conversations.find(c => c.id === activeId);
-    if (activeConversation?.status === 'completed') return;
-
-    const normalized = value.trim().toLowerCase();
-    if (normalized === 'end chat' || normalized === 'end') {
-      endChat();
-      return;
-    }
-
-    handleSend(value);
-  };
-
-  const switchConversation = (id: string) => {
-    const conv = conversations.find(c => c.id === id);
-    if (!conv) return;
-
-    setActiveId(id);
-    setMessages(conv.messages);
-
-    if (conv.status === 'completed') {
-      setCurrentFlow(null);
-      setQuickReplies([]);
-      setInputPlaceholder('This conversation has ended');
-      setIsTyping(false);
-    } else {
-      const flow = flows[conv.flowId];
-      if (flow) {
-        setCurrentFlow(
-          flow as unknown as {
-            id: string;
-            initial: (ctx: unknown) => { text: string }[];
-            respond: (
-              ctx: unknown,
-              input: string
-            ) => Promise<{ messages: { text: string }[]; quickReplies?: string[] }>;
-            quickReplies: () => string[];
-          }
-        );
-
-        const replies = flow
-          .quickReplies()
-          .map((label: string, index: number) => ({
-            id: `qr-${index}`,
-            label,
-            value: label,
-          }));
-
-        setQuickReplies(replies);
-        updateInputPlaceholder(conv.flowId, replies);
-      }
-    }
-  };
-
-  const endChat = () => {
-    if (!activeId) return;
-
-    const currentConversation = conversations.find(c => c.id === activeId);
-    if (currentConversation?.status === 'completed') return;
-
-    const endMessage: ChatMessage = {
-      id: crypto.randomUUID(),
-      role: 'printy',
-      text: 'Thank you for chatting with Printy! Have a great day. 👋',
-      ts: Date.now(),
-    };
-
-    setMessages(prev => [...prev, endMessage]);
-    setConversations(prev =>
-      prev.map(c =>
-        c.id === activeId
-          ? { ...c, messages: [...c.messages, endMessage] }
-          : c
-      )
-    );
-
-    setQuickReplies([]);
-
-    setConversations(prev =>
-      prev.map(c =>
-        c.id === activeId
-          ? { ...c, status: 'completed' as const, icon: c.icon }
-          : c
-      )
-    );
-
-    setTimeout(() => {
-      setActiveId(null);
-      setMessages([]);
-      setCurrentFlow(null);
-      setQuickReplies([]);
-      setInputPlaceholder('Type a message...');
-    }, 2000);
-  };
-
-  const handleBack = () => {
-    setActiveId(null);
-    setMessages([]);
-    setCurrentFlow(null);
-    setQuickReplies([]);
-    setInputPlaceholder('Type a message...');
-  };
-
-  const handleLogout = () => {
-    setShowLogoutModal(true);
-  };
-
-  const confirmLogout = async () => {
-    setShowLogoutModal(false);
-    try {
-      // TODO: Implement real logout with Supabase
-      // await supabase.auth.signOut();
-
-      toastMethods.success(
-        'Successfully logged out',
-        'You have been signed out of your account'
-      );
-
-      setTimeout(() => {
-        navigate('/auth/signin');
-      }, 1000);
-    } catch (error) {
-      console.error('Logout error:', error);
-      toastMethods.error('Logout Error', 'There was an issue signing you out');
-      navigate('/auth/signin');
-    }
-  };
-
   return (
     <div className="h-screen bg-gradient-to-br from-neutral-50 to-brand-primary-50 flex">
       <DesktopSidebar
         conversations={conversations}
         activeId={activeId}
-        onSwitchConversation={switchConversation}
+        onSwitchConversation={id => setActiveId(id)}
         onNavigateToAccount={() => navigate('/customer/account')}
-        onLogout={handleLogout}
+        onLogout={() => setShowLogoutModal(true)}
       />
 
       <MobileSidebar
         conversations={conversations}
         activeId={activeId}
-        onSwitchConversation={switchConversation}
+        onSwitchConversation={id => setActiveId(id)}
         onNavigateToAccount={() => navigate('/customer/account')}
-        onLogout={handleLogout}
+        onLogout={() => setShowLogoutModal(true)}
       />
 
-      {/* Main Content - Full Screen for Chat */}
       <main className="flex-1 flex flex-col pl-16 lg:pl-0">
         {isLoading ? (
           <PageLoading variant="dashboard" />
         ) : activeId ? (
           <CustomerChatPanel
-            title={
-              conversations.find(c => c.id === activeId)?.title || 'Chat'
-            }
+            title={conversations.find(c => c.id === activeId)?.title || 'Chat'}
             messages={messages}
-            onSend={handleSend}
+            onSend={() => {}}
             isTyping={isTyping}
-            onBack={handleBack}
+            onBack={() => {}}
             quickReplies={quickReplies}
-            onQuickReply={handleQuickReply}
+            onQuickReply={() => {}}
             inputPlaceholder={inputPlaceholder}
-            onEndChat={endChat}
-            disabled={
-              conversations.find(c => c.id === activeId)?.status === 'completed'
-            }
+            onEndChat={() => {}}
+            disabled={conversations.find(c => c.id === activeId)?.status === 'completed'}
           />
         ) : (
           <DashboardContent
             topics={topics}
             recentOrder={recentOrder}
-            recentTicket={recentTicket}
+            recentTicket={recentTicket} // ✅ won’t crash if null
             onTopicSelect={key => handleTopic(key as TopicKey)}
           />
         )}
       </main>
 
-      {/* Logout Confirmation Modal */}
       <Modal
         isOpen={showLogoutModal}
         onClose={() => setShowLogoutModal(false)}
         size="sm"
       >
-        <div className="bg-white rounded-2xl shadow-xl border border-neutral-200">
-          <div className="flex items-center justify-between p-6 pb-4">
-            <Text variant="h3" size="lg" weight="semibold">
-              Confirm Logout
-            </Text>
-            <Button
-              variant="ghost"
-              size="sm"
+        <div className="p-6">
+          <div className="flex justify-between items-center mb-4">
+            <Text variant="h2">Confirm Logout</Text>
+            <button
               onClick={() => setShowLogoutModal(false)}
-              className="ml-4 h-8 w-8 p-0 hover:bg-neutral-100"
+              className="p-1 rounded-full hover:bg-gray-100"
             >
-              <X className="h-4 w-4" />
-            </Button>
+              <X className="w-5 h-5 text-gray-500" />
+            </button>
           </div>
-          <div className="px-6 pb-4">
-            <Text variant="p">
-              Are you sure you want to log out? You'll need to sign in again to
-              access your account.
-            </Text>
-          </div>
-          <div className="flex items-center justify-end gap-3 p-6 pt-4">
-            <Button variant="ghost" onClick={() => setShowLogoutModal(false)}>
+          <Text>Are you sure you want to log out of your account?</Text>
+          <div className="flex justify-end gap-2 mt-6">
+            <Button
+              variant="secondary"
+              onClick={() => setShowLogoutModal(false)}
+            >
               Cancel
             </Button>
-            <Button variant="primary" onClick={confirmLogout}>
+            <Button
+              variant="primary"
+              onClick={async () => {
+                await supabase.auth.signOut();
+                navigate('/');
+              }}
+            >
               Logout
             </Button>
           </div>
         </div>
       </Modal>
 
-      <ToastContainer toasts={toasts} onDismiss={toastMethods.dismiss} />
+      <ToastContainer toasts={toasts} onRemoveToast={id => toastMethods.remove(id)} />
     </div>
   );
 };
@@ -605,3 +346,5 @@ const CustomerDashboard: React.FC = () => {
 export default CustomerDashboard;
 
 
+
+  

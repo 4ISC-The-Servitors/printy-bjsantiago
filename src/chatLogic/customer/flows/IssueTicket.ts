@@ -13,12 +13,23 @@ type Node = {
 };
 
 const NODES: Record<string, Node> = {
+
+  issue_ticket_intro: {
+    id: 'issue_ticket_intro',
+    message:
+      "Hi! I'm Printy 🤖. Before we start, do you already have your order number?",
+    options: [
+      { label: 'Yes, I have it', next: 'issue_ticket_start' },
+      { label: "I don't have it", next: 'no_order_number' },
+      { label: 'End Chat', next: 'end' },
+    ],
+  },
+
   issue_ticket_start: {
     id: 'issue_ticket_start',
     message:
       "Hi! I'm Printy 🤖. I'll help you create a support ticket. What's your order number?",
     options: [
-      { label: "I don't have an order number", next: 'no_order_number' },
       { label: 'End Chat', next: 'end' },
     ],
   },
@@ -139,7 +150,7 @@ export const issueTicketFlow: ChatFlow = {
   id: 'issue-ticket',
   title: 'Issue a Ticket',
   initial: () => {
-    currentNodeId = 'issue_ticket_start';
+    currentNodeId = 'issue_ticket_intro'; // ✅ start with intro question
     collectedIssueDetails = '';
     currentInquiryType = null;
     return nodeToMessages(NODES[currentNodeId]);
