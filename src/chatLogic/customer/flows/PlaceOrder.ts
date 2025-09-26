@@ -41,7 +41,7 @@ const NODES: Record<string, Node> = {
   },
   end: {
     id: 'end',
-    answer: 'Thank you for chatting with Printy! Have a great day. 👋',
+    answer: 'Thank upu for chatting with Printy! Have a great day. 👋',
     options: [],
   },
   track_order_options: {
@@ -99,13 +99,16 @@ let orderRecord: Partial<OrderData & {
   quantity_name?: string;
 }> = {};
 
+// New temporary state to hold the details of the last placed order for quote checking
+let lastPlacedOrder: (OrderData & { product_service_name?: string }) | null = null;
+
 // Helper to extract numeric value from quantity strings like "1000 pages", "250 pages"
 function extractQuantityFromString(quantityStr: string): number {
   const match = quantityStr.match(/(\d+)/);
   return match ? parseInt(match[1], 10) : 1;
 }
 
-// --- Dynamic helpers ---
+// --- Dynamic helpers (Unchanged logic for DB fetching) ---
 async function getServiceDetails(serviceId: string | null): Promise<{
   service: any | null;
   children: any[];
@@ -289,7 +292,7 @@ async function loadPhaseOptions(_ctx: any): Promise<any> {
       { role: 'printy', text: 'Please review your order details above. If everything looks correct, click "Confirm Order" to proceed.' }
     ];
 
-    cachedQuickReplies = ['Confirm Order', 'Back'];
+    cachedQuickReplies = ['Confirm Order', 'Back', 'End Chat'];
 
     return {
       messages,
@@ -300,7 +303,7 @@ async function loadPhaseOptions(_ctx: any): Promise<any> {
   cachedQuickReplies = children
     .map(c => ((c.service_name || c.service_id || '') as string).trim())
     .filter(name => name.length > 0);
-  cachedQuickReplies = [...cachedQuickReplies, 'Back'];
+  cachedQuickReplies = [...cachedQuickReplies, 'Back', 'End Chat'];
 
   return {
     messages: [{ role: 'printy', text: message }],
@@ -311,6 +314,20 @@ async function loadPhaseOptions(_ctx: any): Promise<any> {
 // Helper to handle phase-specific navigation
 async function handlePhaseNavigation(ctx: any, input: string): Promise<any> {
   const normalized = input.trim().toLowerCase();
+  
+  // End Chat is handled in the main respond function if not in confirmation
+  if (normalized === 'end chat') {
+      // Allow end chat unless we are in the confirmation phase right before placing the order
+      if (currentPhase !== 'confirmation') {
+         dynamicMode = false;
+         currentNodeId = 'end';
+         return {
+            messages: nodeToMessages(NODES[currentNodeId]),
+            quickReplies: nodeQuickReplies(NODES[currentNodeId]),
+         };
+      }
+  }
+
 
   // Handle confirmation
   if (currentPhase === 'confirmation') {
@@ -329,6 +346,7 @@ async function handlePhaseNavigation(ctx: any, input: string): Promise<any> {
   });
 
   if (!selectedChild) {
+    // Re-display options if input is invalid
     return {
       messages: [{ role: 'printy', text: 'Please choose one of the options.' }],
       quickReplies: cachedQuickReplies,
@@ -351,7 +369,7 @@ async function handlePhaseNavigation(ctx: any, input: string): Promise<any> {
   cachedQuickReplies = nextChildren
     .map(c => ((c.service_name || c.service_id || '') as string).trim())
     .filter(name => name.length > 0);
-  cachedQuickReplies = [...cachedQuickReplies, 'Back'];
+  cachedQuickReplies = [...cachedQuickReplies, 'Back', 'End Chat'];
 
   const messages = dbToMessages(
     nextService,
@@ -386,6 +404,120 @@ async function handleLeafNodeSelection(selectedChild: any, ctx: any): Promise<an
   return await loadPhaseOptions(ctx);
 }
 
+// New helper function to perform the actual quote lookup when the user returns
+async function checkQuoteStatus(orderId: string, orderData: (OrderData & { product_service_name?: string })): Promise<any> {
+    // 1. Check for quote
+    const { data: quoteData, error: quoteError } = await supabase
+        .from('quotes')
+        .select('*')
+        .eq('order_id', orderId)
+        .maybeSingle();
+
+    if (quoteError) {
+        console.error('Error checking for quote:', quoteError);
+    }
+    
+    // --- Quote Found: Display Full Details ---
+    if (quoteData) {
+        // Fetch customer details
+        const { data: customerData } = await supabase
+            .from('customers')
+            .select('customer_name, customer_address, contact_info')
+            .eq('customer_id', orderData.customer_id)
+            .maybeSingle();
+
+        // Placeholder for company details
+        const companyName = 'Printy Solutions Inc.';
+        const companyAddress = '123 Main St, Malolos, Bulacan';
+        const companyContact = '+63 912 345 6789';
+
+        const customerName = customerData?.customer_name || 'N/A';
+        const customerAddress = customerData?.customer_address || 'N/A';
+        const customerContact = customerData?.contact_info || 'N/A';
+
+        // Format dates
+        const quoteIssueDate = new Date(quoteData.quote_issue_datetime).toLocaleString();
+        const quoteDueDate = new Date(quoteData.quote_due_datetime).toLocaleString();
+        
+        // Use initial_price for the displayed price
+        const price = quoteData.initial_price ? `₱${quoteData.initial_price.toFixed(2)}` : 'N/A';
+
+        const messages: BotMessage[] = [
+            { role: 'printy', text: '✅ **QUOTATION ISSUED**' },
+            { role: 'printy', text:
+                `**Company Details**\n` +
+                `Company Name: ${companyName}\n` +
+                `Company Address: ${companyAddress}\n` +
+                `Contact Info: ${companyContact}`
+            },
+            { role: 'printy', text:
+                `**Quotation Details**\n` +
+                `Quotation ID: ${quoteData.quote_id}\n` +
+                `Quote issue date: ${quoteIssueDate}\n` +
+                `Quote due date: ${quoteDueDate}`
+            },
+            { role: 'printy', text:
+                `**Customer Info**\n` +
+                `Customer Name: ${customerName}\n` +
+                `Customer Address: ${customerAddress}\n` +
+                `Contact info: ${customerContact}`
+            },
+            { role: 'printy', text:
+                `**Printing Service Info**\n` +
+                `Printing Service Name: ${orderData.product_service_name || 'N/A'}\n` +
+                `Specification: ${orderData.specification || 'N/A'}\n` +
+                `Size: ${orderData.page_size || 'N/A'}\n` +
+                `Quantity: ${orderData.quantity || 'N/A'}\n\n` +
+                `**Price:** ${price}`
+            }
+        ];
+        
+        // Clear lastPlacedOrder after quote is found
+        lastPlacedOrder = null; 
+        
+        return {
+            messages: messages,
+            quickReplies: ['End Chat'], // Quote found, allow user to end chat
+        };
+    }
+    
+    // --- Quote Not Found: Display Pending Message ---
+    const messages: BotMessage[] = [{
+        role: 'printy',
+        text: "🕒 **Quote Still Pending**\n\nWe haven't issued a quote for your order yet. We're working hard to get it to you within **2 business days**.\n\nYou can click **'Check Quote'** anytime to see if it's ready."
+    }];
+    
+    return {
+        messages: messages,
+        quickReplies: ['Check Quote'], // Only check quote, NO end chat until quote is received
+    };
+}
+
+// Helper to immediately confirm order and set up for quote checking
+async function handleQuoteProcess(orderId: string, orderData: (OrderData & { product_service_name?: string })): Promise<any> {
+    
+    // Store data for later quote check
+    lastPlacedOrder = orderData; 
+
+    // Reset temporary order compilation state
+    dynamicMode = false;
+    currentPhase = 'products';
+    currentServiceId = null;
+    serviceStack = [];
+    orderRecord = {};
+    
+    const messages: BotMessage[] = [{
+        role: 'printy',
+        text: "✅ **Order Submitted!**\n\nThank you. We'll be in touch with a detailed quote within **2 business days**.\n\nYou can click **'Check Quote'** anytime to see if it's ready."
+    }];
+
+    return {
+        messages: messages,
+        quickReplies: ['Check Quote'], // ONLY 'Check Quote' is visible here as instructed
+    };
+}
+
+
 // Helper to create order from compiled data
 async function createOrderFromCompilation(ctx: any): Promise<any> {
   const sessionCustomerId =
@@ -403,7 +535,8 @@ async function createOrderFromCompilation(ctx: any): Promise<any> {
     };
   }
 
-  const order: OrderData = {
+  // Compile final order data for submission
+  const finalOrder: OrderData & { product_service_name?: string } = {
     order_id: crypto.randomUUID(),
     service_id: orderRecord.product_service_id || '1001',
     customer_id: sessionCustomerId,
@@ -415,9 +548,10 @@ async function createOrderFromCompilation(ctx: any): Promise<any> {
     page_size: orderRecord.size_name || 'Standard',
     quantity: orderRecord.quantity_name ? extractQuantityFromString(orderRecord.quantity_name) : 1,
     priority_level: typeof ctx.priorityLevel === 'number' ? ctx.priorityLevel : 1,
+    product_service_name: orderRecord.product_service_name, // Include for quote display later
   };
 
-  const result = await createOrder(order);
+  const result = await createOrder(finalOrder);
   if (!result.success) {
     const errorMessage = (result.error && (result.error.message || result.error.details)) || 'Unknown error';
     return {
@@ -429,20 +563,8 @@ async function createOrderFromCompilation(ctx: any): Promise<any> {
     };
   }
 
-  // Reset state
-  dynamicMode = false;
-  currentPhase = 'products';
-  currentServiceId = null;
-  serviceStack = [];
-  orderRecord = {};
-  cachedQuickReplies = ['End Chat'];
-
-  return {
-    messages: [
-      { role: 'printy', text: "Perfect! Your order has been submitted successfully. We'll be in touch with a detailed quote within 2 hours." }
-    ],
-    quickReplies: ['End Chat'],
-  };
+  // Call the new quote handling process
+  return await handleQuoteProcess(finalOrder.order_id, finalOrder);
 }
 
 // New helper functions for order tracking
@@ -622,15 +744,39 @@ export const placeOrderFlow: ChatFlow = {
     serviceStack = [];
     cachedQuickReplies = [];
     orderRecord = {};
+    lastPlacedOrder = null; // Clear last placed order on flow restart
     return nodeToMessages(NODES[currentNodeId]);
   },
   quickReplies: () => {
+    // If an order was recently placed but the quote hasn't been found, prioritize Check Quote
+    if (lastPlacedOrder) {
+        return ['Check Quote'];
+    }
+    
     if (dynamicMode) return cachedQuickReplies;
     if (trackingMode) return nodeQuickReplies(NODES[currentNodeId]);
+    
     return nodeQuickReplies(NODES[currentNodeId]);
   },
   respond: async (ctx, input) => {
-    // If we're in tracking mode, handle tracking logic first
+    const normalizedInput = input.trim().toLowerCase();
+
+    // 1. Check for 'Check Quote' action (Highest priority after tracking mode)
+    if (normalizedInput === 'check quote') {
+        if (lastPlacedOrder) {
+            // Temporarily disable tracking/dynamic mode while checking quote
+            trackingMode = false;
+            dynamicMode = false;
+            return await checkQuoteStatus(lastPlacedOrder.order_id, lastPlacedOrder);
+        } else {
+            return {
+                messages: [{ role: 'printy', text: "I don't have a recent order to check the quote for. Please place an order or check via the tracking option." }],
+                quickReplies: ['Place Order', 'Track Order', 'End Chat'],
+            };
+        }
+    }
+
+    // 2. If we're in tracking mode, handle tracking logic first
     if (trackingMode) {
         if (currentNodeId === 'track_by_id') {
             const normalizedInput = input.trim();
@@ -646,7 +792,7 @@ export const placeOrderFlow: ChatFlow = {
         return await handleTrackOrder(ctx, input);
     }
 
-    // If in dynamic mode, handle DB-driven navigation
+    // 3. If in dynamic mode, handle DB-driven navigation
     if (dynamicMode) {
       const normalized = input.trim().toLowerCase();
 
@@ -654,12 +800,23 @@ export const placeOrderFlow: ChatFlow = {
       if (normalized === 'back') {
         return await handleBackNavigation(ctx);
       }
+      
+      // Handle End Chat if user is NOT in the final 'confirmation' phase
+      if (normalized === 'end chat' && currentPhase !== 'confirmation') {
+         dynamicMode = false;
+         currentNodeId = 'end';
+         return {
+            messages: nodeToMessages(NODES[currentNodeId]),
+            quickReplies: nodeQuickReplies(NODES[currentNodeId]),
+         };
+      }
+
 
       // Handle phase-specific navigation
       return await handlePhaseNavigation(ctx, input);
     }
 
-    // Static mode for initial choice only
+    // 4. Static mode for initial choice only
     const current = NODES[currentNodeId];
     const selection = current.options.find(
       o => o.label.toLowerCase() === input.trim().toLowerCase()
