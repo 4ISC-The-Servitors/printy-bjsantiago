@@ -29,6 +29,7 @@ import {
   X,
 } from 'lucide-react';
 
+// ---------------- Types / Config ----------------
 type TopicKey =
   | 'placeOrder'
   | 'issueTicket'
@@ -89,6 +90,7 @@ const topicConfig: Record<
   },
 };
 
+// ---------------- Component ----------------
 const CustomerDashboard: React.FC = () => {
   const navigate = useNavigate();
   const [toasts, toastMethods] = useToast();
@@ -97,13 +99,24 @@ const CustomerDashboard: React.FC = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [currentFlow, setCurrentFlow] = useState<any>(null);
+
+  // Strict typing for flow (keeps your working flow behavior)
+  const [currentFlow, setCurrentFlow] = useState<{
+    id: string;
+    initial: (ctx: unknown) => { text: string }[];
+    respond: (
+      ctx: unknown,
+      input: string
+    ) => Promise<{ messages: { text: string }[]; quickReplies?: string[] }>;
+    quickReplies: () => string[];
+  } | null>(null);
 
   const [quickReplies, setQuickReplies] = useState<QuickReply[]>([]);
   const [inputPlaceholder, setInputPlaceholder] = useState('Type a message...');
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Live recent order/ticket from Supabase
   const [recentOrder, setRecentOrder] = useState<{
     id: string;
     title: string;
@@ -118,11 +131,9 @@ const CustomerDashboard: React.FC = () => {
     updatedAt: number;
   } | null>(null);
 
-  // Simulate data loading (UI shimmer)
+  // loading shimmer
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 1500);
+    const timer = setTimeout(() => setIsLoading(false), 1500);
     return () => clearTimeout(timer);
   }, []);
 
@@ -135,82 +146,86 @@ const CustomerDashboard: React.FC = () => {
     []
   );
 
-  // ✅ Fetch the latest order for logged-in user
+  // ---------------- Supabase fetches ----------------
   useEffect(() => {
     const fetchRecentOrder = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return;
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
 
-      const { data, error } = await supabase
-        .from('orders')
-        .select('order_id, order_status, order_datetime, service_id')
-        .eq('customer_id', user.id) // ✅ FIXED (was user_id)
-        .order('order_datetime', { ascending: false })
-        .limit(1)
-        .maybeSingle(); // ✅ safer than .single()
+        const { data, error } = await supabase
+          .from('orders')
+          .select('order_id, order_status, order_datetime, service_id')
+          .eq('customer_id', user.id)
+          .order('order_datetime', { ascending: false })
+          .limit(1)
+          .maybeSingle();
 
-      if (error) {
-        console.error('Error fetching recent order:', error.message);
-        return;
+        if (error) {
+          console.error('Error fetching recent order:', error);
+          return;
+        }
+
+        if (data) {
+          setRecentOrder({
+            id: data.order_id,
+            title: data.service_id || 'Unknown Service',
+            status: data.order_status || 'unknown',
+            updatedAt: new Date(data.order_datetime).getTime(),
+          });
+        }
+      } catch (e) {
+        console.error('fetchRecentOrder error', e);
       }
+    };
 
-      if (data) {
-        setRecentOrder({
-          id: data.order_id,
-          title: data.service_id || 'Unknown Service',
-          status: data.order_status || 'unknown',
-          updatedAt: new Date(data.order_datetime).getTime(),
-        });
+    const fetchRecentTicket = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data, error } = await supabase
+          .from('inquiries')
+          .select('inquiry_id, inquiry_message, inquiry_status, received_at')
+          .eq('customer_id', user.id)
+          .order('received_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (error) {
+          console.error('Error fetching recent ticket:', error);
+          return;
+        }
+
+        if (data) {
+          setRecentTicket({
+            id: data.inquiry_id,
+            subject: data.inquiry_message || '(no subject)',
+            status: data.inquiry_status || 'unknown',
+            updatedAt: new Date(data.received_at).getTime(),
+          });
+        }
+      } catch (e) {
+        console.error('fetchRecentTicket error', e);
       }
     };
 
     fetchRecentOrder();
-  }, []);
-
-  // ✅ Fetch the latest ticket for logged-in user
-  useEffect(() => {
-    const fetchRecentTicket = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data, error } = await supabase
-        .from('inquiries')
-        .select('inquiry_id, inquiry_message, inquiry_status, received_at')
-        .eq('customer_id', user.id) // ✅ FIXED (was user_id)
-        .order('received_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (error) {
-        console.error('Error fetching recent ticket:', error.message);
-        return;
-      }
-
-      if (data) {
-        setRecentTicket({
-          id: data.inquiry_id,
-          subject: data.inquiry_message || '(no subject)',
-          status: data.inquiry_status || 'unknown',
-          updatedAt: new Date(data.received_at).getTime(),
-        });
-      }
-    };
-
     fetchRecentTicket();
   }, []);
 
-  // ---------------- Chat Logic ----------------
+  // ---------------- Chat logic ----------------
   const initializeFlow = (flowId: string, title: string) => {
     const flow = flows[flowId];
     if (!flow) return;
 
-    setCurrentFlow(flow);
+    // keep id on the flow for updateInputPlaceholder
+    setCurrentFlow({ id: flowId, ...flow });
+
+    console.debug('[FLOW_INIT]', flowId, flow);
+
     const initialMessages = flow.initial({});
-    const botMessages: ChatMessage[] = initialMessages.map((msg: { text: string }) => ({
+    const botMessages: ChatMessage[] = initialMessages.map(msg => ({
       id: crypto.randomUUID(),
       role: 'printy' as ChatRole,
       text: msg.text,
@@ -253,11 +268,92 @@ const CustomerDashboard: React.FC = () => {
     }
   };
 
+  // central user input handler (works for typed send and quick replies)
+  const handleUserInput = async (text: string) => {
+    if (!currentFlow || !activeId) return;
+
+    console.debug('[FLOW_SEND]', currentFlow.id, text);
+
+    const userMsg: ChatMessage = {
+      id: crypto.randomUUID(),
+      role: 'user',
+      text,
+      ts: Date.now(),
+    };
+
+    // add to UI messages and conversation
+    setMessages(prev => [...prev, userMsg]);
+    setConversations(prev =>
+      prev.map(c => (c.id === activeId ? { ...c, messages: [...c.messages, userMsg] } : c))
+    );
+
+    setIsTyping(true);
+    setQuickReplies([]);
+
+    try {
+      const result = await currentFlow.respond({}, text);
+      console.debug('[FLOW_RESP]', result);
+
+      const botMessages: ChatMessage[] = result.messages.map(msg => ({
+        id: crypto.randomUUID(),
+        role: 'printy' as ChatRole,
+        text: msg.text,
+        ts: Date.now(),
+      }));
+
+      setTimeout(() => {
+        // append bot messages to UI and to conversation
+        setMessages(prev => [...prev, ...botMessages]);
+        setConversations(prev =>
+          prev.map(c => (c.id === activeId ? { ...c, messages: [...c.messages, ...botMessages] } : c))
+        );
+
+        // update quick replies from flow result
+        const replies = (result.quickReplies || []).map((label: string, index: number) => ({
+          id: `qr-${index}`,
+          label,
+          value: label,
+        }));
+        setQuickReplies(replies);
+
+        // update input placeholder using currentFlow.id (safe because typed)
+        if (currentFlow) updateInputPlaceholder(currentFlow.id, replies);
+
+        setIsTyping(false);
+      }, 800);
+    } catch (err) {
+      console.error('Flow error:', err);
+      setIsTyping(false);
+      toastMethods.error('Chat Error', 'There was an issue processing your message. Please try again.');
+    }
+  };
+
+  // quick replies come from the CustomerChatPanel as strings — forward to the user input handler
+  const handleQuickReply = (value: string) => {
+    // defensive: if the user clicked something that ends the chat
+    const normalized = (value ?? '').trim().toLowerCase();
+    if (normalized === 'end chat' || normalized === 'end') {
+      handleEndChat();
+      return;
+    }
+    handleUserInput(value);
+  };
+
+  const handleEndChat = () => {
+    if (!activeId) return;
+    setConversations(prev => prev.map(c => (c.id === activeId ? { ...c, status: 'completed' } : c)));
+    setActiveId(null);
+    setMessages([]);
+    setQuickReplies([]);
+    setCurrentFlow(null);
+  };
+
   const handleTopic = (key: TopicKey) => {
     const cfg = topicConfig[key];
     initializeFlow(cfg.flowId, cfg.label);
   };
 
+  // ---------------- UI ----------------
   return (
     <div className="h-screen bg-gradient-to-br from-neutral-50 to-brand-primary-50 flex">
       <DesktopSidebar
@@ -283,25 +379,26 @@ const CustomerDashboard: React.FC = () => {
           <CustomerChatPanel
             title={conversations.find(c => c.id === activeId)?.title || 'Chat'}
             messages={messages}
-            onSend={() => {}}
+            onSend={handleUserInput}
             isTyping={isTyping}
-            onBack={() => {}}
+            onBack={() => setActiveId(null)}
             quickReplies={quickReplies}
-            onQuickReply={() => {}}
+            onQuickReply={handleQuickReply}
             inputPlaceholder={inputPlaceholder}
-            onEndChat={() => {}}
+            onEndChat={handleEndChat}
             disabled={conversations.find(c => c.id === activeId)?.status === 'completed'}
           />
         ) : (
           <DashboardContent
             topics={topics}
             recentOrder={recentOrder}
-            recentTicket={recentTicket} // ✅ won’t crash if null
+            recentTicket={recentTicket}
             onTopicSelect={key => handleTopic(key as TopicKey)}
           />
         )}
       </main>
 
+      {/* Logout Modal */}
       <Modal
         isOpen={showLogoutModal}
         onClose={() => setShowLogoutModal(false)}
@@ -344,6 +441,12 @@ const CustomerDashboard: React.FC = () => {
 };
 
 export default CustomerDashboard;
+
+
+
+
+
+
 
 
 
