@@ -16,6 +16,7 @@ interface Props {
   onSend: (text: string) => void;
   onQuickReply?: (value: string) => void;
   onEndChat?: () => void;
+  readOnly?: boolean;
 }
 
 const AdminChatDock: React.FC<Props> = ({
@@ -31,7 +32,9 @@ const AdminChatDock: React.FC<Props> = ({
   onSend,
   onQuickReply,
   onEndChat,
+  readOnly,
 }) => {
+  const shouldShowSelectedBar = !readOnly && (selected?.length || 0) > 1;
   return (
     <ChatDock
       open={open}
@@ -49,8 +52,13 @@ const AdminChatDock: React.FC<Props> = ({
         onSend={onSend}
         onQuickReply={onQuickReply}
         onEndChat={onEndChat}
+        hideInput={!!readOnly}
+        readOnly={!!readOnly}
+        onMinimize={onToggle}
+        onClose={onEndChat}
+        hideSelectedBar={!shouldShowSelectedBar}
       />
-      {selected && selected.length > 0 && (
+      {shouldShowSelectedBar && (
         <SelectedChipsBar
           title="Selected Components"
           items={selected}

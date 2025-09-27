@@ -55,7 +55,9 @@ const TicketsCard: React.FC = () => {
           first_name,
           last_name
         )
-      `, { count: 'exact' })
+      `,
+        { count: 'exact' }
+      )
       .order('received_at', { ascending: false })
       .range(from, to);
 
@@ -80,7 +82,11 @@ const TicketsCard: React.FC = () => {
         };
       });
       setInquiries(normalized);
-      setHasMore(typeof count === 'number' ? to + 1 < count : normalized.length === pageSize);
+      setHasMore(
+        typeof count === 'number'
+          ? to + 1 < count
+          : normalized.length === pageSize
+      );
     }
     setLoading(false);
   }, [page]);

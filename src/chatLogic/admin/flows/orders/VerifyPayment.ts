@@ -20,7 +20,9 @@ export function createVerifyPaymentNodes(opts: {
       // If a subject order is already selected, focus exclusively on it
       const currentId = (state as any).currentOrderId as string | null;
       if (currentId) {
-        const ord = (orders || []).find(o => (o.id || '').toLowerCase() === currentId.toLowerCase());
+        const ord = (orders || []).find(
+          o => (o.id || '').toLowerCase() === currentId.toLowerCase()
+        );
         if (!ord) {
           return [
             {
@@ -185,5 +187,3 @@ export function createVerifyPaymentNodes(opts: {
     verify_payment_proof: proof,
   };
 }
-
-

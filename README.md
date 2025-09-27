@@ -20,6 +20,16 @@
 
 ## 📄 Changelogs
 
+### 2025-09-23-Andeng
+
+- added Cancel Order logic for customer, to follow admin
+- improved admin mobile UI for orders and all chats page, to follow ticket and portfolio
+- added Recent Chats to admin in sidebars
+- added All Chats page to view all chat history in admin, to follow customer
+- improved message group of overall chat UI
+- added pagination to some pages pa lang, will add more to pages soon (src\components\shared\Pagination.tsx)
+- added src\hooks\shared\useResponsivePageSize.ts for not having too many data displayed depending on screen size
+
 ### 2025-09-19-Andeng
 
 - added Payment chat logic for customer

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import DesktopChatPanel from './desktop/ChatPanel';
-import MobileChatPanel from './mobile/ChatPanel';
-import type { ChatMessage, QuickReply } from './_shared/types';
+import DesktopChatPanel from '../chat/desktop/ChatPanel';
+import MobileChatPanel from '../chat/mobile/ChatPanel';
+import type { ChatMessage, QuickReply } from '../chat/_shared/types';
 
 interface GuestChatPanelProps {
   title?: string;

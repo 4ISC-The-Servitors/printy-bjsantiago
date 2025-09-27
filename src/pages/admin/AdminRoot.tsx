@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom';
 import AdminLayout from '@components/admin/layouts/AdminLayout';
 import SelectionProvider from '@hooks/admin/SelectionContext';
 import { AdminProvider, type SelectedItem } from '@hooks/admin/AdminContext';
+import { AdminConversationsProvider } from '@hooks/admin/useAdminConversations';
 
 const AdminRoot: React.FC = () => {
   const [selected, setSelected] = useState<SelectedItem[]>([]);
@@ -47,11 +48,13 @@ const AdminRoot: React.FC = () => {
 
   return (
     <SelectionProvider>
-      <AdminProvider value={adminContextValue}>
-        <AdminLayout>
-          <Outlet />
-        </AdminLayout>
-      </AdminProvider>
+      <AdminConversationsProvider>
+        <AdminProvider value={adminContextValue}>
+          <AdminLayout>
+            <Outlet />
+          </AdminLayout>
+        </AdminProvider>
+      </AdminConversationsProvider>
     </SelectionProvider>
   );
 };

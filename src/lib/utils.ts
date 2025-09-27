@@ -249,13 +249,16 @@ export function getCurrentCustomerId(): string {
   try {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     // Ensure the customer_id is a valid UUID string
-    if (typeof user.customer_id === 'string' && user.customer_id.length === 36) {
+    if (
+      typeof user.customer_id === 'string' &&
+      user.customer_id.length === 36
+    ) {
       return user.customer_id;
     }
   } catch (e) {
     // Ignore parsing errors
   }
-//return 'e50888fb-c8df-45a7-a888-84d5deb73d2f'; // fallback invalid UUID
+  //return 'e50888fb-c8df-45a7-a888-84d5deb73d2f'; // fallback invalid UUID
 
   return '00000000-0000-0000-0000-000000000000'; // fallback invalid UUID
 }

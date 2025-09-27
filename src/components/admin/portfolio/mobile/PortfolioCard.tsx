@@ -285,15 +285,6 @@ const PortfolioCard: React.FC = () => {
                             Active
                           </Badge>
                           <Button
-                            variant="secondary"
-                            size="sm"
-                            aria-label={`Ask about ${s.name}`}
-                            onClick={() => openChat()}
-                            className="w-10 h-10 p-0"
-                          >
-                            <MessageSquare className="w-4 h-4" />
-                          </Button>
-                          <Button
                             variant="ghost"
                             size="sm"
                             className="w-10 h-10 p-0"

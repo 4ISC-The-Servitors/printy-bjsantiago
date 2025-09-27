@@ -107,7 +107,8 @@ class MultipleOrdersFlow extends FlowBase {
     this.registerNode(
       'ask_quote_price',
       createQuotePriceNodeFactory({
-        getCurrentOrder: () => this.getCurrentOrder(this.state as MultipleOrdersState),
+        getCurrentOrder: () =>
+          this.getCurrentOrder(this.state as MultipleOrdersState),
         updateOrder: (
           id: string,
           updates: Partial<any>,
@@ -538,11 +539,16 @@ class MultipleOrdersFlow extends FlowBase {
   private createVerifyPickNode(): NodeHandler {
     return {
       messages: () => [
-        { role: 'printy', text: 'Please choose order ID you want to verify first' },
+        {
+          role: 'printy',
+          text: 'Please choose order ID you want to verify first',
+        },
       ],
       quickReplies: (state: FlowState) => {
         const s = state as MultipleOrdersState;
-        return this.getVerifyingSelectedOrders(s).map(o => o.id).concat(['End Chat']);
+        return this.getVerifyingSelectedOrders(s)
+          .map(o => o.id)
+          .concat(['End Chat']);
       },
       handleInput: (input: string, state: FlowState) => {
         const s = state as MultipleOrdersState;
@@ -566,7 +572,9 @@ class MultipleOrdersFlow extends FlowBase {
         const order = this.getCurrentOrder(s);
         if (!order) return [{ role: 'printy', text: 'Order not found.' }];
         const uploadedAt = order.proofUploadedAt || '—';
-        const img = order.proofOfPaymentUrl ? `(${order.proofOfPaymentUrl})` : '';
+        const img = order.proofOfPaymentUrl
+          ? `(${order.proofOfPaymentUrl})`
+          : '';
         const lines = [
           `Here is the proof of payment of customer ${order.customer} ${order.id}. Uploaded on ${uploadedAt}. Their total balance is ${order.total}.`,
           img,

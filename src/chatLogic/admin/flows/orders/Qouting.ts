@@ -58,15 +58,21 @@ export function createQuotePriceNode({
       }
 
       const formatted = formatPriceInput(input);
-      updateOrder(order.id, { status: 'Pending', total: formatted }, state, context);
+      updateOrder(
+        order.id,
+        { status: 'Pending', total: formatted },
+        state,
+        context
+      );
       return {
         nextNodeId,
         messages: [
-          { role: 'printy', text: `📋 Quote created for ${order.id}. Set to Pending with total ${formatted}.` },
+          {
+            role: 'printy',
+            text: `📋 Quote created for ${order.id}. Set to Pending with total ${formatted}.`,
+          },
         ],
       };
     },
   };
 }
-
-

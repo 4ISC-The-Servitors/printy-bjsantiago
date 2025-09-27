@@ -35,7 +35,8 @@ const NODES: Record<string, Node> = {
   },
   track_order: {
     id: 'track_order',
-    answer: 'Order tracking is not yet available here. Please use the Track Order page.',
+    answer:
+      'Order tracking is not yet available here. Please use the Track Order page.',
     options: [{ label: 'End Chat', next: 'end' }],
   },
   end: {
@@ -111,7 +112,15 @@ const NODES: Record<string, Node> = {
 
 let currentNodeId: keyof typeof NODES = 'place_order_start';
 
-type NavigationPhase = 'products' | 'specifications' | 'sizes' | 'quantities' | 'confirmation';
+
+// Multi-phase navigation state
+type NavigationPhase =
+  | 'products'
+  | 'specifications'
+  | 'sizes'
+  | 'quantities'
+  | 'confirmation';
+
 
 let currentPhase: NavigationPhase = 'products';
 let currentServiceId: string | null = null;
@@ -126,13 +135,17 @@ let quoteModified = false;
 let cachedQuickReplies: string[] = [];
 
 // Store order details progressively
-let orderRecord: Partial<OrderData & {
-  product_service_id?: string;
-  product_service_name?: string;
-  specification_name?: string;
-  size_name?: string;
-  quantity_name?: string;
-}> = {};
+
+let orderRecord: Partial<
+  OrderData & {
+    product_service_id?: string;
+    product_service_name?: string;
+    specification_name?: string;
+    size_name?: string;
+    quantity_name?: string;
+  }
+> = {};
+
 
 // State to hold the details of the last placed order for quote checking/negotiation
 let lastPlacedOrder: (OrderData & { 
@@ -153,12 +166,66 @@ async function getServiceDetails(serviceId: string | null): Promise<{
   children: any[];
 }> {
   if (!serviceId) {
-    // Logic for fetching ROOT services (parent_service_id IS NULL OR equals "")
-    const { data: rows, error } = await supabase
+
+    try {
+      const { data: authUser } = await supabase.auth.getUser();
+      console.log(
+        '[PlaceOrder] Auth user for root fetch:',
+        authUser?.user?.id || 'none'
+      );
+    } catch {}
+    // First: strictly NULL parents (no active_status filter to avoid mismatches)
+    const nullParents = await supabase
+
       .from('printing_services')
       .select('*')
       .or('parent_service_id.is.null,parent_service_id.eq.""') 
       .order('service_name', { ascending: true });
+    if (nullParents.error) {
+      console.error(
+        'Error fetching services (null parent):',
+        nullParents.error
+      );
+      return { service: null, children: [] };
+    }
+    let rows = nullParents.data || [];
+    if (!rows.length) {
+      console.warn(
+        '[PlaceOrder] Root fetch returned 0 rows (NULL parent). Retrying with empty string parent...'
+      );
+    }
+    // If none, try empty-string parents
+    if (!rows.length) {
+      const emptyParents = await supabase
+        .from('printing_services')
+        .select('*')
+        .eq('parent_service_id', '')
+        .order('service_name', { ascending: true });
+      if (!emptyParents.error && emptyParents.data) rows = emptyParents.data;
+    }
+    // If still none, retry both with both null and empty (already without status)
+    if (!rows.length) {
+      console.warn(
+        '[PlaceOrder] Root fetch still 0 rows. Final retry without any parent filter normalization...'
+      );
+      const nullNoStatus = await supabase
+        .from('printing_services')
+        .select('*')
+        .is('parent_service_id', null)
+        .order('service_name', { ascending: true });
+      rows = nullNoStatus.data || [];
+      if (!rows.length) {
+        const emptyNoStatus = await supabase
+          .from('printing_services')
+          .select('*')
+          .eq('parent_service_id', '')
+          .order('service_name', { ascending: true });
+        rows = emptyNoStatus.data || [];
+      }
+    }
+    return { service: null, children: rows };
+  }
+
 
     if (error) {
       console.error('[PlaceOrder] Error fetching ROOT services:', error);
@@ -198,10 +265,13 @@ async function getServiceDetails(serviceId: string | null): Promise<{
 }
 
 function dbToMessages(service: any, fallback?: string): BotMessage[] {
-  if (service?.description) return [{ role: 'printy', text: service.description }];
+  if (service?.description)
+    return [{ role: 'printy', text: service.description }];
   if (fallback) return [{ role: 'printy', text: fallback }];
   if (service?.service_name)
-    return [{ role: 'printy', text: `You have selected ${service.service_name}.` }];
+    return [
+      { role: 'printy', text: `You have selected ${service.service_name}.` },
+    ];
   return [];
 }
 
@@ -216,11 +286,14 @@ function nodeQuickReplies(node: Node): string[] {
 }
 
 // Helper to get top-level services by category
-async function getTopLevelServices(category: 'specifications' | 'sizes' | 'quantities'): Promise<any[]> {
-  const categoryMap: Record<typeof category, string[]> = {
-    specifications: ['SPEC'], // Parent ID for all specification options (Step 3a)
-    sizes: ['SIZE'], // Parent ID for all size options (Step 3b)
-    quantities: ['QUAN'] // Parent ID for all quantity options (Step 3c)
+async function getTopLevelServices(
+  category: 'products' | 'specifications' | 'sizes' | 'quantities'
+): Promise<any[]> {
+  const categoryMap = {
+    products: ['PRNT', 'DIGI', 'PACK', 'LARG'],
+    specifications: ['SPEC'],
+    sizes: ['SIZE'],
+    quantities: ['QUAN'],
   };
 
   const serviceIds = categoryMap[category];
@@ -264,8 +337,15 @@ async function handleBackNavigation(ctx: any): Promise<any> {
     }
   }
 
-  // Move to previous fixed phase (Spec -> Product, Size -> Spec, Qty -> Size, Conf -> Qty)
-  const phaseOrder: NavigationPhase[] = ['products', 'specifications', 'sizes', 'quantities', 'confirmation'];
+  // Move to previous phase
+  const phaseOrder: NavigationPhase[] = [
+    'products',
+    'specifications',
+    'sizes',
+    'quantities',
+    'confirmation',
+  ];
+
   const currentIndex = phaseOrder.indexOf(currentPhase);
   if (currentIndex > 0) {
     currentPhase = phaseOrder[currentIndex - 1];
@@ -285,48 +365,92 @@ async function loadPhaseOptions(_ctx: any): Promise<any> {
   let message: string = '';
 
   if (currentPhase === 'products') {
-    // Step 2: Recursive product selection. Load children of currentServiceId (or root if null)
-    const { children: nextChildren, service: parentService } = await getServiceDetails(currentServiceId);
-    children = nextChildren;
-    
-    if (currentServiceId === null) {
-      // Root level message
-      message = 'We offer a variety of printing Services. What type are you interested in?';
-    } else {
-      // Child level message
-      message = parentService?.description || `Great! What specific product under ${parentService.service_name} do you need?`;
-    }
+    const children = await getTopLevelServices('products');
+    cachedQuickReplies = children
+      .map(c => ((c.service_name || c.service_id || '') as string).trim())
+      .filter(name => name.length > 0);
+    cachedQuickReplies = [...cachedQuickReplies, 'Back'];
 
+    return {
+      messages: [
+        {
+          role: 'printy',
+          text: 'We offer a variety of printing Services. What type are you interested in?',
+        },
+      ],
+      quickReplies: cachedQuickReplies,
+    };
   } else if (currentPhase === 'specifications') {
-    // Step 3a: Specifications (fixed phase)
-    // @ts-ignore
-    children = await getTopLevelServices('specifications');
-    const { service: parentService } = await getServiceDetails('SPEC');
-    message = parentService?.description || 'Wonderful choice! Now, let\'s nail down the specifications. What works for you?';
-    currentServiceId = 'SPEC'; // Set for child selection logic
+    const children = await getTopLevelServices('specifications');
+    cachedQuickReplies = children
+      .map(c => ((c.service_name || c.service_id || '') as string).trim())
+      .filter(name => name.length > 0);
+    cachedQuickReplies = [...cachedQuickReplies, 'Back'];
+
+    return {
+      messages: [
+        {
+          role: 'printy',
+          text: "Great! Now let's choose the specifications. What would you like?",
+        },
+      ],
+      quickReplies: cachedQuickReplies,
+    };
   } else if (currentPhase === 'sizes') {
-    // Step 3b: Sizes (fixed phase)
-    // @ts-ignore
-    children = await getTopLevelServices('sizes');
-    const { service: parentService } = await getServiceDetails('SIZE');
-    message = parentService?.description || 'Perfect! Now let\'s choose the size. What size do you need?';
-    currentServiceId = 'SIZE'; // Set for child selection logic
+    const children = await getTopLevelServices('sizes');
+    cachedQuickReplies = children
+      .map(c => ((c.service_name || c.service_id || '') as string).trim())
+      .filter(name => name.length > 0);
+    cachedQuickReplies = [...cachedQuickReplies, 'Back'];
+
+    return {
+      messages: [
+        {
+          role: 'printy',
+          text: "Perfect! Now let's choose the size. What size do you need?",
+        },
+      ],
+      quickReplies: cachedQuickReplies,
+    };
   } else if (currentPhase === 'quantities') {
-    // Step 3c: Quantities (fixed phase)
-    // @ts-ignore
-    children = await getTopLevelServices('quantities');
-    const { service: parentService } = await getServiceDetails('QUAN');
-    message = parentService?.description || 'Excellent! Finally, let\'s choose the quantity. How many do you need?';
-    currentServiceId = 'QUAN'; // Set for child selection logic
+    const children = await getTopLevelServices('quantities');
+    cachedQuickReplies = children
+      .map(c => ((c.service_name || c.service_id || '') as string).trim())
+      .filter(name => name.length > 0);
+    cachedQuickReplies = [...cachedQuickReplies, 'Back'];
+
+    return {
+      messages: [
+        {
+          role: 'printy',
+          text: "Excellent! Finally, let's choose the quantity. How many do you need?",
+        },
+      ],
+      quickReplies: cachedQuickReplies,
+    };
+
+
   } else if (currentPhase === 'confirmation') {
     // Step 4: Confirmation screen
     const messages: BotMessage[] = [
-      { role: 'printy', text: '📋 Order Summary (Awaiting Quote)' },
-      { role: 'printy', text: `🖨️ Product: ${orderRecord.product_service_name || 'N/A'}` },
-      { role: 'printy', text: `⚙️ Specification: ${orderRecord.specification_name || 'N/A'}` },
+      { role: 'printy', text: '📋 Order Summary' },
+      {
+        role: 'printy',
+        text: `🖨️ Product: ${orderRecord.product_service_name || 'N/A'}`,
+      },
+      {
+        role: 'printy',
+        text: `⚙️ Specification: ${orderRecord.specification_name || 'N/A'}`,
+      },
       { role: 'printy', text: `📏 Size: ${orderRecord.size_name || 'N/A'}` },
-      { role: 'printy', text: `📦 Quantity: ${orderRecord.quantity_name || 'N/A'}` },
-      { role: 'printy', text: 'Please review your preliminary order details above. Click "Confirm Order" to submit the request and wait for a quote from our admin.' }
+      {
+        role: 'printy',
+        text: `📦 Quantity: ${orderRecord.quantity_name || 'N/A'}`,
+      },
+      {
+        role: 'printy',
+        text: 'Please review your order details above. If everything looks correct, click "Confirm Order" to proceed.',
+      },
     ];
 
     cachedQuickReplies = ['Confirm Order', 'Back', 'End Chat'];
@@ -337,7 +461,6 @@ async function loadPhaseOptions(_ctx: any): Promise<any> {
     };
   }
 
-  // Map and filter for quick replies
   cachedQuickReplies = children
     .map(c => {
       const name = (c.service_name || c.service_id || '') as string;
@@ -392,7 +515,9 @@ async function handlePhaseNavigation(ctx: any, input: string): Promise<any> {
   // Find selected child (currentServiceId will be null for product root, 'SPEC' for spec phase, etc.)
   const { children } = await getServiceDetails(currentServiceId);
   const selectedChild = children.find(c => {
-    const name = (c.service_name || c.service_id || '').toString().toLowerCase();
+    const name = (c.service_name || c.service_id || '')
+      .toString()
+      .toLowerCase();
     return name === normalized;
   });
 
@@ -412,8 +537,11 @@ async function handlePhaseNavigation(ctx: any, input: string): Promise<any> {
 
   // We are in the 'products' phase (Step 2: recursive)
 
-  // Get next level options
-  const { service: nextService, children: nextChildren } = await getServiceDetails(selectedChild.service_id as string);
+
+  const { service: nextService, children: nextChildren } =
+    await getServiceDetails(currentServiceId);
+
+
 
   // If no children, this is a product leaf node - record product and move to next fixed phase (Spec)
   if (nextChildren.length === 0) {
@@ -460,15 +588,19 @@ async function handlePhaseNavigation(ctx: any, input: string): Promise<any> {
 
   const messages = dbToMessages(
     nextService,
-    "Great choice! What would you like to choose next?"
+    'Great choice! What would you like to choose next?'
   );
 
   return { messages, quickReplies: cachedQuickReplies };
 }
 
 // Helper to handle leaf node selection and phase transition
-async function handleLeafNodeSelection(selectedChild: any, ctx: any): Promise<any> {
-  // We only expect to enter this for fixed phases (spec, size, qty) when dynamicMode is active
+async function handleLeafNodeSelection(
+  selectedChild: any,
+  ctx: any
+): Promise<any> {
+  // Record the selection based on current phase
+
   if (currentPhase === 'products') {
     throw new Error("Product leaf node selection should be handled in handlePhaseNavigation.");
   } else if (currentPhase === 'specifications') {
@@ -504,9 +636,12 @@ async function handleLeafNodeSelection(selectedChild: any, ctx: any): Promise<an
     currentPhase = 'confirmation';
   }
 
-  // Reset navigation state and load options for the new phase
+
+  // Reset navigation state for next phase
   currentServiceId = null;
   serviceStack = [];
+
+  // Load options for the new phase
 
   return await loadPhaseOptions(ctx);
 }
@@ -654,10 +789,17 @@ async function createOrderFromCompilation(ctx: any): Promise<any> {
       : getCurrentCustomerId();
 
   // Block if not signed in / invalid customer id
-  if (typeof sessionCustomerId !== 'string' || sessionCustomerId.length !== 36 || sessionCustomerId === '00000000-0000-0000-0000-000000000000') {
+  if (
+    typeof sessionCustomerId !== 'string' ||
+    sessionCustomerId.length !== 36 ||
+    sessionCustomerId === '00000000-0000-0000-0000-000000000000'
+  ) {
     return {
       messages: [
-        { role: 'printy', text: 'You need to sign in before placing an order. Please sign in and try again.' },
+        {
+          role: 'printy',
+          text: 'You need to sign in before placing an order. Please sign in and try again.',
+        },
       ],
       quickReplies: ['End Chat'],
     };
@@ -668,20 +810,27 @@ async function createOrderFromCompilation(ctx: any): Promise<any> {
     order_id: crypto.randomUUID(),
     service_id: orderRecord.product_service_id || '1001',
     customer_id: sessionCustomerId,
-    order_status: 'Needs Quote',
-    delivery_mode: typeof ctx.deliveryMode === 'string' ? ctx.deliveryMode : 'pickup',
+    order_status: 'pending',
+    delivery_mode:
+      typeof ctx.deliveryMode === 'string' ? ctx.deliveryMode : 'pickup',
+
     order_date_time: new Date().toISOString(),
     completed_date_time: null,
     specification: orderRecord.specification_name || 'Standard',
     page_size: orderRecord.size_name || 'Standard',
-    quantity: orderRecord.quantity_name ? extractQuantityFromString(orderRecord.quantity_name) : 1,
-    priority_level: typeof ctx.priorityLevel === 'number' ? ctx.priorityLevel : 1,
-    product_service_name: orderRecord.product_service_name, // Include for quote display later
+    quantity: orderRecord.quantity_name
+      ? extractQuantityFromString(orderRecord.quantity_name)
+      : 1,
+    priority_level:
+      typeof ctx.priorityLevel === 'number' ? ctx.priorityLevel : 1,
+
   };
 
   const result = await createOrder(finalOrder);
   if (!result.success) {
-    const errorMessage = (result.error && (result.error.message || result.error.details)) || 'Unknown error';
+    const errorMessage =
+      (result.error && (result.error.message || result.error.details)) ||
+      'Unknown error';
     return {
       messages: [
         { role: 'printy', text: 'Sorry, we were unable to submit your order.' },
@@ -1124,7 +1273,9 @@ export const placeOrderFlow: ChatFlow = {
     );
     if (!selection) {
       return {
-        messages: [{ role: 'printy', text: 'Please choose one of the options.' }],
+        messages: [
+          { role: 'printy', text: 'Please choose one of the options.' },
+        ],
         quickReplies: nodeQuickReplies(current),
       };
     }
@@ -1150,7 +1301,10 @@ export const placeOrderFlow: ChatFlow = {
 
     // If user chose End Chat option in static menu
     if (currentNodeId === 'end') {
-      return { messages: nodeToMessages(NODES[currentNodeId]), quickReplies: ['End Chat'] };
+      return {
+        messages: nodeToMessages(NODES[currentNodeId]),
+        quickReplies: ['End Chat'],
+      };
     }
 
     // All other static nodes

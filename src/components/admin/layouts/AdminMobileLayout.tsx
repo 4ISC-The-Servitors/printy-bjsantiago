@@ -1,6 +1,10 @@
-import React, { useState } from 'react';
-import { AdminMobileHeader } from '../_shared/mobile';
-import MobileChatPanel from '../../chat/mobile/ChatPanel';
+import React, { useEffect, useState } from 'react';
+import { AdminMobileHeader, AdminMobileNavbar } from '../_shared/mobile';
+import { AdminMobileSidebar } from '../_shared/mobile';
+import { useToast } from '../../../lib/useToast';
+import ToastContainer from '../../shared/ToastContainer';
+import Modal from '../../shared/Modal';
+import AdminMobileChatOverlay from '../chat/AdminMobileChatOverlay';
 
 interface AdminMobileLayoutProps {
   title: string;
@@ -13,6 +17,7 @@ interface AdminMobileLayoutProps {
   quickReplies?: any[];
   onSend: (text: string) => void;
   onQuickReply?: (value: string) => void;
+  readOnly?: boolean;
   children: React.ReactNode;
 }
 
@@ -27,10 +32,26 @@ const AdminMobileLayout: React.FC<AdminMobileLayoutProps> = ({
   quickReplies,
   onSend,
   onQuickReply,
+  readOnly,
   children,
 }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [toasts, toast] = useToast({ position: 'top-center', duration: 2500 });
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
+  // Close sidebar whenever any component requests to open admin chat
+  useEffect(() => {
+    const closeSidebarOnChatOpen = () => setIsSidebarOpen(false);
+    window.addEventListener(
+      'admin-chat-open',
+      closeSidebarOnChatOpen as EventListener
+    );
+    return () =>
+      window.removeEventListener(
+        'admin-chat-open',
+        closeSidebarOnChatOpen as EventListener
+      );
+  }, []);
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar would be provided by parent when needed */}
@@ -42,23 +63,76 @@ const AdminMobileLayout: React.FC<AdminMobileLayoutProps> = ({
           rightContent={headerRight}
         />
 
-        <main className="flex-1 overflow-auto pb-20">
-          {open ? (
-            <div className="flex flex-col min-h-screen bg-white">
-              <MobileChatPanel
-                title="Printy Assistant"
-                messages={messages}
-                onSend={onSend}
-                isTyping={isTyping}
-                quickReplies={quickReplies}
-                onQuickReply={onQuickReply}
-                onEndChat={onClose}
-              />
-            </div>
-          ) : (
-            children
-          )}
-        </main>
+        <main className="flex-1 overflow-auto pb-24">{children}</main>
+
+        <AdminMobileNavbar onOpenChat={onOpen} />
+        <AdminMobileChatOverlay
+          open={open}
+          messages={messages}
+          isTyping={isTyping}
+          quickReplies={quickReplies}
+          onSend={onSend}
+          onQuickReply={onQuickReply}
+          onClose={onClose}
+          readOnly={readOnly}
+        />
+        <AdminMobileSidebar
+          isOpen={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
+          onSettingsClick={() => {
+            setIsSidebarOpen(false);
+            window.location.href = '/admin/settings';
+          }}
+          onLogoutClick={() => {
+            setIsSidebarOpen(false);
+            setShowLogoutConfirm(true);
+          }}
+        />
+        <Modal
+          isOpen={showLogoutConfirm}
+          onClose={() => setShowLogoutConfirm(false)}
+          size="sm"
+        >
+          <div className="bg-white rounded-2xl shadow-xl border border-neutral-200">
+            <Modal.Header onClose={() => setShowLogoutConfirm(false)}>
+              <div className="text-base font-semibold text-neutral-900">
+                Confirm Logout
+              </div>
+            </Modal.Header>
+            <Modal.Body>
+              <p className="text-sm text-neutral-600">
+                Are you sure you want to log out? You'll need to sign in again
+                to access your account.
+              </p>
+            </Modal.Body>
+            <Modal.Footer>
+              <button
+                className="btn btn-ghost px-3 py-2 text-sm"
+                onClick={() => setShowLogoutConfirm(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-error px-3 py-2 text-sm"
+                onClick={() => {
+                  setShowLogoutConfirm(false);
+                  toast.success(
+                    'Successfully logged out',
+                    'You have been signed out of your account'
+                  );
+                  window.location.href = '/auth/signin';
+                }}
+              >
+                Logout
+              </button>
+            </Modal.Footer>
+          </div>
+        </Modal>
+        <ToastContainer
+          toasts={toasts}
+          onRemoveToast={toast.remove}
+          position="top-center"
+        />
       </div>
     </div>
   );

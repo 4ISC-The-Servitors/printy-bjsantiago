@@ -8,6 +8,7 @@ import ResetPassword from './pages/auth/ResetPassword';
 import CustomerDashboard from './pages/customer/Dashboard';
 import AccountSettings from './pages/customer/AccountSettings';
 import CustomerRoot from './pages/customer/CustomerRoot';
+import CustomerChatHistory from './pages/customer/ChatHistory';
 import AdminRoot from './pages/admin/AdminRoot';
 import { PageLoading } from './components/shared';
 import './index.css';
@@ -18,6 +19,7 @@ const AdminOrders = lazy(() => import('./pages/admin/Orders'));
 const AdminTickets = lazy(() => import('./pages/admin/Tickets'));
 const AdminSettingsPage = lazy(() => import('./pages/admin/AdminSettings'));
 const AdminPortfolio = lazy(() => import('./pages/admin/Portfolio'));
+const AdminChats = lazy(() => import('./pages/admin/Chats'));
 const SuperAdminDashboard = lazy(() => import('./pages/superadmin/Dashboard'));
 const ComponentShowcase = lazy(
   () => import('./components/shared/showcase/ComponentShowcase')
@@ -34,6 +36,7 @@ function App() {
       <Route path="/customer" element={<CustomerRoot />}>
         <Route index element={<CustomerDashboard />} />
         <Route path="account" element={<AccountSettings />} />
+        <Route path="chats" element={<CustomerChatHistory />} />
       </Route>
       <Route path="/valued" element={<CustomerDashboard />} />
       <Route
@@ -73,6 +76,14 @@ function App() {
           element={
             <Suspense fallback={<PageLoading variant="grid" />}>
               <AdminPortfolio />
+            </Suspense>
+          }
+        />
+        <Route
+          path="chats"
+          element={
+            <Suspense fallback={<PageLoading variant="list" />}>
+              <AdminChats />
             </Suspense>
           }
         />
