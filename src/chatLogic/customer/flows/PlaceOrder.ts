@@ -226,14 +226,6 @@ async function getServiceDetails(serviceId: string | null): Promise<{
     return { service: null, children: rows };
   }
 
-
-    if (error) {
-      console.error('[PlaceOrder] Error fetching ROOT services:', error);
-    }
-    
-    return { service: null, children: rows || [] };
-  }
-
   // Logic for fetching children of a specific serviceId (serviceId is NOT null)
   const { data, error } = await supabase
     .from('printing_services')
