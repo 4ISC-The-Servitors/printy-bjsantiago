@@ -1,3 +1,5 @@
+// PlaceOrder.ts
+
 import type { BotMessage, ChatFlow } from '../../../types/chatFlow';
 import { createOrder } from '../../../api/orderApi';
 import type { OrderData } from '../../../api/orderApi';
@@ -20,7 +22,8 @@ const NODES: Record<string, Node> = {
       "Hi! I'm Printy. I can help you with your printing needs. You can either place an order or track an existing one.",
     options: [
       { label: 'Place Order', next: 'place_order' },
-      { label: 'Track Order', next: 'track_order' },
+      { label: 'Track Order', next: 'track_order_options' }, 
+      { label: 'Cancel Order', next: 'cancel_order_start' }, 
       { label: 'End Chat', next: 'end' },
     ],
   },
@@ -74,21 +77,25 @@ const NODES: Record<string, Node> = {
     message: '', // Message will be set dynamically
     options: [{ label: 'End Chat', next: 'end' }],
   },
-  // --- NEW NODES FOR QUOTE NEGOTIATION ---
+  // --- NODE FOR CANCEL FLOW TRANSITION ---
+  cancel_order_start: {
+    id: 'cancel_order_start',
+    message: 'Switching to cancellation assistant...',
+    options: [{ label: 'End Chat', next: 'end' }],
+  },
+  // --- NODES FOR QUOTE NEGOTIATION ---
   quote_negotiation: {
     id: 'quote_negotiation',
     message: 'Your quote is ready. Please review the details above and select an option to proceed.',
-    // NOTE: Options are now dynamic, this node is just a static label/anchor
     options: [],
   },
   confirm_quote: {
     id: 'confirm_quote',
     answer: '✅ Quote Confirmed! Please proceed to the dashboard or your account page to settle the payment for this order. Thank you for choosing Printy! 👋',
-    options: [], // Ends the chat
+    options: [], 
   },
   modified_quote_submitted: {
     id: 'modified_quote_submitted',
-    // This node is no longer used to end the chat, but is kept for consistency if needed later.
     answer: '✅ Modified Quotation Submitted! We will review your changes and send a new quote shortly. This chat will now end. 👋',
     options: [], 
   },
@@ -127,15 +134,12 @@ let currentServiceId: string | null = null;
 let serviceStack: string[] = [];
 let dynamicMode = false;
 let trackingMode = false;
-
-// New state variable to track if the original quote has been altered by the user
 let quoteModified = false;
 
 // Cache for synchronous quickReplies API
 let cachedQuickReplies: string[] = [];
 
 // Store order details progressively
-
 let orderRecord: Partial<
   OrderData & {
     product_service_id?: string;
@@ -150,9 +154,13 @@ let orderRecord: Partial<
 // State to hold the details of the last placed order for quote checking/negotiation
 let lastPlacedOrder: (OrderData & { 
     product_service_name?: string;
-    remarks?: string; // Add remarks field to the cached order
-    proposed_price?: number; // Add proposed price field
+    remarks?: string; 
+    proposed_price?: number; 
 }) | null = null;
+
+// Global variable to hold temporary context from tracking calls
+let lastTrackedContext: any = null; 
+
 
 // Helper to extract numeric value from quantity strings like "1000 pages", "250 pages"
 function extractQuantityFromString(quantityStr: string): number {
@@ -223,6 +231,7 @@ async function getServiceDetails(serviceId: string | null): Promise<{
         rows = emptyNoStatus.data || [];
       }
     }
+
     return { service: null, children: rows };
   }
 
@@ -357,117 +366,52 @@ async function loadPhaseOptions(_ctx: any): Promise<any> {
   let message: string = '';
 
   if (currentPhase === 'products') {
-    const children = await getTopLevelServices('products');
-    cachedQuickReplies = children
-      .map(c => ((c.service_name || c.service_id || '') as string).trim())
-      .filter(name => name.length > 0);
-    cachedQuickReplies = [...cachedQuickReplies, 'Back'];
-
-    return {
-      messages: [
-        {
-          role: 'printy',
-          text: 'We offer a variety of printing Services. What type are you interested in?',
-        },
-      ],
-      quickReplies: cachedQuickReplies,
-    };
+    const { children: productChildren, service: parentService } = await getServiceDetails(currentServiceId);
+    children = productChildren;
+    message = parentService?.description || 'We offer a variety of printing Services. What type are you interested in?';
+    
   } else if (currentPhase === 'specifications') {
-    const children = await getTopLevelServices('specifications');
-    cachedQuickReplies = children
-      .map(c => ((c.service_name || c.service_id || '') as string).trim())
-      .filter(name => name.length > 0);
-    cachedQuickReplies = [...cachedQuickReplies, 'Back'];
-
-    return {
-      messages: [
-        {
-          role: 'printy',
-          text: "Great! Now let's choose the specifications. What would you like?",
-        },
-      ],
-      quickReplies: cachedQuickReplies,
-    };
+    // FIX 1: Use type assertion to avoid assignment error due to union type inference
+    children = await getTopLevelServices('specifications' as 'specifications');
+    message = "Great! Now let's choose the specifications. What would you like?";
+    
   } else if (currentPhase === 'sizes') {
-    const children = await getTopLevelServices('sizes');
-    cachedQuickReplies = children
-      .map(c => ((c.service_name || c.service_id || '') as string).trim())
-      .filter(name => name.length > 0);
-    cachedQuickReplies = [...cachedQuickReplies, 'Back'];
-
-    return {
-      messages: [
-        {
-          role: 'printy',
-          text: "Perfect! Now let's choose the size. What size do you need?",
-        },
-      ],
-      quickReplies: cachedQuickReplies,
-    };
+    // FIX 1: Use type assertion
+    children = await getTopLevelServices('sizes' as 'sizes');
+    message = "Perfect! Now let's choose the size. What size do you need?";
+    
   } else if (currentPhase === 'quantities') {
-    const children = await getTopLevelServices('quantities');
-    cachedQuickReplies = children
-      .map(c => ((c.service_name || c.service_id || '') as string).trim())
-      .filter(name => name.length > 0);
-    cachedQuickReplies = [...cachedQuickReplies, 'Back'];
-
-    return {
-      messages: [
-        {
-          role: 'printy',
-          text: "Excellent! Finally, let's choose the quantity. How many do you need?",
-        },
-      ],
-      quickReplies: cachedQuickReplies,
-    };
-
-
+    // FIX 1: Use type assertion
+    children = await getTopLevelServices('quantities' as 'quantities');
+    message = "Excellent! Finally, let's choose the quantity. How many do you need?";
+    
   } else if (currentPhase === 'confirmation') {
     // Step 4: Confirmation screen
     const messages: BotMessage[] = [
-      { role: 'printy', text: '📋 Order Summary' },
+      { role: 'printy', text: `Please confirm your order details:` },
       {
         role: 'printy',
-        text: `🖨️ Product: ${orderRecord.product_service_name || 'N/A'}`,
-      },
-      {
-        role: 'printy',
-        text: `⚙️ Specification: ${orderRecord.specification_name || 'N/A'}`,
-      },
-      { role: 'printy', text: `📏 Size: ${orderRecord.size_name || 'N/A'}` },
-      {
-        role: 'printy',
-        text: `📦 Quantity: ${orderRecord.quantity_name || 'N/A'}`,
-      },
-      {
-        role: 'printy',
-        text: 'Please review your order details above. If everything looks correct, click "Confirm Order" to proceed.',
+        text: `**Product:** ${orderRecord.product_service_name || 'N/A'}\n**Specification:** ${orderRecord.specification_name || 'N/A'}\n**Size:** ${orderRecord.size_name || 'N/A'}\n**Quantity:** ${orderRecord.quantity_name || 'N/A'}`,
       },
     ];
 
     cachedQuickReplies = ['Confirm Order', 'Back', 'End Chat'];
 
     return {
-      messages,
+      messages: messages,
       quickReplies: cachedQuickReplies,
     };
   }
 
+  // Generate quick replies from children
   cachedQuickReplies = children
-    .map(c => {
-      const name = (c.service_name || c.service_id || '') as string;
-      return name.trim();
-    })
+    .map(c => (c.service_name || c.service_id || '').trim())
     .filter(name => name.length > 0);
-    
-  // Only show 'Back' if not at the root level of the product tree (currentServiceId === null)
-  const navigationOptions = [...cachedQuickReplies];
-  if (currentPhase !== 'products' || currentServiceId !== null || serviceStack.length > 0) {
-    navigationOptions.push('Back');
+  
+  if (currentPhase !== 'products' || serviceStack.length > 0) {
+    cachedQuickReplies = [...cachedQuickReplies, 'Back'];
   }
-  navigationOptions.push('End Chat');
-  cachedQuickReplies = navigationOptions;
-
+  cachedQuickReplies = [...cachedQuickReplies, 'End Chat'];
 
   return {
     messages: [{ role: 'printy', text: message }],
@@ -475,835 +419,640 @@ async function loadPhaseOptions(_ctx: any): Promise<any> {
   };
 }
 
-// Helper to handle phase-specific navigation
-async function handlePhaseNavigation(ctx: any, input: string): Promise<any> {
-  const normalized = input.trim().toLowerCase();
-  
-  // Handle confirmation
-  if (currentPhase === 'confirmation') {
-    if (normalized === 'confirm order') {
-      return await createOrderFromCompilation(ctx);
-    } else if (normalized === 'back') {
-      return await handleBackNavigation(ctx);
-    }
-    // Fallthrough to invalid input if not confirm/back
-  }
-  
-  // Handle 'Back' in dynamic mode if it wasn't handled as part of confirmation
-  if (normalized === 'back') {
-    return await handleBackNavigation(ctx);
-  }
-
-  // Handle 'End Chat' in dynamic mode if user is NOT in the final 'confirmation' phase
-  if (normalized === 'end chat' && currentPhase !== 'confirmation') {
-      dynamicMode = false;
-      currentNodeId = 'end';
-      return {
-        messages: nodeToMessages(NODES[currentNodeId]),
-        quickReplies: nodeQuickReplies(NODES[currentNodeId]),
-     };
-  }
-
-  // Find selected child (currentServiceId will be null for product root, 'SPEC' for spec phase, etc.)
-  const { children } = await getServiceDetails(currentServiceId);
-  const selectedChild = children.find(c => {
-    const name = (c.service_name || c.service_id || '')
-      .toString()
-      .toLowerCase();
-    return name === normalized;
-  });
-
-  if (!selectedChild) {
-    // Re-display options if input is invalid
-    return {
-      messages: [{ role: 'printy', text: 'Please choose one of the options.' }],
-      quickReplies: cachedQuickReplies,
-    };
-  }
-  
-  // If the phase is not 'products', it must be a leaf node (fixed phases)
-  if (currentPhase !== 'products') {
-    // Fixed phases (Spec, Size, Qty) are assumed to be leaf nodes in this structure
-    return await handleLeafNodeSelection(selectedChild, ctx);
-  }
-
-  // We are in the 'products' phase (Step 2: recursive)
-
-
-  const { service: nextService, children: nextChildren } =
-    await getServiceDetails(currentServiceId);
-
-
-
-  // If no children, this is a product leaf node - record product and move to next fixed phase (Spec)
-  if (nextChildren.length === 0) {
-    // Record the product selection
-    orderRecord.product_service_id = selectedChild.service_id;
-    orderRecord.product_service_name = selectedChild.service_name;
-
-    // Check if we are in the 'Edit Product Selected' flow
-    if (dynamicMode && lastPlacedOrder && currentPhase === 'products') {
-        // 1. Update the lastPlacedOrder with the newly selected product
-        lastPlacedOrder.service_id = orderRecord.product_service_id || lastPlacedOrder.service_id;
-        lastPlacedOrder.product_service_name = orderRecord.product_service_name || lastPlacedOrder.product_service_name;
-        
-        // 2. Set the quote as modified
-        quoteModified = true;
-
-        // 3. Reset dynamic mode and return to the quote negotiation node
-        dynamicMode = false;
-        currentNodeId = 'quote_negotiation';
-
-        // 4. Re-display the updated quote for confirmation/re-negotiation
-        return await checkQuoteStatus(lastPlacedOrder.order_id, lastPlacedOrder);
-    }
-
-    // Standard flow: Transition to the next fixed phase (Specifications)
-    currentPhase = 'specifications'; 
-    currentServiceId = null;
-    serviceStack = [];
-    return await loadPhaseOptions(ctx);
-  }
-
-  // This is an intermediate node (category/type) in the product tree. Drill down.
-  if (currentServiceId) serviceStack.push(currentServiceId);
-  currentServiceId = selectedChild.service_id as string;
-
-  // Map and filter for quick replies
-  cachedQuickReplies = nextChildren
-    .map(c => {
-      const name = (c.service_name || c.service_id || '') as string;
-      return name.trim();
-    })
-    .filter(name => name.length > 0);
-  cachedQuickReplies = [...cachedQuickReplies, 'Back', 'End Chat'];
-
-  const messages = dbToMessages(
-    nextService,
-    'Great choice! What would you like to choose next?'
+// Helper to handle the selection of a phase option (service, spec, size, qty)
+async function handlePhaseSelection(
+  _ctx: any, // FIX 2: Renamed ctx to _ctx to remove unused variable warning
+  input: string,
+  children: any[]
+): Promise<any> {
+  const selectedService = children.find(
+    c => (c.service_name || c.service_id).toLowerCase() === input.toLowerCase()
   );
 
-  return { messages, quickReplies: cachedQuickReplies };
-}
-
-// Helper to handle leaf node selection and phase transition
-async function handleLeafNodeSelection(
-  selectedChild: any,
-  ctx: any
-): Promise<any> {
-  // Record the selection based on current phase
-
-  if (currentPhase === 'products') {
-    throw new Error("Product leaf node selection should be handled in handlePhaseNavigation.");
-  } else if (currentPhase === 'specifications') {
-    orderRecord.specification_name = selectedChild.service_name;
-    currentPhase = 'sizes';
-  } else if (currentPhase === 'sizes') {
-    orderRecord.size_name = selectedChild.service_name;
-    currentPhase = 'quantities';
-  } else if (currentPhase === 'quantities') {
-    orderRecord.quantity_name = selectedChild.service_name;
-    
-    // Check if we came from the 'Edit Product Details' flow
-    if (dynamicMode && lastPlacedOrder) {
-        // We have completed editing the product details (Spec, Size, Qty).
-        
-        // 1. Update the lastPlacedOrder with the new details (Simulate DB update)
-        lastPlacedOrder.specification = orderRecord.specification_name ?? '';
-        lastPlacedOrder.page_size = orderRecord.size_name ?? '';
-        lastPlacedOrder.quantity = extractQuantityFromString(orderRecord.quantity_name || '');
-        
-        // 2. Set the quote as modified
-        quoteModified = true;
-
-        // 3. Reset dynamic mode and return to the quote negotiation node
-        dynamicMode = false;
-        currentNodeId = 'quote_negotiation';
-        
-        // 4. Re-display the updated quote for confirmation/re-negotiation
-        return await checkQuoteStatus(lastPlacedOrder.order_id, lastPlacedOrder);
-    }
-
-    // If not editing an existing quote, proceed to confirmation
-    currentPhase = 'confirmation';
+  if (!selectedService) {
+    return invalidInput();
   }
 
+  const serviceId = selectedService.service_id;
+  const serviceName = selectedService.service_name;
 
-  // Reset navigation state for next phase
-  currentServiceId = null;
-  serviceStack = [];
+  if (currentPhase === 'products') {
+    // Check if the selected product has children (drill down)
+    const { children: grandChildren, service: currentService } = await getServiceDetails(serviceId);
 
-  // Load options for the new phase
+    if (grandChildren && grandChildren.length > 0) {
+      // Drill down: push currentServiceId to stack, set new ID, reload options
+      if (currentServiceId) serviceStack.push(currentServiceId);
+      currentServiceId = serviceId;
+      
+      const messages = dbToMessages(currentService);
+      cachedQuickReplies = grandChildren
+        .map(c => (c.service_name || c.service_id || '').trim())
+        .filter(name => name.length > 0);
+      cachedQuickReplies = [...cachedQuickReplies, 'Back', 'End Chat'];
 
-  return await loadPhaseOptions(ctx);
+      return {
+        messages: messages,
+        quickReplies: cachedQuickReplies,
+      };
+
+    } else {
+      // Leaf node selected (actual product)
+      orderRecord.product_service_id = serviceId;
+      orderRecord.product_service_name = serviceName;
+      currentPhase = 'specifications';
+      currentServiceId = null; // Reset for next phase
+      serviceStack = [];
+      return await loadPhaseOptions(_ctx); // Updated call site
+    }
+
+  } else if (currentPhase === 'specifications') {
+    orderRecord.specification_name = serviceName;
+    orderRecord.specification = serviceName;
+    currentPhase = 'sizes';
+    return await loadPhaseOptions(_ctx); // Updated call site
+
+  } else if (currentPhase === 'sizes') {
+    orderRecord.size_name = serviceName;
+    orderRecord.page_size = serviceName;
+    currentPhase = 'quantities';
+    return await loadPhaseOptions(_ctx); // Updated call site
+
+  } else if (currentPhase === 'quantities') {
+    orderRecord.quantity_name = serviceName;
+    orderRecord.quantity = extractQuantityFromString(serviceName);
+    currentPhase = 'confirmation';
+    return await loadPhaseOptions(_ctx); // Updated call site
+  }
+  
+  return invalidInput();
 }
 
-// Helper function to perform the actual quote lookup when the user returns
-async function checkQuoteStatus(orderId: string, orderData: (OrderData & { product_service_name?: string; remarks?: string; proposed_price?: number })): Promise<any> {
-    // 1. Check for quote
-    // In a real implementation, we would re-fetch the quote from the database
-    const { data: quoteData, error: quoteError } = await supabase
-        .from('quotes')
-        .select('*')
-        .eq('order_id', orderId)
-        .maybeSingle();
 
-    if (quoteError) {
-        console.error('Error checking for quote:', quoteError);
+// --- New V2 Logic: Quote Negotiation ---
+
+function getNegotiationOptions(modified: boolean): string[] {
+    const baseOptions = ['Accept and Confirm Order', 'Propose Alternative Price', 'Add/Edit Remarks', 'Edit Product Details', 'End Chat'];
+    
+    // Only show 'Submit Modified Quotation' if a field has been changed
+    if (modified) {
+        return ['Submit Modified Quotation', ...baseOptions];
     }
     
-    // --- Quote Found: Display Full Details (Step 5) ---
-    if (quoteData) {
-        // Fetch customer details
-        const { data: customerData } = await supabase
-            .from('customers')
-            .select('customer_name, customer_address, contact_info')
-            .eq('customer_id', orderData.customer_id)
-            .maybeSingle();
+    return baseOptions;
+}
 
-        // Placeholder for company details
-        const companyName = 'Printy Solutions Inc.';
-        const companyAddress = '123 Main St, Malolos, Bulacan';
-        const companyContact = '+63 912 345 6789';
+async function handleQuoteProcess(orderId: string, orderData: any): Promise<any> {
+    lastPlacedOrder = {
+        ...orderData,
+        order_id: orderId,
+        remarks: orderData.remarks || '',
+        proposed_price: orderData.proposed_price || null,
+    };
+    quoteModified = orderData.proposed_price || orderData.remarks ? true : false; 
+    currentNodeId = 'quote_negotiation';
+    return await checkQuoteStatus(orderId);
+}
 
-        const customerName = customerData?.customer_name || 'N/A';
-        const customerAddress = customerData?.customer_address || 'N/A';
-        const customerContact = customerData?.contact_info || 'N/A';
-
-        // Format dates
-        const quoteIssueDate = new Date(quoteData.quote_issue_datetime).toLocaleString();
-        const quoteDueDate = new Date(quoteData.quote_due_datetime).toLocaleString();
+async function checkQuoteStatus(orderId: string): Promise<any> {
+    const { data: order, error } = await supabase
+        .from('orders')
+        .select(`*, quotes:quotes(*)`)
+        .eq('order_id', orderId)
+        .maybeSingle();
         
-        // Use initial_price for the displayed price, and display proposed price if modified
-        const originalPrice = quoteData.initial_price ? `₱${quoteData.initial_price.toFixed(2)}` : 'N/A';
-        const finalPriceDisplay = orderData.proposed_price ? 
-            `~~${originalPrice}~~ | **Proposed Price: ₱${orderData.proposed_price.toFixed(2)}**` : 
-            originalPrice;
-        
-        const remarksDisplay = orderData.remarks ? `\n\n📝 **Customer Remarks:** ${orderData.remarks}` : '';
-
-        const messages: BotMessage[] = [
-            { role: 'printy', text: `✅ QUOTATION ISSUED (Order ID: ${orderId})` },
-            { role: 'printy', text:
-                `Company Details\n` +
-                `Company Name: ${companyName}\n` +
-                `Company Address: ${companyAddress}\n` +
-                `Contact Info: ${companyContact}`
-            },
-            { role: 'printy', text:
-                `Quotation Details\n` +
-                `Quotation ID: ${quoteData.quote_id}\n` +
-                `Quote issue date: ${quoteIssueDate}\n` +
-                `Quote due date: ${quoteDueDate}`
-            },
-            { role: 'printy', text:
-                `Customer Info\n` +
-                `Customer Name: ${customerName}\n` +
-                `Customer Address: ${customerAddress}\n` +
-                `Contact info: ${customerContact}`
-            },
-            { role: 'printy', text:
-                `Printing Service Info\n` +
-                `Printing Service Name: ${orderData.product_service_name || 'N/A'}\n` +
-                `Specification: ${orderData.specification || 'N/A'}\n` +
-                `Size: ${orderData.page_size || 'N/A'}\n` +
-                `Quantity: ${orderData.quantity || 'N/A'}${remarksDisplay}` +
-                `\n\n**Total Price: ${finalPriceDisplay}**`
-            }
-        ];
-        
-        // Determine the primary confirmation button based on modification status
-        const confirmOption = quoteModified
-            ? 'Submit Modified Quotation' 
-            : 'Accept and Confirm Order';
-
-        const negotiationOptions = [
-            confirmOption,
-            'Edit Product Selected',
-            'Edit Product Details',
-            'Negotiate Pricing',
-            'Add Remarks',
-        ];
-        
-        // Set negotiation node and return options (Step 6)
-        currentNodeId = 'quote_negotiation';
-        dynamicMode = false; // Turn off dynamic mode while in static negotiation node
-        
+    if (error || !order || !order.quotes || order.quotes.length === 0) {
+        // If no quote, redirect to a waiting state or simple end.
+        currentNodeId = 'end';
         return {
-            messages: messages,
-            quickReplies: negotiationOptions,
+            messages: [{ role: 'printy', text: 'Order submitted! We are currently working on your quote and will notify you soon.' }],
+            quickReplies: ['End Chat'],
         };
     }
     
-    // --- Quote Not Found: Display Pending Message ---
-    const messages: BotMessage[] = [{
-        role: 'printy',
-        text: "🕒 Quote Still Pending\n\nWe haven't issued a quote for your order yet. We're working hard to get it to you within 2 business days.\n\nYou can click 'Check Quote' anytime to see if it's ready."
-    }];
-    
-    return {
-        messages: messages,
-        quickReplies: ['Check Quote'], // Only check quote
-    };
-}
+    const quote = order.quotes[0];
 
-// Helper to immediately confirm order and set up for quote checking
-async function handleQuoteProcess(orderId: string, orderData: (OrderData & { product_service_name?: string })): Promise<any> {
+    const messages: BotMessage[] = [
+        { role: 'printy', text: `Order ID: ${orderId}` },
+        { 
+            role: 'printy', 
+            text: `**Product:** ${order.product_service_name}\n**Details:** ${order.specification}, ${order.page_size}, ${order.quantity}\n**Quote Price:** ${quote.quoted_price ? `$${quote.quoted_price.toFixed(2)}` : 'Awaiting Quote'}\n**Remarks:** ${order.remarks || 'None'}`,
+        }
+    ];
     
-    // Store data for later quote check
-    lastPlacedOrder = orderData; 
-    quoteModified = false; // Initial quote is not modified by the user
+    // If quote has been modified by user, highlight the proposed changes
+    if (quoteModified) {
+        if (lastPlacedOrder?.proposed_price) {
+            messages.push({ role: 'printy', text: `You have proposed the following changes:`});
+            messages.push({ role: 'printy', text: `- **Proposed Price:** $${lastPlacedOrder.proposed_price.toFixed(2)}`});
+        }
+        if (lastPlacedOrder?.remarks) {
+            messages.push({ role: 'printy', text: `- **New Remarks:** ${lastPlacedOrder.remarks}`});
+        }
+    }
 
-    // Reset temporary order compilation state
-    dynamicMode = false;
-    currentPhase = 'products';
-    currentServiceId = null;
-    serviceStack = [];
-    orderRecord = {};
-    
-    const messages: BotMessage[] = [{
-        role: 'printy',
-        text: `✅ Order Submitted (ID: ${orderId})!\n\nThank you. We'll be in touch with a detailed quote within 2 business days.\n\nYou can click 'Check Quote' anytime to see if it's ready.`
-    }];
+    const quickReplies = getNegotiationOptions(quoteModified);
 
     return {
-        messages: messages,
-        quickReplies: ['Check Quote'], // ONLY 'Check Quote' is visible here as instructed
+        messages: messages.concat(nodeToMessages(NODES.quote_negotiation)),
+        quickReplies: quickReplies,
     };
 }
 
 
-// Helper to create order from compiled data
-async function createOrderFromCompilation(ctx: any): Promise<any> {
-  const sessionCustomerId =
-    typeof ctx.customerId === 'string' && ctx.customerId.length === 36
-      ? ctx.customerId
-      : getCurrentCustomerId();
-
-  // Block if not signed in / invalid customer id
-  if (
-    typeof sessionCustomerId !== 'string' ||
-    sessionCustomerId.length !== 36 ||
-    sessionCustomerId === '00000000-0000-0000-0000-000000000000'
-  ) {
-    return {
-      messages: [
-        {
-          role: 'printy',
-          text: 'You need to sign in before placing an order. Please sign in and try again.',
-        },
-      ],
-      quickReplies: ['End Chat'],
-    };
-  }
-
-  // Compile final order data for submission
-  const finalOrder: OrderData & { product_service_name?: string } = {
-    order_id: crypto.randomUUID(),
-    service_id: orderRecord.product_service_id || '1001',
-    customer_id: sessionCustomerId,
-    order_status: 'pending',
-    delivery_mode:
-      typeof ctx.deliveryMode === 'string' ? ctx.deliveryMode : 'pickup',
-
-    order_date_time: new Date().toISOString(),
-    completed_date_time: null,
-    specification: orderRecord.specification_name || 'Standard',
-    page_size: orderRecord.size_name || 'Standard',
-    quantity: orderRecord.quantity_name
-      ? extractQuantityFromString(orderRecord.quantity_name)
-      : 1,
-    priority_level:
-      typeof ctx.priorityLevel === 'number' ? ctx.priorityLevel : 1,
-
-  };
-
-  const result = await createOrder(finalOrder);
-  if (!result.success) {
-    const errorMessage =
-      (result.error && (result.error.message || result.error.details)) ||
-      'Unknown error';
-    return {
-      messages: [
-        { role: 'printy', text: 'Sorry, we were unable to submit your order.' },
-        { role: 'printy', text: `Reason: ${errorMessage}` },
-      ],
-      quickReplies: ['End Chat'],
-    };
-  }
-
-  // Call the new quote handling process
-  return await handleQuoteProcess(finalOrder.order_id, finalOrder);
-}
-
-// --- QUOTE NEGOTIATION HANDLER (Step 6) ---
 async function handleNegotiation(ctx: any, input: string): Promise<any> {
-    const normalizedInput = input.trim().toLowerCase();
-    
-    // Check if there is an active order to negotiate
+    const normalized = input.trim().toLowerCase();
+
+    // 1. Initial Null Check
     if (!lastPlacedOrder) {
-        currentNodeId = 'place_order_start';
+        currentNodeId = 'end';
         return {
-            messages: [{ role: 'printy', text: "I don't have a recent order quote to negotiate. Please start a new order." }],
+            messages: [{ role: 'printy', text: 'Error: Session data for the last order has expired. Please restart the flow.' }],
             quickReplies: nodeQuickReplies(NODES[currentNodeId]),
         };
     }
-
-    // --- Price Submission Logic (negotiate_price_input) ---
+    
+    // FIX 2: Using the Non-Null Assertion (!) resolves the error at line 514
+    const currentOrder = lastPlacedOrder!; 
+    
+    // Check if waiting for price or remarks input
     if (currentNodeId === 'negotiate_price_input') {
-        const proposedPrice = parseFloat(input.trim().replace(/[^0-9.]/g, ''));
-        
-        // Handle Back from negotiation_price_input
-        if (normalizedInput === 'back to negotiation' || normalizedInput === 'end chat') {
-             // If back or end chat, just return to negotiation without setting modification
-            currentNodeId = 'quote_negotiation';
-            return await checkQuoteStatus(lastPlacedOrder.order_id, lastPlacedOrder);
-        }
-
-        if (isNaN(proposedPrice) || proposedPrice <= 0) {
+        const price = parseFloat(input.trim());
+        if (isNaN(price) || price <= 0) {
             return {
-                messages: [{ role: 'printy', text: 'That is not a valid price. Please enter a positive number for your proposed alternative price.' }],
+                messages: [{ role: 'printy', text: 'Please enter a valid positive number for the price.' }],
                 quickReplies: nodeQuickReplies(NODES.negotiate_price_input),
             };
         }
-        
-        // 1. Store the proposed price
-        lastPlacedOrder.proposed_price = proposedPrice;
-        
-        // 2. Set the quote as modified
+        currentOrder.proposed_price = price; 
         quoteModified = true;
-
-        // 3. Return to quote display
         currentNodeId = 'quote_negotiation';
-        return await checkQuoteStatus(lastPlacedOrder.order_id, lastPlacedOrder);
+        return await checkQuoteStatus(currentOrder.order_id);
+    }
+
+    if (currentNodeId === 'add_remarks_input') {
+        const remarks = input.trim();
+        currentOrder.remarks = remarks; 
+        quoteModified = true;
+        currentNodeId = 'quote_negotiation';
+        return await checkQuoteStatus(currentOrder.order_id);
     }
     
-    // --- Remarks Submission Logic (add_remarks_input) ---
-    if (currentNodeId === 'add_remarks_input') {
-        
-        // Handle Back from add_remarks_input
-        if (normalizedInput === 'back to negotiation' || normalizedInput === 'end chat') {
-             // If back or end chat, just return to negotiation without setting modification
+    // Check quick reply options
+    switch (normalized) {
+        case 'back to negotiation':
             currentNodeId = 'quote_negotiation';
-            return await checkQuoteStatus(lastPlacedOrder.order_id, lastPlacedOrder);
-        }
-        
-        // 1. Store the remarks
-        lastPlacedOrder.remarks = input.trim();
-        
-        // 2. Set the quote as modified
-        quoteModified = true;
-
-        // 3. Return to quote display
-        currentNodeId = 'quote_negotiation';
-        return await checkQuoteStatus(lastPlacedOrder.order_id, lastPlacedOrder);
-    }
-
-
-    // --- Handle options from the negotiation menu (quote_negotiation) ---
-    switch (normalizedInput) {
-        
-        // Dynamic Confirmation Button:
-        case 'accept and confirm order':
-            if (quoteModified) {
-                 return {
-                    messages: [{ role: 'printy', text: 'You have modified the quote. Please select **"Submit Modified Quotation"** or undo your changes.' }],
-                    // This returns to the dynamic quickReplies in the export which will re-render the options
-                    quickReplies: [], 
-                };
-            }
-            // Logic for "Accept and Confirm Order"
-            // **TODO: Implement API call to update order status to 'Quote Confirmed'**
+            return await checkQuoteStatus(currentOrder.order_id);
             
-            // Critical change: Accept/Confirm ends the chat
-            lastPlacedOrder = null; 
-            currentNodeId = 'confirm_quote';
-            return {
-                messages: nodeToMessages(NODES[currentNodeId]),
-                quickReplies: nodeQuickReplies(NODES[currentNodeId]),
-            };
-        
-        case 'submit modified quotation':
-            if (!quoteModified) {
-                return {
-                    messages: [{ role: 'printy', text: 'The quote has not been modified. Please select **"Accept and Confirm Order"**.' }],
-                    // This returns to the dynamic quickReplies in the export which will re-render the options
-                    quickReplies: [], 
-                };
-            }
-            // Logic for "Submit Modified Quotation"
-            // **TODO: Implement API call to resubmit quote details for admin review (Status: 'Needs Quote')**
-            
-            // Critical change: Submitting modified quote returns to the waiting loop
-            const orderId = lastPlacedOrder.order_id;
-            const resubmittedOrderData = lastPlacedOrder; // Use the modified data for the re-submit
-            
-            // 1. Simulate setting the order back to 'Needs Quote'
-            // In a real flow, this would be an API call
-            
-            // 2. Clear quote state to force 'Pending' message
-            // Note: lastPlacedOrder is kept to retain the modified data
-            
-            // 3. Reset modification status for the new, pending quote
-            quoteModified = false; 
-            
-            // 4. Return the initial order submission confirmation/waiting message
-            return await handleQuoteProcess(orderId, resubmittedOrderData);
-
-
-        case 'edit product selected': // Step 6a: Return to Step 2 (Product tree root)
-            dynamicMode = true;
-            currentPhase = 'products';
-            currentServiceId = null;
-            serviceStack = [];
-            // Re-populate orderRecord with current values 
-            orderRecord.product_service_name = lastPlacedOrder.product_service_name; 
-            
-            currentNodeId = 'place_order'; 
-            
-            return await loadPhaseOptions(ctx);
-
-        case 'edit product details': // Step 6b: Return to Step 3 (Specifications phase)
-            dynamicMode = true;
-            currentPhase = 'specifications';
-            currentServiceId = null;
-            serviceStack = [];
-            // Re-populate orderRecord with current values
-            orderRecord.product_service_id = lastPlacedOrder.service_id;
-            orderRecord.product_service_name = lastPlacedOrder.product_service_name;
-            
-            currentNodeId = 'place_order'; 
-
-            return await loadPhaseOptions(ctx);
-
-        case 'negotiate pricing': // Step 6c: Ask for price input
+        case 'propose alternative price':
             currentNodeId = 'negotiate_price_input';
             return {
                 messages: nodeToMessages(NODES[currentNodeId]),
                 quickReplies: nodeQuickReplies(NODES[currentNodeId]),
             };
             
-        case 'add remarks': // New Option: Ask for remarks text input
+        case 'add/edit remarks':
             currentNodeId = 'add_remarks_input';
             return {
                 messages: nodeToMessages(NODES[currentNodeId]),
                 quickReplies: nodeQuickReplies(NODES[currentNodeId]),
             };
             
+        case 'edit product details': // Step 6b: Return to Products selection phase
+            dynamicMode = true;
+            currentPhase = 'products'; // FIX 3: Change to 'products' to restart the phase flow
+            currentServiceId = null;
+            serviceStack = [];
+            orderRecord = {}; // Reset order details for a new product selection
+            currentNodeId = 'place_order'; 
+
+            // Immediately load the next phase and return the result.
+            return await loadPhaseOptions(ctx);
+
+        case 'accept and confirm order':
+            if (quoteModified) {
+                return {
+                    messages: [{ role: 'printy', text: 'You have modified the quote. Please select **"Submit Modified Quotation"** or undo your changes.' }],
+                    quickReplies: getNegotiationOptions(quoteModified), 
+                };
+            }
+            // Implement API call to update order status
+            const { error: updateError } = await supabase
+                .from('orders')
+                .update({ order_status: 'Awaiting Payment' })
+                .eq('order_id', currentOrder.order_id); 
+
+            if (updateError) console.error('Error confirming quote:', updateError);
+            
+            lastPlacedOrder = null; 
+            currentNodeId = 'confirm_quote';
+            return {
+                messages: nodeToMessages(NODES[currentNodeId]),
+                quickReplies: nodeQuickReplies(NODES[currentNodeId]),
+            };
+            
+        case 'submit modified quotation':
+            if (!quoteModified) {
+                return {
+                    messages: [{ role: 'printy', text: 'The quote has not been modified. Please select **"Accept and Confirm Order"**.' }],
+                    quickReplies: getNegotiationOptions(quoteModified), 
+                };
+            }
+            // Implement API call to update order with modified details
+            const orderId = currentOrder.order_id;
+            
+            const { error: resubmitError } = await supabase
+                .from('orders')
+                .update({ 
+                    order_status: 'Needs Quote', 
+                    // Use the original service_id/spec/size/qty stored in the local cache
+                    service_id: currentOrder.service_id, 
+                    specification: currentOrder.specification,
+                    page_size: currentOrder.page_size,
+                    quantity: currentOrder.quantity,
+                    remarks: currentOrder.remarks,
+                    proposed_price: currentOrder.proposed_price, 
+                })
+                .eq('order_id', orderId);
+
+            if (resubmitError) console.error('Error resubmitting quote:', resubmitError);
+
+            // Clear the local quote modified state
+            quoteModified = false; 
+            lastPlacedOrder = null;
+            currentNodeId = 'modified_quote_submitted'; // Transition to end node for modified submission
+            
+            return {
+                messages: nodeToMessages(NODES[currentNodeId]),
+                quickReplies: nodeQuickReplies(NODES[currentNodeId]),
+            };
+            
         default:
-            // This returns to the dynamic quickReplies in the export which will re-render the options
-            return await checkQuoteStatus(lastPlacedOrder.order_id, lastPlacedOrder);
+            return invalidInput();
     }
 }
 
+// --- New V2 Logic: Order Tracking ---
 
-// New helper functions for order tracking
-async function handleTrackOrder(ctx: any, input: string): Promise<any> {
-  const customerId = getCurrentCustomerId();
-  if (!customerId || customerId === '00000000-0000-0000-0000-000000000000') {
-    trackingMode = false;
-    currentNodeId = 'place_order_start';
-    return {
-      messages: [{ role: 'printy', text: 'You need to sign in to track an order. Please sign in and try again.' }],
-      quickReplies: ['End Chat'],
-    };
-  }
+async function getDisplayStatus(order: any): Promise<{ statusText: string, cancelContext: any | null }> {
+    const quote = order.quotes && order.quotes.length > 0 ? order.quotes[0] : null;
+    let statusText = `Order ID: **${order.order_id}**\nStatus: **${order.order_status}**\nProduct: ${order.product_service_name}\nDate: ${new Date(order.created_at).toLocaleDateString()}`;
 
-  const normalizedInput = input.trim().toLowerCase();
+    if (quote) {
+        statusText += `\nQuoted Price: $${quote.quoted_price ? quote.quoted_price.toFixed(2) : 'Awaiting Quote'}`;
+    }
+    
+    let tempCancelContext = null;
+    const isCancelable = ['Needs Quote', 'Awaiting Quote Approval', 'Quoted'].includes(order.order_status);
+    if (isCancelable) {
+        statusText += `\n\n**Action:** You can cancel this order now.`;
+        // Cache the order details in the context for the cancellation flow
+        tempCancelContext = { orderId: order.order_id, orderStatus: order.order_status };
+        cachedQuickReplies = ['Cancel Order', 'End Chat'];
+    } else {
+        cachedQuickReplies = ['End Chat'];
+    }
 
-  // Handle common actions from any tracking state
-  if (normalizedInput === 'end chat') {
-    trackingMode = false;
-    currentNodeId = 'end';
-    return {
-      messages: nodeToMessages(NODES[currentNodeId]),
-      quickReplies: nodeQuickReplies(NODES[currentNodeId]),
-    };
-  }
-
-  if (normalizedInput === 'place order') {
-    trackingMode = false;
-    dynamicMode = true;
-    currentPhase = 'products';
-    currentNodeId = 'place_order';
-    return await loadPhaseOptions(ctx);
-  }
-
-  switch (normalizedInput) {
-    case 'latest order':
-      return await getLatestOrder(customerId);
-    case 'all orders':
-      return await getAllOrders(customerId);
-    case 'use order id':
-      currentNodeId = 'track_by_id';
-      return {
-        messages: nodeToMessages(NODES.track_by_id),
-        quickReplies: nodeQuickReplies(NODES.track_by_id),
-      };
-    case 'back':
-      trackingMode = false;
-      currentNodeId = 'place_order_start';
-      return {
-        messages: nodeToMessages(NODES[currentNodeId]),
-        quickReplies: nodeQuickReplies(NODES[currentNodeId]),
-      };
-    default:
-      if (currentNodeId === 'track_by_id') {
-        return await getOrderByID(input.trim());
-      }
-      return {
-        messages: [{ role: 'printy', text: 'Please choose one of the options.' }],
-        quickReplies: ['All Orders', 'Use Order ID', 'End Chat', 'Place Order'],
-      };
-  }
-}
-
-// New helper to get formatted status with description
-function getDisplayStatus(status: string) {
-  const descriptions: Record<string, string> = {
-    'Needs Quote': 'A quote needs to be provided by the admin first.',
-    'Awaiting Quote Approval': 'The admin has provided a quote and is awaiting your approval.',
-    'Processing': 'The company is already processing the printing request.',
-    'Awaiting Payment': 'Please send a valid, clear image of the proof of payment.',
-    'Verifying Payment': 'Proof already sent to admin; the admin is currently reviewing the proof.',
-    'For Delivery/Pick up': 'The product is now ready for delivery or pickup.', 
-    'Delivered': 'The product has been successfully delivered.',
-    'Completed': 'The order is now completed, with successful payment and pickup/delivery.',
-    'Cancelled': 'The order has been cancelled.'
-  };
-
-  const description = descriptions[status] || 'No description available.';
-  return `Status: ${status}\nDescription: ${description}`;
+    return { statusText, cancelContext: tempCancelContext };
 }
 
 async function getLatestOrder(customerId: string): Promise<any> {
-  const { data, error } = await supabase
-    .from('orders')
-    .select('order_id, order_status, order_datetime, specification, page_size, quantity, printing_services(service_name)')
-    .eq('customer_id', customerId)
-    .order('order_datetime', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    const { data: order, error } = await supabase
+        .from('orders')
+        .select(`*, quotes:quotes(*)`)
+        .eq('customer_id', customerId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-  if (error || !data) {
+    if (error || !order) {
+        currentNodeId = 'track_latest_order';
+        return {
+            messages: [{ role: 'printy', text: 'Could not find your latest order or an error occurred.' }],
+            quickReplies: ['Back', 'End Chat'],
+        };
+    }
+
+    currentNodeId = 'track_latest_order';
+    const { statusText, cancelContext } = await getDisplayStatus(order);
+    
     return {
-      messages: [{ role: 'printy', text: 'No recent orders found for your account.' }],
-      quickReplies: ['End Chat'],
+        messages: [{ role: 'printy', text: statusText }],
+        quickReplies: cachedQuickReplies,
+        externalContext: cancelContext, 
     };
-  }
-
-  // @ts-ignore
-  const serviceName = data.printing_services?.service_name || 'N/A';
-  const statusWithDescription = getDisplayStatus(data.order_status);
-  const orderMessage = `Order ID: ${data.order_id}\nProduct name: ${serviceName}\nspecification: ${data.specification || 'N/A'}\nsize: ${data.page_size || 'N/A'}\nquantity: ${data.quantity || 'N/A'}\n\n${statusWithDescription}\nordered date time: ${new Date(data.order_datetime).toLocaleString()}`;
-
-  currentNodeId = 'track_latest_order';
-  return {
-    messages: [{ role: 'printy', text: orderMessage }],
-    quickReplies: ['All Orders', 'Use Order ID', 'End Chat', 'Place Order'],
-  };
 }
 
 async function getAllOrders(customerId: string): Promise<any> {
-  const { data, error } = await supabase
-    .from('orders')
-    .select('order_id, order_status, order_datetime, specification, page_size, quantity, printing_services(service_name)')
-    .eq('customer_id', customerId)
-    .order('order_datetime', { ascending: false });
+    const { data: orders, error } = await supabase
+        .from('orders')
+        .select(`*, quotes:quotes(*)`)
+        .eq('customer_id', customerId)
+        .order('created_at', { ascending: false });
 
-  if (error || !data || data.length === 0) {
+    if (error || !orders || orders.length === 0) {
+        currentNodeId = 'track_all_orders';
+        return {
+            messages: [{ role: 'printy', text: 'You have no orders or an error occurred.' }],
+            quickReplies: ['Back', 'End Chat'],
+        };
+    }
+
+    const messages = orders.map((order, index) => ({
+        role: 'printy',
+        text: `**${index + 1}.** Order ID: **${order.order_id}** | Status: **${order.order_status}** | Date: ${new Date(order.created_at).toLocaleDateString()}`,
+    }));
+
+    currentNodeId = 'track_all_orders';
+    // Clear any previous cancellation context since this view doesn't allow one-click cancellation
+    lastTrackedContext = null; 
     return {
-      messages: [{ role: 'printy', text: 'No orders found for your account.' }],
-      quickReplies: ['End Chat'],
+        messages: [{ role: 'printy', text: `Found ${orders.length} orders:` }, ...messages],
+        quickReplies: ['Back', 'End Chat'],
     };
-  }
+}
 
-  const ordersList = data.map((order: any) => {
-    // @ts-ignore
-    const serviceName = order.printing_services?.service_name || 'N/A';
-    const statusWithDescription = getDisplayStatus(order.order_status);
-    return `Order ID: ${order.order_id}\nProduct name: ${serviceName}\nspecification: ${order.specification || 'N/A'}\nsize: ${order.page_size || 'N/A'}\nquantity: ${order.quantity || 'N/A'}\n\n${statusWithDescription}\nordered date time: ${new Date(order.order_datetime).toLocaleString()}`;
-  }).join('\n\n---\n\n'); 
-  
-  const message = `Here are all your orders:\n\n${ordersList}`;
+async function getOrderByID(orderId: string, customerId: string): Promise<any> {
+    const { data: order, error } = await supabase
+        .from('orders')
+        .select(`*, quotes:quotes(*)`)
+        .eq('order_id', orderId)
+        .eq('customer_id', customerId)
+        .maybeSingle();
 
-  currentNodeId = 'track_all_orders';
+    if (error || !order) {
+        currentNodeId = 'track_by_id';
+        // Clear context on error
+        lastTrackedContext = null;
+        return {
+            messages: [{ role: 'printy', text: `Could not find order **${orderId}** under your account.` }],
+            quickReplies: ['Back', 'End Chat'],
+        };
+    }
+
+    currentNodeId = 'track_by_id_result';
+    const { statusText, cancelContext } = await getDisplayStatus(order);
+
+    return {
+        messages: [{ role: 'printy', text: statusText }],
+        quickReplies: cachedQuickReplies,
+        externalContext: cancelContext, 
+    };
+}
+
+async function handleTrackOrder(_ctx: any, input: string): Promise<any> {
+    const normalizedInput = input.trim().toLowerCase();
+    const customerId = getCurrentCustomerId();
+    
+    if (!customerId) {
+        trackingMode = false;
+        return {
+            messages: [{ role: 'printy', text: 'You must be signed in to track orders.' }],
+            quickReplies: nodeQuickReplies(NODES.place_order_start),
+        };
+    }
+
+    let trackingResponse: any = null;
+
+    // Handle static navigation options first
+    if (normalizedInput === 'back') {
+        if (currentNodeId === 'track_by_id' || currentNodeId === 'track_by_id_result') {
+             currentNodeId = 'track_order_options';
+        } else if (currentNodeId === 'track_order_options') {
+            trackingMode = false;
+            currentNodeId = 'place_order_start';
+        } else {
+            currentNodeId = 'track_order_options';
+        }
+        
+        lastTrackedContext = null; // Clear context on navigation
+        return {
+            messages: nodeToMessages(NODES[currentNodeId]),
+            quickReplies: nodeQuickReplies(NODES[currentNodeId]),
+        };
+    }
+
+    // Handle tracking mode commands
+    switch (normalizedInput) {
+        case 'latest order':
+            trackingResponse = await getLatestOrder(customerId);
+            break;
+        case 'all orders':
+            trackingResponse = await getAllOrders(customerId);
+            break;
+        case 'use order id':
+            currentNodeId = 'track_by_id';
+            trackingResponse = {
+                messages: nodeToMessages(NODES[currentNodeId]),
+                quickReplies: nodeQuickReplies(NODES[currentNodeId]),
+            };
+            break;
+        case 'cancel order':
+            // Check the globally tracked context
+            if (lastTrackedContext?.orderId) {
+                // Clear state and signal flow switch
+                trackingMode = false;
+                currentNodeId = 'place_order_start';
+                return {
+                    messages: [{ role: 'printy', text: 'Switching to cancellation assistant...' }],
+                    quickReplies: ['End Chat'],
+                    externalFlow: 'cancel-order', // Signal to switch to the CancelOrder.ts flow
+                    externalContext: lastTrackedContext, // Passes order ID and status
+                };
+            }
+            trackingResponse = {
+                 messages: [{ role: 'printy', text: 'Please select an order that is eligible for cancellation first, or the previous order is not cancelable.' }],
+                 quickReplies: cachedQuickReplies,
+            }
+            break;
+        default:
+            // Explicitly handle text input when the bot is waiting for an Order ID
+            if (currentNodeId === 'track_by_id') {
+                trackingResponse = await getOrderByID(input.trim(), customerId);
+            } else {
+                // Fallback for invalid input in tracking mode
+                trackingResponse = invalidInput();
+            }
+            break;
+    }
+    
+    // Update the globally tracked context based on the response
+    if (trackingResponse?.externalContext) {
+        lastTrackedContext = trackingResponse.externalContext;
+    } else {
+        lastTrackedContext = null;
+    }
+
+    return trackingResponse;
+}
+
+
+function invalidInput(): { messages: BotMessage[]; quickReplies: string[] } {
   return {
-    messages: [{ role: 'printy', text: message }],
-    quickReplies: ['End Chat', 'Place Order'],
+    messages: [
+      {
+        role: 'printy',
+        text: "Sorry, I don't understand. Please choose from the options.",
+      },
+    ],
+    quickReplies:
+      cachedQuickReplies && cachedQuickReplies.length > 0
+        ? cachedQuickReplies
+        : ['End Chat'],
   };
 }
 
-async function getOrderByID(orderId: string): Promise<any> {
-  const { data, error } = await supabase
-    .from('orders')
-    .select('order_id, order_status, order_datetime, specification, page_size, quantity, printing_services(service_name)')
-    .eq('order_id', orderId)
-    .maybeSingle();
 
-  if (error || !data) {
-    return {
-      messages: [{ role: 'printy', text: `Sorry, I could not find an order with the ID: ${orderId}. Please try again.` }],
-      quickReplies: ['Back', 'End Chat', 'Place Order'],
-    };
-  }
+async function createOrderFromCompilation(_ctx: any): Promise<any> { 
+    const customerId = getCurrentCustomerId();
+    if (!customerId) {
+        return {
+            messages: [{ role: 'printy', text: 'You must be signed in to place an order.' }],
+            quickReplies: ['End Chat'],
+        };
+    }
 
-  // @ts-ignore
-  const serviceName = data.printing_services?.service_name || 'N/A';
-  const statusWithDescription = getDisplayStatus(data.order_status);
-  const orderMessage = `Found order ${orderId}:\n\nProduct name: ${serviceName}\nspecification: ${data.specification || 'N/A'}\nsize: ${data.page_size || 'N/A'}\nquantity: ${data.quantity || 'N/A'}\n\n${statusWithDescription}\nordered date time: ${new Date(data.order_datetime).toLocaleString()}`;
+    // Assert the extended type to include 'product_service_name' for the API call
+    const compiledOrder = {
+        customer_id: customerId,
+        service_id: orderRecord.product_service_id!,
+        specification: orderRecord.specification!,
+        page_size: orderRecord.page_size!,
+        quantity: orderRecord.quantity!,
+        product_service_name: orderRecord.product_service_name!, 
+        order_status: 'Needs Quote', 
+    } as OrderData & { product_service_name: string }; 
 
-  currentNodeId = 'track_by_id_result';
-  return {
-    messages: [{ role: 'printy', text: orderMessage }],
-    quickReplies: ['End Chat', 'Place Order'],
-  };
+    const { data: order, error } = await createOrder(compiledOrder);
+
+    // Reset state after order submission
+    dynamicMode = false;
+    currentPhase = 'products';
+    orderRecord = {};
+    serviceStack = [];
+    currentServiceId = null;
+
+    if (error || !order) {
+        currentNodeId = 'end';
+        return {
+            messages: [{ role: 'printy', text: 'Sorry, your order could not be placed due to an error. Please try again later.' }],
+            quickReplies: nodeQuickReplies(NODES[currentNodeId]),
+        };
+    }
+
+    // Order successfully placed, now initiate quote negotiation flow (V2)
+    return await handleQuoteProcess(order.order_id, order);
 }
 
 
 export const placeOrderFlow: ChatFlow = {
   id: 'place-order',
   title: 'Place an Order',
-  initial: () => {
-    // reset state
+  initial: (_ctx: any) => {
+    // Reset all state variables on new flow start
     currentNodeId = 'place_order_start';
     dynamicMode = false;
     trackingMode = false;
     currentPhase = 'products';
     currentServiceId = null;
     serviceStack = [];
-    cachedQuickReplies = [];
     orderRecord = {};
-    lastPlacedOrder = null; // Clear last placed order on flow restart
-    quoteModified = false; // Reset modification status
+    lastPlacedOrder = null;
+    quoteModified = false;
+    lastTrackedContext = null; // Reset tracked context
+    cachedQuickReplies = nodeQuickReplies(NODES[currentNodeId]);
+
     return nodeToMessages(NODES[currentNodeId]);
   },
-  quickReplies: () => {
-    // 1. If an order was recently placed but the quote hasn't been found, prioritize Check Quote
-    if (lastPlacedOrder && currentNodeId !== 'quote_negotiation' && currentNodeId !== 'negotiate_price_input' && currentNodeId !== 'add_remarks_input') {
-        return ['Check Quote'];
-    }
-    
-    // 2. If in negotiation mode, dynamically generate options
-    if (currentNodeId === 'quote_negotiation') {
-        const confirmOption = quoteModified
-            ? 'Submit Modified Quotation' 
-            : 'Accept and Confirm Order';
-
-        return [
-            confirmOption,
-            'Edit Product Selected',
-            'Edit Product Details',
-            'Negotiate Pricing',
-            'Add Remarks',
-        ];
-    }
-    
-    // 3. Dynamic mode (product/spec selection)
-    if (dynamicMode) return cachedQuickReplies;
-    
-    // 4. Input collection mode (price/remarks)
-    if (currentNodeId === 'negotiate_price_input' || currentNodeId === 'add_remarks_input') {
-        // Return only the back/end options defined in the node (since they require text input)
-        return nodeQuickReplies(NODES[currentNodeId]).filter(label => label.toLowerCase() !== 'back to negotiation');
-    }
-    
-    // 5. Tracking/Static mode
-    if (trackingMode) return nodeQuickReplies(NODES[currentNodeId]);
-    
-    return nodeQuickReplies(NODES[currentNodeId]);
-  },
+  quickReplies: () => cachedQuickReplies,
   respond: async (ctx, input) => {
     const normalizedInput = input.trim().toLowerCase();
 
-    // 1. Check for 'Check Quote' action (Highest priority)
-    if (normalizedInput === 'check quote') {
-        if (lastPlacedOrder) {
-            // Temporarily disable tracking/dynamic mode while checking quote
-            trackingMode = false;
-            dynamicMode = false;
-            return await checkQuoteStatus(lastPlacedOrder.order_id, lastPlacedOrder);
-        } else {
-            return {
-                messages: [{ role: 'printy', text: "I don't have a recent order to check the quote for. Please place an order or check via the tracking option." }], 
-                quickReplies: ['Place Order', 'Track Order', 'End Chat'],
-            };
-        }
+    // Global End Chat check
+    if (normalizedInput === 'end chat') {
+        currentNodeId = 'end';
+        return {
+            messages: nodeToMessages(NODES[currentNodeId]),
+            quickReplies: nodeQuickReplies(NODES[currentNodeId]),
+        };
     }
 
-    // 2. Check for Negotiation State (Step 6)
-    if (currentNodeId === 'quote_negotiation' || currentNodeId === 'negotiate_price_input' || currentNodeId === 'add_remarks_input') {
+    // 1. If we're in negotiation mode, handle negotiation logic first
+    if (lastPlacedOrder) {
         return await handleNegotiation(ctx, input);
     }
     
-    // 3. If in dynamic mode, handle DB-driven navigation (This must come before static flow check)
+    // 2. If we're in dynamic mode, handle phase navigation
     if (dynamicMode) {
-      // Handle phase-specific navigation (includes Back/End Chat checks)
-      return await handlePhaseNavigation(ctx, input);
-    }
+      if (normalizedInput === 'back') {
+        return await handleBackNavigation(ctx);
+      } else if (currentPhase === 'confirmation' && normalizedInput === 'confirm order') {
+        return await createOrderFromCompilation(ctx);
+      }
 
-    // 4. If we're in tracking mode, handle tracking logic first
+      let children: any[] = [];
+      if (currentPhase === 'products') {
+        const result = await getServiceDetails(currentServiceId);
+        children = result.children;
+      } else {
+        children = await getTopLevelServices(currentPhase as 'specifications' | 'sizes' | 'quantities'); // Type assertion for safe use
+      }
+      return await handlePhaseSelection(ctx, input, children);
+    }
+    
+    // 3. If we're in tracking mode, handle tracking logic
     if (trackingMode) {
-        if (currentNodeId === 'track_by_id') {
-            const normalizedInput = input.trim();
-            if (normalizedInput.toLowerCase() === 'back') {
-                currentNodeId = 'track_order_options';
-                return {
-                    messages: nodeToMessages(NODES[currentNodeId]),
-                    quickReplies: nodeQuickReplies(NODES[currentNodeId]),
-                };
-            }
-            return await getOrderByID(normalizedInput);
-        }
+        // handleTrackOrder updates lastTrackedContext internally
         return await handleTrackOrder(ctx, input);
     }
 
-    // 5. Static mode for initial choice only
-    const current = NODES[currentNodeId];
-    const selection = current.options.find(
-      o => o.label.toLowerCase() === input.trim().toLowerCase()
+    // 4. Handle static navigation and transitions
+    const nextNode = NODES[currentNodeId].options.find(
+      o => o.label.toLowerCase() === normalizedInput
     );
-    if (!selection) {
-      return {
-        messages: [
-          { role: 'printy', text: 'Please choose one of the options.' },
-        ],
-        quickReplies: nodeQuickReplies(current),
-      };
-    }
-    currentNodeId = selection.next as keyof typeof NODES;
 
-    // When user selects Place Order, switch to dynamic services
-    if (currentNodeId === 'place_order') {
-      dynamicMode = true;
-      currentPhase = 'products';
-      currentServiceId = null;
-      serviceStack = [];
-      orderRecord = {};
+    if (nextNode) {
+      currentNodeId = nextNode.next as keyof typeof NODES;
 
-      // Load initial product options
-      return await loadPhaseOptions(ctx);
-    }
-
-    // When user selects 'Track Order', switch to the new tracking branch
-    if (currentNodeId === 'track_order') {
+      if (currentNodeId === 'place_order') {
+        dynamicMode = true;
+        currentPhase = 'products';
+        return await loadPhaseOptions(ctx);
+      }
+      
+      if (currentNodeId === 'track_order_options') {
         trackingMode = true;
-        currentNodeId = 'track_order_options';
-    }
-
-    // If user chose End Chat option in static menu
-    if (currentNodeId === 'end') {
+        cachedQuickReplies = nodeQuickReplies(NODES[currentNodeId]);
+        return {
+            messages: nodeToMessages(NODES[currentNodeId]),
+            quickReplies: cachedQuickReplies,
+        };
+      }
+      
+      // New transition to external cancellation flow (from main menu)
+      if (currentNodeId === 'cancel_order_start') {
+          // Reset internal state before switching flows
+          dynamicMode = false;
+          trackingMode = false;
+          currentNodeId = 'place_order_start'; 
+          
+          return {
+              messages: nodeToMessages(NODES.cancel_order_start),
+              quickReplies: nodeQuickReplies(NODES.cancel_order_start),
+              externalFlow: 'cancel-order', // Signal to switch to the CancelOrder.ts flow
+              externalContext: null, // No specific order ID yet, CancelOrder flow will ask for it.
+          };
+      }
+      
+      // Default static node transition
+      cachedQuickReplies = nodeQuickReplies(NODES[currentNodeId]);
       return {
         messages: nodeToMessages(NODES[currentNodeId]),
-        quickReplies: ['End Chat'],
+        quickReplies: cachedQuickReplies,
       };
     }
 
-    // All other static nodes
-    const node = NODES[currentNodeId];
-    const messages = nodeToMessages(node);
-    const quickReplies = nodeQuickReplies(node);
-
-    return { messages, quickReplies };
+    // 5. Invalid Input Fallback
+    return invalidInput();
   },
 };

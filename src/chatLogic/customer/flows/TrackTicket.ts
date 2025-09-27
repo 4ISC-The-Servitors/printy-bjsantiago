@@ -1,4 +1,5 @@
 import type { BotMessage, ChatFlow } from '../../../types/chatFlow';
+import { supabase } from '../../../lib/supabase'; // make sure supabase client is imported
 
 type Option = { label: string; next: string };
 type Node = {
@@ -86,6 +87,62 @@ export const trackTicketFlow: ChatFlow = {
     const selection = current.options.find(
       o => o.label.toLowerCase() === input.trim().toLowerCase()
     );
+
+    // ====================
+    // Handle Ticket Status Inquiry
+    // ====================
+    if (!selection && currentNodeId === 'has_ticket_number') {
+      const inquiryId = input.trim().replace(/[^a-zA-Z0-9-]/g, ''); // sanitize input
+
+      if (!inquiryId) {
+        return {
+          messages: [
+            { role: 'printy', text: 'Please enter a valid ticket number (inquiry ID).' },
+          ],
+          quickReplies: nodeQuickReplies(NODES.has_ticket_number),
+        };
+      }
+
+      const { data: inquiry, error } = await supabase
+        .from('inquiries')
+        .select(
+          'inquiry_id, inquiry_message, inquiry_type, inquiry_status, resolution_comments, received_at'
+        )
+        .eq('inquiry_id', inquiryId)
+        .single();
+
+      if (error || !inquiry) {
+        return {
+          messages: [
+            {
+              role: 'printy',
+              text: `I couldn't find a ticket with ID "${inquiryId}". Please check and try again.`,
+            },
+          ],
+          quickReplies: nodeQuickReplies(NODES.has_ticket_number),
+        };
+      }
+
+      const lines = [
+        `📌 Ticket ID: ${inquiry.inquiry_id}`,
+        `📝 Issue submitted: ${inquiry.inquiry_message || '(no message provided)'}`,
+        `📂 Issue type: ${inquiry.inquiry_type || '(not specified)'}`,
+        `📅 Received: ${new Date(inquiry.received_at).toLocaleString()}`,
+        `📊 Status: ${inquiry.inquiry_status}`,
+        inquiry.resolution_comments
+          ? `✅ Resolution: ${inquiry.resolution_comments}`
+          : '✅ Resolution: (not yet provided)',
+      ];
+
+      return {
+        messages: lines.map(line => ({ role: 'printy', text: line })),
+        quickReplies: nodeQuickReplies(NODES.has_ticket_number),
+      };
+    }
+
+    // ====================
+    // Default navigation
+    // ====================
     if (!selection) {
       return {
         messages: [
@@ -94,14 +151,17 @@ export const trackTicketFlow: ChatFlow = {
         quickReplies: nodeQuickReplies(current),
       };
     }
+
     currentNodeId = selection.next as keyof typeof NODES;
     const node = NODES[currentNodeId];
     const messages = nodeToMessages(node);
     const quickReplies = nodeQuickReplies(node);
-    // If user chose End Chat option, still provide the closing message and a single End Chat button
+
     if (currentNodeId === 'end') {
       return { messages, quickReplies: ['End Chat'] };
     }
+
     return { messages, quickReplies };
   },
 };
+
