@@ -5,7 +5,6 @@ import { createOrder } from '../../../api/orderApi';
 import type { OrderData } from '../../../api/orderApi';
 import { getCurrentCustomerId } from '../../../lib/utils';
 import { supabase } from '../../../lib/supabase';
-// FIX: Removed 'quoteModified' to clear unused value warning.
 import { 
     handleTrackOrder, 
     handleQuoteChecking, 
@@ -109,7 +108,8 @@ export const NODES: Record<string, Node> = {
     // Quote nodes handled by OrderTracking, but defined here for global access
     awaiting_quote: {
         id: 'awaiting_quote',
-        message: 'Order submitted! We are currently working on your quote and will notify you soon. This can take up to **2 business days**.',
+        // MODIFIED: Removed **
+        message: 'Order submitted! We are currently working on your quote and will notify you soon. This can take up to 2 business days.',
         options: [
             { label: 'Check Quote Status', next: 'check_quote_status' },
             { label: 'End Chat', next: 'end' },
@@ -153,7 +153,8 @@ export const NODES: Record<string, Node> = {
     },
     add_remarks_input: {
         id: 'add_remarks_input',
-        message: 'Please enter any additional **Remarks** or special instructions for your order.',
+        // MODIFIED: Removed **
+        message: 'Please enter any additional Remarks or special instructions for your order.',
         options: [
             { label: 'Back to Negotiation', next: 'quote_negotiation' },
             { label: 'End Chat', next: 'end' },
@@ -209,8 +210,6 @@ function nodeToMessages(node: Node): BotMessage[] {
 function nodeQuickReplies(node: Node): string[] {
     return node.options.map(o => o.label);
 }
-
-// REMOVED: function dbToMessages - to clear unused function warning.
 
 function invalidInput(): { messages: BotMessage[]; quickReplies: string[] } {
     return {
@@ -313,10 +312,12 @@ export async function loadPhaseOptions(_ctx: any): Promise<any> {
 
     } else if (currentPhase === 'confirmation') {
         const messages: BotMessage[] = [
-            { role: 'printy', text: `Please confirm your order details:` },
+            // MODIFIED: All caps header
+            { role: 'printy', text: `ORDER CONFIRMATION DETAILS` },
             {
+                // MODIFIED: Removed ** and used all caps labels/clean formatting
                 role: 'printy',
-                text: `**Product:** ${orderRecord.product_service_name || 'N/A'}\n**Specification:** ${orderRecord.specification_name || 'N/A'}\n**Size:** ${orderRecord.size_name || 'N/A'}\n**Quantity:** ${orderRecord.quantity_name || 'N/A'}`,
+                text: `PRODUCT: ${orderRecord.product_service_name || 'N/A'}\nSPECIFICATION: ${orderRecord.specification_name || 'N/A'}\nSIZE: ${orderRecord.size_name || 'N/A'}\nQUANTITY: ${orderRecord.quantity_name || 'N/A'}`,
             },
         ];
 
@@ -512,6 +513,14 @@ export const placeOrderFlow: ChatFlow = {
             };
         }
         
+        // MODIFIED: Handle 'Place Order' selection from the tracking flow to reset and start a new order
+        if (normalizedInput === 'place order') {
+            dynamicMode = true;
+            trackingMode = false;
+            currentPhase = 'products';
+            return await loadPhaseOptions(ctx);
+        }
+
         // 7.2. Quote Negotiation/Checking (Highest Priority after Exit)
         if (lastPlacedOrder) { 
             // Check for 'check quote status' quick reply
