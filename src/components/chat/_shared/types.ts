@@ -5,6 +5,7 @@ export interface ChatMessage {
   text: string;
   role: ChatRole;
   ts: number;
+  imageUrl?: string;
   metadata?: Record<string, unknown>;
 }
 

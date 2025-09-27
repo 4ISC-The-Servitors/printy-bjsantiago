@@ -175,14 +175,21 @@ export function useCustomerConversations() {
     // DB-backed About Us flow
     if (activeFlowId === 'about' && activeSessionId && activeNodeId) {
       const conversationId = activeSessionId;
-      const userMessage: ChatMessage = { id: crypto.randomUUID(), role: 'user' as ChatRole, text, ts: Date.now() };
+      const isFileUrl = text.startsWith('blob:');
+      const userMessage: ChatMessage = { 
+        id: crypto.randomUUID(), 
+        role: 'user' as ChatRole, 
+        text: isFileUrl ? '' : text, // Don't show text for file URLs
+        imageUrl: isFileUrl ? text : undefined, // Set imageUrl for file URLs
+        ts: Date.now() 
+      };
       setMessages(prev => [...prev, userMessage]);
       setConversations(prev => prev.map(c => (c.id === conversationId ? { ...c, messages: [...c.messages, userMessage] } : c)));
       setIsTyping(true);
       setQuickReplies([]);
       try {
-        // Persist user message
-        await insertMessage({ sessionId: activeSessionId, text, role: 'user' });
+        // Persist user message (use empty text for file URLs since image is handled separately)
+        await insertMessage({ sessionId: activeSessionId, text: isFileUrl ? '' : text, role: 'user' });
         // Resolve option from current node
         const options = await fetchOptions(activeNodeId);
         const match = options.find(o => o.label.toLowerCase() === text.trim().toLowerCase());
@@ -228,7 +235,16 @@ export function useCustomerConversations() {
     const activeConversation = conversations.find(c => c.id === activeId);
     if (activeConversation?.status === 'ended') return;
 
-    const userMessage: ChatMessage = { id: crypto.randomUUID(), role: 'user', text, ts: Date.now() };
+    // Check if this is a file URL (blob URL) for image upload
+    const isFileUrl = text.startsWith('blob:');
+    
+    const userMessage: ChatMessage = { 
+      id: crypto.randomUUID(), 
+      role: 'user', 
+      text: isFileUrl ? '' : text, // Don't show text for file URLs
+      imageUrl: isFileUrl ? text : undefined, // Set imageUrl for file URLs
+      ts: Date.now() 
+    };
     setMessages(prev => [...prev, userMessage]);
     setConversations(prev => prev.map(c => (c.id === activeId ? { ...c, messages: [...c.messages, userMessage] } : c)));
 
@@ -299,6 +315,21 @@ export function useCustomerConversations() {
       return;
     }
     await handleSend(value);
+  };
+
+  const handleAttachFiles = async (files: FileList) => {
+    if (!files || files.length === 0) return;
+    
+    // Process each file
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      
+      // Create a preview URL for the image
+      const fileUrl = URL.createObjectURL(file);
+      
+      // Send the file URL to the flow for processing (this will create the user message)
+      await handleSend(fileUrl);
+    }
   };
 
   const switchConversation = async (id: string) => {
@@ -431,7 +462,7 @@ export function useCustomerConversations() {
           createdAt: s.createdAt,
           messages: [],
           flowId: s.flowId || 'about',
-          status: (s.status === 'ended' ? 'ended' : 'active') as const,
+          status: (s.status === 'ended' ? 'ended' : 'active') as 'active' | 'ended',
           icon: undefined,
         }));
         setConversations(prev => {
@@ -484,6 +515,7 @@ export function useCustomerConversations() {
     initializeFlow,
     handleSend,
     handleQuickReply,
+    handleAttachFiles,
     switchConversation,
     endChat,
     setActiveId,

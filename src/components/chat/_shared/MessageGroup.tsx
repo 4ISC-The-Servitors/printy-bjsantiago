@@ -89,8 +89,26 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({
                       {textWithoutImageTokens}
                     </div>
                   )}
-                  {imageMatches.length > 0 && (
+                  {(imageMatches.length > 0 || m.imageUrl) && (
                     <div className="mt-3 grid grid-cols-2 gap-3">
+                      {/* Display image from imageUrl property */}
+                      {m.imageUrl && (
+                        <a
+                          href={m.imageUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="rounded-lg overflow-hidden border border-neutral-200 bg-white block group"
+                          aria-label="Open uploaded image"
+                          title="Open image in new tab"
+                        >
+                          <img
+                            src={m.imageUrl}
+                            alt="Uploaded image"
+                            className="w-full h-auto object-contain transition-transform duration-200 group-hover:scale-[1.02] cursor-zoom-in"
+                          />
+                        </a>
+                      )}
+                      {/* Display images from text URLs */}
                       {imageMatches.map((src, idx) => (
                         <a
                           key={idx}

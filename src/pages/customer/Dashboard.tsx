@@ -90,6 +90,7 @@ const CustomerDashboard: React.FC = () => {
     initializeFlow,
     handleSend,
     handleQuickReply,
+    handleAttachFiles,
     switchConversation,
     endChat,
     setActiveId,
@@ -170,49 +171,9 @@ const CustomerDashboard: React.FC = () => {
 
   // input placeholder handled by the hook
 
-  // Listen for Pay Now from Recent Order card to open Payment chat
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail as { orderId?: string };
-      const orderId = detail?.orderId || recentOrder.id;
-      const title = `Payment for ${orderId}`;
-      initializeFlow('payment', title, { orderId, total: recentOrder.total });
-    };
-    window.addEventListener(
-      'customer-open-payment-chat',
-      handler as EventListener
-    );
-    return () =>
-      window.removeEventListener(
-        'customer-open-payment-chat',
-        handler as EventListener
-      );
-  }, [recentOrder.id]);
+  // Payment chat event handling is now managed by useCustomerConversations hook
 
-  // Listen for Cancel Order button to open Cancel chat
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail as {
-        orderId?: string;
-        orderStatus?: string;
-      };
-      const orderId = detail?.orderId || recentOrder.id;
-      const title = `Cancel Order ${orderId}`;
-      initializeFlow('cancel-order', title, {
-        orderId,
-        orderStatus: detail?.orderStatus,
-      });
-    };
-    window.addEventListener(
-      'customer-open-cancel-chat',
-      handler as EventListener
-    );
-    return () =>
-      window.removeEventListener(
-        'customer-open-cancel-chat',
-        handler as EventListener
-      );
-  }, [recentOrder.id]);
+  // Cancel order chat event handling is now managed by useCustomerConversations hook
 
   // Listen for external request to open a specific session (from Chat History)
   useEffect(() => {
@@ -308,6 +269,7 @@ const CustomerDashboard: React.FC = () => {
             onQuickReply={handleQuickReply}
             inputPlaceholder={inputPlaceholder}
             onEndChat={endChat}
+            onAttachFiles={handleAttachFiles}
             readOnly={conversations.find(c => c.id === activeId)?.status === 'ended'}
             hideInput={conversations.find(c => c.id === activeId)?.status === 'ended'}
           />
