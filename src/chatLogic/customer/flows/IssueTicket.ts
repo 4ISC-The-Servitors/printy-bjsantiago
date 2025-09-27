@@ -344,6 +344,14 @@ export const issueTicketFlow: ChatFlow = {
           };
         }
 
+        const uid = user?.id;
+        if (!uid) {
+          return {
+            messages: [{ role: 'printy', text: 'You must be signed in to create a ticket.' }],
+            quickReplies: nodeQuickReplies(current),
+          };
+        }
+
         const { data: order, error } = await supabase
           .from('orders')
           .select(`
@@ -358,7 +366,7 @@ export const issueTicketFlow: ChatFlow = {
             quotes:quotes(quoted_price)
           `)
           .eq('order_id', orderNumber)
-          .eq('customer_id', user.id)
+          .eq('customer_id', uid)
           .maybeSingle();
 
         if (error) {
@@ -421,11 +429,24 @@ export const issueTicketFlow: ChatFlow = {
         };
       }
 
+      const uid = user?.id;
+      if (!uid) {
+        return {
+          messages: [
+            {
+              role: 'printy',
+              text: 'You need to be signed in to view your orders.',
+            },
+          ],
+          quickReplies: nodeQuickReplies(NODES.issue_ticket_start),
+        };
+      }
+
       const { data: order, error } = await supabase
         .from('orders')
         .select('order_id,order_status,order_datetime')
         .eq('order_id', orderNumber)
-        .eq('customer_id', user.id)
+        .eq('customer_id', uid)
         .maybeSingle();
 
       if (error || !order) {

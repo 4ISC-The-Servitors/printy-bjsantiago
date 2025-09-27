@@ -875,8 +875,8 @@ async function createOrderFromCompilation(_ctx: any): Promise<any> {
         customer_id: customerId,
         order_status: 'Needs Quote',
         delivery_mode: 'Pickup', // Default delivery mode
-        order_datetime: currentDateTime,
-        completed_datetime: null,
+        order_date_time: currentDateTime,
+        completed_date_time: null,
         specification: orderRecord.specification!,
         page_size: orderRecord.page_size!,
         quantity: orderRecord.quantity!,
