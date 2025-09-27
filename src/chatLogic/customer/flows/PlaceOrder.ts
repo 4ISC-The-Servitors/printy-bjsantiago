@@ -231,8 +231,8 @@ async function getServiceDetails(serviceId: string | null): Promise<{
         rows = emptyNoStatus.data || [];
       }
     }
-    
-    return { service: null, children: rows || [] };
+
+    return { service: null, children: rows };
   }
 
   // Logic for fetching children of a specific serviceId (serviceId is NOT null)
