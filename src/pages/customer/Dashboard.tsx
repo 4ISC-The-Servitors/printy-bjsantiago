@@ -10,7 +10,7 @@ import RecentTickets from '../../components/customer/dashboard/recentTickets/Rec
 import { ToastContainer, Text, PageLoading, Modal, Button, useToast } from '../../components/shared';
 import { ShoppingCart, HelpCircle, TicketIcon, Info, MessageSquare, Settings, X } from 'lucide-react';
 import type { ChatFlow } from '../../types/chatFlow';
-import { issueTicketFlow } from '../../chatLogic/customer/flows/IssueTicket';
+import { customerFlows as flows } from '../../chatLogic/customer';
 
 // ---------------- Types / Config ----------------
 type TopicKey =
@@ -73,10 +73,7 @@ const topicConfig: Record<
   },
 };
 
-// Minimal flows registry (add more flows as they are implemented)
-const flows: Record<string, ChatFlow> = {
-  'issue-ticket': issueTicketFlow,
-};
+// Use full customer flows registry
 
 // ---------------- Component ----------------
 const CustomerDashboard: React.FC = () => {
