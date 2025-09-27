@@ -48,7 +48,7 @@ const RecentOrder: React.FC<RecentOrderProps> = ({ recentOrder }) => {
           {!hideCancel && (
             <CancelOrderButton orderId={recentOrder.id} orderStatus={recentOrder.status} />
           )}
-          {isAwaitingPayment && <PayNowButton orderId={recentOrder.id} />}
+          {isAwaitingPayment && <PayNowButton orderId={recentOrder.id} total={recentOrder.total} />}
         </div>
       )}
     </Card>
