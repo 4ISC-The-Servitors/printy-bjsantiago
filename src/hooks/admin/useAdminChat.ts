@@ -41,7 +41,7 @@ export const useAdminChat = (): UseAdminChatReturn => {
   const [currentFlow, setCurrentFlow] = useState<string>('intro');
   const [currentContext, setCurrentContext] = useState<any>({});
   const [pendingAction, setPendingAction] = useState<
-    null | 'resolution' | 'assign' | 'status'
+    null | 'assign' | 'status'
   >(null);
   const [currentInquiryId, setCurrentInquiryId] = useState<string | null>(null);
   const { updateInquiryStatus, assignInquiry, saveResolutionComment } =
@@ -186,14 +186,50 @@ export const useAdminChat = (): UseAdminChatReturn => {
         context = {
           ticketIds: orderIds,
           tickets: orders,
-          updateTicket: updateOrder,
+          // Bridge tickets flow updates to Supabase
+          updateTicket: async (ticketId: string, updates: any) => {
+            try {
+              if (typeof updates?.status === 'string') {
+                const map: Record<string, string> = {
+                  Open: 'open',
+                  Pending: 'in_progress',
+                  Closed: 'closed',
+                };
+                const db = map[updates.status] || updates.status;
+                await updateInquiryStatus(ticketId, db);
+              }
+              if (typeof updates?.lastMessage === 'string') {
+                await saveResolutionComment(ticketId, updates.lastMessage);
+              }
+            } catch (e) {
+              console.error('Failed to update ticket', e);
+            }
+          },
           refreshTickets: refreshOrders,
         };
       } else if (nextTopic === 'tickets') {
         context = {
           ticketId: orderId,
           tickets: orders,
-          updateTicket: updateOrder,
+          // Bridge tickets flow updates to Supabase
+          updateTicket: async (ticketId: string, updates: any) => {
+            try {
+              if (typeof updates?.status === 'string') {
+                const map: Record<string, string> = {
+                  Open: 'open',
+                  Pending: 'in_progress',
+                  Closed: 'closed',
+                };
+                const db = map[updates.status] || updates.status;
+                await updateInquiryStatus(ticketId, db);
+              }
+              if (typeof updates?.lastMessage === 'string') {
+                await saveResolutionComment(ticketId, updates.lastMessage);
+              }
+            } catch (e) {
+              console.error('Failed to update ticket', e);
+            }
+          },
           refreshTickets: refreshOrders,
         };
         setCurrentInquiryId(orderId || null);
@@ -269,48 +305,7 @@ export const useAdminChat = (): UseAdminChatReturn => {
 
     // Intercepts for pending actions
     const trimmed = text.trim();
-    if (pendingAction === 'resolution' && currentInquiryId) {
-      void (async () => {
-        try {
-          await saveResolutionComment(currentInquiryId, trimmed);
-          setMessages(prev => [
-            ...prev,
-            {
-              id: crypto.randomUUID(),
-              role: 'printy',
-              text: 'Resolution comment saved and sent to the customer.',
-              ts: Date.now(),
-            },
-          ]);
-          if (currentConversationId)
-            addConvMessage(
-              'printy',
-              'Resolution comment saved and sent to the customer.',
-              currentConversationId
-            );
-        } catch (e: any) {
-          setMessages(prev => [
-            ...prev,
-            {
-              id: crypto.randomUUID(),
-              role: 'printy',
-              text: `Failed to save resolution: ${e?.message || 'Unknown error'}`,
-              ts: Date.now(),
-            },
-          ]);
-          if (currentConversationId)
-            addConvMessage(
-              'printy',
-              `Failed to save resolution: ${e?.message || 'Unknown error'}`,
-              currentConversationId
-            );
-        } finally {
-          setPendingAction(null);
-        }
-      })();
-      setIsTyping(false);
-      return;
-    }
+    // No separate resolution action; Reply handles resolution saving below
     if (pendingAction === 'assign' && currentInquiryId) {
       void (async () => {
         try {
@@ -377,6 +372,17 @@ export const useAdminChat = (): UseAdminChatReturn => {
             value: l,
           }))
         );
+        // If we're in a ticket flow and there's a currentInquiryId,
+        // also persist the user's message as a resolution comment.
+        if (currentInquiryId && currentFlow.includes('tickets')) {
+          void (async () => {
+            try {
+              await saveResolutionComment(currentInquiryId!, trimmed);
+            } catch (e) {
+              console.error('Failed to save resolution comment via Reply', e);
+            }
+          })();
+        }
         setIsTyping(false);
       });
     } else {
@@ -410,25 +416,12 @@ export const useAdminChat = (): UseAdminChatReturn => {
 
   const handleQuickReply = (v: string) => {
     const val = v.trim();
-    if (val.toLowerCase().includes('end')) {
+    if (val.toLowerCase() === 'end chat') {
       setMessages([]);
       return;
     }
 
     // Ticket action intercepts
-    if (val === 'Create Resolution comment') {
-      setPendingAction('resolution');
-      setMessages(prev => [
-        ...prev,
-        {
-          id: crypto.randomUUID(),
-          role: 'printy',
-          text: 'Please type the resolution comment.',
-          ts: Date.now(),
-        },
-      ]);
-      return;
-    }
     if (val === 'Assign to') {
       setPendingAction('assign');
       setMessages(prev => [
