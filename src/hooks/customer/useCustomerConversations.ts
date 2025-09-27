@@ -1,8 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ChatMessage, ChatRole, QuickReply } from '../../components/chat/_shared/types';
 import { useToast } from '../../lib/useToast';
 import { customerFlows as flows } from '../../chatLogic/customer';
-import { mockOrders } from '../../data/orders';
 import {
   attachSessionToFlow,
   createSession,
@@ -16,7 +15,7 @@ import {
   endSession as endDbSession,
     fetchEndNodeText,
 } from '../../api/chatFlowApi';
-import { auth } from '../../lib/supabase';
+import { auth, supabase } from '../../lib/supabase';
 
 export interface Conversation {
   id: string;
@@ -48,17 +47,55 @@ export function useCustomerConversations() {
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [activeFlowId, setActiveFlowId] = useState<string | null>(null);
   const [activeNodeId, setActiveNodeId] = useState<string | null>(null);
-  const [sessionsLoaded, setSessionsLoaded] = useState(false);
+  const [, setSessionsLoaded] = useState(false);
   const inactivityTimerRef = useRef<number | null>(null);
   const endTimerRef = useRef<number | null>(null);
 
-  // Mock recent order used by events
-  const recentOrder = useMemo(() => {
-    const miguel = mockOrders.find(o => o.customer === 'Miguel Tan');
-    return {
-      id: miguel?.id || 'ORD-000145',
-      total: '₱5,000',
+  // Real recent order from Supabase
+  const [recentOrder, setRecentOrder] = useState<{
+    id: string;
+    total: string;
+  } | null>(null);
+
+  // Fetch recent order from Supabase
+  useEffect(() => {
+    const fetchRecentOrder = async () => {
+      try {
+        const { data: { user } } = await auth.getUser();
+        if (!user) return;
+
+        const { data, error } = await supabase
+          .from('orders')
+          .select(`
+            order_id,
+            order_status,
+            order_datetime,
+            quotes:quotes(initial_price, negotiated_price)
+          `)
+          .eq('customer_id', user.id)
+          .order('order_datetime', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (error) {
+          console.error('Error fetching recent order:', error);
+          return;
+        }
+
+        if (data) {
+          const quote = data.quotes && data.quotes.length > 0 ? data.quotes[0] : null;
+          const quotedPrice = quote ? (quote.negotiated_price || quote.initial_price) : null;
+          setRecentOrder({
+            id: data.order_id,
+            total: quotedPrice ? `₱${quotedPrice.toFixed(2)}` : 'Awaiting Quote',
+          });
+        }
+      } catch (e) {
+        console.error('fetchRecentOrder error', e);
+      }
     };
+
+    fetchRecentOrder();
   }, []);
 
   const updateInputPlaceholder = (flowId: string, replies: QuickReply[]) => {
@@ -431,7 +468,7 @@ export function useCustomerConversations() {
           createdAt: s.createdAt,
           messages: [],
           flowId: s.flowId || 'about',
-          status: (s.status === 'ended' ? 'ended' : 'active') as const,
+          status: (s.status === 'ended' ? 'ended' : 'active') as 'active' | 'ended',
           icon: undefined,
         }));
         setConversations(prev => {
@@ -452,13 +489,15 @@ export function useCustomerConversations() {
   useEffect(() => {
     const paymentHandler = (e: Event) => {
       const detail = (e as CustomEvent).detail as { orderId?: string };
-      const orderId = detail?.orderId || recentOrder.id;
+      const orderId = detail?.orderId || recentOrder?.id;
+      if (!orderId) return;
       const title = `Payment for ${orderId}`;
-      initializeFlow('payment', title, { orderId, total: recentOrder.total });
+      initializeFlow('payment', title, { orderId, total: recentOrder?.total || 'Unknown' });
     };
     const cancelHandler = (e: Event) => {
       const detail = (e as CustomEvent).detail as { orderId?: string; orderStatus?: string };
-      const orderId = detail?.orderId || recentOrder.id;
+      const orderId = detail?.orderId || recentOrder?.id;
+      if (!orderId) return;
       const title = `Cancel Order ${orderId}`;
       initializeFlow('cancel-order', title, { orderId, orderStatus: detail?.orderStatus });
     };
@@ -468,7 +507,7 @@ export function useCustomerConversations() {
       window.removeEventListener('customer-open-payment-chat', paymentHandler as EventListener);
       window.removeEventListener('customer-open-cancel-chat', cancelHandler as EventListener);
     };
-  }, [recentOrder.id]);
+  }, [recentOrder?.id, recentOrder?.total]);
 
   return {
     // state

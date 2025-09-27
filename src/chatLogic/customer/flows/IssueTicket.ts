@@ -334,31 +334,73 @@ export const issueTicketFlow: ChatFlow = {
         };
       }
       // ====================
-      // Hardcoded test order(s) so you can verify the flow without DB
-      if (orderNumber.toUpperCase() === 'TEST123' || orderNumber === '12345') {
-        const mockOrder = {
-          order_id: orderNumber,
-          order_status: 'processing',
-          order_datetime: new Date(Date.now() - 7 * 86400000), // 7 days ago
-          completed_datetime: null,
-          page_size: 'A4',
-          quantity: 500,
-        };
-        const mockLines = [
-          `Order ${mockOrder.order_id} — Status: ${mockOrder.order_status}`,
-          `Placed: ${mockOrder.order_datetime.toLocaleString()}`,
-          `Page Size: ${mockOrder.page_size}`,
-          `Quantity: ${mockOrder.quantity}`,
-          'Total: ₱2,000.00',
+      // Fetch order from Supabase
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          return {
+            messages: [{ role: 'printy', text: 'You must be signed in to create a ticket.' }],
+            quickReplies: nodeQuickReplies(current),
+          };
+        }
+
+        const { data: order, error } = await supabase
+          .from('orders')
+          .select(`
+            order_id,
+            order_status,
+            order_datetime,
+            completed_datetime,
+            page_size,
+            quantity,
+            product_service_name,
+            specification,
+            quotes:quotes(quoted_price)
+          `)
+          .eq('order_id', orderNumber)
+          .eq('customer_id', user.id)
+          .maybeSingle();
+
+        if (error) {
+          console.error('Error fetching order:', error);
+          return {
+            messages: [{ role: 'printy', text: 'Error fetching order details. Please try again.' }],
+            quickReplies: nodeQuickReplies(current),
+          };
+        }
+
+        if (!order) {
+          return {
+            messages: [{ role: 'printy', text: `Order ${orderNumber} not found or you are not authorized to view it.` }],
+            quickReplies: nodeQuickReplies(current),
+          };
+        }
+
+        const quote = order.quotes && order.quotes.length > 0 ? order.quotes[0] : null;
+        const orderLines = [
+          `Order ${order.order_id} — Status: ${order.order_status}`,
+          `Placed: ${new Date(order.order_datetime).toLocaleString()}`,
+          `Product: ${order.product_service_name || 'N/A'}`,
+          `Specification: ${order.specification || 'N/A'}`,
+          `Page Size: ${order.page_size || 'N/A'}`,
+          `Quantity: ${order.quantity || 'N/A'}`,
+          `Total: ${quote?.quoted_price ? `₱${quote.quoted_price.toFixed(2)}` : 'Awaiting Quote'}`,
         ];
+
         currentNodeId = 'order_issue_menu';
         return {
           messages: [
-            { role: 'printy', text: mockLines.join('\n') },
+            { role: 'printy', text: orderLines.join('\n') },
             { role: 'printy', text: 'Is this the correct order?' },
             ...nodeToMessages(NODES.order_issue_menu),
           ],
           quickReplies: nodeQuickReplies(NODES.order_issue_menu),
+        };
+      } catch (error) {
+        console.error('Error in order lookup:', error);
+        return {
+          messages: [{ role: 'printy', text: 'Error looking up order. Please try again.' }],
+          quickReplies: nodeQuickReplies(current),
         };
       }
       // ====================

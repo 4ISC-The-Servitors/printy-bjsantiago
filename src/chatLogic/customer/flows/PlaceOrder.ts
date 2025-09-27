@@ -23,7 +23,6 @@ const NODES: Record<string, Node> = {
     options: [
       { label: 'Place Order', next: 'place_order' },
       { label: 'Track Order', next: 'track_order_options' }, 
-      { label: 'Cancel Order', next: 'cancel_order_start' }, 
       { label: 'End Chat', next: 'end' },
     ],
   },
@@ -75,12 +74,6 @@ const NODES: Record<string, Node> = {
   track_by_id_result: {
     id: 'track_by_id_result',
     message: '', // Message will be set dynamically
-    options: [{ label: 'End Chat', next: 'end' }],
-  },
-  // --- NODE FOR CANCEL FLOW TRANSITION ---
-  cancel_order_start: {
-    id: 'cancel_order_start',
-    message: 'Switching to cancellation assistant...',
     options: [{ label: 'End Chat', next: 'end' }],
   },
   // --- NODES FOR QUOTE NEGOTIATION ---
@@ -158,8 +151,6 @@ let lastPlacedOrder: (OrderData & {
     proposed_price?: number; 
 }) | null = null;
 
-// Global variable to hold temporary context from tracking calls
-let lastTrackedContext: any = null; 
 
 
 // Helper to extract numeric value from quantity strings like "1000 pages", "250 pages"
@@ -231,8 +222,8 @@ async function getServiceDetails(serviceId: string | null): Promise<{
         rows = emptyNoStatus.data || [];
       }
     }
-    
-    return { service: null, children: rows || [] };
+
+    return { service: null, children: rows };
   }
 
   // Logic for fetching children of a specific serviceId (serviceId is NOT null)
@@ -515,9 +506,9 @@ async function handleQuoteProcess(orderId: string, orderData: any): Promise<any>
 }
 
 async function checkQuoteStatus(orderId: string): Promise<any> {
-    const { data: order, error } = await supabase
+        const { data: order, error } = await supabase
         .from('orders')
-        .select(`*, quotes:quotes(*)`)
+        .select(`*, quotes:quotes(initial_price, negotiated_price, quote_issue_datetime, quote_due_datetime)`)
         .eq('order_id', orderId)
         .maybeSingle();
         
@@ -531,12 +522,13 @@ async function checkQuoteStatus(orderId: string): Promise<any> {
     }
     
     const quote = order.quotes[0];
+    const quotedPrice = quote.negotiated_price || quote.initial_price;
 
     const messages: BotMessage[] = [
         { role: 'printy', text: `Order ID: ${orderId}` },
         { 
             role: 'printy', 
-            text: `**Product:** ${order.product_service_name}\n**Details:** ${order.specification}, ${order.page_size}, ${order.quantity}\n**Quote Price:** ${quote.quoted_price ? `$${quote.quoted_price.toFixed(2)}` : 'Awaiting Quote'}\n**Remarks:** ${order.remarks || 'None'}`,
+            text: `**Product:** ${order.product_service_name || 'N/A'}\n**Details:** ${order.specification}, ${order.page_size}, ${order.quantity}\n**Quote Price:** ${quotedPrice ? `₱${quotedPrice.toFixed(2)}` : 'Awaiting Quote'}\n**Remarks:** ${order.remarks || 'None'}`,
         }
     ];
     
@@ -694,34 +686,26 @@ async function handleNegotiation(ctx: any, input: string): Promise<any> {
 
 // --- New V2 Logic: Order Tracking ---
 
-async function getDisplayStatus(order: any): Promise<{ statusText: string, cancelContext: any | null }> {
+async function getDisplayStatus(order: any): Promise<{ statusText: string }> {
     const quote = order.quotes && order.quotes.length > 0 ? order.quotes[0] : null;
-    let statusText = `Order ID: **${order.order_id}**\nStatus: **${order.order_status}**\nProduct: ${order.product_service_name}\nDate: ${new Date(order.created_at).toLocaleDateString()}`;
+    const quotedPrice = quote ? (quote.negotiated_price || quote.initial_price) : null;
+    let statusText = `Order ID: **${order.order_id}**\nStatus: **${order.order_status}**\nProduct: ${order.product_service_name || 'N/A'}\nDate: ${new Date(order.order_datetime).toLocaleDateString()}`;
 
-    if (quote) {
-        statusText += `\nQuoted Price: $${quote.quoted_price ? quote.quoted_price.toFixed(2) : 'Awaiting Quote'}`;
+    if (quotedPrice) {
+        statusText += `\nQuoted Price: ₱${quotedPrice.toFixed(2)}`;
     }
     
-    let tempCancelContext = null;
-    const isCancelable = ['Needs Quote', 'Awaiting Quote Approval', 'Quoted'].includes(order.order_status);
-    if (isCancelable) {
-        statusText += `\n\n**Action:** You can cancel this order now.`;
-        // Cache the order details in the context for the cancellation flow
-        tempCancelContext = { orderId: order.order_id, orderStatus: order.order_status };
-        cachedQuickReplies = ['Cancel Order', 'End Chat'];
-    } else {
-        cachedQuickReplies = ['End Chat'];
-    }
+    cachedQuickReplies = ['End Chat'];
 
-    return { statusText, cancelContext: tempCancelContext };
+    return { statusText };
 }
 
 async function getLatestOrder(customerId: string): Promise<any> {
     const { data: order, error } = await supabase
         .from('orders')
-        .select(`*, quotes:quotes(*)`)
+        .select(`*, quotes:quotes(initial_price, negotiated_price, quote_issue_datetime, quote_due_datetime)`)
         .eq('customer_id', customerId)
-        .order('created_at', { ascending: false })
+        .order('order_datetime', { ascending: false })
         .limit(1)
         .maybeSingle();
 
@@ -734,21 +718,20 @@ async function getLatestOrder(customerId: string): Promise<any> {
     }
 
     currentNodeId = 'track_latest_order';
-    const { statusText, cancelContext } = await getDisplayStatus(order);
+    const { statusText } = await getDisplayStatus(order);
     
     return {
         messages: [{ role: 'printy', text: statusText }],
         quickReplies: cachedQuickReplies,
-        externalContext: cancelContext, 
     };
 }
 
 async function getAllOrders(customerId: string): Promise<any> {
     const { data: orders, error } = await supabase
         .from('orders')
-        .select(`*, quotes:quotes(*)`)
+        .select(`*, quotes:quotes(initial_price, negotiated_price, quote_issue_datetime, quote_due_datetime)`)
         .eq('customer_id', customerId)
-        .order('created_at', { ascending: false });
+        .order('order_datetime', { ascending: false });
 
     if (error || !orders || orders.length === 0) {
         currentNodeId = 'track_all_orders';
@@ -760,12 +743,10 @@ async function getAllOrders(customerId: string): Promise<any> {
 
     const messages = orders.map((order, index) => ({
         role: 'printy',
-        text: `**${index + 1}.** Order ID: **${order.order_id}** | Status: **${order.order_status}** | Date: ${new Date(order.created_at).toLocaleDateString()}`,
+        text: `**${index + 1}.** Order ID: **${order.order_id}** | Status: **${order.order_status}** | Date: ${new Date(order.order_datetime).toLocaleDateString()}`,
     }));
 
     currentNodeId = 'track_all_orders';
-    // Clear any previous cancellation context since this view doesn't allow one-click cancellation
-    lastTrackedContext = null; 
     return {
         messages: [{ role: 'printy', text: `Found ${orders.length} orders:` }, ...messages],
         quickReplies: ['Back', 'End Chat'],
@@ -775,15 +756,13 @@ async function getAllOrders(customerId: string): Promise<any> {
 async function getOrderByID(orderId: string, customerId: string): Promise<any> {
     const { data: order, error } = await supabase
         .from('orders')
-        .select(`*, quotes:quotes(*)`)
+        .select(`*, quotes:quotes(initial_price, negotiated_price, quote_issue_datetime, quote_due_datetime)`)
         .eq('order_id', orderId)
         .eq('customer_id', customerId)
         .maybeSingle();
 
     if (error || !order) {
         currentNodeId = 'track_by_id';
-        // Clear context on error
-        lastTrackedContext = null;
         return {
             messages: [{ role: 'printy', text: `Could not find order **${orderId}** under your account.` }],
             quickReplies: ['Back', 'End Chat'],
@@ -791,12 +770,11 @@ async function getOrderByID(orderId: string, customerId: string): Promise<any> {
     }
 
     currentNodeId = 'track_by_id_result';
-    const { statusText, cancelContext } = await getDisplayStatus(order);
+    const { statusText } = await getDisplayStatus(order);
 
     return {
         messages: [{ role: 'printy', text: statusText }],
         quickReplies: cachedQuickReplies,
-        externalContext: cancelContext, 
     };
 }
 
@@ -825,7 +803,6 @@ async function handleTrackOrder(_ctx: any, input: string): Promise<any> {
             currentNodeId = 'track_order_options';
         }
         
-        lastTrackedContext = null; // Clear context on navigation
         return {
             messages: nodeToMessages(NODES[currentNodeId]),
             quickReplies: nodeQuickReplies(NODES[currentNodeId]),
@@ -847,24 +824,6 @@ async function handleTrackOrder(_ctx: any, input: string): Promise<any> {
                 quickReplies: nodeQuickReplies(NODES[currentNodeId]),
             };
             break;
-        case 'cancel order':
-            // Check the globally tracked context
-            if (lastTrackedContext?.orderId) {
-                // Clear state and signal flow switch
-                trackingMode = false;
-                currentNodeId = 'place_order_start';
-                return {
-                    messages: [{ role: 'printy', text: 'Switching to cancellation assistant...' }],
-                    quickReplies: ['End Chat'],
-                    externalFlow: 'cancel-order', // Signal to switch to the CancelOrder.ts flow
-                    externalContext: lastTrackedContext, // Passes order ID and status
-                };
-            }
-            trackingResponse = {
-                 messages: [{ role: 'printy', text: 'Please select an order that is eligible for cancellation first, or the previous order is not cancelable.' }],
-                 quickReplies: cachedQuickReplies,
-            }
-            break;
         default:
             // Explicitly handle text input when the bot is waiting for an Order ID
             if (currentNodeId === 'track_by_id') {
@@ -876,13 +835,6 @@ async function handleTrackOrder(_ctx: any, input: string): Promise<any> {
             break;
     }
     
-    // Update the globally tracked context based on the response
-    if (trackingResponse?.externalContext) {
-        lastTrackedContext = trackingResponse.externalContext;
-    } else {
-        lastTrackedContext = null;
-    }
-
     return trackingResponse;
 }
 
@@ -912,16 +864,24 @@ async function createOrderFromCompilation(_ctx: any): Promise<any> {
         };
     }
 
-    // Assert the extended type to include 'product_service_name' for the API call
-    const compiledOrder = {
-        customer_id: customerId,
+    // Generate unique order ID using UUID format to match database
+    const orderId = crypto.randomUUID();
+    const currentDateTime = new Date().toISOString();
+    
+    // Prepare order data according to OrderData interface
+    const compiledOrder: OrderData = {
+        order_id: orderId,
         service_id: orderRecord.product_service_id!,
+        customer_id: customerId,
+        order_status: 'Needs Quote',
+        delivery_mode: 'Pickup', // Default delivery mode
+        order_datetime: currentDateTime,
+        completed_datetime: null,
         specification: orderRecord.specification!,
         page_size: orderRecord.page_size!,
         quantity: orderRecord.quantity!,
-        product_service_name: orderRecord.product_service_name!, 
-        order_status: 'Needs Quote', 
-    } as OrderData & { product_service_name: string }; 
+        priority_level: 1, // Default priority level
+    }; 
 
     const { data: order, error } = await createOrder(compiledOrder);
 
@@ -959,7 +919,6 @@ export const placeOrderFlow: ChatFlow = {
     orderRecord = {};
     lastPlacedOrder = null;
     quoteModified = false;
-    lastTrackedContext = null; // Reset tracked context
     cachedQuickReplies = nodeQuickReplies(NODES[currentNodeId]);
 
     return nodeToMessages(NODES[currentNodeId]);
@@ -1002,7 +961,6 @@ export const placeOrderFlow: ChatFlow = {
     
     // 3. If we're in tracking mode, handle tracking logic
     if (trackingMode) {
-        // handleTrackOrder updates lastTrackedContext internally
         return await handleTrackOrder(ctx, input);
     }
 
@@ -1029,20 +987,6 @@ export const placeOrderFlow: ChatFlow = {
         };
       }
       
-      // New transition to external cancellation flow (from main menu)
-      if (currentNodeId === 'cancel_order_start') {
-          // Reset internal state before switching flows
-          dynamicMode = false;
-          trackingMode = false;
-          currentNodeId = 'place_order_start'; 
-          
-          return {
-              messages: nodeToMessages(NODES.cancel_order_start),
-              quickReplies: nodeQuickReplies(NODES.cancel_order_start),
-              externalFlow: 'cancel-order', // Signal to switch to the CancelOrder.ts flow
-              externalContext: null, // No specific order ID yet, CancelOrder flow will ask for it.
-          };
-      }
       
       // Default static node transition
       cachedQuickReplies = nodeQuickReplies(NODES[currentNodeId]);
