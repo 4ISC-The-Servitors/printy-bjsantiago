@@ -321,7 +321,7 @@ export const issueTicketFlow: ChatFlow = {
 
     // Free-text handling at start: treat input as an order number and look it up
     if (!selection && currentNodeId === 'issue_ticket_start') {
-      const orderNumber = input.trim();
+      const orderNumber = input.trim().replace(/[^a-zA-Z0-9-]/g, '');
       if (!orderNumber) {
         return {
           messages: [
@@ -344,6 +344,14 @@ export const issueTicketFlow: ChatFlow = {
           };
         }
 
+        const uid = user?.id;
+        if (!uid) {
+          return {
+            messages: [{ role: 'printy', text: 'You must be signed in to create a ticket.' }],
+            quickReplies: nodeQuickReplies(current),
+          };
+        }
+
         const { data: order, error } = await supabase
           .from('orders')
           .select(`
@@ -358,7 +366,7 @@ export const issueTicketFlow: ChatFlow = {
             quotes:quotes(quoted_price)
           `)
           .eq('order_id', orderNumber)
-          .eq('customer_id', user.id)
+          .eq('customer_id', uid)
           .maybeSingle();
 
         if (error) {
@@ -405,24 +413,40 @@ export const issueTicketFlow: ChatFlow = {
       }
       // ====================
 
-      // NOTE: Adjust table/columns below to match your schema
+      // Lookup order for the signed-in customer with the provided order number
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        return {
+          messages: [
+            {
+              role: 'printy',
+              text: 'You need to be signed in to view your orders.',
+            },
+          ],
+          quickReplies: nodeQuickReplies(NODES.issue_ticket_start),
+        };
+      }
+
+      const uid = user?.id;
+      if (!uid) {
+        return {
+          messages: [
+            {
+              role: 'printy',
+              text: 'You need to be signed in to view your orders.',
+            },
+          ],
+          quickReplies: nodeQuickReplies(NODES.issue_ticket_start),
+        };
+      }
+
       const { data: order, error } = await supabase
         .from('orders')
-        .select(
-          `
-          id,
-          order_id,
-          status,
-          created_at,
-          total,
-          order_items (
-            name,
-            quantity,
-            price
-          )
-        `
-        )
+        .select('order_id,order_status,order_datetime')
         .eq('order_id', orderNumber)
+        .eq('customer_id', uid)
         .maybeSingle();
 
       if (error || !order) {
@@ -437,23 +461,14 @@ export const issueTicketFlow: ChatFlow = {
         };
       }
 
-      const items = Array.isArray((order as any).order_items)
-        ? (order as any).order_items
-        : [];
       const lines = [
-        `Order ${(order as any).order_id} — Status: ${(order as any).status ?? 'N/A'}`,
+        `Order ${(order as any).order_id} — Status: ${(order as any).order_status ?? 'N/A'}`,
         `Placed: ${
-          (order as any).created_at
-            ? new Date((order as any).created_at).toLocaleString()
+          (order as any).order_datetime
+            ? new Date((order as any).order_datetime).toLocaleString()
             : 'N/A'
         }`,
-        'Items:',
-        ...items.map(
-          (it: any) =>
-            `- ${it.quantity} x ${it.name}${it.price ? ` @ ${it.price}` : ''}`
-        ),
-        (order as any).total ? `Total: ${(order as any).total}` : '',
-      ].filter(Boolean) as string[];
+      ];
 
       currentNodeId = 'order_issue_menu';
       return {
@@ -491,41 +506,27 @@ export const issueTicketFlow: ChatFlow = {
         const typed = input.trim();
         // If user typed an order number, fetch that order and proceed
         if (typed) {
+          const sanitized = typed.trim().replace(/[^a-zA-Z0-9-]/g, '');
+          const {
+            data: { user },
+          } = await supabase.auth.getUser();
+          const uid = user?.id;
           const { data: orderPick, error: pickErr } = await supabase
             .from('orders')
-            .select(
-              `
-              id,
-              order_id,
-              status,
-              created_at,
-              total,
-              order_items (name, quantity, price)
-            `
-            )
-            .eq('order_id', typed)
+            .select('order_id,order_status,order_datetime')
+            .eq('order_id', sanitized)
+            .eq('customer_id', uid || '')
             .maybeSingle();
 
           if (!pickErr && orderPick) {
-            const items = Array.isArray((orderPick as any).order_items)
-              ? (orderPick as any).order_items
-              : [];
             const lines = [
-              `Order ${(orderPick as any).order_id} — Status: ${(orderPick as any).status ?? 'N/A'}`,
+              `Order ${(orderPick as any).order_id} — Status: ${(orderPick as any).order_status ?? 'N/A'}`,
               `Placed: ${
-                (orderPick as any).created_at
-                  ? new Date((orderPick as any).created_at).toLocaleString()
+                (orderPick as any).order_datetime
+                  ? new Date((orderPick as any).order_datetime).toLocaleString()
                   : 'N/A'
               }`,
-              'Items:',
-              ...items.map(
-                (it: any) =>
-                  `- ${it.quantity} x ${it.name}${it.price ? ` @ ${it.price}` : ''}`
-              ),
-              (orderPick as any).total
-                ? `Total: ${(orderPick as any).total}`
-                : '',
-            ].filter(Boolean) as string[];
+            ];
 
             currentNodeId = 'order_issue_menu';
             return {
@@ -559,9 +560,9 @@ export const issueTicketFlow: ChatFlow = {
         // Query up to 10 latest orders for this user (by customer_id)
         const { data: orders, error: ordersErr } = await supabase
           .from('orders')
-          .select('order_id, total, created_at')
+          .select('order_id,order_datetime')
           .eq('customer_id', uid)
-          .order('created_at', { ascending: false })
+          .order('order_datetime', { ascending: false })
           .limit(10);
 
         if (ordersErr || !orders || orders.length === 0) {
@@ -580,7 +581,7 @@ export const issueTicketFlow: ChatFlow = {
         const lines: string[] = ['Here are your recent orders:', ''];
         for (const o of orders as any[]) {
           lines.push(
-            `${new Date(o.created_at).toLocaleDateString()} — ${o.order_id} — Total: ${o.total ?? 'N/A'}`
+            `${new Date(o.order_datetime).toLocaleDateString()} — ${o.order_id}`
           );
         }
 
@@ -637,15 +638,15 @@ export const issueTicketFlow: ChatFlow = {
 
       const { data: orders } = await supabase
         .from('orders')
-        .select('order_id, total, created_at')
+        .select('order_id,order_datetime')
         .eq('customer_id', uid)
-        .order('created_at', { ascending: false })
+        .order('order_datetime', { ascending: false })
         .limit(10);
 
       const lines: string[] = ['Here are your recent orders:', ''];
       for (const o of (orders as any[]) ?? []) {
         lines.push(
-          `${new Date(o.created_at).toLocaleDateString()} — ${o.order_id} — Total: ${o.total ?? 'N/A'}`
+          `${new Date(o.order_datetime).toLocaleDateString()} — ${o.order_id}`
         );
       }
 

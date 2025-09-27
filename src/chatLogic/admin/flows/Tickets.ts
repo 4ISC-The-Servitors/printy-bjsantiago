@@ -210,12 +210,7 @@ class TicketsFlow extends FlowBase {
 
         return msgs;
       },
-      quickReplies: () => [
-        'Reply',
-        'Change Status',
-        'Choose Another Ticket',
-        'End Chat',
-      ],
+      quickReplies: () => ['Reply', 'Change Status', 'End Chat'],
       handleInput: (
         input: string,
         _state: FlowState,
@@ -253,7 +248,7 @@ class TicketsFlow extends FlowBase {
           },
         ];
       },
-      quickReplies: () => [...TICKET_STATUS_OPTIONS, 'End Chat'],
+      quickReplies: () => ['Back', ...TICKET_STATUS_OPTIONS, 'End Chat'],
       handleInput: (input: string, state: FlowState, _context: FlowContext) => {
         const ticketState = state as TicketsState;
         const ticket = this.getCurrentTicket(ticketState);
@@ -262,6 +257,10 @@ class TicketsFlow extends FlowBase {
             messages: [{ role: 'printy', text: 'Ticket not found.' }],
             quickReplies: ['End Chat'],
           };
+        }
+
+        if (input.trim().toLowerCase() === 'back') {
+          return { nextNodeId: 'ticket_overview' };
         }
 
         const next = normalizeTicketStatus(input);
@@ -274,7 +273,7 @@ class TicketsFlow extends FlowBase {
                 text: `Valid statuses: ${TICKET_STATUS_OPTIONS.join(', ')}`,
               },
             ],
-            quickReplies: [...TICKET_STATUS_OPTIONS, 'End Chat'],
+            quickReplies: ['Back', ...TICKET_STATUS_OPTIONS, 'End Chat'],
           };
         }
 
@@ -335,12 +334,7 @@ class TicketsFlow extends FlowBase {
       messages: () => [
         { role: 'printy', text: 'Ticket updated. Anything else?' },
       ],
-      quickReplies: () => [
-        'Reply',
-        'Change Status',
-        'Choose Another Ticket',
-        'End Chat',
-      ],
+      quickReplies: () => ['Reply', 'Change Status', 'End Chat'],
     };
   }
 

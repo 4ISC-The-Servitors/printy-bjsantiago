@@ -227,7 +227,7 @@ class MultipleTicketsFlow extends FlowBase {
           },
         ];
       },
-      quickReplies: () => [...TICKET_STATUS_OPTIONS, 'End Chat'],
+      quickReplies: () => ['Back', ...TICKET_STATUS_OPTIONS, 'End Chat'],
       handleInput: (input: string, state: FlowState, _context: FlowContext) => {
         const ticketState = state as MultipleTicketsState;
         const ticket = this.getCurrentTicket(ticketState);
@@ -236,6 +236,10 @@ class MultipleTicketsFlow extends FlowBase {
             messages: [{ role: 'printy', text: 'Ticket not found.' }],
             quickReplies: ['End Chat'],
           };
+        }
+
+        if (input.trim().toLowerCase() === 'back') {
+          return { nextNodeId: 'choose_id' };
         }
 
         const next = normalizeTicketStatus(input);
@@ -248,7 +252,7 @@ class MultipleTicketsFlow extends FlowBase {
                 text: `What status should I set for ${ticket.id}?`,
               },
             ],
-            quickReplies: [...TICKET_STATUS_OPTIONS, 'End Chat'],
+            quickReplies: ['Back', ...TICKET_STATUS_OPTIONS, 'End Chat'],
           };
         }
 
@@ -304,17 +308,21 @@ class MultipleTicketsFlow extends FlowBase {
           },
         ];
       },
-      quickReplies: () => [...TICKET_STATUS_OPTIONS, 'End Chat'],
+      quickReplies: () => ['Back', ...TICKET_STATUS_OPTIONS, 'End Chat'],
       handleInput: (input: string, state: FlowState, _context: FlowContext) => {
         const ticketState = state as MultipleTicketsState;
         const next = normalizeTicketStatus(input);
+
+        if (input.trim().toLowerCase() === 'back') {
+          return { nextNodeId: 'multi_start' };
+        }
 
         if (!next) {
           return {
             messages: [
               { role: 'printy', text: 'Please choose a valid status.' },
             ],
-            quickReplies: [...TICKET_STATUS_OPTIONS, 'End Chat'],
+            quickReplies: ['Back', ...TICKET_STATUS_OPTIONS, 'End Chat'],
           };
         }
 
