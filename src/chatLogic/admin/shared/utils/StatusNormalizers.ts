@@ -1,7 +1,7 @@
 // Status normalization utilities for all chat flows
 
 export type OrderStatus =
-  | 'Pending'
+  | 'Awaiting Quote Approval'
   | 'Processing'
   | 'Awaiting Payment'
   | 'For Delivery/Pick-up'
@@ -13,7 +13,7 @@ export type ServiceStatus = 'Active' | 'Inactive' | 'Retired';
 export type TicketStatus = 'Open' | 'Pending' | 'Closed';
 
 export const ORDER_STATUS_OPTIONS: OrderStatus[] = [
-  'Pending',
+  'Awaiting Quote Approval',
   'Processing',
   'Awaiting Payment',
   'For Delivery/Pick-up',
@@ -37,7 +37,7 @@ export function normalizeOrderStatus(input: string): OrderStatus | null {
   const t = (input || '').toLowerCase();
 
   // Check for exact matches first
-  if (t === 'pending') return 'Pending';
+  if (t === 'Awaiting Quote Approval') return 'Awaiting Quote Approval';
   if (t === 'processing') return 'Processing';
   if (t === 'awaiting payment') return 'Awaiting Payment';
   if (t === 'for delivery/pick-up') return 'For Delivery/Pick-up';
@@ -45,7 +45,7 @@ export function normalizeOrderStatus(input: string): OrderStatus | null {
   if (t === 'cancelled') return 'Cancelled';
 
   // Then check for partial matches
-  if (t.startsWith('pend')) return 'Pending';
+  if (t.startsWith('pend')) return 'Awaiting Quote Approval';
   if (t.startsWith('proc')) return 'Processing';
   if (t.startsWith('await') || t.startsWith('payment'))
     return 'Awaiting Payment';

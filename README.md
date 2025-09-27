@@ -20,11 +20,37 @@
 
 ## 📄 Changelogs
 
-### 2025-08-29
+### 2025-09-23-Andeng
 
-- Added Supabase SQL Migration Guide with PowerShell/psql steps
-- Added quick links to Migration Guide and Changelog
-- Kept existing setup and status sections unchanged; no breaking changes
+- added Cancel Order logic for customer, to follow admin
+- improved admin mobile UI for orders and all chats page, to follow ticket and portfolio
+- added Recent Chats to admin in sidebars
+- added All Chats page to view all chat history in admin, to follow customer
+- improved message group of overall chat UI
+- added pagination to some pages pa lang, will add more to pages soon (src\components\shared\Pagination.tsx)
+- added src\hooks\shared\useResponsivePageSize.ts for not having too many data displayed depending on screen size
+
+### 2025-09-19-Andeng
+
+- added Payment chat logic for customer
+- chat renders actual images for QRPH codes as sample (gcash, may) and file uploads by user
+- added Pay Now button that only shows when order status is AWAITING PAYMENT
+- Pay Now button now hides if status changes to Verifying Payment
+- added back flow if customer changes mind for payment method
+- added Admin verify payment (single & multiple) chat logic
+
+### 2025-09-16-Andeng
+
+- COMPLETE:
+- added backend TODOs in start of admin files. search for comments with "BACKEND_TODO" exactly
+- admin desktop ui/ux
+- base chat logic for dynamically changing status, creating quote, editing service, adding service, replying to ticket
+
+- TO FOLLOW:
+- align mobile responsiveness with desktop features
+- polish chat logic
+- typing animations for chats
+- recent chats/conversation like in customer
 
 ### 2025-08-29-Andeng
 
@@ -39,18 +65,11 @@
 - Removed 74 lint errors
 - Improved sign up page to check for duplicate email and phone number registrations
 
-### 2025-09-16-Andeng
+### 2025-08-29-Liam
 
-- COMPLETE:
-- added backend TODOs in start of admin files. search for comments with "BACKEND_TODO" exactly
-- admin desktop ui/ux
-- base chat logic for dynamically changing status, creating quote, editing service, adding service, replying to ticket
-
-- TO FOLLOW:
-- align mobile responsiveness with desktop features
-- polish chat logic
-- typing animations for chats
-- recent chats/conversation like in customer
+- Added Supabase SQL Migration Guide with PowerShell/psql steps
+- Added quick links to Migration Guide and Changelog
+- Kept existing setup and status sections unchanged; no breaking changes
 
 ## 🚀 Current Status
 

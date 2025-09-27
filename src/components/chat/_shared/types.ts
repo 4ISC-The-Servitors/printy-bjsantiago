@@ -34,4 +34,9 @@ export interface ChatPanelProps {
   hideSelectedBar?: boolean;
   // Hide input controls entirely
   hideInput?: boolean;
+  // Show read-only banner overlay
+  readOnly?: boolean;
+  // Desktop header controls
+  onMinimize?: () => void;
+  onClose?: () => void;
 }

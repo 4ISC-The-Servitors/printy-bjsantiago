@@ -1,7 +1,8 @@
 import React from 'react';
 import useAdminChat from '@hooks/admin/useAdminChat';
 import { useAdmin } from '@hooks/admin/AdminContext';
-import Sidebar from '../_shared/desktop/Sidebar';
+import DesktopSidebar from '../_shared/desktop/DesktopSidebar';
+import { useAdminConversations } from '@hooks/admin/useAdminConversations';
 import useAdminNav from '@hooks/admin/useAdminNav';
 import { useNavigate } from 'react-router-dom';
 import { useLocation } from 'react-router-dom';
@@ -51,13 +52,16 @@ const AdminLayout: React.FC<Props> = ({ children }) => {
     quickReplies,
     handleChatOpen,
     handleChatOpenWithTopic,
+    handleShowConversation,
     endChatWithDelay,
     handleSendMessage,
     handleQuickReply,
+    readOnly,
   } = useAdminChat();
   const { go } = useAdminNav();
   const location = useLocation();
   const navigate = useNavigate();
+  const { activeId, conversations } = useAdminConversations();
   const handleLogout = () => setShowLogoutModal(true);
   const confirmLogout = async () => {
     setShowLogoutModal(false);
@@ -76,6 +80,12 @@ const AdminLayout: React.FC<Props> = ({ children }) => {
   React.useEffect(() => {
     const onOpen = (e: Event) => {
       const detail = (e as CustomEvent).detail || {};
+      if (detail && detail.conversationId) {
+        // Open an existing conversation without starting a new flow
+        handleShowConversation(detail.conversationId);
+        setChatOpen(true);
+        return;
+      }
       if (detail && detail.topic) {
         handleChatOpenWithTopic(
           detail.topic,
@@ -92,7 +102,7 @@ const AdminLayout: React.FC<Props> = ({ children }) => {
     window.addEventListener('admin-chat-open', onOpen as EventListener);
     return () =>
       window.removeEventListener('admin-chat-open', onOpen as EventListener);
-  }, [handleChatOpen, handleChatOpenWithTopic]);
+  }, [handleChatOpen, handleChatOpenWithTopic, conversations, setChatOpen]);
 
   const active: 'dashboard' | 'orders' | 'tickets' | 'portfolio' | 'settings' =
     location.pathname === '/admin'
@@ -108,7 +118,11 @@ const AdminLayout: React.FC<Props> = ({ children }) => {
   if (isDesktop) {
     return (
       <div className="h-screen bg-gradient-to-br from-neutral-50 to-brand-primary-50 flex">
-        <Sidebar active={active} onNavigate={go} onLogout={handleLogout} />
+        <DesktopSidebar
+          active={active}
+          onNavigate={go}
+          onLogout={handleLogout}
+        />
 
         <main
           className={`flex-1 flex flex-col ${chatOpen ? 'lg:pr-[420px]' : ''} pl-16 lg:pl-0 overflow-y-auto scrollbar-hide`}
@@ -165,7 +179,17 @@ const AdminLayout: React.FC<Props> = ({ children }) => {
                   size="sm"
                   threeD
                   className="hidden lg:inline-flex"
-                  onClick={handleChatOpen}
+                  onClick={() => {
+                    if (activeId) {
+                      // If an ended conversation is active, just show it
+                      const conv = conversations.find(c => c.id === activeId);
+                      if (conv && conv.status === 'ended') {
+                        setChatOpen(true);
+                        return;
+                      }
+                    }
+                    handleChatOpen();
+                  }}
                   aria-label="Ask Printy"
                 >
                   <MessageSquare className="w-4 h-4" />
@@ -191,6 +215,7 @@ const AdminLayout: React.FC<Props> = ({ children }) => {
           onSend={handleSendMessage}
           onQuickReply={handleQuickReply}
           onEndChat={endChatWithDelay}
+          readOnly={readOnly}
         />
         <Modal
           isOpen={showLogoutModal}
@@ -223,7 +248,8 @@ const AdminLayout: React.FC<Props> = ({ children }) => {
               <Button variant="ghost" onClick={() => setShowLogoutModal(false)}>
                 Cancel
               </Button>
-              <Button variant="error" threeD onClick={confirmLogout}>
+
+              <Button variant="error" onClick={confirmLogout}>
                 Logout
               </Button>
             </div>
@@ -249,6 +275,7 @@ const AdminLayout: React.FC<Props> = ({ children }) => {
       quickReplies={quickReplies}
       onSend={handleSendMessage}
       onQuickReply={handleQuickReply}
+      readOnly={readOnly}
       headerRight={null}
     >
       {children}

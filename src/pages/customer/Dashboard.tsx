@@ -1,33 +1,16 @@
 import { supabase } from '../../lib/supabase';
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import CustomerChatPanel from '../../components/chat/CustomerChatPanel';
-import {
-  type ChatMessage,
-  type QuickReply,
-  type ChatRole,
-} from '../../components/chat/_shared/types';
-import DesktopSidebar from '../../components/customer/dashboard/desktop/Sidebar';
-import MobileSidebar from '../../components/customer/dashboard/mobile/Sidebar';
-import DashboardContent from '../../components/customer/dashboard/desktop/DashboardContent';
-import {
-  ToastContainer,
-  Modal,
-  Text,
-  Button,
-  PageLoading,
-} from '../../components/shared';
-import { useToast } from '../../lib/useToast';
-import { customerFlows as flows } from '../../chatLogic/customer';
-import {
-  ShoppingCart,
-  HelpCircle,
-  Clock,
-  Info,
-  MessageSquare,
-  Settings,
-  X,
-} from 'lucide-react';
+import ChatPanel from '../../components/customer/chatPanel/ChatPanel';
+import type { ChatMessage, QuickReply, ChatRole } from '../../components/chat/_shared/types';
+import SidebarPanel from '../../components/customer/shared/sidebar/SidebarPanel';
+import ChatCards from '../../components/customer/dashboard/chatCards/ChatCards';
+import RecentOrder from '../../components/customer/dashboard/recentOrders/RecentOrder';
+import RecentTickets from '../../components/customer/dashboard/recentTickets/RecentTickets';
+import { ToastContainer, Text, PageLoading, Modal, Button, useToast } from '../../components/shared';
+import { ShoppingCart, HelpCircle, TicketIcon, Info, MessageSquare, Settings, X } from 'lucide-react';
+import type { ChatFlow } from '../../types/chatFlow';
+import { issueTicketFlow } from '../../chatLogic/customer/flows/IssueTicket';
 
 // ---------------- Types / Config ----------------
 type TopicKey =
@@ -44,7 +27,7 @@ interface Conversation {
   createdAt: number;
   messages: ChatMessage[];
   flowId: string;
-  status: 'active' | 'completed';
+  status: 'active' | 'ended';
   icon?: React.ReactNode;
 }
 
@@ -72,7 +55,7 @@ const topicConfig: Record<
   },
   trackTicket: {
     label: 'Track a Ticket',
-    icon: <Clock className="w-6 h-6" />,
+    icon: <TicketIcon className="w-6 h-6" />,
     flowId: 'track-ticket',
     description: 'Check the status of your tickets',
   },
@@ -90,6 +73,11 @@ const topicConfig: Record<
   },
 };
 
+// Minimal flows registry (add more flows as they are implemented)
+const flows: Record<string, ChatFlow> = {
+  'issue-ticket': issueTicketFlow,
+};
+
 // ---------------- Component ----------------
 const CustomerDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -100,16 +88,8 @@ const CustomerDashboard: React.FC = () => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
 
-  // Strict typing for flow (keeps your working flow behavior)
-  const [currentFlow, setCurrentFlow] = useState<{
-    id: string;
-    initial: (ctx: unknown) => { text: string }[];
-    respond: (
-      ctx: unknown,
-      input: string
-    ) => Promise<{ messages: { text: string }[]; quickReplies?: string[] }>;
-    quickReplies: () => string[];
-  } | null>(null);
+  // Current active flow
+  const [currentFlow, setCurrentFlow] = useState<ChatFlow | null>(null);
 
   const [quickReplies, setQuickReplies] = useState<QuickReply[]>([]);
   const [inputPlaceholder, setInputPlaceholder] = useState('Type a message...');
@@ -137,14 +117,7 @@ const CustomerDashboard: React.FC = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  const topics = useMemo(
-    () =>
-      Object.entries(topicConfig) as [
-        TopicKey,
-        (typeof topicConfig)[TopicKey],
-      ][],
-    []
-  );
+  // Topics grid now rendered via ChatCards; explicit topics array no longer needed
 
   // ---------------- Supabase fetches ----------------
   useEffect(() => {
@@ -215,16 +188,17 @@ const CustomerDashboard: React.FC = () => {
   }, []);
 
   // ---------------- Chat logic ----------------
-  const initializeFlow = (flowId: string, title: string) => {
+  const initializeFlow = (flowId: string, title: string, ctx: unknown = {}) => {
     const flow = flows[flowId];
-    if (!flow) return;
+    if (!flow) {
+      console.warn('Flow not found:', flowId);
+      return;
+    }
 
-    // keep id on the flow for updateInputPlaceholder
-    setCurrentFlow({ id: flowId, ...flow });
-
+    setCurrentFlow(flow);
     console.debug('[FLOW_INIT]', flowId, flow);
 
-    const initialMessages = flow.initial({});
+    const initialMessages = flow.initial(ctx as any);
     const botMessages: ChatMessage[] = initialMessages.map(msg => ({
       id: crypto.randomUUID(),
       role: 'printy' as ChatRole,
@@ -251,14 +225,30 @@ const CustomerDashboard: React.FC = () => {
     setActiveId(conversation.id);
     setMessages(botMessages);
 
-    const replies = flow.quickReplies().map((label: string, index: number) => ({
-      id: `qr-${index}`,
-      label,
-      value: label,
-    }));
+    const replies: QuickReply[] = flow
+      .quickReplies()
+      .map((label: string, index: number) => ({ id: `qr-${index}`, label, value: label }));
     setQuickReplies(replies);
     updateInputPlaceholder(flowId, replies);
   };
+
+  // Listen for Cancel Order button to open Cancel chat
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as {
+        orderId?: string;
+        orderStatus?: string;
+      };
+      const orderId = detail?.orderId || recentOrder?.id;
+      const title = `Cancel Order ${orderId ?? ''}`;
+      initializeFlow('cancel-order', title, {
+        orderId,
+        orderStatus: detail?.orderStatus,
+      });
+    };
+    window.addEventListener('customer-open-cancel-chat', handler as EventListener);
+    return () => window.removeEventListener('customer-open-cancel-chat', handler as EventListener);
+  }, [recentOrder?.id]);
 
   const updateInputPlaceholder = (flowId: string, replies: QuickReply[]) => {
     if (flowId === 'issue-ticket' && replies.length === 0) {
@@ -341,7 +331,7 @@ const CustomerDashboard: React.FC = () => {
 
   const handleEndChat = () => {
     if (!activeId) return;
-    setConversations(prev => prev.map(c => (c.id === activeId ? { ...c, status: 'completed' } : c)));
+    setConversations(prev => prev.map(c => (c.id === activeId ? { ...c, status: 'ended' } : c)));
     setActiveId(null);
     setMessages([]);
     setQuickReplies([]);
@@ -356,27 +346,26 @@ const CustomerDashboard: React.FC = () => {
   // ---------------- UI ----------------
   return (
     <div className="h-screen bg-gradient-to-br from-neutral-50 to-brand-primary-50 flex">
-      <DesktopSidebar
-        conversations={conversations}
-        activeId={activeId}
-        onSwitchConversation={id => setActiveId(id)}
-        onNavigateToAccount={() => navigate('/customer/account')}
-        onLogout={() => setShowLogoutModal(true)}
-      />
-
-      <MobileSidebar
-        conversations={conversations}
-        activeId={activeId}
-        onSwitchConversation={id => setActiveId(id)}
-        onNavigateToAccount={() => navigate('/customer/account')}
-        onLogout={() => setShowLogoutModal(true)}
-      />
+      {/* Sidebar (desktop) */}
+      <aside className="hidden lg:flex w-64 bg-white border-r border-neutral-200">
+        <SidebarPanel
+          conversations={conversations}
+          activeId={activeId}
+          onSwitchConversation={id => setActiveId(id)}
+          onNavigateToAccount={() => navigate('/customer/account')}
+          bottomActions={
+            <Button variant="accent" onClick={() => setShowLogoutModal(true)}>
+              Logout
+            </Button>
+          }
+        />
+      </aside>
 
       <main className="flex-1 flex flex-col pl-16 lg:pl-0">
         {isLoading ? (
           <PageLoading variant="dashboard" />
         ) : activeId ? (
-          <CustomerChatPanel
+          <ChatPanel
             title={conversations.find(c => c.id === activeId)?.title || 'Chat'}
             messages={messages}
             onSend={handleUserInput}
@@ -386,15 +375,51 @@ const CustomerDashboard: React.FC = () => {
             onQuickReply={handleQuickReply}
             inputPlaceholder={inputPlaceholder}
             onEndChat={handleEndChat}
-            disabled={conversations.find(c => c.id === activeId)?.status === 'completed'}
+            readOnly={conversations.find(c => c.id === activeId)?.status === 'ended'}
+            hideInput={conversations.find(c => c.id === activeId)?.status === 'ended'}
           />
         ) : (
-          <DashboardContent
-            topics={topics}
-            recentOrder={recentOrder}
-            recentTicket={recentTicket}
-            onTopicSelect={key => handleTopic(key as TopicKey)}
-          />
+          <div className="p-8 overflow-y-auto">
+            <div className="max-w-6xl mx-auto w-full">
+              <div className="text-center space-y-1 mb-8">
+                <Text
+                  variant="h1"
+                  size="4xl"
+                  weight="bold"
+                  className="text-brand-primary"
+                >
+                  How can I help you today?
+                </Text>
+                <Text variant="p" size="base" color="muted">
+                  Check recent activity or start a new chat
+                </Text>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+                <RecentOrder
+                  recentOrder={
+                    recentOrder ?? {
+                      id: '—',
+                      title: 'No recent order',
+                      status: 'none',
+                      updatedAt: Date.now(),
+                    }
+                  }
+                />
+                <RecentTickets
+                  recentTicket={
+                    recentTicket ?? {
+                      id: '—',
+                      subject: 'No recent ticket',
+                      status: 'none',
+                      updatedAt: Date.now(),
+                    }
+                  }
+                />
+              </div>
+              <ChatCards onSelect={key => handleTopic(key as TopicKey)} />
+            </div>
+          </div>
         )}
       </main>
 

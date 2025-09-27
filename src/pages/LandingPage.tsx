@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Container, Text } from '../components/shared';
 import { MessageCircle, Printer, Users, Award } from 'lucide-react';
-import GuestChatPanel from '../components/chat/GuestChatPanel';
+import GuestChatPanel from '../components/guest/GuestChatPanel';
 import {
   type ChatMessage,
   type QuickReply,

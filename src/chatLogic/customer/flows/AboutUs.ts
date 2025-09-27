@@ -13,7 +13,7 @@ const NODES: Record<string, Node> = {
   about_us_start: {
     id: 'about_us_start',
     message:
-      "Hi! I'm Printy 🤖. What do you want to know about B.J. Santiago Inc.?",
+      "Hi! I'm Printy. What do you want to know about B.J. Santiago Inc.?",
     options: [
       {
         label: 'Can I know more about the history of the company?',
@@ -50,7 +50,7 @@ const NODES: Record<string, Node> = {
 
   end: {
     id: 'end',
-    answer: 'Thank you for chatting with Printy! Have a great day. 👋',
+    answer: 'Thank you for chatting with Printy! Have a great day.',
     options: [],
   },
 };

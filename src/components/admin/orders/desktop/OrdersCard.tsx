@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Badge, Button, Skeleton, Checkbox } from '../../../shared';
+import {
+  Card,
+  Badge,
+  Button,
+  Skeleton,
+  Checkbox,
+  Pagination,
+} from '../../../shared';
 import { useOrderSelection } from '../../../../hooks/admin/SelectionContext';
 import { createOrderSelectionItems } from '../../../../utils/admin/selectionUtils';
 import { getOrderStatusBadgeVariant } from '../../../../utils/admin/statusColors';
@@ -7,6 +14,7 @@ import { MessageSquare, Plus } from 'lucide-react';
 import { useAdmin } from '../../../../hooks/admin/AdminContext';
 import { useOrders } from '../../../../hooks/admin/OrdersContext';
 import { cn } from '../../../../lib/utils';
+import useResponsivePageSize from '../../../../hooks/shared/useResponsivePageSize';
 
 const OrdersCard: React.FC = () => {
   const orderSelection = useOrderSelection();
@@ -23,8 +31,30 @@ const OrdersCard: React.FC = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  // Limit to max 5 orders
-  const displayOrders = orders.slice(0, 5);
+  // Adjust responsiveness: phones=2, laptops=3, desktops=4
+  const basePageSize = useResponsivePageSize({
+    phone: 2,
+    tablet: 3,
+    desktop: 4,
+  });
+  const [page, setPage] = useState(1);
+  const pageSize = React.useMemo(() => {
+    if (typeof window === 'undefined') return basePageSize;
+    const viewportHeight = window.innerHeight;
+    // If vertical space is tight (smaller laptops), reduce one item to avoid crowding
+    if (viewportHeight < 800 && basePageSize > 2) {
+      return Math.max(2, basePageSize - 1);
+    }
+    return basePageSize;
+  }, [basePageSize]);
+  const start = (page - 1) * pageSize;
+  const displayOrders = orders.slice(start, start + pageSize);
+
+  // Clamp page when page size changes
+  React.useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil(orders.length / pageSize));
+    if (page > totalPages) setPage(totalPages);
+  }, [pageSize, orders.length, page]);
   const orderItems = createOrderSelectionItems(displayOrders);
 
   const toggleOrderSelection = (orderId: string) => {
@@ -224,6 +254,16 @@ const OrdersCard: React.FC = () => {
           ))}
         </div>
       </Card>
+
+      {/* Pagination below the card list */}
+      <div className="px-4 pt-3 pb-6">
+        <Pagination
+          page={page}
+          pageSize={pageSize}
+          total={orders.length}
+          onPageChange={setPage}
+        />
+      </div>
 
       {/* Floating Add to Chat button (match Portfolio style) */}
       {orderSelection.hasSelections && (
