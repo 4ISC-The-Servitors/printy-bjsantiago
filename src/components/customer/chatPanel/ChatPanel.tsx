@@ -26,7 +26,9 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   onEndChat,
   showAttach = true,
   hideHeader = false,
-  hideSelectedBar = false, // not used in customer panel
+  // ignore hideSelectedBar prop from ChatPanelProps (not used in customer panel)
+  // @ts-expect-error - prop intentionally unused in this variant
+  hideSelectedBar,
   hideInput = false,
   readOnly = false,
   onMinimize,

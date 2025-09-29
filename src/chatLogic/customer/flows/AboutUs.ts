@@ -4,15 +4,26 @@ import type { ChatFlow } from '../../../types/chatFlow';
 // The actual flow logic is handled by the database via chatFlowApi
 export const aboutUsFlow: ChatFlow = {
   id: 'about',
-  initial: () => [
-    { text: 'Welcome to B.J. Santiago Inc.! I\'m Printy, your virtual assistant. How can I help you today?' }
+  title: 'About Us',
+  initial: (_ctx) => [
+    {
+      role: 'printy',
+      text:
+        "Welcome to B.J. Santiago Inc.! I'm Printy, your virtual assistant. How can I help you today?",
+    },
   ],
-  respond: async () => {
+  respond: async (_ctx, _input) => {
     // This should not be called directly as the flow is handled by the database
     return {
-      messages: [{ text: 'This flow is handled by the database. Please use the proper flow initialization.' }],
-      quickReplies: ['End Chat']
+      messages: [
+        {
+          role: 'printy',
+          text:
+            'This flow is handled by the database. Please use the proper flow initialization.',
+        },
+      ],
+      quickReplies: ['End Chat'],
     };
   },
-  quickReplies: () => ['End Chat']
+  quickReplies: () => ['End Chat'],
 };

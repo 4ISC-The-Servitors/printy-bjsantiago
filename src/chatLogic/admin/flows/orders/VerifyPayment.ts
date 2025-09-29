@@ -74,11 +74,11 @@ export function createVerifyPaymentNodes(opts: {
       ].filter(Boolean);
       return lines.map(text => ({ role: 'printy' as const, text }));
     },
-    quickReplies: (state, context) => {
+    quickReplies: (_state, _context) => {
       // Always operate on a single subject in this flow
       return ['Confirm Payment', 'Deny Payment', 'End Chat'];
     },
-    handleInput: (input, state, context) => {
+    handleInput: (input, state, _context) => {
       const lower = input.trim().toLowerCase();
       const currentId = (state as any).currentOrderId as string | null;
       if (!currentId) return null;
@@ -122,7 +122,7 @@ export function createVerifyPaymentNodes(opts: {
   };
 
   const proof: NodeHandler = {
-    messages: (state, context) => {
+    messages: (state, _context) => {
       // Current order should be set
       const currentId = (state as any).currentOrderId as string | null;
       if (!currentId) return [{ role: 'printy', text: 'Order not found.' }];
@@ -139,7 +139,7 @@ export function createVerifyPaymentNodes(opts: {
       return lines.map(text => ({ role: 'printy' as const, text }));
     },
     quickReplies: () => ['Confirm Payment', 'Deny Payment', 'End Chat'],
-    handleInput: (input, state, context) => {
+    handleInput: (input, state, _context) => {
       const lower = input.trim().toLowerCase();
       const currentId = (state as any).currentOrderId as string | null;
       if (!currentId) return null;

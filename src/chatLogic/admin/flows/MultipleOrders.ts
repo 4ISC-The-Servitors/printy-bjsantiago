@@ -3,17 +3,10 @@
 import type { BotMessage } from '../../../types/chatFlow';
 // BACKEND_TODO: Remove mockOrders import; rely solely on context-provided orders from Supabase.
 import { mockOrders } from '../../../data/orders'; // DELETE when backend is wired
-import {
-  FlowBase,
-  ORDER_STATUS_OPTIONS,
-  createStatusChangeMessage,
-  createQuoteCreatedMessage,
-  createSelectionListMessage,
-} from '../shared';
+import { FlowBase, ORDER_STATUS_OPTIONS, createSelectionListMessage } from '../shared';
 import { normalizeOrderStatus } from '../shared/utils/StatusNormalizers';
 import type { FlowState, FlowContext, NodeHandler } from '../shared';
 import { extractOrderIds } from '../shared/utils/IdExtractors';
-import { formatPriceInput, isValidPriceInput } from '../../../utils/shared';
 import { createStatusChangeNode as createStatusChangeNodeFactory } from './orders/ChangeOrderStatus';
 import { createQuotePriceNode as createQuotePriceNodeFactory } from './orders/Qouting';
 
@@ -274,85 +267,7 @@ class MultipleOrdersFlow extends FlowBase {
     };
   }
 
-  private createStatusChangeNode(): NodeHandler {
-    return {
-      messages: (state: FlowState) => {
-        const orderState = state as MultipleOrdersState;
-        const order = this.getCurrentOrder(orderState);
-        if (!order) return [{ role: 'printy', text: 'Order not found.' }];
-        return [
-          {
-            role: 'printy',
-            text: `Current status of ${order.id} is ${order.status}. Choose new status.`,
-          },
-        ];
-      },
-      quickReplies: () => [...ORDER_STATUS_OPTIONS, 'End Chat'],
-      handleInput: (input: string, state: FlowState) => {
-        const orderState = state as MultipleOrdersState;
-        const order = this.getCurrentOrder(orderState);
-        if (!order) {
-          return {
-            messages: [{ role: 'printy', text: 'Order not found.' }],
-            quickReplies: ['End Chat'],
-          };
-        }
-
-        const next = normalizeOrderStatus(input);
-
-        if (!next) {
-          return {
-            messages: [
-              {
-                role: 'printy',
-                text: `What status should I set for ${order.id}?`,
-              },
-            ],
-            quickReplies: [...ORDER_STATUS_OPTIONS, 'End Chat'],
-          };
-        }
-
-        const prev = order.status;
-        this.updateOrder(order.id, { status: next }, orderState);
-
-        const changedIds = new Set(orderState.changedIds);
-        changedIds.add(order.id);
-
-        const remaining = this.getRemainingOrders({
-          ...orderState,
-          changedIds,
-        });
-        const msgs: BotMessage[] = [
-          createStatusChangeMessage(order.id, prev, next),
-        ];
-
-        if (remaining.length > 1) {
-          return {
-            nextNodeId: 'choose_id',
-            stateUpdates: { changedIds, currentTargetId: null },
-            messages: [
-              ...msgs,
-              { role: 'printy', text: 'Pick another order to update.' },
-            ],
-          };
-        }
-
-        if (remaining.length === 1) {
-          return {
-            nextNodeId: 'choose_status',
-            stateUpdates: { changedIds, currentTargetId: remaining[0].id },
-            messages: msgs,
-          };
-        }
-
-        return {
-          nextNodeId: 'done',
-          stateUpdates: { changedIds, currentTargetId: null },
-          messages: msgs,
-        };
-      },
-    };
-  }
+  
 
   private createBulkStatusChangeNode(): NodeHandler {
     return {
@@ -446,95 +361,7 @@ class MultipleOrdersFlow extends FlowBase {
     };
   }
 
-  private createQuotePriceNode(): NodeHandler {
-    return {
-      messages: (state: FlowState) => {
-        const orderState = state as MultipleOrdersState;
-        const order = this.getCurrentOrder(orderState);
-        if (!order) return [{ role: 'printy', text: 'Order not found.' }];
-        return [
-          {
-            role: 'printy',
-            text: `Creating quote for ${order.id} (${order.customer}).`,
-          },
-          {
-            role: 'printy',
-            text: 'Please enter the quote amount (e.g., 3800, 3,800, or ₱3,800).',
-          },
-        ];
-      },
-      quickReplies: () => ['End Chat'],
-      handleInput: (input: string, state: FlowState) => {
-        const orderState = state as MultipleOrdersState;
-        const order = this.getCurrentOrder(orderState);
-        if (!order) {
-          return {
-            messages: [{ role: 'printy', text: 'Order not found.' }],
-            quickReplies: ['End Chat'],
-          };
-        }
-
-        const priceValid = isValidPriceInput(input) || /\d/.test(input);
-        if (!priceValid) {
-          return {
-            messages: [
-              {
-                role: 'printy',
-                text: 'Please enter a valid price amount (e.g., 3800, 3,800, or ₱3,800).',
-              },
-            ],
-            quickReplies: ['End Chat'],
-          };
-        }
-
-        const formatted = formatPriceInput(input);
-        this.updateOrder(
-          order.id,
-          { status: 'Pending', total: formatted },
-          orderState
-        );
-
-        const quotedIds = new Set(orderState.quotedIds);
-        quotedIds.add(order.id);
-
-        const remaining = this.getRemainingQuoteOrders({
-          ...orderState,
-          quotedIds,
-        });
-        const msgs: BotMessage[] = [
-          createQuoteCreatedMessage(order.id, formatted),
-        ];
-
-        if (remaining.length > 1) {
-          return {
-            nextNodeId: 'choose_quote_target',
-            stateUpdates: { quotedIds, currentTargetId: null },
-            messages: [
-              ...msgs,
-              {
-                role: 'printy',
-                text: 'Pick another order to create a quote for.',
-              },
-            ],
-          };
-        }
-
-        if (remaining.length === 1) {
-          return {
-            nextNodeId: 'ask_quote_price',
-            stateUpdates: { quotedIds, currentTargetId: remaining[0].id },
-            messages: msgs,
-          };
-        }
-
-        return {
-          nextNodeId: 'done',
-          stateUpdates: { quotedIds, currentTargetId: null },
-          messages: msgs,
-        };
-      },
-    };
-  }
+  
 
   private createVerifyPickNode(): NodeHandler {
     return {

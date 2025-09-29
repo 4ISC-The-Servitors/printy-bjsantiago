@@ -1,5 +1,5 @@
 import React from 'react';
-import SelectedChipsBar, { type ChipItem } from './SelectedChipsBar';
+import type { ChipItem } from './SelectedChipsBar';
 import { Button } from './index';
 
 export interface ChatDockProps {
@@ -15,9 +15,9 @@ export interface ChatDockProps {
 const ChatDock: React.FC<ChatDockProps> = ({
   open,
   onToggle: _onToggle, // eslint-disable-line @typescript-eslint/no-unused-vars
-  selected,
-  onRemoveSelected,
-  onClearSelected,
+  selected: _selected, // eslint-disable-line @typescript-eslint/no-unused-vars
+  onRemoveSelected: _onRemoveSelected, // eslint-disable-line @typescript-eslint/no-unused-vars
+  onClearSelected: _onClearSelected, // eslint-disable-line @typescript-eslint/no-unused-vars
   header,
   children,
 }) => {

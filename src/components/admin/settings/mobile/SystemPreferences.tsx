@@ -51,12 +51,12 @@ const SystemPreferences: React.FC<SystemPreferencesProps> = ({
   };
 
   const getDataRetentionLabel = (retention: DataRetentionOption) => {
-    const labels = {
+    const labels: Record<DataRetentionOption, string> = {
       '30_days': '30 Days',
       '90_days': '90 Days',
       '1_year': '1 Year',
       indefinite: 'Indefinite',
-    } as const;
+    };
     return labels[retention];
   };
 

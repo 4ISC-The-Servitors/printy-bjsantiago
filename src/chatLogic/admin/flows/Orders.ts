@@ -3,13 +3,7 @@
 import type { BotMessage } from '../../../types/chatFlow';
 // BACKEND_TODO: Remove mockOrders import; rely solely on context-provided orders from Supabase.
 import { mockOrders } from '../../../data/orders'; // DELETE when backend is wired
-import {
-  FlowBase,
-  ORDER_STATUS_OPTIONS,
-  createStatusChangeMessage,
-  createQuoteCreatedMessage,
-  createInfoMessage,
-} from '../shared';
+import { FlowBase, ORDER_STATUS_OPTIONS, createInfoMessage } from '../shared';
 import { normalizeOrderStatus } from '../shared/utils/StatusNormalizers';
 import type { FlowState, FlowContext, NodeHandler } from '../shared';
 import { createVerifyPaymentNodes } from './orders/VerifyPayment';
@@ -93,14 +87,14 @@ class OrdersFlow extends FlowBase {
     // Verify payment nodes (conditionally used)
     const verifyNodes = createVerifyPaymentNodes({
       getOrders: (_s, _c) => (this.state as OrdersState).currentOrders,
-      getOrderById: (s, id) =>
+      getOrderById: (_s, id) =>
         (this.state as OrdersState).currentOrders.find(o => o.id === id) ||
         mockOrders.find(o => o.id === id) ||
         null,
-      setCurrentOrderId: (s, id) => {
+      setCurrentOrderId: (_s, id) => {
         (this.state as OrdersState).currentOrderId = id;
       },
-      updateOrder: (id, updates, s) => {
+      updateOrder: (id, updates, _s) => {
         this.updateOrder(id, updates, this.state as OrdersState);
       },
     });
@@ -115,10 +109,9 @@ class OrdersFlow extends FlowBase {
           text: 'Please choose order ID you want to verify first',
         },
       ],
-      quickReplies: (state: FlowState) => {
-        const s = state as OrdersState;
+      quickReplies: (_state: FlowState) => {
         const queue: string[] =
-          ((state as any).__verifyQueue as string[]) || [];
+          (((_state as any).__verifyQueue as string[]) || []);
         return (queue.length > 0 ? queue : []) as any;
       },
       handleInput: (input: string, state: FlowState) => {
@@ -349,115 +342,9 @@ class OrdersFlow extends FlowBase {
     };
   }
 
-  private createStatusChangeNode(): NodeHandler {
-    return {
-      messages: (state: FlowState) => {
-        const orderState = state as OrdersState;
-        const order = this.getCurrentOrder(orderState);
-        if (!order) return [{ role: 'printy', text: 'Order not found.' }];
-        return [
-          {
-            role: 'printy',
-            text: `What status would you like to set for ${order.id}?`,
-          },
-        ];
-      },
-      quickReplies: () => [...ORDER_STATUS_OPTIONS, 'End Chat'],
-      handleInput: (input: string, state: FlowState) => {
-        const orderState = state as OrdersState;
-        const order = this.getCurrentOrder(orderState);
-        if (!order) {
-          return {
-            messages: [{ role: 'printy', text: 'Order not found.' }],
-            quickReplies: ['End Chat'],
-          };
-        }
+  // removed unused private method createStatusChangeNode()
 
-        const next = normalizeOrderStatus(input);
-
-        if (!next) {
-          return {
-            messages: [
-              {
-                role: 'printy',
-                text: `Valid statuses: ${ORDER_STATUS_OPTIONS.join(', ')}`,
-              },
-            ],
-            quickReplies: [...ORDER_STATUS_OPTIONS, 'End Chat'],
-          };
-        }
-
-        const prev = order.status;
-        this.updateOrder(order.id, { status: next }, orderState);
-
-        return {
-          nextNodeId: 'action',
-          messages: [createStatusChangeMessage(order.id, prev, next)],
-        };
-      },
-    };
-  }
-
-  private createQuotePriceNode(): NodeHandler {
-    return {
-      messages: (state: FlowState) => {
-        const orderState = state as OrdersState;
-        const order = this.getCurrentOrder(orderState);
-        if (!order) return [{ role: 'printy', text: 'Order not found.' }];
-        return [
-          {
-            role: 'printy',
-            text: `Creating quote for ${order.id} (${order.customer}).`,
-          },
-          {
-            role: 'printy',
-            text: 'Please enter the quote amount (e.g., 3800, 3,800, or ₱3,800).',
-          },
-        ];
-      },
-      quickReplies: () => ['End Chat'],
-      handleInput: (input: string, state: FlowState) => {
-        const orderState = state as OrdersState;
-        const order = this.getCurrentOrder(orderState);
-        if (!order) {
-          return {
-            messages: [{ role: 'printy', text: 'Order not found.' }],
-            quickReplies: ['End Chat'],
-          };
-        }
-
-        const {
-          formatPriceInput,
-          isValidPriceInput,
-        } = require('../../../utils/shared');
-
-        const priceValid = isValidPriceInput(input) || /\d/.test(input);
-        if (!priceValid) {
-          return {
-            messages: [
-              {
-                role: 'printy',
-                text: 'Please enter a valid price amount (e.g., 3800, 3,800, or ₱3,800).',
-              },
-            ],
-            quickReplies: ['End Chat'],
-          };
-        }
-
-        const formatted = formatPriceInput(input);
-        this.updateOrder(
-          order.id,
-          { status: 'Pending', total: formatted },
-          orderState
-        );
-
-        return {
-          nextNodeId: 'action',
-          messages: [createQuoteCreatedMessage(order.id, formatted)],
-        };
-      },
-    };
-  }
+  // removed unused private method createQuotePriceNode()
 
   private createDoneNode(): NodeHandler {
     return {

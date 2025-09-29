@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import MobileChatPanel from '../../chat/mobile/ChatPanel';
-import { useAdminConversations } from '@hooks/admin/useAdminConversations';
 import { Button } from '../../shared';
 import { Minus, X } from 'lucide-react';
 

@@ -4,7 +4,9 @@ export * from './selectionUtils';
 export * from './statusColors';
 
 // Admin-prefixed convenience exports (non-breaking)
-export { default as adminSelectionUtils } from './selectionUtils';
+// selectionUtils does not have a default export; expose a namespaced object for convenience
+import * as selectionUtils from './selectionUtils';
+export const adminSelectionUtils = selectionUtils;
 export {
   getOrderStatusBadgeVariant as adminGetOrderStatusBadgeVariant,
   getTicketStatusBadgeVariant as adminGetTicketStatusBadgeVariant,

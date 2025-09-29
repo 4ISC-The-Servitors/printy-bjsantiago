@@ -36,7 +36,7 @@ const DesktopSidebar: React.FC<AdminSidebarProps> = ({
   onNavigate,
   onLogout,
 }) => {
-  const handleSelectChat = (id: string) => {
+  const handleSelectChat = (_id: string) => {
     // Set active conversation and open chat dock via global event
     window.dispatchEvent(new CustomEvent('admin-chat-open'));
     onNavigate('dashboard');
