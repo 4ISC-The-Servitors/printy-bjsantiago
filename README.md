@@ -32,6 +32,27 @@
   - About Us flow validated end-to-end (DB-backed): start/send/quick-replies/switch/end, closing line + 1.5s redirect
   - Removed migration breadcrumbs and duplicate topics module; topics kept inline in `src/pages/customer/Dashboard.tsx`
 
+- Issue Ticket migration to DB-backed flow
+  - Schema changes (no new tables):
+    - `chat_flow_nodes`: added `node_action` (text enum) and `action_config` (jsonb)
+    - `chat_session_flow`: added `context` (jsonb) and `updated_at` (timestamptz)
+    - Migration file: `supabase/sql/013_alter_chat_flow_for_issue_ticket.sql`
+  - Seeded flow graph and actions:
+    - `supabase/sql/014_seed_flow_issue_ticket.sql` inserts nodes/options for `issue-ticket` and updates per-node `node_action`/`action_config`
+  - Shared end node:
+    - Introduced `shared` flow with global `end` node and ensured all "End Chat" options reference `to_node_id = 'end'`
+    - Migration file: `supabase/sql/019_link_shared_end.sql`
+  - Policies:
+    - `supabase/sql/015_inquiries_and_orders_policies.sql` enforces RLS for `inquiries` (own rows, admin override) and `orders` (own rows)
+  - Rollbacks:
+    - Soft: remove `issue-ticket` flow graph and reset node actions (`017_rollback_issue_ticket_soft.sql`)
+    - Hard: also drop added columns from `chat_flow_nodes`/`chat_session_flow` (`018_rollback_issue_ticket_hard.sql`)
+  - App integration:
+    - Treat `issue-ticket` as DB-backed like `about` (sessioning, messages, options, history)
+    - `endConversation` prefers current flow end, then `shared` end
+    - Commented out scripted `IssueTicket.ts` registry entries to avoid duplication
+    - Hooks updated to pass `customerId` to DB-backed flows and to load/switch sessions for `issue-ticket`
+
 - Dashboard cleanup and structure
   - Replaced inline Supabase effects with hooks (recent data, sessions, events)
   - Introduced `useChatAttachments` in core; file uploads send via object URL
