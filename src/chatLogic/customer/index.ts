@@ -1,6 +1,6 @@
 import type { ChatFlow } from '../../types/chatFlow';
 import { faqsFlow } from './flows/Faqs';
-import { issueTicketFlow } from './flows/IssueTicket';
+// import { issueTicketFlow } from './flows/IssueTicket'; // DB-backed now; scripted disabled
 import { placeOrderFlow } from './flows/PlaceOrder';
 import { servicesOfferedFlow } from './flows/ServicesOffered';
 import { trackTicketFlow } from './flows/TrackTicket';
@@ -10,7 +10,7 @@ import { cancelOrderFlow } from './flows/CancelOrder';
 // Note: 'about' is handled by the database-backed flow; exclude from scripted map
 export const customerFlows: Record<string, ChatFlow> = {
   faqs: faqsFlow,
-  'issue-ticket': issueTicketFlow,
+  // 'issue-ticket': issueTicketFlow, // use database-backed flow instead
   'place-order': placeOrderFlow,
   services: servicesOfferedFlow,
   'track-ticket': trackTicketFlow,
@@ -23,7 +23,7 @@ export function resolveCustomerFlow(
 ): ChatFlow {
   const t = (topic || 'about').toLowerCase();
   if (t.includes('faq')) return faqsFlow;
-  if (t.includes('issue') || t.includes('ticket')) return issueTicketFlow;
+  // if (t.includes('issue') || t.includes('ticket')) return issueTicketFlow; // DB-backed
   if (t.includes('place') || t.includes('order')) return placeOrderFlow;
   if (t.includes('service')) return servicesOfferedFlow;
   if (t.includes('track')) return trackTicketFlow;

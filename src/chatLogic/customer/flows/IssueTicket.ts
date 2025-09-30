@@ -1,7 +1,7 @@
+// NOTE: This scripted flow is now disabled in favor of DB-backed flow seeds.
+// Leaving file for reference but excluding from registry.
 import type { BotMessage, ChatFlow } from '../../../types/chatFlow';
-// ====================
 import { supabase } from '../../../lib/supabase';
-// ==================== - jorrel i added this to know where changes were its a before and after
 
 type Option = { label: string; next: string };
 type Node = {
@@ -16,7 +16,7 @@ const NODES: Record<string, Node> = {
   issue_ticket_intro: {
     id: 'issue_ticket_intro',
     message:
-      "Hi! I'm Printy 🤖. Before we start, do you already have your order number?",
+      "Hi! I'm Printy. Before we start, do you already have your order number?",
     options: [
       { label: 'Yes, I have it', next: 'issue_ticket_start' },
       { label: "I don't have it", next: 'no_order_number' },
@@ -27,7 +27,7 @@ const NODES: Record<string, Node> = {
   issue_ticket_start: {
     id: 'issue_ticket_start',
     message:
-      "Hi! I'm Printy 🤖. I'll help you create a support ticket. What's your order number?",
+      "Hi! I'm Printy. I'll help you create a support ticket. What's your order number?",
     options: [{ label: 'End Chat', next: 'end' }],
   },
 
