@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase';
+import { supabase } from '../../lib/supabase';
 
 export type OrderData = {
   order_id: string; // varchar
