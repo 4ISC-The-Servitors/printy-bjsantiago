@@ -13,8 +13,13 @@ import ChatCards from '../../components/customer/dashboard/chatCards/ChatCards';
 import RecentOrder from '../../components/customer/dashboard/recentOrders/RecentOrder';
 import RecentTickets from '../../components/customer/dashboard/recentTickets/RecentTickets';
 // Shared UI components
-import { ToastContainer, Text, PageLoading, useToast } from '../../components/shared';
-import { ShoppingCart, HelpCircle, TicketIcon, Info, MessageSquare, Settings } from 'lucide-react';
+import { ToastContainer, Text, PageLoading } from '../../components/shared';
+import { useLogoutWithToast } from '../../features/toast/hooks/useLogoutWithToast';
+import { useRecentOrder } from '../../features/chat/customer/hooks/useRecentOrder';
+import { useRecentTicket } from '../../features/chat/customer/hooks/useRecentTicket';
+import { useRecentChatSessions } from '../../features/chat/customer/hooks/useRecentChatSessions';
+import { useDashboardChatEvents } from '../../features/chat/customer/hooks/useDashboardChatEvents';
+// Icons are now provided in topicConfig
 // ChatFlow type not used directly after hook migration
 // In-memory flow registry and DB-backed chat flow API helpers
 // legacy imports removed
@@ -22,6 +27,14 @@ import { ShoppingCart, HelpCircle, TicketIcon, Info, MessageSquare, Settings } f
 import { useCustomerConversations } from '../../features/chat/customer/hooks/useCustomerConversations';
 
 // ---------------- Types / Config ----------------
+import {
+  ShoppingCart,
+  HelpCircle,
+  TicketIcon,
+  Info,
+  MessageSquare,
+  Settings,
+} from 'lucide-react';
 type TopicKey =
   | 'placeOrder'
   | 'issueTicket'
@@ -29,16 +42,6 @@ type TopicKey =
   | 'servicesOffered'
   | 'aboutUs'
   | 'faqs';
-
-interface Conversation {
-  id: string;
-  title: string;
-  createdAt: number;
-  messages: ChatMessage[];
-  flowId: string;
-  status: 'active' | 'ended';
-  icon?: React.ReactNode;
-}
 
 const topicConfig: Record<
   TopicKey,
@@ -82,6 +85,18 @@ const topicConfig: Record<
   },
 };
 
+interface Conversation {
+  id: string;
+  title: string;
+  createdAt: number;
+  messages: ChatMessage[];
+  flowId: string;
+  status: 'active' | 'ended';
+  icon?: React.ReactNode;
+}
+
+// topicConfig now imported from feature config
+
 // Use full customer flows registry
 
 // ---------------- Component ----------------
@@ -91,7 +106,7 @@ const topicConfig: Record<
 // 2) Database-backed flow for 'About Us' using chat_flow tables
 const CustomerDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const [toasts, toastMethods] = useToast();
+  const { logout, toasts, toast } = useLogoutWithToast();
 
   // Phase 2 (incremental): use hook just for send/quick-reply/end handlers
   const {
@@ -116,26 +131,15 @@ const CustomerDashboard: React.FC = () => {
 
   // Quick replies and placeholder now supplied by the hook
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-  
+
   const [isLoading, setIsLoading] = useState(true);
 
   // Database-backed state for About Us flow (handled by hook now)
 
   // Live recent order/ticket from Supabase
-  const [recentOrder, setRecentOrder] = useState<{
-    id: string;
-    title: string;
-    status: string;
-    updatedAt: number;
-    total?: string;
-  } | null>(null);
-
-  const [recentTicket, setRecentTicket] = useState<{
-    id: string;
-    subject: string;
-    status: string;
-    updatedAt: number;
-  } | null>(null);
+  const { data: recentOrder } = useRecentOrder();
+  const { data: recentTicket } = useRecentTicket();
+  useRecentChatSessions(setConversations);
 
   // Initial loading shimmer for dashboard visuals
   useEffect(() => {
@@ -145,94 +149,7 @@ const CustomerDashboard: React.FC = () => {
 
   // Topics grid now rendered via ChatCards; explicit topics array no longer needed
 
-  // ---------------- Supabase fetches ----------------
-  // Load most recent order/ticket to show on the dashboard cards
-  useEffect(() => {
-    const fetchRecentOrder = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-
-        const { data, error } = await supabase
-          .from('orders')
-          .select(`
-            order_id, 
-            order_status, 
-            order_datetime, 
-            service_id,
-            specification,
-            page_size,
-            quantity,
-            quotes:quotes(initial_price, negotiated_price)
-          `)
-          .eq('customer_id', user.id)
-          .order('order_datetime', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        if (error) {
-          console.error('Error fetching recent order:', error);
-          return;
-        }
-
-        if (data) {
-          // Calculate total from quotes
-          let total: string | undefined = undefined;
-          if (data.quotes && data.quotes.length > 0) {
-            const quote = data.quotes[0];
-            const quotedPrice = quote.negotiated_price || quote.initial_price;
-            if (quotedPrice) {
-              total = `₱${quotedPrice.toFixed(2)}`;
-            }
-          }
-
-          setRecentOrder({
-            id: data.order_id,
-            title: data.service_id || 'Unknown Service',
-            status: data.order_status || 'unknown',
-            updatedAt: new Date(data.order_datetime).getTime(),
-            total,
-          });
-        }
-      } catch (e) {
-        console.error('fetchRecentOrder error', e);
-      }
-    };
-
-    const fetchRecentTicket = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-
-        const { data, error } = await supabase
-          .from('inquiries')
-          .select('inquiry_id, inquiry_message, inquiry_status, received_at')
-          .eq('customer_id', user.id)
-          .order('received_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        if (error) {
-          console.error('Error fetching recent ticket:', error);
-          return;
-        }
-
-        if (data) {
-          setRecentTicket({
-            id: data.inquiry_id,
-            subject: data.inquiry_message || '(no subject)',
-            status: data.inquiry_status || 'unknown',
-            updatedAt: new Date(data.received_at).getTime(),
-          });
-        }
-      } catch (e) {
-        console.error('fetchRecentTicket error', e);
-      }
-    };
-
-    fetchRecentOrder();
-    fetchRecentTicket();
-  }, []);
+  // Recent order/ticket now handled by hooks
 
   // Load recent chat sessions from database for the sidebar list
   useEffect(() => {
@@ -240,7 +157,8 @@ const CustomerDashboard: React.FC = () => {
       try {
         const { data: sessions, error } = await supabase
           .from('chat_sessions')
-          .select(`
+          .select(
+            `
             session_id,
             customer_id,
             status,
@@ -249,7 +167,8 @@ const CustomerDashboard: React.FC = () => {
               flow_id,
               chat_flows!inner(title)
             )
-          `)
+          `
+          )
           .order('created_at', { ascending: false })
           .limit(10);
 
@@ -259,21 +178,27 @@ const CustomerDashboard: React.FC = () => {
         }
 
         if (sessions && sessions.length > 0) {
-          const sessionConversations: Conversation[] = sessions.map((session: any) => ({
-            id: session.session_id,
-            title: session.chat_session_flow?.chat_flows?.title || 'Chat',
-            createdAt: new Date(session.created_at).getTime(),
-            messages: [], // Messages will be loaded when switching to conversation
-            flowId: session.chat_session_flow?.flow_id || 'about',
-            status: session.status === 'ended' ? 'ended' : 'active',
-            icon: undefined,
-          }));
+          const sessionConversations: Conversation[] = sessions.map(
+            (session: any) => ({
+              id: session.session_id,
+              title: session.chat_session_flow?.chat_flows?.title || 'Chat',
+              createdAt: new Date(session.created_at).getTime(),
+              messages: [], // Messages will be loaded when switching to conversation
+              flowId: session.chat_session_flow?.flow_id || 'about',
+              status: session.status === 'ended' ? 'ended' : 'active',
+              icon: undefined,
+            })
+          );
 
           setConversations(prev => {
             // Merge with existing conversations, avoiding duplicates
             const existingIds = new Set(prev.map(c => c.id));
-            const newConversations = sessionConversations.filter(c => !existingIds.has(c.id));
-            return [...newConversations, ...prev].sort((a, b) => b.createdAt - a.createdAt);
+            const newConversations = sessionConversations.filter(
+              c => !existingIds.has(c.id)
+            );
+            return [...newConversations, ...prev].sort(
+              (a, b) => b.createdAt - a.createdAt
+            );
           });
         }
       } catch (e) {
@@ -294,53 +219,12 @@ const CustomerDashboard: React.FC = () => {
     initializeFlowHook(flowId, title, ctx);
   };
 
-  // Listen for Cancel Order button from RecentOrder card to open Cancel chat
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail as {
-        orderId?: string;
-        orderStatus?: string;
-      };
-      const orderId = detail?.orderId || recentOrder?.id;
-      const title = `Cancel Order ${orderId ?? ''}`;
-      initializeFlow('cancel-order', title, {
-        orderId,
-        orderStatus: detail?.orderStatus,
-      });
-    };
-    window.addEventListener('customer-open-cancel-chat', handler as EventListener);
-    return () => window.removeEventListener('customer-open-cancel-chat', handler as EventListener);
-  }, [recentOrder?.id]);
-
-  // Listen for Pay Now button from RecentOrder card to open Payment chat
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail as {
-        orderId?: string;
-        total?: string;
-      };
-      const orderId = detail?.orderId || recentOrder?.id;
-      const title = `Payment for Order ${orderId ?? ''}`;
-      initializeFlow('payment', title, {
-        orderId,
-        total: detail?.total,
-      });
-    };
-    window.addEventListener('customer-open-payment-chat', handler as EventListener);
-    return () => window.removeEventListener('customer-open-payment-chat', handler as EventListener);
-  }, [recentOrder?.id]);
-
-  // Listen for external request to open a specific session (from Chat History)
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail as { sessionId: string };
-      const sessionId = detail?.sessionId;
-      if (!sessionId) return;
-      switchConversationHook(sessionId);
-    };
-    window.addEventListener('customer-open-session', handler as EventListener);
-    return () => window.removeEventListener('customer-open-session', handler as EventListener);
-  }, [conversations]);
+  useDashboardChatEvents(
+    initializeFlow,
+    switchConversationHook,
+    () => recentOrder?.id,
+    () => recentOrder?.total
+  );
 
   // Placeholder logic handled by the hook
 
@@ -378,9 +262,11 @@ const CustomerDashboard: React.FC = () => {
           onSwitchConversation={switchConversationHook}
           onNavigateToAccount={() => navigate('/customer/account')}
           bottomActions={
-            <LogoutButton onClick={() => {
-              setShowLogoutModal(true);
-            }} />
+            <LogoutButton
+              onClick={() => {
+                setShowLogoutModal(true);
+              }}
+            />
           }
         />
       </aside>
@@ -400,8 +286,12 @@ const CustomerDashboard: React.FC = () => {
             inputPlaceholder={inputPlaceholder}
             onEndChat={endChatViaHook}
             onAttachFiles={handleAttachFiles}
-            readOnly={conversations.find(c => c.id === activeId)?.status === 'ended'}
-            hideInput={conversations.find(c => c.id === activeId)?.status === 'ended'}
+            readOnly={
+              conversations.find(c => c.id === activeId)?.status === 'ended'
+            }
+            hideInput={
+              conversations.find(c => c.id === activeId)?.status === 'ended'
+            }
           />
         ) : (
           <div className="p-8 overflow-y-auto">
@@ -455,32 +345,14 @@ const CustomerDashboard: React.FC = () => {
           setShowLogoutModal(false);
         }}
         onConfirm={async () => {
-          try {
-            const { error } = await supabase.auth.signOut();
-            if (error) {
-              console.error('Logout error:', error);
-              toastMethods.error('Logout Error', 'Failed to log out. Please try again.');
-              return;
-            }
-            
-            // Show success toast and wait a bit before redirecting
-            toastMethods.success('Logged Out', 'You have been successfully logged out.');
-            setShowLogoutModal(false);
-            
-            // Wait for toast to show before redirecting
-            setTimeout(() => {
-              navigate('/auth/signin');
-            }, 1500);
-          } catch (error) {
-            console.error('Logout error:', error);
-            toastMethods.error('Logout Error', 'An unexpected error occurred. Please try again.');
-          }
+          setShowLogoutModal(false);
+          await logout('/auth/signin', 1500);
         }}
       />
 
-      <ToastContainer 
-        toasts={toasts} 
-        onRemoveToast={id => toastMethods.remove(id)} 
+      <ToastContainer
+        toasts={toasts}
+        onRemoveToast={id => toast.remove(id)}
         position="bottom-right"
       />
     </div>
