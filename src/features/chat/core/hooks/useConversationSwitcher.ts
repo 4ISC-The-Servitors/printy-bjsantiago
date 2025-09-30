@@ -8,7 +8,12 @@ import { ChatDatabaseService } from '../services/ChatDatabaseService';
 export function useConversationSwitcher() {
   const switchConversation = async (
     conversationId: string,
-    conversations: Array<{ id: string; flowId: string; status: 'active' | 'ended'; messages: any[] }>,
+    conversations: Array<{
+      id: string;
+      flowId: string;
+      status: 'active' | 'ended';
+      messages: any[];
+    }>,
     setActiveId: (id: string | null) => void,
     setMessages: (msgs: any[]) => void,
     setQuickReplies: (qr: any[]) => void,
@@ -19,15 +24,32 @@ export function useConversationSwitcher() {
     if (!conv) return;
     setActiveId(conversationId);
 
-    // DB-backed About Us
-    if (conv.flowId === 'about') {
-      const fetched = await ChatDatabaseService.fetchSessionMessages(conversationId);
-      setMessages(fetched.map(m => ({ id: m.id, role: m.role as any, text: m.text, ts: m.ts })));
+    // DB-backed flows (About Us, Issue Ticket)
+    if (conv.flowId === 'about' || conv.flowId === 'issue-ticket') {
+      const fetched =
+        await ChatDatabaseService.fetchSessionMessages(conversationId);
+      setMessages(
+        fetched.map(m => ({
+          id: m.id,
+          role: m.role as any,
+          text: m.text,
+          ts: m.ts,
+        }))
+      );
       const node = await ChatDatabaseService.fetchCurrentNode(conversationId);
-      const opts = node ? await ChatDatabaseService.fetchOptions(node.node_id) : [];
-      const replies = conv.status === 'ended' ? [] : opts.map((o: any, i: number) => ({ id: `qr-${i}`, label: o.label, value: o.label }));
+      const opts = node
+        ? await ChatDatabaseService.fetchOptions(node.node_id)
+        : [];
+      const replies =
+        conv.status === 'ended'
+          ? []
+          : opts.map((o: any, i: number) => ({
+              id: `qr-${i}`,
+              label: o.label,
+              value: o.label,
+            }));
       setQuickReplies(replies);
-      updatePlaceholder('about', replies);
+      updatePlaceholder(conv.flowId, replies);
       setActiveNodeId?.(node ? node.node_id : null);
       return;
     }
@@ -41,5 +63,3 @@ export function useConversationSwitcher() {
 }
 
 export default useConversationSwitcher;
-
-
