@@ -5,7 +5,6 @@ import {
   Text,
   Container,
   ToastContainer,
-  SocialAuthButton,
   PageLoading,
 } from '../../components/shared';
 import ProgressIndicator from '../../components/auth/SignUp/ProgressIndicator';
@@ -25,7 +24,6 @@ const SignUp: React.FC = () => {
     currentStep,
     setCurrentStep,
     loading,
-    googleLoading,
     isDesktop,
     showPassword,
     setShowPassword,
@@ -35,7 +33,6 @@ const SignUp: React.FC = () => {
     setField,
     isStepValid,
     handleSubmit,
-    handleGoogleSignUp,
   } = useSignUp();
 
   // Simulate page loading
@@ -157,29 +154,6 @@ const SignUp: React.FC = () => {
               onNext={next}
             />
           </form>
-
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-neutral-300" />
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-white text-neutral-500 font-medium">
-                Or continue with
-              </span>
-            </div>
-          </div>
-
-          <SocialAuthButton
-            provider="google"
-            loading={googleLoading}
-            disabled={googleLoading || loading}
-            onClick={handleGoogleSignUp}
-            label={
-              googleLoading
-                ? 'Signing up with Google...'
-                : 'Sign up with Google'
-            }
-          />
         </div>
 
         <div className="text-center mt-4">

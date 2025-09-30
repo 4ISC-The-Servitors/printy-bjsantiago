@@ -10,9 +10,7 @@ import {
   PageLoading,
 } from '../../components/shared';
 import Header from '../../components/auth/SignIn/Header';
-import SocialDivider from '../../components/auth/SignIn/SocialDivider';
 import SignInForm from '../../components/auth/SignIn/SignInForm';
-import { SocialAuthButton } from '../../components/shared';
 import PrototypeAccess from '../../components/auth/SignIn/PrototypeAccess';
 import { useSignIn } from '../../components/auth/SignIn/useSignIn';
 import { ArrowLeft } from 'lucide-react';
@@ -36,10 +34,8 @@ const SignIn: React.FC = () => {
     showPassword,
     setShowPassword,
     loading,
-    googleLoading,
     isDesktop,
     handleSubmit,
-    handleGoogleSignIn,
   } = useSignIn();
 
   // Simulate page loading
@@ -92,15 +88,6 @@ const SignIn: React.FC = () => {
               onForgotPassword={() => navigate('/auth/forgot-password')}
             />
           </form>
-
-          <SocialDivider />
-
-          <SocialAuthButton
-            provider="google"
-            loading={googleLoading}
-            disabled={googleLoading || loading}
-            onClick={handleGoogleSignIn}
-          />
         </div>
 
         <PrototypeAccess onNavigateAdmin={() => navigate('/admin')} />
