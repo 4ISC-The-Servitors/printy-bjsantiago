@@ -1,8 +1,8 @@
 // PlaceOrder.ts
 
 import type { BotMessage, ChatFlow } from '../../../types/chatFlow';
-import { createOrder } from '../../../api/orderApi';
-import type { OrderData } from '../../../api/orderApi';
+import { createOrder } from '../../../features/api/orderApi';
+import type { OrderData } from '../../../features/api/orderApi';
 import { getCurrentCustomerId } from '../../../lib/utils';
 import { supabase } from '../../../lib/supabase';
 import { 

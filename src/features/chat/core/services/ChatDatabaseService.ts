@@ -14,7 +14,7 @@ import {
   updateCurrentNode,
   endSession,
   fetchEndNodeText,
-} from '../../../../api/chatFlowApi';
+} from '../../../api/chatFlowApi';
 
 export const ChatDatabaseService = {
   createSession,

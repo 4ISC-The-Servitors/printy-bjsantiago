@@ -2,7 +2,7 @@
 
 import { supabase } from '../../../lib/supabase';
 import { getCurrentCustomerId } from '../../../lib/utils';
-import type { OrderData } from '../../../api/orderApi';
+import type { OrderData } from '../../../features/api/orderApi';
 import type { BotMessage } from '../../../types/chatFlow';
 import type { Node } from './PlaceOrder';
 import {
