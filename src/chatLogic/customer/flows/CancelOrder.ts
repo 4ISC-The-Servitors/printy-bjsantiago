@@ -1,3 +1,8 @@
+// NEEDS TO BE REVISED TO BE INLINE WITH BUSINESS LOGIC
+// NEEDS TO BE REVISED TO BE INLINE WITH BUSINESS LOGIC
+// NEEDS TO BE REVISED TO BE INLINE WITH BUSINESS LOGIC
+// NEEDS TO BE REVISED TO BE INLINE WITH BUSINESS LOGIC
+
 import type { BotMessage, ChatFlow } from '../../../types/chatFlow';
 import { getCurrentCustomerId } from '../../../lib/utils';
 import { supabase } from '../../../lib/supabase';
