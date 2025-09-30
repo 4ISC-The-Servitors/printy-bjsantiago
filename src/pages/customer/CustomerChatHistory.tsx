@@ -31,14 +31,18 @@ const ChatHistory: React.FC = () => {
     if (typeof window === 'undefined') return;
     const mql = window.matchMedia('(min-width: 1024px)');
     const handleModern = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
-    const handleLegacy = function (this: MediaQueryList, e: MediaQueryListEvent) {
+    const handleLegacy = function (
+      this: MediaQueryList,
+      e: MediaQueryListEvent
+    ) {
       setIsDesktop(e.matches);
     };
     setIsDesktop(mql.matches);
     if (mql.addEventListener) mql.addEventListener('change', handleModern);
     else (mql as MediaQueryList).addListener(handleLegacy);
     return () => {
-      if (mql.removeEventListener) mql.removeEventListener('change', handleModern);
+      if (mql.removeEventListener)
+        mql.removeEventListener('change', handleModern);
       else (mql as MediaQueryList).removeListener(handleLegacy);
     };
   }, []);
@@ -48,16 +52,22 @@ const ChatHistory: React.FC = () => {
     return conversations.filter(c => {
       const matchesQuery = q
         ? c.title.toLowerCase().includes(q) ||
-          (c.messages[c.messages.length - 1]?.text || '').toLowerCase().includes(q)
+          (c.messages[c.messages.length - 1]?.text || '')
+            .toLowerCase()
+            .includes(q)
         : true;
-      const matchesStatus = status ? c.status === (status as 'active' | 'ended') : true;
+      const matchesStatus = status
+        ? c.status === (status as 'active' | 'ended')
+        : true;
       return matchesQuery && matchesStatus;
     });
   }, [conversations, query, status]);
 
   const openConversation = (id: string) => {
     // Ask dashboard to open this session, then navigate there
-    window.dispatchEvent(new CustomEvent('customer-open-session', { detail: { sessionId: id } }));
+    window.dispatchEvent(
+      new CustomEvent('customer-open-session', { detail: { sessionId: id } })
+    );
     navigate('/customer');
   };
 
@@ -76,7 +86,9 @@ const ChatHistory: React.FC = () => {
           title: s.title,
           createdAt: s.createdAt,
           messages: [],
-          status: (s.status === 'ended' ? 'ended' : 'active') as 'active' | 'ended',
+          status: (s.status === 'ended' ? 'ended' : 'active') as
+            | 'active'
+            | 'ended',
         }));
         setConversations(convs);
       } catch (e) {
@@ -94,7 +106,9 @@ const ChatHistory: React.FC = () => {
           activeId={null}
           onSwitchConversation={openConversation}
           onNavigateToAccount={() => navigate('/customer/account')}
-          bottomActions={<LogoutButton onClick={() => setShowLogoutModal(true)} />}
+          bottomActions={
+            <LogoutButton onClick={() => setShowLogoutModal(true)} />
+          }
         />
       </div>
       <div className="lg:hidden fixed left-0 top-0 bottom-0 w-16 bg-white border-r border-neutral-200 z-50">
@@ -103,7 +117,9 @@ const ChatHistory: React.FC = () => {
           activeId={null}
           onSwitchConversation={openConversation}
           onNavigateToAccount={() => navigate('/customer/account')}
-          bottomActions={<LogoutButton onClick={() => setShowLogoutModal(true)} />}
+          bottomActions={
+            <LogoutButton onClick={() => setShowLogoutModal(true)} />
+          }
         />
       </div>
 
@@ -127,9 +143,12 @@ const ChatHistory: React.FC = () => {
             />
 
             {filtered.length === 0 ? (
-              <EmptyState />)
-              : (
-              <ConversationList conversations={filtered} onOpen={openConversation} />
+              <EmptyState />
+            ) : (
+              <ConversationList
+                conversations={filtered}
+                onOpen={openConversation}
+              />
             )}
           </div>
         </div>
@@ -144,5 +163,3 @@ const ChatHistory: React.FC = () => {
 };
 
 export default ChatHistory;
-
-

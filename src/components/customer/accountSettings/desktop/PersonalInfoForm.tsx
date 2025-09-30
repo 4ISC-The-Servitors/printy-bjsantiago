@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Card, Text, Button, Input, Modal } from '../../../shared';
 import { Pencil } from 'lucide-react';
-import type { UserData } from '../../../../pages/customer/AccountSettings';
+import type { UserData } from '../../../../pages/customer/CustomerAccountSettings';
 
 interface PersonalInfoFormProps {
   value: UserData;

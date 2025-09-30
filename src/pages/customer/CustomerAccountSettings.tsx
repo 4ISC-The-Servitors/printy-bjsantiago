@@ -1,8 +1,8 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import SidebarPanel from '../../components/customer/shared/sidebar/SidebarPanel';
-import LogoutButton from '../../components/customer/shared/sidebar/LogoutButton';
-import LogoutModal from '../../components/customer/shared/sidebar/LogoutModal';
+import SidebarPanel from '../../components/customer/shared/sidebar/SidebarPanel.tsx';
+import LogoutButton from '../../components/customer/shared/sidebar/LogoutButton.tsx';
+import LogoutModal from '../../components/customer/shared/sidebar/LogoutModal.tsx';
 import {
   Container,
   Text,
@@ -16,7 +16,7 @@ import PersonalInfoForm from '../../components/customer/accountSettings/desktop/
 import SecuritySettings from '../../components/customer/accountSettings/desktop/SecuritySettings.tsx';
 import NotificationPreferences from '../../components/customer/accountSettings/desktop/NotificationPreferences.tsx';
 // Use the same conversations hook as Dashboard so the sidebar is consistent
-import { useCustomerConversations } from '../../features/chat/customer/hooks/useCustomerConversations';
+import { useCustomerConversations } from '../../features/chat/customer/hooks/useCustomerConversations.ts';
 
 export interface UserData {
   displayName: string;
@@ -140,11 +140,17 @@ const AccountSettings: React.FC = () => {
           conversations={conversations as any}
           activeId={activeId}
           onSwitchConversation={(id: string) => {
-            window.dispatchEvent(new CustomEvent('customer-open-session', { detail: { sessionId: id } }));
+            window.dispatchEvent(
+              new CustomEvent('customer-open-session', {
+                detail: { sessionId: id },
+              })
+            );
             navigate('/customer');
           }}
           onNavigateToAccount={() => navigate('/customer/account')}
-          bottomActions={<LogoutButton onClick={() => setShowLogoutModal(true)} />}
+          bottomActions={
+            <LogoutButton onClick={() => setShowLogoutModal(true)} />
+          }
         />
       </div>
       <div className="lg:hidden fixed left-0 top-0 bottom-0 w-16 bg-white border-r border-neutral-200 z-50">
@@ -152,11 +158,17 @@ const AccountSettings: React.FC = () => {
           conversations={conversations as any}
           activeId={activeId}
           onSwitchConversation={(id: string) => {
-            window.dispatchEvent(new CustomEvent('customer-open-session', { detail: { sessionId: id } }));
+            window.dispatchEvent(
+              new CustomEvent('customer-open-session', {
+                detail: { sessionId: id },
+              })
+            );
             navigate('/customer');
           }}
           onNavigateToAccount={() => navigate('/customer/account')}
-          bottomActions={<LogoutButton onClick={() => setShowLogoutModal(true)} />}
+          bottomActions={
+            <LogoutButton onClick={() => setShowLogoutModal(true)} />
+          }
         />
       </div>
 

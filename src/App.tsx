@@ -5,10 +5,10 @@ import SignIn from './pages/auth/SignIn';
 import SignUp from './pages/auth/SignUp';
 import ForgotPassword from './pages/auth/ForgotPassword';
 import ResetPassword from './pages/auth/ResetPassword';
-import CustomerDashboard from './pages/customer/Dashboard';
-import AccountSettings from './pages/customer/AccountSettings';
+import CustomerDashboard from './pages/customer/CustomerDashboard';
+import CustomerAccountSettings from './pages/customer/CustomerAccountSettings';
 import CustomerRoot from './pages/customer/CustomerRoot';
-import CustomerChatHistory from './pages/customer/ChatHistory';
+import CustomerChatHistory from './pages/customer/CustomerChatHistory';
 import AdminRoot from './pages/admin/AdminRoot';
 import { PageLoading } from './components/shared';
 import './index.css';
@@ -35,7 +35,7 @@ function App() {
       <Route path="/auth/reset-password/confirm" element={<ResetPassword />} />
       <Route path="/customer" element={<CustomerRoot />}>
         <Route index element={<CustomerDashboard />} />
-        <Route path="account" element={<AccountSettings />} />
+        <Route path="account" element={<CustomerAccountSettings />} />
         <Route path="chats" element={<CustomerChatHistory />} />
       </Route>
       <Route path="/valued" element={<CustomerDashboard />} />

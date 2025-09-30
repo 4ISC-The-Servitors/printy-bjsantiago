@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, Text, Switch } from '../../../shared';
-import type { NotificationPreferencesData } from '../../../../pages/customer/AccountSettings';
+import type { NotificationPreferencesData } from '../../../../pages/customer/CustomerAccountSettings';
 
 interface NotificationPreferencesProps {
   value: NotificationPreferencesData;
