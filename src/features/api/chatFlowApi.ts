@@ -19,7 +19,9 @@ export interface DbFlowOption {
   sort_order: number;
 }
 
-export async function fetchInitialNode(flowId: string): Promise<DbFlowNode | null> {
+export async function fetchInitialNode(
+  flowId: string
+): Promise<DbFlowNode | null> {
   const { data, error } = await supabase
     .from('chat_flow_nodes')
     .select('*')
@@ -34,7 +36,9 @@ export async function fetchInitialNode(flowId: string): Promise<DbFlowNode | nul
   return data as unknown as DbFlowNode | null;
 }
 
-export async function fetchOptions(fromNodeId: string): Promise<DbFlowOption[]> {
+export async function fetchOptions(
+  fromNodeId: string
+): Promise<DbFlowOption[]> {
   const { data, error } = await supabase
     .from('chat_flow_options')
     .select('*')
@@ -47,7 +51,9 @@ export async function fetchOptions(fromNodeId: string): Promise<DbFlowOption[]> 
   return (data || []) as unknown as DbFlowOption[];
 }
 
-export async function createSession(customerId: string): Promise<string | null> {
+export async function createSession(
+  customerId: string
+): Promise<string | null> {
   const sessionId = crypto.randomUUID();
   const { error } = await supabase.from('chat_sessions').insert({
     session_id: sessionId,
@@ -103,7 +109,10 @@ export async function insertMessage(params: {
   return { messageId };
 }
 
-export async function updateCurrentNode(sessionId: string, nodeId: string): Promise<boolean> {
+export async function updateCurrentNode(
+  sessionId: string,
+  nodeId: string
+): Promise<boolean> {
   const { error } = await supabase
     .from('chat_session_flow')
     .update({ current_node_id: nodeId })
@@ -132,7 +141,9 @@ export async function endSession(sessionId: string): Promise<boolean> {
   return true;
 }
 
-export async function fetchEndNodeText(flowId: string): Promise<{ nodeId: string; text: string } | null> {
+export async function fetchEndNodeText(
+  flowId: string
+): Promise<{ nodeId: string; text: string } | null> {
   const { data, error } = await supabase
     .from('chat_flow_nodes')
     .select('node_id, text')
@@ -141,7 +152,10 @@ export async function fetchEndNodeText(flowId: string): Promise<{ nodeId: string
     .limit(1)
     .maybeSingle();
   if (error || !data) return null;
-  return { nodeId: (data as any).node_id as string, text: (data as any).text as string };
+  return {
+    nodeId: (data as any).node_id as string,
+    text: (data as any).text as string,
+  };
 }
 
 export interface DbSession {
@@ -161,7 +175,15 @@ export interface DbFlow {
   title: string;
 }
 
-export async function fetchUserSessions(): Promise<Array<{ sessionId: string; flowId: string | null; status: string; createdAt: number; title: string }>> {
+export async function fetchUserSessions(): Promise<
+  Array<{
+    sessionId: string;
+    flowId: string | null;
+    status: string;
+    createdAt: number;
+    title: string;
+  }>
+> {
   const { data: sessions, error } = await supabase
     .from('chat_sessions')
     .select('session_id, customer_id, status, created_at')
@@ -179,7 +201,9 @@ export async function fetchUserSessions(): Promise<Array<{ sessionId: string; fl
     .in('session_id', ids);
   if (flowErr) console.error('fetchUserSessions session_flow error', flowErr);
   const sIdToFlow = new Map<string, string>();
-  (flowsMap || []).forEach((r: any) => sIdToFlow.set(r.session_id as string, r.flow_id as string));
+  (flowsMap || []).forEach((r: any) =>
+    sIdToFlow.set(r.session_id as string, r.flow_id as string)
+  );
 
   const uniqueFlowIds = Array.from(new Set(Array.from(sIdToFlow.values())));
   let flowIdToTitle = new Map<string, string>();
@@ -189,7 +213,9 @@ export async function fetchUserSessions(): Promise<Array<{ sessionId: string; fl
       .select('flow_id, title')
       .in('flow_id', uniqueFlowIds);
     if (fErr) console.error('fetchUserSessions chat_flows error', fErr);
-    (flows || []).forEach((f: any) => flowIdToTitle.set(f.flow_id as string, f.title as string));
+    (flows || []).forEach((f: any) =>
+      flowIdToTitle.set(f.flow_id as string, f.title as string)
+    );
   }
 
   return list.map(s => {
@@ -205,7 +231,9 @@ export async function fetchUserSessions(): Promise<Array<{ sessionId: string; fl
   });
 }
 
-export async function fetchSessionMessages(sessionId: string): Promise<Array<{ id: string; role: SenderRole; text: string; ts: number }>> {
+export async function fetchSessionMessages(
+  sessionId: string
+): Promise<Array<{ id: string; role: SenderRole; text: string; ts: number }>> {
   const { data: msgs, error } = await supabase
     .from('chat_messages')
     .select('message_id, message_text, sent_at')
@@ -215,7 +243,11 @@ export async function fetchSessionMessages(sessionId: string): Promise<Array<{ i
     console.error('fetchSessionMessages error', error);
     return [];
   }
-  const messageList = (msgs || []) as Array<{ message_id: string; message_text: string; sent_at: string }>;
+  const messageList = (msgs || []) as Array<{
+    message_id: string;
+    message_text: string;
+    sent_at: string;
+  }>;
   if (messageList.length === 0) return [];
   const ids = messageList.map(m => m.message_id);
   const { data: metas, error: metaErr } = await supabase
@@ -226,7 +258,9 @@ export async function fetchSessionMessages(sessionId: string): Promise<Array<{ i
     console.error('fetchSessionMessages meta error', metaErr);
   }
   const idToRole = new Map<string, SenderRole>();
-  (metas || []).forEach((m: any) => idToRole.set(m.message_id as string, m.sender_role as SenderRole));
+  (metas || []).forEach((m: any) =>
+    idToRole.set(m.message_id as string, m.sender_role as SenderRole)
+  );
   return messageList.map(m => ({
     id: m.message_id,
     role: idToRole.get(m.message_id) || 'printy',
@@ -235,7 +269,9 @@ export async function fetchSessionMessages(sessionId: string): Promise<Array<{ i
   }));
 }
 
-export async function fetchCurrentNode(sessionId: string): Promise<DbFlowNode | null> {
+export async function fetchCurrentNode(
+  sessionId: string
+): Promise<DbFlowNode | null> {
   const { data, error } = await supabase
     .from('chat_session_flow')
     .select('current_node_id, flow_id')
@@ -251,5 +287,3 @@ export async function fetchCurrentNode(sessionId: string): Promise<DbFlowNode | 
   if (nodeErr) return null;
   return node as unknown as DbFlowNode | null;
 }
-
-
