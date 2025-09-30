@@ -19,11 +19,8 @@ import { useRecentOrder } from '../../features/chat/customer/hooks/useRecentOrde
 import { useRecentTicket } from '../../features/chat/customer/hooks/useRecentTicket';
 import { useRecentChatSessions } from '../../features/chat/customer/hooks/useRecentChatSessions';
 import { useDashboardChatEvents } from '../../features/chat/customer/hooks/useDashboardChatEvents';
-// Icons are now provided in topicConfig
-// ChatFlow type not used directly after hook migration
-// In-memory flow registry and DB-backed chat flow API helpers
-// legacy imports removed
-// Incremental adoption of composed conversations hook (DB + scripted)
+import { useChatAttachments } from '../../features/chat/core/hooks/useChatAttachments';
+// Chat feature hooks
 import { useCustomerConversations } from '../../features/chat/customer/hooks/useCustomerConversations';
 
 // ---------------- Types / Config ----------------
@@ -57,13 +54,14 @@ const topicConfig: Record<
     label: 'Place an Order',
     icon: <ShoppingCart className="w-6 h-6" />,
     flowId: 'place-order',
-    description: 'Get a custom quote for printing services',
+    description: "Avail B.J. Santiago's printing services",
   },
   issueTicket: {
-    label: 'Issue a Ticket',
+    label: 'Ask Quote or Assistance',
     icon: <HelpCircle className="w-6 h-6" />,
     flowId: 'issue-ticket',
-    description: 'Report an issue with an existing order',
+    description:
+      'Ask for a quote before ordering or report an issue with an existing order',
   },
   trackTicket: {
     label: 'Track a Ticket',
@@ -108,7 +106,6 @@ const CustomerDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { logout, toasts, toast } = useLogoutWithToast();
 
-  // Phase 2 (incremental): use hook just for send/quick-reply/end handlers
   const {
     messages,
     isTyping,
@@ -125,16 +122,10 @@ const CustomerDashboard: React.FC = () => {
     setConversations,
   } = useCustomerConversations();
 
-  // Chat conversation state now provided by useCustomerConversations
-
-  // Current active flow (legacy; will be removed after full hook migration)
-
-  // Quick replies and placeholder now supplied by the hook
+  // Chat conversation state/actions provided by useCustomerConversations
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const [isLoading, setIsLoading] = useState(true);
-
-  // Database-backed state for About Us flow (handled by hook now)
 
   // Live recent order/ticket from Supabase
   const { data: recentOrder } = useRecentOrder();
@@ -147,11 +138,7 @@ const CustomerDashboard: React.FC = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  // Topics grid now rendered via ChatCards; explicit topics array no longer needed
-
-  // Recent order/ticket now handled by hooks
-
-  // Load recent chat sessions from database for the sidebar list
+  // Load recent chat sessions from database for the sidebar list (initial)
   useEffect(() => {
     const loadRecentSessions = async () => {
       try {
@@ -209,10 +196,6 @@ const CustomerDashboard: React.FC = () => {
     loadRecentSessions();
   }, []);
 
-  // DB-backed About Us init now handled by useCustomerConversations
-
-  // DB-backed About Us send now handled by useCustomerConversations
-
   // ---------------- Chat logic ----------------
   // Initialize flow via useCustomerConversations
   const initializeFlow = (flowId: string, title: string, ctx: unknown = {}) => {
@@ -226,25 +209,8 @@ const CustomerDashboard: React.FC = () => {
     () => recentOrder?.total
   );
 
-  // Placeholder logic handled by the hook
-
-  // Central user input is handled by useCustomerConversations now
-
-  // Quick replies handled via useCustomerConversations (wired above)
-
-  // End chat handled via useCustomerConversations (wired above)
-
-  // Conversation switching handled by hook
-
-  // Handle file attachments from the input area: create URL and route through handler
-  const handleAttachFiles = (files: FileList) => {
-    const f = files?.[0];
-    if (f) {
-      const url = URL.createObjectURL(f);
-      // Send the image URL so it renders in chat and triggers payment flow detection
-      sendViaHook(url);
-    }
-  };
+  // Attachments
+  const { handleAttachFiles } = useChatAttachments(sendViaHook);
 
   const handleTopic = (key: TopicKey) => {
     const cfg = topicConfig[key];
