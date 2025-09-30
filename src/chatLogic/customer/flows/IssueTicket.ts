@@ -13,7 +13,6 @@ type Node = {
 };
 
 const NODES: Record<string, Node> = {
-
   issue_ticket_intro: {
     id: 'issue_ticket_intro',
     message:
@@ -29,9 +28,7 @@ const NODES: Record<string, Node> = {
     id: 'issue_ticket_start',
     message:
       "Hi! I'm Printy 🤖. I'll help you create a support ticket. What's your order number?",
-    options: [
-      { label: 'End Chat', next: 'end' },
-    ],
+    options: [{ label: 'End Chat', next: 'end' }],
   },
 
   ticket_status_start: {
@@ -126,14 +123,14 @@ const NODES: Record<string, Node> = {
 
   end: {
     id: 'end',
-    answer: 'Thank you for chatting with Printy! Have a great day. 👋',
+    answer: 'Thank you for chatting with Printy! Have a great day.',
     options: [],
   },
 };
 
 let currentNodeId: keyof typeof NODES = 'issue_ticket_start';
 let collectedIssueDetails = '';
-let currentInquiryType: string | null = null; // ✅ added
+let currentInquiryType: string | null = null; // added
 
 const DETAIL_NODE_IDS = new Set<keyof typeof NODES>([
   'quality_issue',
@@ -165,7 +162,7 @@ export const issueTicketFlow: ChatFlow = {
   id: 'issue-ticket',
   title: 'Issue a Ticket',
   initial: () => {
-    currentNodeId = 'issue_ticket_intro'; // ✅ start with intro question
+    currentNodeId = 'issue_ticket_intro'; // start with intro question
     collectedIssueDetails = '';
     currentInquiryType = null;
     return nodeToMessages(NODES[currentNodeId]);
@@ -202,7 +199,7 @@ export const issueTicketFlow: ChatFlow = {
           messages: [
             {
               role: 'printy',
-              text: `⚠️ You have entered a flagged word that is "${flaggedWord}".`,
+              text: `You have entered a flagged word that is "${flaggedWord}".`,
             },
             { role: 'printy', text: 'Please type a valid order number.' },
           ],
@@ -213,7 +210,7 @@ export const issueTicketFlow: ChatFlow = {
           messages: [
             {
               role: 'printy',
-              text: `⚠️ You have entered a flagged word that is "${flaggedWord}".`,
+              text: `You have entered a flagged word that is "${flaggedWord}".`,
             },
             { role: 'printy', text: 'Please rephrase, use appropriate words.' },
           ],
@@ -302,14 +299,14 @@ export const issueTicketFlow: ChatFlow = {
 
       // Format output cleanly
       const lines = [
-        `📌 Ticket ID: ${inquiry.inquiry_id}`,
-        `📝 Issue submitted: ${inquiry.inquiry_message || '(no message provided)'}`,
-        `📂 Issue type: ${inquiry.inquiry_type || '(not specified)'}`,
-        `📅 Received: ${new Date(inquiry.received_at).toLocaleString()}`,
-        `📊 Status: ${inquiry.inquiry_status}`,
+        `Ticket ID: ${inquiry.inquiry_id}`,
+        `Issue submitted: ${inquiry.inquiry_message || '(no message provided)'}`,
+        `Issue type: ${inquiry.inquiry_type || '(not specified)'}`,
+        `Received: ${new Date(inquiry.received_at).toLocaleString()}`,
+        `Status: ${inquiry.inquiry_status}`,
         inquiry.resolution_comments
-          ? `✅ Resolution: ${inquiry.resolution_comments}`
-          : '✅ Resolution: (not yet provided)',
+          ? `Resolution: ${inquiry.resolution_comments}`
+          : 'Resolution: (not yet provided)',
       ];
 
       // after formatting `lines` array
@@ -336,10 +333,17 @@ export const issueTicketFlow: ChatFlow = {
       // ====================
       // Fetch order from Supabase
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
         if (!user) {
           return {
-            messages: [{ role: 'printy', text: 'You must be signed in to create a ticket.' }],
+            messages: [
+              {
+                role: 'printy',
+                text: 'You must be signed in to create a ticket.',
+              },
+            ],
             quickReplies: nodeQuickReplies(current),
           };
         }
@@ -347,14 +351,20 @@ export const issueTicketFlow: ChatFlow = {
         const uid = user?.id;
         if (!uid) {
           return {
-            messages: [{ role: 'printy', text: 'You must be signed in to create a ticket.' }],
+            messages: [
+              {
+                role: 'printy',
+                text: 'You must be signed in to create a ticket.',
+              },
+            ],
             quickReplies: nodeQuickReplies(current),
           };
         }
 
         const { data: order, error } = await supabase
           .from('orders')
-          .select(`
+          .select(
+            `
             order_id,
             order_status,
             order_datetime,
@@ -364,7 +374,8 @@ export const issueTicketFlow: ChatFlow = {
             product_service_name,
             specification,
             quotes:quotes(quoted_price)
-          `)
+          `
+          )
           .eq('order_id', orderNumber)
           .eq('customer_id', uid)
           .maybeSingle();
@@ -372,19 +383,30 @@ export const issueTicketFlow: ChatFlow = {
         if (error) {
           console.error('Error fetching order:', error);
           return {
-            messages: [{ role: 'printy', text: 'Error fetching order details. Please try again.' }],
+            messages: [
+              {
+                role: 'printy',
+                text: 'Error fetching order details. Please try again.',
+              },
+            ],
             quickReplies: nodeQuickReplies(current),
           };
         }
 
         if (!order) {
           return {
-            messages: [{ role: 'printy', text: `Order ${orderNumber} not found or you are not authorized to view it.` }],
+            messages: [
+              {
+                role: 'printy',
+                text: `Order ${orderNumber} not found or you are not authorized to view it.`,
+              },
+            ],
             quickReplies: nodeQuickReplies(current),
           };
         }
 
-        const quote = order.quotes && order.quotes.length > 0 ? order.quotes[0] : null;
+        const quote =
+          order.quotes && order.quotes.length > 0 ? order.quotes[0] : null;
         const orderLines = [
           `Order ${order.order_id} — Status: ${order.order_status}`,
           `Placed: ${new Date(order.order_datetime).toLocaleString()}`,
@@ -407,7 +429,12 @@ export const issueTicketFlow: ChatFlow = {
       } catch (error) {
         console.error('Error in order lookup:', error);
         return {
-          messages: [{ role: 'printy', text: 'Error looking up order. Please try again.' }],
+          messages: [
+            {
+              role: 'printy',
+              text: 'Error looking up order. Please try again.',
+            },
+          ],
           quickReplies: nodeQuickReplies(current),
         };
       }
@@ -668,10 +695,10 @@ export const issueTicketFlow: ChatFlow = {
       const inquiryId = (crypto as any)?.randomUUID?.()
         ? (crypto as any).randomUUID()
         : `${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
-    
+
       const message = collectedIssueDetails || '(no details provided)';
       let customerId: string | null = null;
-    
+
       try {
         // ✅ Resolve current authenticated user's customer_id
         const { data: session } = await supabase.auth.getUser();
@@ -684,9 +711,9 @@ export const issueTicketFlow: ChatFlow = {
             .maybeSingle();
           customerId = (customerRow as any)?.customer_id || null;
         }
-    
+
         const inquiryType = currentInquiryType ?? 'other';
-    
+
         const { error } = await supabase.from('inquiries').insert([
           {
             inquiry_id: inquiryId,
@@ -697,28 +724,28 @@ export const issueTicketFlow: ChatFlow = {
             customer_id: customerId,
           },
         ]);
-    
+
         if (error) {
           console.error('Insert failed:', error);
           return {
             messages: [
               {
                 role: 'printy',
-                text: "❌ Couldn't create the ticket. Try again later.",
+                text: "Couldn't create the ticket. Try again later.",
               },
             ],
             quickReplies: nodeQuickReplies(current),
           };
         }
-    
+
         // ✅ Reset state
         collectedIssueDetails = '';
         currentInquiryType = null;
-    
+
         return {
           messages: [
-            { role: 'printy', text: '✅ Ticket submitted successfully!' },
-            { role: 'printy', text: `📌 Your ticket number is: ${inquiryId}` },
+            { role: 'printy', text: 'Ticket submitted successfully!' },
+            { role: 'printy', text: `Your ticket number is: ${inquiryId}` },
           ],
           quickReplies: ['End Chat'],
         };
@@ -726,7 +753,10 @@ export const issueTicketFlow: ChatFlow = {
         console.error('Insert error:', _e);
         return {
           messages: [
-            { role: 'printy', text: '❌ Error creating ticket. Please try again.' },
+            {
+              role: 'printy',
+              text: 'Error creating ticket. Please try again.',
+            },
           ],
           quickReplies: nodeQuickReplies(current),
         };
