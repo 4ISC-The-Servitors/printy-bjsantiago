@@ -20,6 +20,27 @@
 
 ## 📄 Changelogs
 
+### 2025-09-30-Andeng
+
+- Customer chat refactor
+  - Added feature core: adapters, services, actions, and small hooks
+  - Composed hook: `useCustomerConversations` replaces page-local chat logic
+  - New hooks: `useRecentOrder`, `useRecentTicket`, `useRecentChatSessions`, `useDashboardChatEvents`, `useChatAttachments`
+  - Centralized logout with toasts: `useLogoutWithToast` (toast shows before redirect)
+  - Sidebar consistency across Dashboard, ChatHistory, AccountSettings (status, date/time)
+  - ChatHistory list simplified (title + status + date/time)
+  - About Us flow validated end-to-end (DB-backed): start/send/quick-replies/switch/end, closing line + 1.5s redirect
+  - Removed migration breadcrumbs and duplicate topics module; topics kept inline in `src/pages/customer/Dashboard.tsx`
+
+- Dashboard cleanup and structure
+  - Replaced inline Supabase effects with hooks (recent data, sessions, events)
+  - Introduced `useChatAttachments` in core; file uploads send via object URL
+  - Kept topics inline per preference; removed `features/chat/customer/config/topics.*`
+
+- Bug fixes / behavior
+  - Prevented duplicate messages by replacing DB-backed message list after each send
+  - Ensured session end writes closing line and flips DB status to `ended`
+
 ### 2025-09-23-Andeng
 
 - added Cancel Order logic for customer, to follow admin
