@@ -16,15 +16,14 @@ const AskAssistance: React.FC<CardProps> = ({ onClick }) => {
         <Bot className="w-6 h-6" />
       </div>
       <Text variant="h3" size="xl" weight="semibold" className="mb-2">
-        Ask Assistance
+        Ask Quote or Assistance
       </Text>
       <Text variant="p" size="sm" color="muted">
-        Report an issue with an existing order
+        Ask for a quote before ordering or report an issue with an existing
+        order
       </Text>
     </button>
   );
 };
 
 export default AskAssistance;
-
-

@@ -19,12 +19,10 @@ const PlaceAnOrder: React.FC<CardProps> = ({ onClick }) => {
         Place an Order
       </Text>
       <Text variant="p" size="sm" color="muted">
-        Get a custom quote for printing services
+        Avail B.J. Santiago's printing services
       </Text>
     </button>
   );
 };
 
 export default PlaceAnOrder;
-
-
