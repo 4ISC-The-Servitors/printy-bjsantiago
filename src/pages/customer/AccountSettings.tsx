@@ -15,6 +15,8 @@ import ProfileOverviewCard from '../../components/customer/accountSettings/deskt
 import PersonalInfoForm from '../../components/customer/accountSettings/desktop/PersonalInfoForm.tsx';
 import SecuritySettings from '../../components/customer/accountSettings/desktop/SecuritySettings.tsx';
 import NotificationPreferences from '../../components/customer/accountSettings/desktop/NotificationPreferences.tsx';
+// Use the same conversations hook as Dashboard so the sidebar is consistent
+import { useCustomerConversations } from '../../features/chat/customer/hooks/useCustomerConversations';
 
 export interface UserData {
   displayName: string;
@@ -37,6 +39,7 @@ export interface NotificationPreferencesData {
 const AccountSettings: React.FC = () => {
   const [toasts, toast] = useToast();
   const navigate = useNavigate();
+  const { conversations, activeId } = useCustomerConversations();
 
   // TODO(BACKEND): Replace local state with data fetched from backend (Supabase)
   // Keep optimistic UI and use skeletons/spinners if needed.
@@ -134,18 +137,24 @@ const AccountSettings: React.FC = () => {
       {/* Sidebar fixed placements */}
       <div className="hidden lg:flex w-64 bg-white border-r border-neutral-200 flex-col">
         <SidebarPanel
-          conversations={[] as any}
-          activeId={null}
-          onSwitchConversation={() => {}}
+          conversations={conversations as any}
+          activeId={activeId}
+          onSwitchConversation={(id: string) => {
+            window.dispatchEvent(new CustomEvent('customer-open-session', { detail: { sessionId: id } }));
+            navigate('/customer');
+          }}
           onNavigateToAccount={() => navigate('/customer/account')}
           bottomActions={<LogoutButton onClick={() => setShowLogoutModal(true)} />}
         />
       </div>
       <div className="lg:hidden fixed left-0 top-0 bottom-0 w-16 bg-white border-r border-neutral-200 z-50">
         <SidebarPanel
-          conversations={[] as any}
-          activeId={null}
-          onSwitchConversation={() => {}}
+          conversations={conversations as any}
+          activeId={activeId}
+          onSwitchConversation={(id: string) => {
+            window.dispatchEvent(new CustomEvent('customer-open-session', { detail: { sessionId: id } }));
+            navigate('/customer');
+          }}
           onNavigateToAccount={() => navigate('/customer/account')}
           bottomActions={<LogoutButton onClick={() => setShowLogoutModal(true)} />}
         />

@@ -1,5 +1,7 @@
 import React from 'react';
 import { Text, Badge } from '../../shared';
+import { formatLongDate } from '../../../utils/shared/dateFormatter';
+import { formatShortTime } from '../../../utils/shared/timeFormatter';
 import type { ChatMessage } from '../../chat/_shared/types';
 
 interface ConversationItemProps {
@@ -11,8 +13,9 @@ interface ConversationItemProps {
   onOpen: (id: string) => void;
 }
 
-const ConversationItem: React.FC<ConversationItemProps> = ({ id, title, createdAt, messages, status, onOpen }) => {
-  const lastBotMessage = [...messages].reverse().find(m => m.role === 'printy');
+const ConversationItem: React.FC<ConversationItemProps> = ({ id, title, createdAt, status, onOpen }) => {
+  const dateLabel = formatLongDate(createdAt);
+  const timeLabel = formatShortTime(createdAt);
   return (
     <button
       onClick={() => onOpen(id)}
@@ -28,12 +31,8 @@ const ConversationItem: React.FC<ConversationItemProps> = ({ id, title, createdA
               {status === 'active' ? 'Active' : 'Ended'}
             </Badge>
           </div>
-          <Text variant="p" size="xs" color="muted" className="truncate">
-            {lastBotMessage?.text?.substring(0, 60) || 'No messages yet'}
-            {(lastBotMessage?.text?.length || 0) > 60 ? '...' : ''}
-          </Text>
           <Text variant="p" size="xs" color="muted" className="mt-1">
-            {new Date(createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            {dateLabel} • {timeLabel}
           </Text>
         </div>
       </div>

@@ -76,7 +76,7 @@ const ChatHistory: React.FC = () => {
           title: s.title,
           createdAt: s.createdAt,
           messages: [],
-          status: (s.status === 'resolved' ? 'ended' : 'active') as 'active' | 'ended',
+          status: (s.status === 'ended' ? 'ended' : 'active') as 'active' | 'ended',
         }));
         setConversations(convs);
       } catch (e) {

@@ -2,6 +2,8 @@ import React, { useMemo } from 'react';
 import type { ChatMessage } from '../../../chat/_shared/types';
 import { Bot } from 'lucide-react';
 import { Badge } from '../../../shared';
+import { formatLongDate } from '../../../../utils/shared/dateFormatter';
+import { formatShortTime } from '../../../../utils/shared/timeFormatter';
 import useResponsiveListItems from '../../../../hooks/shared/useResponsiveListItems';
 
 interface Conversation {
@@ -71,7 +73,7 @@ const RecentChats: React.FC<RecentChatsProps> = ({
                 </Badge>
               </div>
               <div className="text-xs text-neutral-500">
-                {new Date(c.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                {formatLongDate(c.createdAt)} • {formatShortTime(c.createdAt)}
               </div>
             </div>
           </div>

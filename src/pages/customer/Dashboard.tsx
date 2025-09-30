@@ -1,31 +1,25 @@
+// Supabase client for auth and database queries
 import { supabase } from '../../lib/supabase';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+// Customer chat UI and types
 import ChatPanel from '../../components/customer/chatPanel/ChatPanel';
-import type { ChatMessage, QuickReply, ChatRole } from '../../components/chat/_shared/types';
+import type { ChatMessage } from '../../components/chat/_shared/types';
+// Sidebar and dashboard widgets
 import SidebarPanel from '../../components/customer/shared/sidebar/SidebarPanel';
 import LogoutButton from '../../components/customer/shared/sidebar/LogoutButton';
 import LogoutModal from '../../components/customer/shared/sidebar/LogoutModal';
 import ChatCards from '../../components/customer/dashboard/chatCards/ChatCards';
 import RecentOrder from '../../components/customer/dashboard/recentOrders/RecentOrder';
 import RecentTickets from '../../components/customer/dashboard/recentTickets/RecentTickets';
+// Shared UI components
 import { ToastContainer, Text, PageLoading, useToast } from '../../components/shared';
 import { ShoppingCart, HelpCircle, TicketIcon, Info, MessageSquare, Settings } from 'lucide-react';
-import type { ChatFlow } from '../../types/chatFlow';
-import { customerFlows as flows } from '../../chatLogic/customer';
-import {
-  attachSessionToFlow,
-  createSession,
-  fetchCurrentNode,
-  fetchInitialNode,
-  fetchOptions,
-  fetchSessionMessages,
-  insertMessage,
-  updateCurrentNode,
-  endSession as endDbSession,
-  fetchEndNodeText,
-} from '../../api/chatFlowApi';
-import { auth } from '../../lib/supabase';
+// ChatFlow type not used directly after hook migration
+// In-memory flow registry and DB-backed chat flow API helpers
+// legacy imports removed
+// Incremental adoption of composed conversations hook (DB + scripted)
+import { useCustomerConversations } from '../../features/chat/customer/hooks/useCustomerConversations';
 
 // ---------------- Types / Config ----------------
 type TopicKey =
@@ -91,37 +85,41 @@ const topicConfig: Record<
 // Use full customer flows registry
 
 // ---------------- Component ----------------
+// Customer landing experience: shows recent activity and provides chat entrypoints.
+// Manages two chat implementations:
+// 1) In-memory scripted flows (e.g., payment, cancel-order)
+// 2) Database-backed flow for 'About Us' using chat_flow tables
 const CustomerDashboard: React.FC = () => {
   const navigate = useNavigate();
   const [toasts, toastMethods] = useToast();
 
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [isTyping, setIsTyping] = useState(false);
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [activeId, setActiveId] = useState<string | null>(null);
+  // Phase 2 (incremental): use hook just for send/quick-reply/end handlers
+  const {
+    messages,
+    isTyping,
+    conversations,
+    activeId,
+    quickReplies,
+    inputPlaceholder,
+    handleSend: sendViaHook,
+    handleQuickReply: quickReplyViaHook,
+    endChat: endChatViaHook,
+    initializeFlow: initializeFlowHook,
+    switchConversation: switchConversationHook,
+    setActiveId,
+    setConversations,
+  } = useCustomerConversations();
 
-  // Current active flow
-  const [currentFlow, setCurrentFlow] = useState<ChatFlow | null>(null);
+  // Chat conversation state now provided by useCustomerConversations
 
-  const [quickReplies, setQuickReplies] = useState<QuickReply[]>([]);
-  const [inputPlaceholder, setInputPlaceholder] = useState('Type a message...');
+  // Current active flow (legacy; will be removed after full hook migration)
+
+  // Quick replies and placeholder now supplied by the hook
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   
-  // Debug modal state changes
-  useEffect(() => {
-    console.log('showLogoutModal changed:', showLogoutModal);
-  }, [showLogoutModal]);
-  
-  // Debug toasts state changes
-  useEffect(() => {
-    console.log('toasts changed:', toasts);
-  }, [toasts]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Database-backed state for About Us flow
-  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
-  const [activeFlowId, setActiveFlowId] = useState<string | null>(null);
-  const [activeNodeId, setActiveNodeId] = useState<string | null>(null);
+  // Database-backed state for About Us flow (handled by hook now)
 
   // Live recent order/ticket from Supabase
   const [recentOrder, setRecentOrder] = useState<{
@@ -139,7 +137,7 @@ const CustomerDashboard: React.FC = () => {
     updatedAt: number;
   } | null>(null);
 
-  // loading shimmer
+  // Initial loading shimmer for dashboard visuals
   useEffect(() => {
     const timer = setTimeout(() => setIsLoading(false), 1500);
     return () => clearTimeout(timer);
@@ -148,6 +146,7 @@ const CustomerDashboard: React.FC = () => {
   // Topics grid now rendered via ChatCards; explicit topics array no longer needed
 
   // ---------------- Supabase fetches ----------------
+  // Load most recent order/ticket to show on the dashboard cards
   useEffect(() => {
     const fetchRecentOrder = async () => {
       try {
@@ -235,7 +234,7 @@ const CustomerDashboard: React.FC = () => {
     fetchRecentTicket();
   }, []);
 
-  // Load recent sessions from database
+  // Load recent chat sessions from database for the sidebar list
   useEffect(() => {
     const loadRecentSessions = async () => {
       try {
@@ -285,159 +284,17 @@ const CustomerDashboard: React.FC = () => {
     loadRecentSessions();
   }, []);
 
-  // ---------------- Database-backed About Us flow logic ----------------
-  const initializeAboutFlow = async (title: string) => {
-    setActiveFlowId('about');
-    setIsTyping(true);
-    try {
-      const { data: userData } = await auth.getUser();
-      const customerId = userData?.user?.id;
-      if (!customerId) throw new Error('No authenticated user');
+  // DB-backed About Us init now handled by useCustomerConversations
 
-      // Create a new DB session
-      const sessionId = await createSession(customerId);
-      if (!sessionId) throw new Error('Failed to create session');
-      setActiveSessionId(sessionId);
-
-      // Create in-memory conversation wrapper for UI lists
-      const conversation: Conversation = {
-        id: sessionId,
-        title,
-        createdAt: Date.now(),
-        messages: [],
-        flowId: 'about',
-        status: 'active',
-        icon: undefined,
-      };
-      setConversations(prev => [conversation, ...prev]);
-      setActiveId(sessionId);
-
-      // Fetch initial node and attach session to flow
-      const initialNode = await fetchInitialNode('about');
-      if (!initialNode) throw new Error('No initial node');
-      const attached = await attachSessionToFlow({ sessionId, flowId: 'about', nodeId: initialNode.node_id });
-      if (!attached) throw new Error('Failed to attach session to flow');
-      setActiveNodeId(initialNode.node_id);
-
-      // Insert bot initial message in DB and reflect in UI
-      await insertMessage({ sessionId, text: initialNode.text, role: 'printy', nodeId: initialNode.node_id });
-      const fetched = await fetchSessionMessages(sessionId);
-      setMessages(fetched.map(m => ({ id: m.id, role: m.role as ChatRole, text: m.text, ts: m.ts })));
-      setConversations(prev => prev.map(c => (c.id === sessionId ? { ...c, messages: fetched.map(m => ({ id: m.id, role: m.role as ChatRole, text: m.text, ts: m.ts })) } : c)));
-
-      // Load quick replies from options
-      const options = await fetchOptions(initialNode.node_id);
-      const replies = (options.length ? options.map((o, i) => ({ id: `qr-${i}`, label: o.label, value: o.label })) : [{ id: 'qr-end', label: 'End Chat', value: 'End Chat' }]);
-      setQuickReplies(replies);
-      updateInputPlaceholder('about', replies);
-    } catch (e) {
-      console.error('initializeAboutFlow DB error', e);
-      toastMethods.error('Error', 'Failed to initialize About Us chat. Please try again.');
-    } finally {
-      setIsTyping(false);
-    }
-  };
-
-  const handleAboutFlowSend = async (text: string) => {
-    if (!activeSessionId || !activeNodeId) return;
-    
-    const conversationId = activeSessionId;
-    const userMessage: ChatMessage = { id: crypto.randomUUID(), role: 'user' as ChatRole, text, ts: Date.now() };
-    setMessages(prev => [...prev, userMessage]);
-    setConversations(prev => prev.map(c => (c.id === conversationId ? { ...c, messages: [...c.messages, userMessage] } : c)));
-    setIsTyping(true);
-    setQuickReplies([]);
-    
-    try {
-      // Persist user message
-      await insertMessage({ sessionId: activeSessionId, text, role: 'user' });
-      // Resolve option from current node
-      const options = await fetchOptions(activeNodeId);
-      const match = options.find(o => o.label.toLowerCase() === text.trim().toLowerCase());
-      if (!match) {
-        // Respond with generic prompt
-        const prompt = 'Please choose one of the options.';
-        await insertMessage({ sessionId: activeSessionId, text: prompt, role: 'printy', nodeId: activeNodeId });
-      } else {
-        // Move to next node
-        await updateCurrentNode(activeSessionId, match.to_node_id);
-        setActiveNodeId(match.to_node_id);
-        // Fetch node content and reply
-        const node = await fetchCurrentNode(activeSessionId);
-        if (node) {
-          await insertMessage({ sessionId: activeSessionId, text: node.text, role: 'printy', nodeId: node.node_id });
-        }
-      }
-      // Refresh messages and quick replies
-      const fetched = await fetchSessionMessages(activeSessionId);
-      setMessages(fetched.map(m => ({ id: m.id, role: m.role as ChatRole, text: m.text, ts: m.ts })));
-      setConversations(prev => prev.map(c => (c.id === conversationId ? { ...c, messages: fetched.map(m => ({ id: m.id, role: m.role as ChatRole, text: m.text, ts: m.ts })) } : c)));
-      const nodeNow = await fetchCurrentNode(activeSessionId);
-      const newOptions = nodeNow ? await fetchOptions(nodeNow.node_id) : [];
-      const replies = (newOptions.length ? newOptions.map((o, i) => ({ id: `qr-${i}`, label: o.label, value: o.label })) : [{ id: 'qr-end', label: 'End Chat', value: 'End Chat' }]);
-      setQuickReplies(replies);
-      updateInputPlaceholder('about', replies);
-    } catch (e) {
-      console.error('handleAboutFlowSend DB error', e);
-      toastMethods.error('Error', 'Failed to process message. Please try again.');
-    } finally {
-      setIsTyping(false);
-    }
-  };
+  // DB-backed About Us send now handled by useCustomerConversations
 
   // ---------------- Chat logic ----------------
+  // Initialize flow via useCustomerConversations
   const initializeFlow = (flowId: string, title: string, ctx: unknown = {}) => {
-    // Use database-backed logic for About Us flow
-    if (flowId === 'about') {
-      initializeAboutFlow(title);
-      return;
-    }
-
-    // Use manual logic for other flows
-    const flow = flows[flowId];
-    if (!flow) {
-      console.warn('Flow not found:', flowId);
-      return;
-    }
-
-    setCurrentFlow(flow);
-    console.debug('[FLOW_INIT]', flowId, flow);
-
-    const initialMessages = flow.initial(ctx as any);
-    const botMessages: ChatMessage[] = initialMessages.map(msg => ({
-      id: crypto.randomUUID(),
-      role: 'printy' as ChatRole,
-      text: msg.text,
-      ts: Date.now(),
-    }));
-
-    const topicEntry = Object.entries(topicConfig).find(
-      ([, config]) => config.flowId === flowId
-    );
-    const icon = topicEntry ? topicEntry[1].icon : undefined;
-
-    const conversation: Conversation = {
-      id: crypto.randomUUID(),
-      title,
-      createdAt: Date.now(),
-      messages: botMessages,
-      flowId,
-      status: 'active',
-      icon,
-    };
-
-    setConversations(prev => [conversation, ...prev]);
-    setActiveId(conversation.id);
-    setMessages(botMessages);
-
-    const replies: QuickReply[] = flow
-      .quickReplies()
-      .map((label: string, index: number) => ({ id: `qr-${index}`, label, value: label }));
-    setQuickReplies(replies);
-    updateInputPlaceholder(flowId, replies);
+    initializeFlowHook(flowId, title, ctx);
   };
 
-  // Listen for Cancel Order button to open Cancel chat
+  // Listen for Cancel Order button from RecentOrder card to open Cancel chat
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail as {
@@ -455,7 +312,7 @@ const CustomerDashboard: React.FC = () => {
     return () => window.removeEventListener('customer-open-cancel-chat', handler as EventListener);
   }, [recentOrder?.id]);
 
-  // Listen for Pay Now button to open Payment chat
+  // Listen for Pay Now button from RecentOrder card to open Payment chat
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail as {
@@ -479,182 +336,29 @@ const CustomerDashboard: React.FC = () => {
       const detail = (e as CustomEvent).detail as { sessionId: string };
       const sessionId = detail?.sessionId;
       if (!sessionId) return;
-      switchConversation(sessionId);
+      switchConversationHook(sessionId);
     };
     window.addEventListener('customer-open-session', handler as EventListener);
     return () => window.removeEventListener('customer-open-session', handler as EventListener);
   }, [conversations]);
 
-  const updateInputPlaceholder = (flowId: string, replies: QuickReply[]) => {
-    if (flowId === 'issue-ticket' && replies.length === 0) {
-      setInputPlaceholder('Enter your Order ID (e.g., ORD-123456)');
-    } else {
-      setInputPlaceholder('Type a message...');
-    }
-  };
+  // Placeholder logic handled by the hook
 
-  // central user input handler (works for typed send and quick replies)
-  const handleUserInput = async (text: string) => {
-    // Use database-backed logic for About Us flow
-    if (activeFlowId === 'about') {
-      await handleAboutFlowSend(text);
-      return;
-    }
+  // Central user input is handled by useCustomerConversations now
 
-    // Use manual logic for other flows
-    if (!currentFlow || !activeId) return;
+  // Quick replies handled via useCustomerConversations (wired above)
 
-    console.debug('[FLOW_SEND]', currentFlow.id, text);
+  // End chat handled via useCustomerConversations (wired above)
 
-    const userMsg: ChatMessage = {
-      id: crypto.randomUUID(),
-      role: 'user',
-      text,
-      ts: Date.now(),
-    };
+  // Conversation switching handled by hook
 
-    // add to UI messages and conversation
-    setMessages(prev => [...prev, userMsg]);
-    setConversations(prev =>
-      prev.map(c => (c.id === activeId ? { ...c, messages: [...c.messages, userMsg] } : c))
-    );
-
-    setIsTyping(true);
-    setQuickReplies([]);
-
-    try {
-      const result = await currentFlow.respond({}, text);
-      console.debug('[FLOW_RESP]', result);
-
-      const botMessages: ChatMessage[] = result.messages.map(msg => ({
-        id: crypto.randomUUID(),
-        role: 'printy' as ChatRole,
-        text: msg.text,
-        ts: Date.now(),
-      }));
-
-      setTimeout(() => {
-        // append bot messages to UI and to conversation
-        setMessages(prev => [...prev, ...botMessages]);
-        setConversations(prev =>
-          prev.map(c => (c.id === activeId ? { ...c, messages: [...c.messages, ...botMessages] } : c))
-        );
-
-        // update quick replies from flow result
-        const replies = (result.quickReplies || []).map((label: string, index: number) => ({
-          id: `qr-${index}`,
-          label,
-          value: label,
-        }));
-        setQuickReplies(replies);
-
-        // update input placeholder using currentFlow.id (safe because typed)
-        if (currentFlow) updateInputPlaceholder(currentFlow.id, replies);
-
-        setIsTyping(false);
-      }, 800);
-    } catch (err) {
-      console.error('Flow error:', err);
-      setIsTyping(false);
-      toastMethods.error('Chat Error', 'There was an issue processing your message. Please try again.');
-    }
-  };
-
-  // quick replies come from the CustomerChatPanel as strings — forward to the user input handler
-  const handleQuickReply = (value: string) => {
-    // defensive: if the user clicked something that ends the chat
-    const normalized = (value ?? '').trim().toLowerCase();
-    if (normalized === 'end chat' || normalized === 'end') {
-      handleEndChat();
-      return;
-    }
-    handleUserInput(value);
-  };
-
-  const handleEndChat = async () => {
-    if (!activeId) return;
-    
-    // Handle database-backed About Us flow
-    if (activeFlowId === 'about' && activeSessionId) {
-      try {
-        // Get end node text from database
-        const endNode = await fetchEndNodeText('about');
-        if (endNode) {
-          await insertMessage({ sessionId: activeSessionId, text: endNode.text, role: 'printy', nodeId: endNode.nodeId });
-          const endMessage: ChatMessage = { id: crypto.randomUUID(), role: 'printy' as ChatRole, text: endNode.text, ts: Date.now() };
-          setMessages(prev => [...prev, endMessage]);
-          setConversations(prev => prev.map(c => (c.id === activeId ? { ...c, messages: [...c.messages, endMessage] } : c)));
-        }
-        // End session in database
-        await endDbSession(activeSessionId);
-      } catch (e) {
-        console.error('handleEndChat DB error', e);
-      }
-    }
-    
-    setConversations(prev => prev.map(c => (c.id === activeId ? { ...c, status: 'ended' } : c)));
-    setActiveId(null);
-    setMessages([]);
-    setQuickReplies([]);
-    setCurrentFlow(null);
-    setActiveSessionId(null);
-    setActiveFlowId(null);
-    setActiveNodeId(null);
-  };
-
-  // Switch to a specific conversation
-  const switchConversation = async (conversationId: string) => {
-    const conversation = conversations.find(c => c.id === conversationId);
-    if (!conversation) return;
-
-    setActiveId(conversationId);
-    
-    // Handle database-backed About Us flow
-    if (conversation.flowId === 'about') {
-      setActiveSessionId(conversationId);
-      setActiveFlowId('about');
-      try {
-        const fetched = await fetchSessionMessages(conversationId);
-        setMessages(fetched.map(m => ({ id: m.id, role: m.role as ChatRole, text: m.text, ts: m.ts })));
-        const node = await fetchCurrentNode(conversationId);
-        const opts = node ? await fetchOptions(node.node_id) : [];
-        const replies = (opts.length ? opts.map((o, i) => ({ id: `qr-${i}`, label: o.label, value: o.label })) : []);
-        if (conversation.status === 'ended') {
-          setQuickReplies([]);
-        } else {
-          setQuickReplies(replies);
-          updateInputPlaceholder('about', replies);
-        }
-        if (node) setActiveNodeId(node.node_id);
-      } catch (e) {
-        console.error('switchConversation DB error', e);
-        toastMethods.error('Error', 'Failed to load conversation. Please try again.');
-      }
-      return;
-    }
-
-    // Handle manual flows
-    setMessages(conversation.messages);
-    
-    // Find and set the current flow
-    const flow = flows[conversation.flowId];
-    if (flow) {
-      setCurrentFlow(flow);
-      const replies: QuickReply[] = flow
-        .quickReplies()
-        .map((label: string, index: number) => ({ id: `qr-${index}`, label, value: label }));
-      setQuickReplies(replies);
-      updateInputPlaceholder(conversation.flowId, replies);
-    }
-  };
-
-  // Handle file attachments
+  // Handle file attachments from the input area: create URL and route through handler
   const handleAttachFiles = (files: FileList) => {
     const f = files?.[0];
     if (f) {
       const url = URL.createObjectURL(f);
       // Send the image URL so it renders in chat and triggers payment flow detection
-      handleUserInput(url);
+      sendViaHook(url);
     }
   };
 
@@ -671,11 +375,10 @@ const CustomerDashboard: React.FC = () => {
         <SidebarPanel
           conversations={conversations}
           activeId={activeId}
-          onSwitchConversation={switchConversation}
+          onSwitchConversation={switchConversationHook}
           onNavigateToAccount={() => navigate('/customer/account')}
           bottomActions={
             <LogoutButton onClick={() => {
-              console.log('Logout button clicked');
               setShowLogoutModal(true);
             }} />
           }
@@ -689,13 +392,13 @@ const CustomerDashboard: React.FC = () => {
           <ChatPanel
             title={conversations.find(c => c.id === activeId)?.title || 'Chat'}
             messages={messages}
-            onSend={handleUserInput}
+            onSend={sendViaHook}
             isTyping={isTyping}
             onBack={() => setActiveId(null)}
             quickReplies={quickReplies}
-            onQuickReply={handleQuickReply}
+            onQuickReply={quickReplyViaHook}
             inputPlaceholder={inputPlaceholder}
-            onEndChat={handleEndChat}
+            onEndChat={endChatViaHook}
             onAttachFiles={handleAttachFiles}
             readOnly={conversations.find(c => c.id === activeId)?.status === 'ended'}
             hideInput={conversations.find(c => c.id === activeId)?.status === 'ended'}
@@ -749,11 +452,9 @@ const CustomerDashboard: React.FC = () => {
       <LogoutModal
         isOpen={showLogoutModal}
         onClose={() => {
-          console.log('Logout modal closed');
           setShowLogoutModal(false);
         }}
         onConfirm={async () => {
-          console.log('Logout confirmed');
           try {
             const { error } = await supabase.auth.signOut();
             if (error) {
@@ -763,9 +464,7 @@ const CustomerDashboard: React.FC = () => {
             }
             
             // Show success toast and wait a bit before redirecting
-            console.log('Showing success toast');
-            const toastId = toastMethods.success('Logged Out', 'You have been successfully logged out.');
-            console.log('Toast created with ID:', toastId);
+            toastMethods.success('Logged Out', 'You have been successfully logged out.');
             setShowLogoutModal(false);
             
             // Wait for toast to show before redirecting
