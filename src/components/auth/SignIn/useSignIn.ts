@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../../lib/supabase';
 import { useToast } from '../../../lib/useToast';
+import { assertHumanTurnstile, primeTurnstile } from '../../../lib/turnstile';
 
 export interface SignInFormData {
   email: string;
@@ -24,6 +25,8 @@ export const useSignIn = () => {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    // Warm-up Turnstile token in the background for snappier submit
+    primeTurnstile('signin');
     const mql = window.matchMedia('(min-width: 1024px)');
     const modern = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
     const legacy = function (this: MediaQueryList, e: MediaQueryListEvent) {
@@ -50,6 +53,7 @@ export const useSignIn = () => {
       e.preventDefault();
       setLoading(true);
       try {
+        await assertHumanTurnstile('signin');
         const { data, error } = await supabase.auth.signInWithPassword({
           email: formData.email,
           password: formData.password,

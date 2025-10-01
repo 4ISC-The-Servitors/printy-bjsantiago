@@ -10,6 +10,7 @@ import {
 import { useToast } from '../../lib/useToast';
 import { ArrowLeft, Mail, CheckCircle2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { assertHumanTurnstile } from '../../lib/turnstile';
 
 // TODO: Backend Integration
 // - Implement real password reset with Supabase Auth
@@ -62,6 +63,7 @@ const ForgotPassword: React.FC = () => {
         return;
       }
 
+      await assertHumanTurnstile('password_reset');
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/auth/reset-password/confirm`,
       });

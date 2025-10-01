@@ -2,6 +2,7 @@
 // Leaving file for reference but excluding from registry.
 import type { BotMessage, ChatFlow } from '../../../types/chatFlow';
 import { supabase } from '../../../lib/supabase';
+import { getTurnstileToken } from '../../../lib/turnstile';
 
 type Option = { label: string; next: string };
 type Node = {
@@ -692,40 +693,24 @@ export const issueTicketFlow: ChatFlow = {
       // ====================
     }
     if (nextNodeId === 'submit_ticket') {
-      const inquiryId = (crypto as any)?.randomUUID?.()
+      let inquiryId = (crypto as any)?.randomUUID?.()
         ? (crypto as any).randomUUID()
         : `${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
 
       const message = collectedIssueDetails || '(no details provided)';
-      let customerId: string | null = null;
 
       try {
-        // ✅ Resolve current authenticated user's customer_id
-        const { data: session } = await supabase.auth.getUser();
-        const authId = session?.user?.id || null;
-        if (authId) {
-          const { data: customerRow } = await supabase
-            .from('customer')
-            .select('customer_id')
-            .eq('customer_id', authId)
-            .maybeSingle();
-          customerId = (customerRow as any)?.customer_id || null;
-        }
+        // Edge function will resolve the authenticated user from the JWT
 
         const inquiryType = currentInquiryType ?? 'other';
 
-        const { error } = await supabase.from('inquiries').insert([
-          {
-            inquiry_id: inquiryId,
-            inquiry_message: message,
-            inquiry_status: 'new',
-            received_at: new Date().toISOString(),
-            inquiry_type: inquiryType,
-            customer_id: customerId,
-          },
-        ]);
+        const token = await getTurnstileToken('issue_ticket_submit');
+        const { data, error } = await supabase.functions.invoke(
+          'create-inquiry-with-turnstile',
+          { body: { token, message, inquiry_type: inquiryType } }
+        );
 
-        if (error) {
+        if (error || !data?.ok) {
           console.error('Insert failed:', error);
           return {
             messages: [
@@ -737,6 +722,7 @@ export const issueTicketFlow: ChatFlow = {
             quickReplies: nodeQuickReplies(current),
           };
         }
+        inquiryId = (data?.inquiry_id as string) || inquiryId;
 
         // ✅ Reset state
         collectedIssueDetails = '';
