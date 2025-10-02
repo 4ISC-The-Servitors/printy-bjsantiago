@@ -57,7 +57,7 @@ export async function getTurnstileToken(action: string) {
   container.style.top = '0';
   document.body.appendChild(container);
 
-  const token = await new Promise<string>((resolve, reject) => {
+  const renderOnce = () => new Promise<string>((resolve, reject) => {
     let widgetId = '';
 
     const cleanup = () => {
@@ -88,13 +88,41 @@ export async function getTurnstileToken(action: string) {
     } as unknown as Record<string, unknown>);
   });
 
+  // retry once after a short delay if first attempt times out or errors
+  const token = await renderOnce().catch(async () => {
+    await new Promise(r => setTimeout(r, 400));
+    return renderOnce();
+  });
+
   return token;
 }
 
 import { supabase } from './supabase';
 
 export async function assertHumanTurnstile(action: string) {
-  const token = await getTurnstileToken(action);
+  // Feature flags: allow bypass per action for troubleshooting
+  const globalEnable = String((import.meta as any).env?.VITE_TURNSTILE_ENABLED ?? 'true').toLowerCase();
+  const enableSignIn = String((import.meta as any).env?.VITE_TURNSTILE_ENABLE_SIGNIN ?? 'true').toLowerCase();
+  const enableSignUp = String((import.meta as any).env?.VITE_TURNSTILE_ENABLE_SIGNUP ?? 'true').toLowerCase();
+  const enablePasswordReset = String((import.meta as any).env?.VITE_TURNSTILE_ENABLE_PASSWORD_RESET ?? 'true').toLowerCase();
+
+  const truthy = (v: string) => !['false', '0', 'off', 'no', ''].includes(v.trim());
+  const isDisabled =
+    !truthy(globalEnable) ||
+    (action === 'signin' && !truthy(enableSignIn)) ||
+    (action === 'signup' && !truthy(enableSignUp)) ||
+    (action === 'password_reset' && !truthy(enablePasswordReset));
+
+  if (isDisabled) {
+    return { token: 'bypass' } as { token: string };
+  }
+
+  // Token acquisition with a soft timeout to avoid indefinite waits
+  const tokenPromise = getTurnstileToken(action);
+  const token = await Promise.race<string>([
+    tokenPromise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error('Turnstile timeout')), 12000)),
+  ]) as string;
   const { data, error } = await supabase.functions.invoke('verify-turnstile', {
     body: { token, action },
   });
