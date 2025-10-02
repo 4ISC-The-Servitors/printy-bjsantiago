@@ -11,6 +11,14 @@ declare global {
 
 let turnstileScriptLoaded: Promise<void> | null = null;
 let preToken: { action: string; token: string; ts: number } | null = null;
+const debugFlag = String((import.meta as any).env?.VITE_TURNSTILE_DEBUG ?? 'false').toLowerCase();
+const debugOn = !['false', '0', 'no', 'off', ''].includes(debugFlag.trim());
+function dbg(...args: unknown[]) {
+  if (debugOn) {
+    // eslint-disable-next-line no-console
+    console.info('[turnstile]', ...args);
+  }
+}
 
 function loadTurnstileScript() {
   if (turnstileScriptLoaded) return turnstileScriptLoaded;
@@ -44,6 +52,7 @@ export async function getTurnstileToken(action: string) {
   if (preToken && preToken.action === action && Date.now() - preToken.ts < 60000) {
     const t = preToken.token;
     preToken = null; // consume
+    dbg('using primed token for', action);
     return t;
   }
   const siteKey = (import.meta as any).env?.VITE_TURNSTILE_SITE_KEY as string | undefined;
@@ -69,9 +78,82 @@ export async function getTurnstileToken(action: string) {
       }
     };
 
+    dbg('render start', { action });
     widgetId = turnstile.render(container, {
       sitekey: siteKey,
       appearance: 'execute',
+      action,
+      callback: (t: string) => {
+        setTimeout(() => cleanup(), 250);
+        dbg('token acquired', { action, len: t?.length ?? 0 });
+        resolve(t);
+      },
+      'error-callback': () => {
+        setTimeout(() => cleanup(), 250);
+        dbg('render error', { action });
+        reject(new Error('Turnstile error'));
+      },
+      'timeout-callback': () => {
+        setTimeout(() => cleanup(), 250);
+        dbg('render timeout', { action });
+        reject(new Error('Turnstile timeout'));
+      },
+    } as unknown as Record<string, unknown>);
+  });
+
+  // retry once after a short delay if first attempt times out or errors
+  const token = await renderOnce().catch(async () => {
+    await new Promise(r => setTimeout(r, 400));
+    dbg('retrying render', { action });
+    return renderOnce();
+  });
+
+  return token;
+}
+
+import { supabase } from './supabase';
+
+async function getTurnstileTokenInteractive(action: string) {
+  const siteKey = (import.meta as any).env?.VITE_TURNSTILE_SITE_KEY as string | undefined;
+  if (!siteKey) throw new Error('Missing VITE_TURNSTILE_SITE_KEY');
+  const turnstile = await ensureTurnstile();
+
+  const overlay = document.createElement('div');
+  overlay.style.position = 'fixed';
+  overlay.style.inset = '0';
+  overlay.style.background = 'rgba(0,0,0,0.4)';
+  overlay.style.display = 'flex';
+  overlay.style.alignItems = 'center';
+  overlay.style.justifyContent = 'center';
+  overlay.style.zIndex = '2147483647';
+
+  const host = document.createElement('div');
+  host.style.background = '#fff';
+  host.style.padding = '16px';
+  host.style.borderRadius = '8px';
+  host.style.boxShadow = '0 8px 30px rgba(0,0,0,0.25)';
+  host.style.display = 'inline-block';
+
+  overlay.appendChild(host);
+  document.body.appendChild(overlay);
+
+  const removeAll = () => {
+    try {
+      if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+    } catch {}
+  };
+
+  return await new Promise<string>((resolve, reject) => {
+    let widgetId = '';
+    const cleanup = () => {
+      try {
+        if (widgetId && (window as any).turnstile?.remove) (window as any).turnstile.remove(widgetId);
+      } catch {}
+      removeAll();
+    };
+    widgetId = turnstile.render(host, {
+      sitekey: siteKey,
+      appearance: 'always',
       action,
       callback: (t: string) => {
         setTimeout(() => cleanup(), 250);
@@ -87,17 +169,7 @@ export async function getTurnstileToken(action: string) {
       },
     } as unknown as Record<string, unknown>);
   });
-
-  // retry once after a short delay if first attempt times out or errors
-  const token = await renderOnce().catch(async () => {
-    await new Promise(r => setTimeout(r, 400));
-    return renderOnce();
-  });
-
-  return token;
 }
-
-import { supabase } from './supabase';
 
 export async function assertHumanTurnstile(action: string) {
   // Feature flags: allow bypass per action for troubleshooting
@@ -114,18 +186,28 @@ export async function assertHumanTurnstile(action: string) {
     (action === 'password_reset' && !truthy(enablePasswordReset));
 
   if (isDisabled) {
+    dbg('bypass enabled for', action);
     return { token: 'bypass' } as { token: string };
   }
 
   // Token acquisition with a soft timeout to avoid indefinite waits
-  const tokenPromise = getTurnstileToken(action);
-  const token = await Promise.race<string>([
-    tokenPromise,
-    new Promise((_, reject) => setTimeout(() => reject(new Error('Turnstile timeout')), 12000)),
-  ]) as string;
+  dbg('acquiring token for', action);
+  let token: string;
+  try {
+    const tokenPromise = getTurnstileToken(action);
+    token = (await Promise.race<string>([
+      tokenPromise,
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Turnstile timeout')), 12000)),
+    ])) as string;
+  } catch (e) {
+    // Fallback: visible challenge to unblock flows when auto-exec struggles
+    token = await getTurnstileTokenInteractive(action);
+  }
+  dbg('token acquired length', token?.length ?? 0);
   const { data, error } = await supabase.functions.invoke('verify-turnstile', {
     body: { token, action },
   });
+  dbg('verify-turnstile response', { ok: data?.ok ?? false, error: Boolean(error) });
   if (error || !data?.ok) {
     throw new Error('Failed human verification');
   }
