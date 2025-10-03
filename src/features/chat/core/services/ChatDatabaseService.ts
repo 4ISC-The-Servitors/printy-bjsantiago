@@ -14,6 +14,14 @@ import {
   updateCurrentNode,
   endSession,
   fetchEndNodeText,
+  fetchNodeById,
+  fetchSessionFlow,
+  setSessionContext,
+  fetchOrderSummaryForCustomer,
+  listRecentOrdersForCustomer,
+  fetchInquiryById,
+  createInquiryWithTurnstile,
+  fetchSessionCustomerId,
 } from '../../../api/chatFlowApi';
 
 export const ChatDatabaseService = {
@@ -27,6 +35,14 @@ export const ChatDatabaseService = {
   updateCurrentNode,
   endSession,
   fetchEndNodeText,
+  fetchNodeById,
+  fetchSessionFlow,
+  setSessionContext,
+  fetchOrderSummaryForCustomer,
+  listRecentOrdersForCustomer,
+  fetchInquiryById,
+  createInquiryWithTurnstile,
+  fetchSessionCustomerId,
 } as const;
 
 

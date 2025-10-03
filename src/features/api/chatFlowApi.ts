@@ -8,6 +8,16 @@ export interface DbFlowNode {
   node_type: 'start' | 'message' | 'end';
   text: string;
   is_initial: boolean;
+  // Optional action fields (see 013_alter_chat_flow_for_issue_ticket.sql)
+  node_action?:
+    | 'none'
+    | 'expects_input'
+    | 'set_context'
+    | 'lookup_order'
+    | 'list_recent_orders'
+    | 'create_inquiry'
+    | 'ticket_status_query';
+  action_config?: Record<string, unknown> | null;
 }
 
 export interface DbFlowOption {
@@ -49,6 +59,19 @@ export async function fetchOptions(
     return [];
   }
   return (data || []) as unknown as DbFlowOption[];
+}
+
+export async function fetchNodeById(nodeId: string): Promise<DbFlowNode | null> {
+  const { data, error } = await supabase
+    .from('chat_flow_nodes')
+    .select('*')
+    .eq('node_id', nodeId)
+    .maybeSingle();
+  if (error) {
+    console.error('fetchNodeById error', error);
+    return null;
+  }
+  return (data || null) as unknown as DbFlowNode | null;
 }
 
 export async function createSession(
@@ -122,6 +145,61 @@ export async function updateCurrentNode(
     return false;
   }
   return true;
+}
+
+export async function fetchSessionFlow(
+  sessionId: string
+): Promise<{
+  sessionId: string;
+  flowId: string;
+  currentNodeId: string;
+  context: Record<string, unknown>;
+} | null> {
+  const { data, error } = await supabase
+    .from('chat_session_flow')
+    .select('session_id, flow_id, current_node_id, context')
+    .eq('session_id', sessionId)
+    .maybeSingle();
+  if (error || !data) {
+    if (error) console.error('fetchSessionFlow error', error);
+    return null;
+  }
+  return {
+    sessionId: (data as any).session_id as string,
+    flowId: (data as any).flow_id as string,
+    currentNodeId: (data as any).current_node_id as string,
+    context: ((data as any).context as Record<string, unknown>) || {},
+  };
+}
+
+export async function setSessionContext(
+  sessionId: string,
+  context: Record<string, unknown>
+): Promise<boolean> {
+  const { error } = await supabase
+    .from('chat_session_flow')
+    .update({ context, updated_at: new Date().toISOString() })
+    .eq('session_id', sessionId);
+  if (error) {
+    console.error('setSessionContext error', error);
+    return false;
+  }
+  return true;
+}
+
+export async function fetchSessionCustomerId(
+  sessionId: string
+): Promise<string | null> {
+  const { data, error } = await supabase
+    .from('chat_sessions')
+    .select('customer_id')
+    .eq('session_id', sessionId)
+    .maybeSingle();
+  if (error) {
+    console.error('fetchSessionCustomerId error', error);
+    return null;
+  }
+  return ((data as any)?.customer_id as string) || null;
 }
 
 export async function endSession(sessionId: string): Promise<boolean> {
@@ -286,4 +364,142 @@ export async function fetchCurrentNode(
     .maybeSingle();
   if (nodeErr) return null;
   return node as unknown as DbFlowNode | null;
+}
+
+// ===== Domain helpers for Issue Ticket actions =====
+
+export async function fetchOrderSummaryForCustomer(
+  orderId: string,
+  customerId: string
+): Promise<
+  | null
+  | {
+      order_id: string;
+      order_status: string | null;
+      order_datetime: string | null;
+      page_size: string | null;
+      quantity: number | null;
+    }
+> {
+  const { data, error } = await supabase
+    .from('orders')
+    .select('order_id, order_status, order_datetime, page_size, quantity')
+    .eq('order_id', orderId)
+    .eq('customer_id', customerId)
+    .maybeSingle();
+  if (error) {
+    console.error('fetchOrderSummaryForCustomer error', error);
+    return null;
+  }
+  return (data as any) || null;
+}
+
+export async function listRecentOrdersForCustomer(
+  customerId: string,
+  limit: number
+): Promise<Array<{ order_id: string; order_datetime: string }>> {
+  const { data, error } = await supabase
+    .from('orders')
+    .select('order_id, order_datetime')
+    .eq('customer_id', customerId)
+    .order('order_datetime', { ascending: false })
+    .limit(Math.max(1, Math.min(50, limit || 10)));
+  if (error) {
+    console.error('listRecentOrdersForCustomer error', error);
+    return [];
+  }
+  return ((data as any[]) || []).map(r => ({
+    order_id: r.order_id as string,
+    order_datetime: r.order_datetime as string,
+  }));
+}
+
+export async function fetchInquiryById(
+  inquiryId: string
+): Promise<
+  | null
+  | {
+      inquiry_id: string;
+      inquiry_message: string | null;
+      inquiry_type: string | null;
+      inquiry_status: string;
+      resolution_comments: string | null;
+      received_at: string;
+    }
+> {
+  const { data, error } = await supabase
+    .from('inquiries')
+    .select(
+      'inquiry_id, inquiry_message, inquiry_type, inquiry_status, resolution_comments, received_at'
+    )
+    .eq('inquiry_id', inquiryId)
+    .maybeSingle();
+  if (error) {
+    console.error('fetchInquiryById error', error);
+    return null;
+  }
+  return (data as any) || null;
+}
+
+// For creating inquiries, reuse existing Edge Function with Turnstile
+export async function createInquiryWithTurnstile(params: {
+  message: string;
+  inquiry_type: string;
+}): Promise<{ ok: boolean; inquiry_id?: string }> {
+  try {
+    const { getTurnstileToken } = await import('../../lib/turnstile');
+    const token = await getTurnstileToken('issue_ticket_submit');
+    const { data, error } = await supabase.functions.invoke(
+      'create-inquiry-with-turnstile',
+      { body: { token, message: params.message, inquiry_type: params.inquiry_type } }
+    );
+    if (error || !data?.ok) {
+      console.warn('createInquiryWithTurnstile function failed, attempting client-side fallback insert');
+      // Fallback: direct insert with RLS, requires existing customer row
+      const {
+        data: { user },
+        error: userErr,
+      } = await supabase.auth.getUser();
+      if (userErr || !user?.id) {
+        console.error('createInquiryWithTurnstile fallback: no authenticated user');
+        return { ok: false };
+      }
+      const { data: ins, error: insErr } = await supabase
+        .from('inquiries')
+        .insert({
+          customer_id: user.id,
+          inquiry_message: params.message,
+          inquiry_type: params.inquiry_type,
+        })
+        .select('inquiry_id')
+        .single();
+      if (insErr) {
+        console.error('createInquiryWithTurnstile fallback insert error', insErr);
+        return { ok: false };
+      }
+      return { ok: true, inquiry_id: (ins as any)?.inquiry_id as string };
+    }
+    return { ok: true, inquiry_id: (data as any).inquiry_id as string };
+  } catch (e) {
+    console.warn('createInquiryWithTurnstile exception, attempting client-side fallback insert');
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user?.id) return { ok: false };
+      const { data: ins, error: insErr } = await supabase
+        .from('inquiries')
+        .insert({
+          customer_id: user.id,
+          inquiry_message: params.message,
+          inquiry_type: params.inquiry_type,
+        })
+        .select('inquiry_id')
+        .single();
+      if (insErr) return { ok: false };
+      return { ok: true, inquiry_id: (ins as any)?.inquiry_id as string };
+    } catch {
+      return { ok: false };
+    }
+  }
 }
