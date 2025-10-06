@@ -39,6 +39,17 @@ export async function startConversation({
       nodeId: initialNode.node_id,
     });
     const messages = await ChatDatabaseService.fetchSessionMessages(sessionId);
+    const hasAnyText = (messages || []).some(m => (m.text || '').trim().length > 0);
+    const safeMessages = hasAnyText
+      ? messages
+      : [
+          {
+            id: crypto.randomUUID(),
+            role: 'printy' as const,
+            text: initialNode.text,
+            ts: Date.now(),
+          },
+        ];
     const node = await ChatDatabaseService.fetchCurrentNode(sessionId);
     const options = node
       ? await ChatDatabaseService.fetchOptions(node.node_id)
@@ -48,7 +59,7 @@ export async function startConversation({
       label: o.label,
       value: o.label,
     }));
-    return { driver, sessionId, messages, quickReplies } as const;
+    return { driver, sessionId, messages: safeMessages, quickReplies } as const;
   }
 
   // Scripted path

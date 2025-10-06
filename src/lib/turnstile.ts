@@ -11,6 +11,8 @@ declare global {
 
 let turnstileScriptLoaded: Promise<void> | null = null;
 let preToken: { action: string; token: string; ts: number } | null = null;
+const inlineWidgetIds: Record<string, string> = {};
+const inlineTokens: Record<string, { token: string; ts: number }> = {};
 const debugFlag = String((import.meta as any).env?.VITE_TURNSTILE_DEBUG ?? 'false').toLowerCase();
 const debugOn = !['false', '0', 'no', 'off', ''].includes(debugFlag.trim());
 function dbg(...args: unknown[]) {
@@ -113,33 +115,74 @@ export async function getTurnstileToken(action: string) {
 
 import { supabase } from './supabase';
 
+export async function renderInlineTurnstile(
+  containerId: string,
+  action: string,
+  appearance: 'always' | 'interaction-only' = 'always'
+) {
+  const siteKey = (import.meta as any).env?.VITE_TURNSTILE_SITE_KEY as string | undefined;
+  if (!siteKey) return;
+  const el = document.getElementById(containerId) as HTMLElement | null;
+  if (!el) return;
+  const turnstile = await ensureTurnstile();
+  try {
+    const existing = inlineWidgetIds[containerId];
+    if (existing && window.turnstile?.remove) window.turnstile.remove(existing);
+  } catch {}
+  const widgetId = turnstile.render(el, {
+    sitekey: siteKey,
+    appearance,
+    action,
+    callback: (t: string) => {
+      inlineTokens[action] = { token: t, ts: Date.now() };
+    },
+    'error-callback': () => {
+      // keep widget mounted; user can retry automatically
+    },
+    'timeout-callback': () => {
+      // keep widget mounted; user can retry automatically
+    },
+  } as unknown as Record<string, unknown>);
+  inlineWidgetIds[containerId] = widgetId;
+}
+
+function getFreshInlineToken(action: string, maxAgeMs = 60000): string | null {
+  const rec = inlineTokens[action];
+  if (rec && Date.now() - rec.ts < maxAgeMs) return rec.token;
+  return null;
+}
+
 async function getTurnstileTokenInteractive(action: string) {
   const siteKey = (import.meta as any).env?.VITE_TURNSTILE_SITE_KEY as string | undefined;
   if (!siteKey) throw new Error('Missing VITE_TURNSTILE_SITE_KEY');
   const turnstile = await ensureTurnstile();
 
-  const overlay = document.createElement('div');
-  overlay.style.position = 'fixed';
-  overlay.style.inset = '0';
-  overlay.style.background = 'rgba(0,0,0,0.4)';
-  overlay.style.display = 'flex';
-  overlay.style.alignItems = 'center';
-  overlay.style.justifyContent = 'center';
-  overlay.style.zIndex = '2147483647';
-
-  const host = document.createElement('div');
-  host.style.background = '#fff';
-  host.style.padding = '16px';
-  host.style.borderRadius = '8px';
-  host.style.boxShadow = '0 8px 30px rgba(0,0,0,0.25)';
-  host.style.display = 'inline-block';
-
-  overlay.appendChild(host);
-  document.body.appendChild(overlay);
+  // Mount inside inline container under password field if present; else fallback overlay
+  const inlineHost = document.getElementById('turnstile-signin');
+  const host = inlineHost ?? document.createElement('div');
+  let overlay: HTMLDivElement | null = null;
+  if (!inlineHost) {
+    overlay = document.createElement('div');
+    overlay.style.position = 'fixed';
+    overlay.style.inset = '0';
+    overlay.style.background = 'rgba(0,0,0,0.4)';
+    overlay.style.display = 'flex';
+    overlay.style.alignItems = 'center';
+    overlay.style.justifyContent = 'center';
+    overlay.style.zIndex = '2147483647';
+    const panel = host as HTMLDivElement;
+    panel.style.background = '#fff';
+    panel.style.padding = '16px';
+    panel.style.borderRadius = '8px';
+    panel.style.boxShadow = '0 8px 30px rgba(0,0,0,0.25)';
+    panel.style.display = 'inline-block';
+    overlay.appendChild(panel);
+    document.body.appendChild(overlay);
+  }
 
   const removeAll = () => {
     try {
-      if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+      if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
     } catch {}
   };
 
@@ -151,9 +194,9 @@ async function getTurnstileTokenInteractive(action: string) {
       } catch {}
       removeAll();
     };
-    widgetId = turnstile.render(host, {
+    widgetId = turnstile.render(host as HTMLElement, {
       sitekey: siteKey,
-      appearance: 'always',
+      appearance: inlineHost ? 'interaction-only' : 'always',
       action,
       callback: (t: string) => {
         setTimeout(() => cleanup(), 250);
@@ -190,18 +233,25 @@ export async function assertHumanTurnstile(action: string) {
     return { token: 'bypass' } as { token: string };
   }
 
-  // Token acquisition with a soft timeout to avoid indefinite waits
-  dbg('acquiring token for', action);
+  // Prefer inline token if widget is mounted and fresh; else acquire
+  const inlineToken = getFreshInlineToken(action);
   let token: string;
-  try {
-    const tokenPromise = getTurnstileToken(action);
-    token = (await Promise.race<string>([
-      tokenPromise,
-      new Promise((_, reject) => setTimeout(() => reject(new Error('Turnstile timeout')), 12000)),
-    ])) as string;
-  } catch (e) {
-    // Fallback: visible challenge to unblock flows when auto-exec struggles
-    token = await getTurnstileTokenInteractive(action);
+  if (inlineToken) {
+    dbg('using inline token for', action);
+    token = inlineToken;
+  } else {
+    // Token acquisition with a soft timeout to avoid indefinite waits
+    dbg('acquiring token for', action);
+    try {
+      const tokenPromise = getTurnstileToken(action);
+      token = (await Promise.race<string>([
+        tokenPromise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Turnstile timeout')), 12000)),
+      ])) as string;
+    } catch (e) {
+      // Fallback: visible challenge (inline container if present)
+      token = await getTurnstileTokenInteractive(action);
+    }
   }
   dbg('token acquired length', token?.length ?? 0);
   const { data, error } = await supabase.functions.invoke('verify-turnstile', {

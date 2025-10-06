@@ -279,7 +279,7 @@ export const issueTicketFlow: ChatFlow = {
       }
 
       const { data: inquiry, error } = await supabase
-        .from('inquiries')
+        .from('inquiries_secure')
         .select(
           'inquiry_id, inquiry_message, inquiry_type, inquiry_status, resolution_comments, received_at'
         )

@@ -73,6 +73,11 @@ const SignInForm: React.FC<Props> = ({
         </Input>
       </div>
 
+        {/* Inline Cloudflare Turnstile container (visible under password) */}
+      <div className="pt-1">
+        <div id="turnstile-signin" />
+      </div>
+
       <div className="flex items-center justify-between">
         <label className="flex items-center space-x-2 cursor-pointer">
           <input

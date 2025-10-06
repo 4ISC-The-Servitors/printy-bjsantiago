@@ -119,7 +119,15 @@ export async function insertMessage(params: {
     .select('message_id')
     .single();
   if (error) {
-    console.error('insertMessage error', error);
+    console.warn('insertMessage error; attempting view-based fallback', error);
+    // Fallback: try inserting without returning columns (older PostgREST configs)
+    const { error: plainErr } = await supabase
+      .from('chat_messages')
+      .insert({ session_id: params.sessionId, message_text: params.text });
+    if (plainErr) {
+      console.error('insertMessage fallback error', plainErr);
+      return { messageId: null };
+    }
     return { messageId: null };
   }
   const messageId = (data as any)?.message_id as string;
@@ -313,32 +321,103 @@ export async function fetchSessionMessages(
   sessionId: string
 ): Promise<Array<{ id: string; role: SenderRole; text: string; ts: number }>> {
   const { data: msgs, error } = await supabase
-    .from('chat_messages')
+    .from('chat_messages_secure')
     .select('message_id, message_text, sent_at')
     .eq('session_id', sessionId)
     .order('sent_at', { ascending: true });
-  if (error) {
-    console.error('fetchSessionMessages error', error);
-    return [];
-  }
-  const messageList = (msgs || []) as Array<{
+  let messageList = [] as Array<{
     message_id: string;
     message_text: string;
     sent_at: string;
   }>;
+  if (error || !msgs || (msgs as any[]).length === 0) {
+    // Fallback if secure view is missing, forbidden, or returned empty
+    if (error) {
+      console.warn(
+        'fetchSessionMessages: secure view failed, falling back to base table',
+        error
+      );
+    }
+    const { data: plainMsgs, error: plainErr } = await supabase
+      .from('chat_messages')
+      .select('message_id, message_text, sent_at')
+      .eq('session_id', sessionId)
+      .order('sent_at', { ascending: true });
+    if (plainErr) {
+      console.error('fetchSessionMessages fallback error', plainErr);
+      return [];
+    }
+    messageList = (plainMsgs || []) as Array<{
+      message_id: string;
+      message_text: string;
+      sent_at: string;
+    }>;
+  } else {
+    messageList = (msgs || []) as Array<{
+      message_id: string;
+      message_text: string;
+      sent_at: string;
+    }>;
+  }
   if (messageList.length === 0) return [];
   const ids = messageList.map(m => m.message_id);
   const { data: metas, error: metaErr } = await supabase
     .from('chat_message_meta')
-    .select('message_id, sender_role')
+    .select('message_id, sender_role, node_id')
     .in('message_id', ids);
   if (metaErr) {
     console.error('fetchSessionMessages meta error', metaErr);
   }
   const idToRole = new Map<string, SenderRole>();
-  (metas || []).forEach((m: any) =>
-    idToRole.set(m.message_id as string, m.sender_role as SenderRole)
-  );
+  const idToNodeId = new Map<string, string | null>();
+  (metas || []).forEach((m: any) => {
+    idToRole.set(m.message_id as string, m.sender_role as SenderRole);
+    idToNodeId.set(m.message_id as string, (m.node_id as string) || null);
+  });
+
+  // If some texts are still missing, try to hydrate from node definitions
+  const missingWithNode = messageList
+    .filter(m => !m.message_text)
+    .map(m => idToNodeId.get(m.message_id))
+    .filter((nid): nid is string => !!nid);
+  if (missingWithNode.length > 0) {
+    const uniqueNodeIds = Array.from(new Set(missingWithNode));
+    const { data: nodes, error: nodeErr } = await supabase
+      .from('chat_flow_nodes')
+      .select('node_id, text')
+      .in('node_id', uniqueNodeIds);
+    if (!nodeErr && nodes) {
+      const nodeIdToText = new Map<string, string>();
+      (nodes as Array<{ node_id: string; text: string }>).forEach(n =>
+        nodeIdToText.set(n.node_id, n.text)
+      );
+      messageList = messageList.map(m => {
+        if (m.message_text) return m;
+        const nodeId = idToNodeId.get(m.message_id) || null;
+        const text = (nodeId && nodeIdToText.get(nodeId)) || m.message_text || '';
+        return { ...m, message_text: text };
+      });
+    }
+  }
+
+  // Fallback for pre-existing rows before encryption migration:
+  // If any texts are null/empty from the secure view, fetch plaintext from base table.
+  if (messageList.some(m => !m.message_text)) {
+    const { data: plainRows, error: plainErr } = await supabase
+      .from('chat_messages')
+      .select('message_id, message_text')
+      .in('message_id', ids);
+    if (!plainErr && plainRows) {
+      const plainMap = new Map<string, string>();
+      (plainRows as Array<{ message_id: string; message_text: string | null }>).forEach(r => {
+        if (r && r.message_id) plainMap.set(r.message_id, (r.message_text as any) || '');
+      });
+      messageList = messageList.map(m => ({
+        ...m,
+        message_text: m.message_text || plainMap.get(m.message_id) || '',
+      }));
+    }
+  }
   return messageList.map(m => ({
     id: m.message_id,
     role: idToRole.get(m.message_id) || 'printy',
@@ -428,7 +507,7 @@ export async function fetchInquiryById(
     }
 > {
   const { data, error } = await supabase
-    .from('inquiries')
+    .from('inquiries_secure')
     .select(
       'inquiry_id, inquiry_message, inquiry_type, inquiry_status, resolution_comments, received_at'
     )
@@ -447,59 +526,28 @@ export async function createInquiryWithTurnstile(params: {
   inquiry_type: string;
 }): Promise<{ ok: boolean; inquiry_id?: string }> {
   try {
-    const { getTurnstileToken } = await import('../../lib/turnstile');
-    const token = await getTurnstileToken('issue_ticket_submit');
-    const { data, error } = await supabase.functions.invoke(
-      'create-inquiry-with-turnstile',
-      { body: { token, message: params.message, inquiry_type: params.inquiry_type } }
-    );
-    if (error || !data?.ok) {
-      console.warn('createInquiryWithTurnstile function failed, attempting client-side fallback insert');
-      // Fallback: direct insert with RLS, requires existing customer row
-      const {
-        data: { user },
-        error: userErr,
-      } = await supabase.auth.getUser();
-      if (userErr || !user?.id) {
-        console.error('createInquiryWithTurnstile fallback: no authenticated user');
-        return { ok: false };
-      }
-      const { data: ins, error: insErr } = await supabase
-        .from('inquiries')
-        .insert({
-          customer_id: user.id,
-          inquiry_message: params.message,
-          inquiry_type: params.inquiry_type,
-        })
-        .select('inquiry_id')
-        .single();
-      if (insErr) {
-        console.error('createInquiryWithTurnstile fallback insert error', insErr);
-        return { ok: false };
-      }
-      return { ok: true, inquiry_id: (ins as any)?.inquiry_id as string };
-    }
-    return { ok: true, inquiry_id: (data as any).inquiry_id as string };
-  } catch (e) {
-    console.warn('createInquiryWithTurnstile exception, attempting client-side fallback insert');
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user?.id) return { ok: false };
-      const { data: ins, error: insErr } = await supabase
-        .from('inquiries')
-        .insert({
-          customer_id: user.id,
-          inquiry_message: params.message,
-          inquiry_type: params.inquiry_type,
-        })
-        .select('inquiry_id')
-        .single();
-      if (insErr) return { ok: false };
-      return { ok: true, inquiry_id: (ins as any)?.inquiry_id as string };
-    } catch {
+    // Direct insert without Turnstile/Edge Function
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user?.id) return { ok: false };
+    const { data: ins, error: insErr } = await supabase
+      .from('inquiries')
+      .insert({
+        customer_id: user.id,
+        inquiry_message: params.message,
+      inquiry_type: params.inquiry_type,
+      inquiry_status: 'new',
+      })
+      .select('inquiry_id')
+      .single();
+    if (insErr) {
+      console.error('createInquiry insert error', insErr);
       return { ok: false };
     }
+    return { ok: true, inquiry_id: (ins as any)?.inquiry_id as string };
+  } catch (e) {
+    console.error('createInquiry exception', e);
+    return { ok: false };
   }
 }

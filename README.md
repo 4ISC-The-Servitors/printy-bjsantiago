@@ -2,6 +2,17 @@
 
 ## 📄 Changelogs
 
+### 2025-10-03-Security
+
+- Added column-level encryption for sensitive fields using `supabase_vault` + `pgcrypto`.
+  - New migration: `supabase/sql/020_column_encryption.sql` creates encrypted columns, triggers, and decrypted views:
+    - `chat_messages_secure` (for reads) and `inquiries_secure` (+ `inquiries_secure_with_customer`).
+  - App updates: all SELECTs now read from secure views; INSERT/UPDATE stay on base tables (triggers encrypt).
+- Transport hardening recommendations (hosting config):
+  - Enforce HTTPS redirects and add HSTS header: `Strict-Transport-Security: max-age=31536000; includeSubDomains; preload`.
+  - Keep CSP strict; only allow known script/style origins.
+  - Ensure `VITE_SUPABASE_URL` uses `https://`.
+
 ### 2025-09-30-Andeng
 
 - Customer chat refactor

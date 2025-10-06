@@ -26,16 +26,15 @@ export function useConversationSwitcher() {
 
     // DB-backed flows (About Us, Issue Ticket)
     if (conv.flowId === 'about' || conv.flowId === 'issue-ticket') {
-      const fetched =
-        await ChatDatabaseService.fetchSessionMessages(conversationId);
-      setMessages(
-        fetched.map(m => ({
-          id: m.id,
-          role: m.role as any,
-          text: m.text,
-          ts: m.ts,
-        }))
-      );
+      const fetched = await ChatDatabaseService.fetchSessionMessages(conversationId);
+      const list = (fetched || []).map(m => ({
+        id: m.id,
+        role: m.role as any,
+        text: m.text,
+        ts: m.ts,
+      }));
+      // If server yields nothing (e.g., missing table), do not blow away local conversation
+      setMessages(list.length > 0 ? list : conv.messages);
       const node = await ChatDatabaseService.fetchCurrentNode(conversationId);
       const opts = node
         ? await ChatDatabaseService.fetchOptions(node.node_id)

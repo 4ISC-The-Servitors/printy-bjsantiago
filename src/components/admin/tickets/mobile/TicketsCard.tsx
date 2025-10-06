@@ -43,7 +43,7 @@ const TicketsCard: React.FC = () => {
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
     const { data, error, count } = await supabase
-      .from('inquiries')
+      .from('inquiries_secure_with_customer')
       .select(
         `
         inquiry_id,
@@ -51,10 +51,8 @@ const TicketsCard: React.FC = () => {
         inquiry_status,
         inquiry_message,
         customer_id,
-        customer:customer_id (
-          first_name,
-          last_name
-        )
+        customer_first_name,
+        customer_last_name
       `,
         { count: 'exact' }
       )
@@ -67,8 +65,8 @@ const TicketsCard: React.FC = () => {
       setInquiries([]);
     } else {
       const normalized: InquiryRecord[] = (data as any[]).map(row => {
-        const first = row?.customer?.first_name || '';
-        const last = row?.customer?.last_name || '';
+        const first = row?.customer_first_name || '';
+        const last = row?.customer_last_name || '';
         const full = `${first} ${last}`.trim() || null;
         return {
           inquiry_id: row.inquiry_id,

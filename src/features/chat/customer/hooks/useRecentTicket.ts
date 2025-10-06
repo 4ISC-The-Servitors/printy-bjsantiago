@@ -28,7 +28,7 @@ export function useRecentTicket() {
           return;
         }
         const { data, error } = await supabase
-          .from('inquiries')
+          .from('inquiries_secure')
           .select('inquiry_id, inquiry_message, inquiry_status, received_at')
           .eq('customer_id', user.id)
           .order('received_at', { ascending: false })

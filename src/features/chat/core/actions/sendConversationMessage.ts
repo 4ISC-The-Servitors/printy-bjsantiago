@@ -22,6 +22,8 @@ export async function sendConversationMessage({
   // DB-backed path (About Us, Issue Ticket)
   if (sessionId) {
     const sid = sessionId;
+    const ephemeral: Array<{ id: string; role: 'user' | 'printy'; text: string; ts: number }> = [];
+    ephemeral.push({ id: crypto.randomUUID(), role: 'user', text: input, ts: Date.now() });
     await ChatDatabaseService.insertMessage({
       sessionId: sid,
       text: input,
@@ -45,6 +47,7 @@ export async function sendConversationMessage({
         role: 'printy',
         nodeId: nodeId ?? node?.node_id,
       });
+      ephemeral.push({ id: crypto.randomUUID(), role: 'printy', text, ts: Date.now() });
     };
 
     let handledByAction = false;
@@ -121,6 +124,35 @@ export async function sendConversationMessage({
             const next = await ChatDatabaseService.fetchCurrentNode(sid);
             if (next) {
               await say(next.text, next.node_id);
+              const nextCfg = (next.action_config as any) || {};
+              const nextAction = (next.node_action as string) || 'none';
+              if (nextCfg?.set_on_enter && typeof nextCfg.set_on_enter === 'object') {
+                const flow = await ChatDatabaseService.fetchSessionFlow(sid);
+                if (flow) {
+                  const nextCtx = { ...(flow.context || {}), ...nextCfg.set_on_enter };
+                  await ChatDatabaseService.setSessionContext(sid, nextCtx);
+                }
+              }
+              if (nextAction === 'list_recent_orders') {
+                const limit = Number(nextCfg?.limit ?? 10);
+                const customerCtxId = await ChatDatabaseService.fetchSessionCustomerId(sid);
+                const orders = customerCtxId
+                  ? await ChatDatabaseService.listRecentOrdersForCustomer(customerCtxId, limit)
+                  : [];
+                if (!orders || orders.length === 0) {
+                  await say("I couldn't find any past orders for your account.", next.node_id);
+                } else {
+                  const lines: string[] = [
+                    String(nextCfg?.prompt || 'Here are your recent orders:'),
+                    '',
+                  ];
+                  for (const o of orders) {
+                    lines.push(`${new Date(o.order_datetime).toLocaleDateString()} — ${o.order_id}`);
+                  }
+                  await say(lines.join('\n'), next.node_id);
+                  dynamicQuickReplies = orders.map((o, i) => ({ id: `qr-${i}`, label: o.order_id, value: o.order_id }));
+                }
+              }
             }
           }
           handledByAction = true;
@@ -132,6 +164,35 @@ export async function sendConversationMessage({
           const orders = customerCtxId
             ? await ChatDatabaseService.listRecentOrdersForCustomer(customerCtxId, limit)
             : [];
+          // If user typed or clicked an order id, attempt to select it
+          const typedId = normalized.replace(/[^a-zA-Z0-9-]/g, '');
+          if (typedId && customerCtxId) {
+            const summary = await ChatDatabaseService.fetchOrderSummaryForCustomer(
+              typedId,
+              customerCtxId
+            );
+            if (summary) {
+              const lines = [
+                `Order ${summary.order_id} — Status: ${summary.order_status ?? 'N/A'}`,
+                `Placed: ${summary.order_datetime ? new Date(summary.order_datetime).toLocaleString() : 'N/A'}`,
+              ];
+              await say(lines.join('\n'), node.node_id);
+              // Save chosen order_id in context
+              const flow2 = await ChatDatabaseService.fetchSessionFlow(sid);
+              if (flow2) {
+                const nextCtx = { ...(flow2.context || {}), order_id: summary.order_id } as Record<string, unknown>;
+                await ChatDatabaseService.setSessionContext(sid, nextCtx);
+              }
+              // Move to issue menu
+              const nextOnSelect = String(cfg?.next_on_select || 'order_issue_menu');
+              await ChatDatabaseService.updateCurrentNode(sid, nextOnSelect);
+              const nextNode = await ChatDatabaseService.fetchCurrentNode(sid);
+              if (nextNode) await say(nextNode.text, nextNode.node_id);
+              handledByAction = true;
+              break;
+            }
+          }
+          // Otherwise, re-list recent orders
           if (!orders || orders.length === 0) {
             await say("I couldn't find any past orders for your account.", node.node_id);
           } else {
@@ -189,6 +250,11 @@ export async function sendConversationMessage({
           });
           if (!created.ok) {
             await say("Couldn't create the ticket. Try again later.", node.node_id);
+            // Offer a Try again quick reply so the user can re-attempt without refreshing
+            dynamicQuickReplies = [
+              { id: 'qr-try', label: 'Try again', value: 'Try again' },
+              { id: 'qr-end', label: 'End Chat', value: 'End Chat' },
+            ];
             handledByAction = true;
             break;
           }
@@ -222,25 +288,26 @@ export async function sendConversationMessage({
     }
 
     if (!handledByAction) {
-      if (!match) {
-        await ChatDatabaseService.insertMessage({
-          sessionId: sid,
-          text: 'Please choose one of the options.',
-          role: 'printy',
-          nodeId: activeNodeId || node?.node_id,
-        });
-      } else {
-        await ChatDatabaseService.updateCurrentNode(sid, match.to_node_id);
+      if (normalized.toLowerCase() === 'try again') {
+        // re-run the current node action (if any) using the last known context
+        // add a small hint
+        await say('Retrying...', node?.node_id);
+        handledByAction = false; // fall through to option resolution to re-trigger flow
+      }
+    if (!match) {
+      await ChatDatabaseService.insertMessage({
+        sessionId: sid,
+        text: 'Please choose one of the options.',
+        role: 'printy',
+        nodeId: activeNodeId || node?.node_id,
+      });
+    } else {
+      await ChatDatabaseService.updateCurrentNode(sid, match.to_node_id);
         const next = (await ChatDatabaseService.fetchCurrentNode(sid)) as
           | (DbFlowNode & { action_config?: any })
           | null;
-        if (next) {
-          await ChatDatabaseService.insertMessage({
-            sessionId: sid,
-            text: next.text,
-            role: 'printy',
-            nodeId: next.node_id,
-          });
+      if (next) {
+          await say(next.text, next.node_id);
           const nextCfg = (next.action_config as any) || {};
           const nextAction = (next.node_action as string) || 'none';
           // Apply on-enter set_on_enter when arriving to next node
@@ -258,6 +325,28 @@ export async function sendConversationMessage({
               const orders = customerCtxId
                 ? await ChatDatabaseService.listRecentOrdersForCustomer(customerCtxId, limit)
                 : [];
+              // If the last input is an order id, select it and move forward
+              const typedId = normalized.replace(/[^a-zA-Z0-9-]/g, '');
+              if (typedId && customerCtxId) {
+                const summary = await ChatDatabaseService.fetchOrderSummaryForCustomer(typedId, customerCtxId);
+                if (summary) {
+                  const lines = [
+                    `Order ${summary.order_id} — Status: ${summary.order_status ?? 'N/A'}`,
+                    `Placed: ${summary.order_datetime ? new Date(summary.order_datetime).toLocaleString() : 'N/A'}`,
+                  ];
+                  await say(lines.join('\n'), next.node_id);
+                  const flow2 = await ChatDatabaseService.fetchSessionFlow(sid);
+                  if (flow2) {
+                    const nextCtx = { ...(flow2.context || {}), order_id: summary.order_id } as Record<string, unknown>;
+                    await ChatDatabaseService.setSessionContext(sid, nextCtx);
+                  }
+                  const nextOnSelect = String(nextCfg?.next_on_select || 'order_issue_menu');
+                  await ChatDatabaseService.updateCurrentNode(sid, nextOnSelect);
+                  const after = await ChatDatabaseService.fetchCurrentNode(sid);
+                  if (after) await say(after.text, after.node_id);
+                  break;
+                }
+              }
               if (!orders || orders.length === 0) {
                 await say("I couldn't find any past orders for your account.", next.node_id);
               } else {
@@ -323,15 +412,18 @@ export async function sendConversationMessage({
     const quickReplies = (dynamicQuickReplies && dynamicQuickReplies.length
       ? dynamicQuickReplies
       : (newOptions.length ? newOptions : [{ label: 'End Chat' }]).map((o: any, i: number) => ({
-          id: `qr-${i}`,
-          label: o.label,
-          value: o.label,
+      id: `qr-${i}`,
+      label: o.label,
+      value: o.label,
         }))
     );
+    const usedFallback = !messages || messages.length === 0;
+    const outgoing = usedFallback ? ephemeral.filter(m => m.role === 'printy') : messages;
     return {
-      messages,
+      messages: outgoing,
       quickReplies,
       activeNodeId: now?.node_id || null,
+      mergeMode: usedFallback ? 'append' : 'replace',
     } as const;
   }
 

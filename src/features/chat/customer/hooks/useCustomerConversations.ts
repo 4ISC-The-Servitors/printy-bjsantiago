@@ -110,20 +110,31 @@ export function useCustomerConversations() {
       setQuickReplies([]);
       try {
         const res = await send(text);
-        // If this is a DB-backed session, replace messages with the latest fetched list
         if (sessionId) {
-          const latest = (res.messages as any[]).map(m => ({
+          const list = (res.messages as any[]).map(m => ({
             id: m.id,
             role: m.role as any,
             text: m.text,
             ts: m.ts,
           }));
-          setMessages(latest as any);
-          setConversations(prev =>
-            prev.map(c =>
-              c.id === activeId ? { ...c, messages: latest as any } : c
-            )
-          );
+          // Append mode when server had no messages (DB insert 404/blocked); otherwise replace
+          if ((res as any).mergeMode === 'append') {
+            setMessages(prev => [...prev, ...list]);
+            setConversations(prev =>
+              prev.map(c =>
+                c.id === activeId
+                  ? { ...c, messages: [...c.messages, ...list] }
+                  : c
+              )
+            );
+          } else {
+            setMessages(list as any);
+            setConversations(prev =>
+              prev.map(c =>
+                c.id === activeId ? { ...c, messages: list as any } : c
+              )
+            );
+          }
         } else {
           const bot = res.messages as any[];
           setMessages(prev => [...prev, ...bot]);
