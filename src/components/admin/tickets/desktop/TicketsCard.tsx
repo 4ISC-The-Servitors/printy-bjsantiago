@@ -36,37 +36,84 @@ const TicketsCard: React.FC = () => {
     setIsLoading(true);
     setErrorMessage(null);
     const from = (page - 1) * pageSize;
-    // const to = from + pageSize - 1; // pagination end index (not used with RPC)
-    const { data, error } = await supabase.rpc('api_inquiries_admin_list', {
-      p_limit: pageSize,
-      p_offset: from,
-    });
+    try {
+      // Primary: admin RPC (includes customer names, decrypts message)
+      const { data, error } = await supabase.rpc('api_inquiries_admin_list', {
+        p_limit: pageSize,
+        p_offset: from,
+      });
 
-    if (error) {
-      console.error('Failed to load inquiries', error);
-      setErrorMessage('Unable to load inquiries.');
-      setInquiries([]);
-    } else {
-      const rows = (data as any[]) || [];
-      const normalized: InquiryRecord[] = rows.map(row => {
-        const first = row.customer_first_name || '';
-        const last = row.customer_last_name || '';
+      let rows: any[] = [];
+      if (!error && Array.isArray(data)) {
+        rows = data as any[];
+      } else {
+        // Fallback A: per-user list (if admin flag not present)
+        const { data: userRows, error: userErr } = await supabase.rpc(
+          'api_inquiries_for_user',
+          { p_limit: pageSize, p_offset: from }
+        );
+        if (!userErr && Array.isArray(userRows)) {
+          rows = userRows as any[];
+        } else {
+          // Fallback B: direct read from secure view
+          const { data: viewRows, error: viewErr } = await supabase
+            .from('inquiries_secure')
+            .select(
+              'inquiry_id, customer_id, inquiry_type, inquiry_status, inquiry_message'
+            )
+            .order('received_at', { ascending: false })
+            .range(from, from + pageSize - 1);
+          if (!viewErr && Array.isArray(viewRows)) rows = viewRows as any[];
+          if (viewErr && error) {
+            // If all failed, surface the primary error
+            throw error;
+          }
+        }
+      }
+
+      // If the admin RPC returned zero rows (e.g., not an admin), try fallbacks
+      if ((rows || []).length === 0) {
+        const { data: userRows } = await supabase.rpc(
+          'api_inquiries_for_user',
+          { p_limit: pageSize, p_offset: from }
+        );
+        if (Array.isArray(userRows) && userRows.length > 0) rows = userRows as any[];
+        if (rows.length === 0) {
+          const { data: viewRows } = await supabase
+            .from('inquiries_secure')
+            .select(
+              'inquiry_id, customer_id, inquiry_type, inquiry_status, inquiry_message'
+            )
+            .order('received_at', { ascending: false })
+            .range(from, from + pageSize - 1);
+          if (Array.isArray(viewRows)) rows = viewRows as any[];
+        }
+      }
+
+      const normalized: InquiryRecord[] = (rows || []).map(row => {
+        const first = (row as any).customer_first_name || '';
+        const last = (row as any).customer_last_name || '';
         const full = `${first} ${last}`.trim() || null;
         return {
-          inquiry_id: row.inquiry_id,
-          inquiry_type: row.inquiry_type,
-          inquiry_status: row.inquiry_status,
-          inquiry_message: row.inquiry_message,
-          customer_id: row.customer_id,
+          inquiry_id: (row as any).inquiry_id,
+          inquiry_type: (row as any).inquiry_type,
+          inquiry_status: (row as any).inquiry_status,
+          inquiry_message: (row as any).inquiry_message,
+          customer_id: (row as any).customer_id,
           customer_full_name: full,
           customer_first_name: first || null,
           customer_last_name: last || null,
-        };
+        } as InquiryRecord;
       });
       setInquiries(normalized);
       setHasMore(normalized.length === pageSize);
+    } catch (e) {
+      console.error('Failed to load inquiries', e);
+      setErrorMessage('Unable to load inquiries.');
+      setInquiries([]);
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   }, [page]);
 
   useEffect(() => {

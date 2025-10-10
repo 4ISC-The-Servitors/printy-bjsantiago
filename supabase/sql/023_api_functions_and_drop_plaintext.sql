@@ -5,17 +5,28 @@ create extension if not exists supabase_vault;
 create extension if not exists pgcrypto;
 
 -- 1) Backfill encrypted columns from plaintext where needed (safe if already filled)
-update public.inquiries
-set inquiry_message_enc = pgp_sym_encrypt(inquiry_message, vault.get_secret('enc_key_v1'))
-where inquiry_message is not null and inquiry_message_enc is null;
+-- Only backfill if plaintext columns still exist
+do $$
+begin
+  if exists (select 1 from information_schema.columns where table_name = 'inquiries' and column_name = 'inquiry_message') then
+    update public.inquiries
+    set inquiry_message_enc = pgp_sym_encrypt(inquiry_message, vault.get_secret('enc_key_v1'))
+    where inquiry_message is not null and inquiry_message_enc is null;
+    
+    update public.inquiries set inquiry_message = null where inquiry_message is not null;
+  end if;
+end $$;
 
-update public.chat_messages
-set message_text_enc = pgp_sym_encrypt(message_text, vault.get_secret('enc_key_v1'))
-where message_text is not null and message_text_enc is null;
-
--- Clear plaintext after backfill (idempotent)
-update public.inquiries set inquiry_message = null where inquiry_message is not null;
-update public.chat_messages set message_text = null where message_text is not null;
+do $$
+begin
+  if exists (select 1 from information_schema.columns where table_name = 'chat_messages' and column_name = 'message_text') then
+    update public.chat_messages
+    set message_text_enc = pgp_sym_encrypt(message_text, vault.get_secret('enc_key_v1'))
+    where message_text is not null and message_text_enc is null;
+    
+    update public.chat_messages set message_text = null where message_text is not null;
+  end if;
+end $$;
 
 -- 2) Drop triggers that relied on plaintext columns (if present)
 drop trigger if exists inquiries_encrypt on public.inquiries;
@@ -63,10 +74,22 @@ stable
 security definer
 set search_path = public
 as $$
-  select exists(
-    select 1 from auth.users u
-    where u.id = auth.uid() and u.raw_app_meta_data->>'role' = 'admin'
-  );
+  with jwt as (
+    select coalesce(nullif(current_setting('request.jwt.claims', true), ''), '{}')::jsonb as claims
+  )
+  select
+    -- Prefer role from JWT app_metadata when present (admin or super_admin)
+    coalesce((select claims -> 'app_metadata' ->> 'role' from jwt) in ('admin','super_admin'), false)
+    or exists (
+      -- Fallback to users table (e.g., when called outside HTTP context)
+      select 1 from auth.users u
+      where u.id = auth.uid() and u.raw_app_meta_data->>'role' in ('admin','super_admin')
+    )
+    or exists (
+      -- Project-specific: role stored in public.customer table
+      select 1 from public.customer c
+      where c.customer_id = auth.uid() and c.role in ('admin','super_admin')
+    );
 $$;
 
 grant execute on function priv.is_admin() to authenticated, service_role;
@@ -220,4 +243,53 @@ end $$;
 revoke all on function api_insert_chat_message(uuid, text, text, text) from public;
 grant execute on function api_insert_chat_message(uuid, text, text, text) to authenticated, service_role;
 
+
+-- 6) Update helpers for inquiries (status and resolution comments)
+-- These use security definer and enforce that caller is the owner or an admin.
+
+create or replace function api_update_inquiry_status(p_inquiry_id uuid, p_status text)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not exists (
+    select 1 from public.inquiries i
+    where i.inquiry_id = p_inquiry_id
+      and (i.customer_id = auth.uid() or priv.is_admin())
+  ) then
+    raise exception 'not authorized';
+  end if;
+
+  update public.inquiries
+  set inquiry_status = p_status
+  where inquiry_id = p_inquiry_id;
+end $$;
+
+revoke all on function api_update_inquiry_status(uuid, text) from public;
+grant execute on function api_update_inquiry_status(uuid, text) to authenticated, service_role;
+
+create or replace function api_update_inquiry_resolution(p_inquiry_id uuid, p_comment text)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not exists (
+    select 1 from public.inquiries i
+    where i.inquiry_id = p_inquiry_id
+      and (i.customer_id = auth.uid() or priv.is_admin())
+  ) then
+    raise exception 'not authorized';
+  end if;
+
+  update public.inquiries
+  set resolution_comments = p_comment
+  where inquiry_id = p_inquiry_id;
+end $$;
+
+revoke all on function api_update_inquiry_resolution(uuid, text) from public;
+grant execute on function api_update_inquiry_resolution(uuid, text) to authenticated, service_role;
 

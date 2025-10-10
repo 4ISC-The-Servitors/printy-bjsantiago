@@ -10,6 +10,7 @@ import { resolveAdminFlow, dispatchAdminCommand } from '../../chatLogic/admin';
 import { useAdmin } from '@hooks/admin/AdminContext';
 import { useInquiryActions } from './useInquiryActions';
 import { useAdminConversations } from './useAdminConversations';
+import { ChatDatabaseService } from '../../features/chat/core/services/ChatDatabaseService';
 
 export interface UseAdminChatReturn {
   chatOpen: boolean;
@@ -57,6 +58,7 @@ export const useAdminChat = (): UseAdminChatReturn => {
   >(null);
   const [readOnly, setReadOnly] = useState<boolean>(false);
   const { clearSelected } = useAdmin();
+  const [dbSessionId, setDbSessionId] = useState<string | null>(null);
 
   const buildConversationTitle = (topic: string, orderId?: string): string => {
     const t = (topic || '').toLowerCase();
@@ -106,6 +108,11 @@ export const useAdminChat = (): UseAdminChatReturn => {
       if (currentConversationId) {
         endConversation(currentConversationId);
         setCurrentConversationId(null);
+      }
+      // End DB-backed session if any
+      if (dbSessionId) {
+        void ChatDatabaseService.endSession(dbSessionId);
+        setDbSessionId(null);
       }
       setReadOnly(false);
       setChatOpen(false);
@@ -233,6 +240,23 @@ export const useAdminChat = (): UseAdminChatReturn => {
           refreshTickets: refreshOrders,
         };
         setCurrentInquiryId(orderId || null);
+        // For ticket chats, create a DB-backed chat session tied to the ticket's customer
+        if (orderId) {
+          void (async () => {
+            try {
+              const inquiry = await ChatDatabaseService.fetchInquiryById(orderId);
+              const customerId = (inquiry as any)?.customer_id as string | undefined;
+              if (customerId) {
+                const sessionId = await ChatDatabaseService.createSession(customerId);
+                if (sessionId) setDbSessionId(sessionId);
+              }
+            } catch (e) {
+              // Best-effort session creation; continue even if it fails
+              // eslint-disable-next-line no-console
+              console.error('Failed to init DB session for ticket chat', e);
+            }
+          })();
+        }
       } else {
         context = orderId
           ? { orderId, updateOrder, orders, refreshOrders, orderIds }
@@ -266,6 +290,24 @@ export const useAdminChat = (): UseAdminChatReturn => {
           ts: Date.now(),
         }))
       );
+      // Persist initial bot messages to DB if this is a ticket chat and a session was created
+      if (nextTopic.includes('ticket')) {
+        void (async () => {
+          try {
+            // Small delay to allow session creation async to complete
+            await new Promise(r => setTimeout(r, 80));
+            if (dbSessionId) {
+              for (const m of initial) {
+                await ChatDatabaseService.insertMessage({
+                  sessionId: dbSessionId,
+                  text: m.text,
+                  role: 'printy',
+                });
+              }
+            }
+          } catch {}
+        })();
+      }
       initial.forEach(m => addConvMessage('printy', m.text, convId));
       setQuickReplies(
         flow
@@ -301,6 +343,14 @@ export const useAdminChat = (): UseAdminChatReturn => {
     setMessages(prev => [...prev, userMsg]);
     if (currentConversationId)
       addConvMessage('user', text, currentConversationId);
+    // Persist admin's message for ticket chats to chat_messages (store as 'printy')
+    if (dbSessionId && currentFlow.includes('ticket')) {
+      void ChatDatabaseService.insertMessage({
+        sessionId: dbSessionId,
+        text,
+        role: 'printy',
+      });
+    }
     setIsTyping(true);
 
     // Intercepts for pending actions
@@ -364,6 +414,18 @@ export const useAdminChat = (): UseAdminChatReturn => {
           resp.messages.forEach(m =>
             addConvMessage('printy', m.text, currentConversationId)
           );
+        }
+        // Persist bot responses to DB for ticket chats (store as 'printy')
+        if (dbSessionId && currentFlow.includes('ticket')) {
+          void (async () => {
+            for (const m of resp.messages) {
+              await ChatDatabaseService.insertMessage({
+                sessionId: dbSessionId,
+                text: m.text,
+                role: 'printy',
+              });
+            }
+          })();
         }
         setQuickReplies(
           (resp.quickReplies || []).map((l, index) => ({
@@ -483,6 +545,14 @@ export const useAdminChat = (): UseAdminChatReturn => {
     setMessages(prev => [...prev, userMsg]);
     if (currentConversationId)
       addConvMessage('user', val, currentConversationId);
+    // Persist admin quick-reply selection to DB (as 'printy') for ticket chats
+    if (dbSessionId && currentFlow.includes('ticket')) {
+      void ChatDatabaseService.insertMessage({
+        sessionId: dbSessionId,
+        text: val,
+        role: 'printy',
+      });
+    }
     setIsTyping(true);
 
     const flow = resolveAdminFlow(currentFlow);
@@ -495,6 +565,18 @@ export const useAdminChat = (): UseAdminChatReturn => {
         ts: Date.now(),
       }));
       setMessages(prev => [...prev, ...botMessages]);
+      // Persist bot responses to DB for ticket chats (store as 'printy')
+      if (dbSessionId && currentFlow.includes('ticket')) {
+        void (async () => {
+          for (const m of resp.messages) {
+            await ChatDatabaseService.insertMessage({
+              sessionId: dbSessionId,
+              text: m.text,
+              role: 'printy',
+            });
+          }
+        })();
+      }
       setQuickReplies(
         (resp.quickReplies || []).map((l, index) => ({
           id: `qr-${index}`,
