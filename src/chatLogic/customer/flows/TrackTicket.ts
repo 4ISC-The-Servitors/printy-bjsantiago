@@ -103,13 +103,10 @@ export const trackTicketFlow: ChatFlow = {
         };
       }
 
-      const { data: inquiry, error } = await supabase
-        .from('inquiries_secure')
-        .select(
-          'inquiry_id, inquiry_message, inquiry_type, inquiry_status, resolution_comments, received_at'
-        )
-        .eq('inquiry_id', inquiryId)
-        .single();
+      const { data, error } = await supabase.rpc('api_inquiry_by_id', {
+        p_inquiry_id: inquiryId,
+      });
+      const inquiry = ((data as any[]) || [])[0];
 
       if (error || !inquiry) {
         return {

@@ -41,32 +41,21 @@ const TicketsCard: React.FC = () => {
     setLoading(true);
     setErrorMessage(null);
     const from = (page - 1) * pageSize;
-    const to = from + pageSize - 1;
-    const { data, error, count } = await supabase
-      .from('inquiries_secure_with_customer')
-      .select(
-        `
-        inquiry_id,
-        inquiry_type,
-        inquiry_status,
-        inquiry_message,
-        customer_id,
-        customer_first_name,
-        customer_last_name
-      `,
-        { count: 'exact' }
-      )
-      .order('received_at', { ascending: false })
-      .range(from, to);
+    // const to = from + pageSize - 1; // pagination end index (not used with RPC)
+    const { data, error } = await supabase.rpc('api_inquiries_admin_list', {
+      p_limit: pageSize,
+      p_offset: from,
+    });
 
     if (error) {
       console.error('Failed to load inquiries', error);
       setErrorMessage('Unable to load inquiries.');
       setInquiries([]);
     } else {
-      const normalized: InquiryRecord[] = (data as any[]).map(row => {
-        const first = row?.customer_first_name || '';
-        const last = row?.customer_last_name || '';
+      const rows = (data as any[]) || [];
+      const normalized: InquiryRecord[] = rows.map(row => {
+        const first = row.customer_first_name || '';
+        const last = row.customer_last_name || '';
         const full = `${first} ${last}`.trim() || null;
         return {
           inquiry_id: row.inquiry_id,
@@ -80,11 +69,7 @@ const TicketsCard: React.FC = () => {
         };
       });
       setInquiries(normalized);
-      setHasMore(
-        typeof count === 'number'
-          ? to + 1 < count
-          : normalized.length === pageSize
-      );
+      setHasMore(normalized.length === pageSize);
     }
     setLoading(false);
   }, [page]);

@@ -27,24 +27,22 @@ export function useRecentTicket() {
           setLoading(false);
           return;
         }
-        const { data, error } = await supabase
-          .from('inquiries_secure')
-          .select('inquiry_id, inquiry_message, inquiry_status, received_at')
-          .eq('customer_id', user.id)
-          .order('received_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
+        const { data, error } = await supabase.rpc('api_inquiries_for_user', {
+          p_limit: 1,
+          p_offset: 0,
+        });
+        const row = ((data as any[]) || [])[0];
         if (error) {
           setError(error.message);
           setLoading(false);
           return;
         }
-        if (data) {
+        if (row) {
           setData({
-            id: data.inquiry_id,
-            subject: data.inquiry_message || '(no subject)',
-            status: data.inquiry_status || 'unknown',
-            updatedAt: new Date(data.received_at).getTime(),
+            id: row.inquiry_id,
+            subject: row.inquiry_message || '(no subject)',
+            status: row.inquiry_status || 'unknown',
+            updatedAt: new Date(row.received_at).getTime(),
           });
         }
       } catch (e: any) {
