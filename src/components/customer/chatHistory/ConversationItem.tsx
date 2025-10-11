@@ -2,7 +2,7 @@ import React from 'react';
 import { Text, Badge } from '../../shared';
 import { formatLongDate } from '../../../utils/shared/dateFormatter';
 import { formatShortTime } from '../../../utils/shared/timeFormatter';
-import type { ChatMessage } from '../../chat/_shared/types';
+import type { ChatMessage } from '../../chat/types';
 
 interface ConversationItemProps {
   id: string;

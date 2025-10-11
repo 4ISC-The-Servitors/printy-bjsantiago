@@ -3,17 +3,27 @@ import { Text, Card } from '../../components/shared';
 
 const AdminDashboard: React.FC = () => {
   return (
-    <Card className="p-8">
-      <Text
-        variant="h2"
-        size="xl"
-        weight="semibold"
-        className="text-neutral-800"
-      >
-        Admin Dashboard
-      </Text>
-      <Text className="mt-2 text-neutral-600">Coming soon.</Text>
-    </Card>
+    <div>
+      <div className="mb-6">
+        <Text
+          variant="h1"
+          size="3xl"
+          weight="bold"
+          className="text-neutral-900"
+        >
+          Dashboard
+        </Text>
+        <Text variant="p" size="base" color="muted" className="mt-1">
+          Overview of your admin metrics
+        </Text>
+      </div>
+
+      <Card className="p-8">
+        <Text variant="p" color="muted">
+          Dashboard content coming soon...
+        </Text>
+      </Card>
+    </div>
   );
 };
 

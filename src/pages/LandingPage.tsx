@@ -2,12 +2,12 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Container, Text } from '../components/shared';
 import { MessageCircle, Printer, Users, Award } from 'lucide-react';
-import GuestChatPanel from '../components/guest/GuestChatPanel';
+import GuestChatPanel from '../components/guest/chat/GuestChatPanel';
 import {
   type ChatMessage,
   type QuickReply,
   type ChatRole,
-} from '../components/chat/_shared/types';
+} from '../components/chat/types';
 import { guestFlows as flows } from '../chatLogic/guest';
 
 const LandingPage: React.FC = () => {

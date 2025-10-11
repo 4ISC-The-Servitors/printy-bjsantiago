@@ -6,6 +6,7 @@ import { servicesOfferedFlow } from './flows/ServicesOffered';
 import { trackTicketFlow } from './flows/TrackTicket';
 import { paymentFlow } from './flows/Payment';
 import { cancelOrderFlow } from './flows/CancelOrder';
+import { askQuoteFlow } from '../../features/chat/customer/flows/askQuote';
 
 // Note: 'about' is handled by the database-backed flow; exclude from scripted map
 export const customerFlows: Record<string, ChatFlow> = {
@@ -16,6 +17,7 @@ export const customerFlows: Record<string, ChatFlow> = {
   'track-ticket': trackTicketFlow,
   payment: paymentFlow,
   'cancel-order': cancelOrderFlow,
+  'ask-quote': askQuoteFlow,
 };
 
 export function resolveCustomerFlow(
@@ -29,6 +31,7 @@ export function resolveCustomerFlow(
   if (t.includes('track')) return trackTicketFlow;
   if (t.includes('pay')) return paymentFlow;
   if (t.includes('cancel')) return cancelOrderFlow;
+  if (t.includes('quote')) return askQuoteFlow;
   // default fallback to FAQs for scripted; About is DB-backed
   return faqsFlow;
 }

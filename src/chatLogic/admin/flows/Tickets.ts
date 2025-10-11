@@ -1,8 +1,6 @@
 // Refactored Tickets Flow using shared utilities and base framework
 
 import type { BotMessage } from '../../../types/chatFlow';
-// BACKEND_TODO: Remove mockTickets import; rely solely on context-provided tickets from Supabase.
-import { mockTickets } from '../../../data/tickets'; // DELETE when backend is wired
 import {
   FlowBase,
   TICKET_STATUS_OPTIONS,
@@ -11,11 +9,10 @@ import {
 } from '../shared';
 import { normalizeTicketStatus } from '../shared/utils/StatusNormalizers';
 import type { FlowState, FlowContext, NodeHandler } from '../shared';
-import { extractTicketIds } from '../shared/utils/IdExtractors';
+// extractTicketIds import removed - no longer needed for single ticket flow
+// ChatDatabaseService import removed - data is now fetched by useAdminChat and passed via context
 
 type TicketNodeId =
-  | 'action'
-  | 'choose_ticket'
   | 'ticket_overview'
   | 'choose_status'
   | 'reply'
@@ -33,7 +30,7 @@ class TicketsFlow extends FlowBase {
 
   constructor() {
     super({
-      currentNodeId: 'action',
+      currentNodeId: 'ticket_overview',
       currentTicketId: null,
       currentTickets: [],
     });
@@ -44,20 +41,13 @@ class TicketsFlow extends FlowBase {
     this.state.currentTicketId =
       (context?.ticketId as string) || (context?.orderId as string) || null;
     this.state.currentTickets =
-      (context?.tickets as any[]) || (context?.orders as any[]) || mockTickets;
-    this.state.currentNodeId = this.state.currentTicketId
-      ? 'ticket_overview'
-      : 'action';
+      (context?.tickets as any[]) || (context?.orders as any[]) || [];
+    // Always start with ticket_overview since this flow is for single ticket context
+    this.state.currentNodeId = 'ticket_overview';
   }
 
   private registerNodes(): void {
-    // Action node
-    this.registerNode('action', this.createActionNode());
-
-    // Choose ticket node
-    this.registerNode('choose_ticket', this.createChooseTicketNode());
-
-    // Ticket overview node
+    // Ticket overview node (main entry point for single ticket)
     this.registerNode('ticket_overview', this.createTicketOverviewNode());
 
     // Status change node
@@ -70,143 +60,109 @@ class TicketsFlow extends FlowBase {
     this.registerNode('done', this.createDoneNode());
   }
 
-  private createActionNode(): NodeHandler {
-    return {
-      messages: (state: FlowState, _context: FlowContext) => {
-        const ticketState = state as TicketsState;
-        const ticket = this.getCurrentTicket(ticketState);
-        if (ticket) {
-          return [
-            {
-              role: 'printy',
-              text: `Looking at ticket ${ticket.id} - ${ticket.subject}. Current status: ${ticket.status}. What would you like to do?`,
-            },
-          ];
-        }
-        return [
-          {
-            role: 'printy',
-            text: 'Tickets assistant ready. Choose a ticket to manage.',
-          },
-        ];
-      },
-      quickReplies: (state: FlowState, _context: FlowContext) => {
-        const ticketState = state as TicketsState;
-        const ticket = this.getCurrentTicket(ticketState);
-        return ticket
-          ? ['View Details', 'Reply', 'Change Status', 'End Chat']
-          : ['Choose Ticket', 'End Chat'];
-      },
-      handleInput: (
-        input: string,
-        _state: FlowState,
-        _context: FlowContext
-      ) => {
-        const lower = input.toLowerCase();
-
-        if (lower === 'choose ticket' || lower === 'choose') {
-          return { nextNodeId: 'choose_ticket' };
-        }
-
-        if (lower === 'view details' || lower === 'details') {
-          return { nextNodeId: 'ticket_overview' };
-        }
-
-        if (lower === 'reply') {
-          return { nextNodeId: 'reply' };
-        }
-
-        if (lower === 'change status' || lower === 'status') {
-          return { nextNodeId: 'choose_status' };
-        }
-
-        return null;
-      },
-    };
-  }
-
-  private createChooseTicketNode(): NodeHandler {
-    return {
-      messages: (state: FlowState, _context: FlowContext) => {
-        const ticketState = state as TicketsState;
-        const msgs: BotMessage[] = [
-          { role: 'printy', text: 'Please select a ticket to view.' },
-        ];
-        ticketState.currentTickets.slice(0, 5).forEach(ticket => {
-          msgs.push({
-            role: 'printy',
-            text: `${ticket.id} • ${ticket.subject} • ${ticket.status}`,
-          });
-        });
-        return msgs;
-      },
-      quickReplies: (state: FlowState, _context: FlowContext) => {
-        const ticketState = state as TicketsState;
-        const firstFive = ticketState.currentTickets.slice(0, 5).map(t => t.id);
-        return [...firstFive, 'End Chat'];
-      },
-      handleInput: (input: string, state: FlowState, _context: FlowContext) => {
-        const ticketState = state as TicketsState;
-        const ids = extractTicketIds(input);
-        const pick =
-          ids[0] ||
-          ticketState.currentTickets
-            .map(t => t.id.toLowerCase())
-            .find(id => id === input.toLowerCase()) ||
-          null;
-        const chosen = pick ? this.findTicket(pick, ticketState) : null;
-
-        if (!chosen) {
-          return {
-            messages: [
-              {
-                role: 'printy',
-                text: 'Please choose a ticket from the list or type its ID (e.g., TCK-2981).',
-              },
-            ],
-            quickReplies: ticketState.currentTickets
-              .slice(0, 5)
-              .map(t => t.id)
-              .concat(['End Chat']),
-          };
-        }
-
-        return {
-          nextNodeId: 'ticket_overview',
-          stateUpdates: { currentTicketId: chosen.id },
-        };
-      },
-    };
-  }
 
   private createTicketOverviewNode(): NodeHandler {
     return {
-      messages: (state: FlowState, _context: FlowContext) => {
+      messages: (state: FlowState, context: FlowContext) => {
         const ticketState = state as TicketsState;
-        const ticket = this.getCurrentTicket(ticketState);
-        if (!ticket) return [{ role: 'printy', text: 'Ticket not found.' }];
+        const ticketId = ticketState.currentTicketId;
+        if (!ticketId) return [{ role: 'printy', text: 'No ticket selected.' }];
 
+        // Get inquiry data from context (fetched by useAdminChat)
+        const inquiry = (context as any)?.inquiry;
+        
+        // If no inquiry data yet, try to find it in the context tickets
+        let inquiryData = inquiry;
+        if (!inquiryData && context?.tickets) {
+          inquiryData = context.tickets.find((t: any) => t.inquiry_id === ticketId);
+        }
+        
+        if (!inquiryData) {
+          // Fallback to mock data or basic display
+          const ticket = this.getCurrentTicket(ticketState);
+          if (!ticket) return [{ role: 'printy', text: `Ticket ${ticketId} not found.` }];
+
+          const msgs: BotMessage[] = [
+            { role: 'printy', text: `Viewing ${ticket.id}` },
+            { role: 'printy', text: `Subject: ${ticket.subject}` },
+          ];
+
+          if (ticket.description) {
+            msgs.push({
+              role: 'printy',
+              text: `Description: ${ticket.description}`,
+            });
+          }
+
+          msgs.push(
+            { role: 'printy', text: `From: ${ticket.requester || 'Customer'}` },
+            { role: 'printy', text: `Status: ${ticket.status}` },
+            {
+              role: 'printy',
+              text: `Last message: ${ticket.lastMessage || ticket.description || '—'}`,
+            },
+            { role: 'printy', text: 'What would you like to do?' }
+          );
+
+          return msgs;
+        }
+
+        // Display real inquiry data from database
         const msgs: BotMessage[] = [
-          { role: 'printy', text: `Viewing ${ticket.id}` },
-          { role: 'printy', text: `Subject: ${ticket.subject}` },
+          { role: 'printy', text: `Viewing ${inquiryData.inquiry_id}` },
+          { role: 'printy', text: `Subject: ${inquiryData.inquiry_type || 'General Inquiry'}` },
         ];
 
-        if (ticket.description) {
+        // Display customer's original message
+        if (inquiryData.inquiry_message) {
           msgs.push({
             role: 'printy',
-            text: `Description: ${ticket.description}`,
+            text: `Description: ${inquiryData.inquiry_message}`,
           });
         }
 
         msgs.push(
-          { role: 'printy', text: `From: ${ticket.requester || 'Customer'}` },
-          { role: 'printy', text: `Status: ${ticket.status}` },
-          {
-            role: 'printy',
-            text: `Last message: ${ticket.lastMessage || ticket.description || '—'}`,
-          },
-          { role: 'printy', text: 'What would you like to do?' }
+          { role: 'printy', text: `From: ${inquiryData.customer_full_name || 'Customer'}` },
+          { role: 'printy', text: `Status: ${inquiryData.inquiry_status}` }
         );
+
+        // Display resolution comments if any
+        if (inquiryData.resolution_comments) {
+          msgs.push({
+            role: 'printy',
+            text: `Last message: ${inquiryData.resolution_comments}`,
+          });
+        } else if (inquiryData.inquiry_message) {
+          msgs.push({
+            role: 'printy',
+            text: `Last message: ${inquiryData.inquiry_message}`,
+          });
+        } else {
+          msgs.push({
+            role: 'printy',
+            text: `Last message: —`,
+          });
+        }
+
+        // Display conversation history if available
+        const chatHistory = (context as any)?.chatHistory;
+        if (chatHistory && chatHistory.length > 0) {
+          msgs.push({ role: 'printy', text: '\n--- Conversation History ---' });
+          
+          // Display ALL messages from conversation history
+          chatHistory.forEach((msg: any) => {
+            const sender = msg.role === 'user' ? 'Customer' : 'Admin';
+            const timestamp = new Date(msg.ts).toLocaleString();
+            msgs.push({
+              role: 'printy',
+              text: `[${timestamp}] ${sender}: ${msg.text}`,
+            });
+          });
+          
+          msgs.push({ role: 'printy', text: '--- End of History ---\n' });
+        }
+
+        msgs.push({ role: 'printy', text: '\nWhat would you like to do?' });
 
         return msgs;
       },
@@ -224,10 +180,6 @@ class TicketsFlow extends FlowBase {
 
         if (lower === 'change status' || lower === 'status') {
           return { nextNodeId: 'choose_status' };
-        }
-
-        if (lower === 'choose another ticket' || lower === 'choose ticket') {
-          return { nextNodeId: 'choose_ticket' };
         }
 
         return null;
@@ -345,10 +297,7 @@ class TicketsFlow extends FlowBase {
 
   private findTicket(id: string, state: TicketsState): any {
     const up = id.toUpperCase();
-    return (
-      state.currentTickets.find(t => (t.id || '').toUpperCase() === up) ||
-      mockTickets.find(t => (t.id || '').toUpperCase() === up)
-    );
+    return state.currentTickets.find(t => (t.id || '').toUpperCase() === up);
   }
 
   private updateTicket(
@@ -359,12 +308,6 @@ class TicketsFlow extends FlowBase {
     // Update via context if available
     if (this.context.updateTicket) {
       this.context.updateTicket(ticketId, updates);
-    }
-
-    // Update mock data
-    const mi = mockTickets.findIndex(t => t.id === ticketId);
-    if (mi !== -1) {
-      mockTickets[mi] = { ...mockTickets[mi], ...updates };
     }
 
     // Update local state

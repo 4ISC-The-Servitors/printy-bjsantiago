@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useAdminConversations } from '@hooks/admin/useAdminConversations';
 import { Card, Text, Badge, Pagination } from '@components/shared';
 import { formatLongDate, formatShortTime } from '@utils/shared';
-import { useResponsivePageSize } from '@hooks/shared/useResponsivePageSize';
+import { useResponsivePageSize } from '../../hooks/ui/useResponsivePageSize';
 
 const AdminChatsPage: React.FC = () => {
   const { conversations, setActive } = useAdminConversations();

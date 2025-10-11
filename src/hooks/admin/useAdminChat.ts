@@ -5,12 +5,13 @@ import type {
   ChatMessage,
   QuickReply,
   ChatRole,
-} from '../../components/chat/_shared/types';
+} from '../../components/chat/types';
 import { resolveAdminFlow, dispatchAdminCommand } from '../../chatLogic/admin';
 import { useAdmin } from '@hooks/admin/AdminContext';
 import { useInquiryActions } from './useInquiryActions';
 import { useAdminConversations } from './useAdminConversations';
 import { ChatDatabaseService } from '../../features/chat/core/services/ChatDatabaseService';
+import { supabase } from '../../lib/supabase';
 
 export interface UseAdminChatReturn {
   chatOpen: boolean;
@@ -244,11 +245,36 @@ export const useAdminChat = (): UseAdminChatReturn => {
         if (orderId) {
           void (async () => {
             try {
+              // Fetch inquiry data for display
               const inquiry = await ChatDatabaseService.fetchInquiryById(orderId);
-              const customerId = (inquiry as any)?.customer_id as string | undefined;
-              if (customerId) {
-                const sessionId = await ChatDatabaseService.createSession(customerId);
-                if (sessionId) setDbSessionId(sessionId);
+              
+              if (inquiry) {
+                // Update context with inquiry data
+                setCurrentContext((prev: any) => ({
+                  ...prev,
+                  inquiry: inquiry
+                }));
+                
+                // Get or create chat session linked to this inquiry
+                const { data: sessionIdData, error: sessionError } = await supabase.rpc(
+                  'api_get_or_create_inquiry_session',
+                  { p_inquiry_id: orderId }
+                );
+                
+                if (!sessionError && sessionIdData) {
+                  setDbSessionId(sessionIdData);
+                  
+                  // Fetch conversation history
+                  try {
+                    const chatHistory = await ChatDatabaseService.fetchSessionMessages(sessionIdData);
+                    setCurrentContext((prev: any) => ({
+                      ...prev,
+                      chatHistory: chatHistory || []
+                    }));
+                  } catch (historyError) {
+                    console.error('Failed to fetch conversation history:', historyError);
+                  }
+                }
               }
             } catch (e) {
               // Best-effort session creation; continue even if it fails

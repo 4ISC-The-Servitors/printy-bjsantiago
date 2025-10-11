@@ -61,7 +61,6 @@ export { default as SelectedChipsBar } from './SelectedChipsBar';
 export { default as Tooltip } from './Tooltip';
 export { default as Pagination } from './Pagination';
 export type { TooltipProps } from './Tooltip';
-export { default as ChatDock } from './ChatDock';
 
 // Checkbox Component
 export { default as Checkbox } from './Checkbox';

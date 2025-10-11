@@ -3,8 +3,8 @@ import { supabase } from '../../lib/supabase';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 // Customer chat UI and types
-import ChatPanel from '../../components/customer/chatPanel/ChatPanel';
-import type { ChatMessage } from '../../components/chat/_shared/types';
+import { CustomerChatPanel } from '../../components/chat/layouts';
+import type { ChatMessage } from '../../components/chat/types';
 // Sidebar and dashboard widgets
 import SidebarPanel from '../../components/customer/shared/sidebar/SidebarPanel';
 import LogoutButton from '../../components/customer/shared/sidebar/LogoutButton';
@@ -14,14 +14,14 @@ import RecentOrder from '../../components/customer/dashboard/recentOrders/Recent
 import RecentTickets from '../../components/customer/dashboard/recentTickets/RecentTickets';
 // Shared UI components
 import { ToastContainer, Text, PageLoading } from '../../components/shared';
-import { useLogoutWithToast } from '../../features/toast/hooks/useLogoutWithToast';
-import { useRecentOrder } from '../../features/chat/customer/hooks/useRecentOrder';
-import { useRecentTicket } from '../../features/chat/customer/hooks/useRecentTicket';
-import { useRecentChatSessions } from '../../features/chat/customer/hooks/useRecentChatSessions';
-import { useDashboardChatEvents } from '../../features/chat/customer/hooks/useDashboardChatEvents';
-import { useChatAttachments } from '../../features/chat/core/hooks/useChatAttachments';
+import { useLogoutWithToast } from '../../hooks/auth/useLogoutWithToast';
+import { useRecentOrder } from '../../hooks/customer/useRecentOrder';
+import { useRecentTicket } from '../../hooks/customer/useRecentTicket';
+import { useRecentChatSessions } from '../../hooks/customer/useRecentChatSessions';
+import { useDashboardChatEvents } from '../../hooks/customer/useDashboardChatEvents';
+import { useChatAttachments } from '../../hooks/core/useChatAttachments';
 // Chat feature hooks
-import { useCustomerConversations } from '../../features/chat/customer/hooks/useCustomerConversations';
+import { useCustomerConversations } from '../../hooks/customer/useCustomerConversations';
 
 // ---------------- Types / Config ----------------
 import {
@@ -31,9 +31,11 @@ import {
   Info,
   MessageSquare,
   Settings,
+  Calculator,
 } from 'lucide-react';
 type TopicKey =
   | 'placeOrder'
+  | 'askQuote'
   | 'issueTicket'
   | 'trackTicket'
   | 'servicesOffered'
@@ -55,6 +57,12 @@ const topicConfig: Record<
     icon: <ShoppingCart className="w-6 h-6" />,
     flowId: 'place-order',
     description: "Avail B.J. Santiago's printing services",
+  },
+  askQuote: {
+    label: 'Ask Quote',
+    icon: <Calculator className="w-6 h-6" />,
+    flowId: 'ask-quote',
+    description: 'Get a personalized quote for your printing needs',
   },
   issueTicket: {
     label: 'Ask Quote or Assistance',
@@ -112,7 +120,6 @@ const CustomerDashboard: React.FC = () => {
     conversations,
     activeId,
     quickReplies,
-    inputPlaceholder,
     handleSend: sendViaHook,
     handleQuickReply: quickReplyViaHook,
     endChat: endChatViaHook,
@@ -241,7 +248,7 @@ const CustomerDashboard: React.FC = () => {
         {isLoading ? (
           <PageLoading variant="dashboard" />
         ) : activeId ? (
-          <ChatPanel
+          <CustomerChatPanel
             title={conversations.find(c => c.id === activeId)?.title || 'Chat'}
             messages={messages}
             onSend={sendViaHook}
@@ -249,7 +256,6 @@ const CustomerDashboard: React.FC = () => {
             onBack={() => setActiveId(null)}
             quickReplies={quickReplies}
             onQuickReply={quickReplyViaHook}
-            inputPlaceholder={inputPlaceholder}
             onEndChat={endChatViaHook}
             onAttachFiles={handleAttachFiles}
             readOnly={

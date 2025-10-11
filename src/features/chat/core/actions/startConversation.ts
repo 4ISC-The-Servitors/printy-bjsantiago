@@ -5,6 +5,7 @@
  */
 import { DatabaseFlowDriver } from '../adapters/DatabaseFlowDriver';
 import { ScriptedFlowDriver } from '../adapters/ScriptedFlowDriver';
+import { QuoteFlowDriver } from '../adapters/QuoteFlowDriver';
 import { ChatDatabaseService } from '../services/ChatDatabaseService';
 
 type Params = {
@@ -60,6 +61,25 @@ export async function startConversation({
       value: o.label,
     }));
     return { driver, sessionId, messages: safeMessages, quickReplies } as const;
+  }
+
+  if (flowId === 'ask-quote') {
+    // Quote flow path - use simple scripted approach for now
+    const driver = new QuoteFlowDriver();
+    const initial = await driver.initial(ctx || {});
+    const messages = initial.map(m => ({
+      id: crypto.randomUUID(),
+      role: 'printy' as const,
+      text: m.text,
+      ts: Date.now(),
+    }));
+    // No quick replies for quote flow - free text only
+    return {
+      driver,
+      sessionId: null as string | null,
+      messages,
+      quickReplies: [],
+    } as const;
   }
 
   // Scripted path

@@ -7,7 +7,7 @@ import Header from '../../components/customer/chatHistory/Header';
 import Filters from '../../components/customer/chatHistory/Filters';
 import ConversationList from '../../components/customer/chatHistory/ConversationList';
 import EmptyState from '../../components/customer/chatHistory/EmptyState';
-import type { ChatMessage } from '../../components/chat/_shared/types';
+import type { ChatMessage } from '../../components/chat/types';
 import { fetchUserSessions } from '../../features/api/chatFlowApi';
 
 interface Conversation {

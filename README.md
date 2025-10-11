@@ -15,6 +15,11 @@
 
 ### 2025-09-30-Andeng
 
+- npm i -D ts-node typescript
+- npm i -D tsx
+- $env:Path += ";$env:LOCALAPPDATA\Programs\Ollama"
+- ollama pull dolphin3:8b
+
 - Customer chat refactor
   - Added feature core: adapters, services, actions, and small hooks
   - Composed hook: `useCustomerConversations` replaces page-local chat logic
