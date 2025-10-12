@@ -2,6 +2,60 @@
 
 ## 📄 Changelogs
 
+### 2025-10-13-Andeng
+
+- **Payment Proof System Implementation** (still on going)
+  - Added comprehensive payment proof upload functionality for customers
+  - Created secure storage buckets for payment methods (public) and payment proofs (private)
+  - Implemented `usePaymentProofUpload` hook for handling customer payment proof uploads
+  - Added `uploadPaymentProof` utility with file validation and secure storage
+  - Created admin utility `getPaymentProofUrl` for viewing customer payment proofs
+  - Updated payment flow to automatically change order status to "verifying_payment" after upload
+  - Added proper RLS policies for secure file access (customers see own files, admins see all) - LIAM YOU NEED TO DO THIS, NEED DAW SCHEMA OWNER ANG GAGAWA
+
+- **Database Schema Enhancements**
+  - Added payment proof fields to orders table (`payment_proof`, `payment_proof_uploaded_at`)
+  - Created display_id system for better UI identification across quotes, orders, and tickets
+  - Added API functions for inquiry management with display_id support
+  - Updated all relevant tables and functions to support the new display_id system
+
+- **UI/UX Improvements**
+  - Removed cancel order functionality to streamline order management
+  - Enhanced status badges and formatting across customer dashboard
+  - Updated order display components to use display_id for better user experience
+  - Improved payment verification flow for admin users
+
+### 2025-10-12-Andeng
+
+- **AI Quote System Implementation**
+  - Complete overhaul of quote management system with AI integration
+  - Created comprehensive quote flow for customers (`AskQuote.ts`, `TrackQuote.ts`)
+  - Implemented admin quote management with AI-powered responses (`Quotes.ts`)
+  - Added LLM client integration for intelligent quote generation and responses
+  - Created quote-specific database tables and relationships
+  - Built quote conversation tracking and management system
+
+- **Quote Management Features**
+  - Customer can request quotes through chat interface
+  - Admin can create, edit, and manage quotes with AI assistance
+  - Quote specification editor with dynamic form handling
+  - Quote acceptance flow for customers
+  - Real-time quote status tracking and updates
+  - Integration with existing order and ticket systems
+
+- **Database Architecture**
+  - Created quote tables with proper relationships to orders and customers
+  - Added quote-specific migrations and API functions
+  - Implemented quote session linking for chat flow integration
+  - Updated existing tables to support quote workflows
+
+- **Chat Flow Integration**
+  - Integrated quote flows into existing chat system
+  - Added quote-specific message handling and quick replies
+  - Created quote conversation hooks and API endpoints
+  - Seamless integration with customer dashboard and admin panels
+
+
 ### 2025-10-03-Security
 
 - Added column-level encryption for sensitive fields using `supabase_vault` + `pgcrypto`.
