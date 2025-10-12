@@ -23,7 +23,7 @@ export const trackQuoteFlow: ChatFlow = {
     const messages: BotMessage[] = [
       {
         role: 'printy',
-        text: 'Hi! Let me pull up your quote request details for you.'
+        text: 'Hi, I\'m Printy! Let me pull up your quote request details for you.'
       }
     ];
 
@@ -111,11 +111,9 @@ async function displayQuoteDetails(conversationId: string): Promise<FlowResponse
       .from('quote_conversations')
       .select(`
         quote_id,
+        display_id,
         status,
-        customer:customer_id (
-          first_name,
-          last_name
-        )
+        customer_id
       `)
       .eq('conversation_id', conversationId)
       .single();
@@ -126,7 +124,7 @@ async function displayQuoteDetails(conversationId: string): Promise<FlowResponse
 
     messages.push({
       role: 'printy',
-      text: `Quote ID: ${conversation.quote_id ? conversation.quote_id.slice(0, 8) : conversationId.slice(0, 8)}...`
+      text: `Quote ID: ${conversation.display_id || (conversation.quote_id ? conversation.quote_id.slice(0, 8) : conversationId.slice(0, 8))}`
     });
     messages.push({
       role: 'printy',
@@ -160,7 +158,7 @@ async function displayQuoteDetails(conversationId: string): Promise<FlowResponse
     }
 
     // Check for proposals
-    const { data: proposals, error: propError } = await supabase
+    const { data: proposals } = await supabase
       .from('quote_proposals')
       .select(`
         proposal_id,
@@ -262,6 +260,12 @@ async function displayQuoteDetails(conversationId: string): Promise<FlowResponse
           text: `Admin Notes: ${proposal.notes}`
         });
       }
+
+      // Add warning message before accept/reject options
+      messages.push({
+        role: 'printy',
+        text: 'IMPORTANT: Once you accept this quote, you CANNOT cancel your order. Payment is required upfront before we begin processing your order.'
+      });
 
       return {
         messages,
@@ -376,7 +380,7 @@ async function handleAcceptQuote(conversationId: string): Promise<FlowResponse> 
         },
         {
           role: 'printy',
-          text: 'Our admin team will contact you soon to proceed with your order. You can expect to hear from us within 24 hours.'
+          text: 'Our admin will create your order and you will be instructed to pay for it before your order gets processed.'
         },
         {
           role: 'printy',

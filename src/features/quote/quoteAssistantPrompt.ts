@@ -8,6 +8,8 @@ RULES:
 - Keep arbitrary sizes/measurements as user provided them
 - Put unclear details in "others" array
 - Detect language: "tl" for Tagalog/Filipino, "en" for English
+- CRITICAL: Preserve the original language in ALL extracted fields. If customer wrote in Tagalog/Taglish, keep the spec in Tagalog/Taglish. If in English, keep in English.
+- Do NOT translate customer's original words to English
 
 OUTPUT: JSON only, no prose.
 {

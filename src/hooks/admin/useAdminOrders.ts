@@ -8,6 +8,7 @@ import { supabase } from '../../lib/supabase';
 
 export interface AdminOrderData {
   order_id: string;
+  display_id?: string;
   customer_id: string;
   status: string;
   created_at: string;
@@ -25,6 +26,7 @@ export interface AdminOrderData {
 
 export interface AdminOrderRow {
   id: string;
+  display_id?: string;
   customer: string;
   total: string;
   date: string;
@@ -58,6 +60,7 @@ export function useAdminOrders(options: LoadOrdersOptions = {}) {
         .from('orders_duplicate')
         .select(`
           order_id,
+          display_id,
           customer_id,
           status,
           created_at,
@@ -82,7 +85,8 @@ export function useAdminOrders(options: LoadOrdersOptions = {}) {
 
       // Transform the data to match the expected interface
       const normalized: AdminOrderRow[] = (data || []).map((order: AdminOrderData) => ({
-        id: order.order_id,
+        id: order.display_id || order.order_id, // Prefer display_id
+        display_id: order.display_id,
         customer: order.customer 
           ? `${order.customer.first_name || ''} ${order.customer.last_name || ''}`.trim() || 'Unknown Customer'
           : 'Unknown Customer',

@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabase';
 
 export type AdminTicketRow = {
   inquiry_id: string;
+  display_id?: string;
   inquiry_message: string | null;
   inquiry_status: string | null;
   inquiry_type: string | null;
@@ -96,7 +97,7 @@ export function useAdminTickets(options: LoadInquiriesOptions = {}) {
         const res = await supabase
           .from('inquiries')
           .select(
-            'inquiry_id,inquiry_message,inquiry_status,inquiry_type,customer_id,received_at,resolution_comments,assigned_to,customer:customer_id(first_name,last_name,customer_type)'
+            'inquiry_id,display_id,inquiry_message,inquiry_status,inquiry_type,customer_id,received_at,resolution_comments,assigned_to,customer:customer_id(first_name,last_name,customer_type)'
           )
           .order('received_at', { ascending: false })
           .range(from, from + pageSize - 1);
@@ -115,7 +116,8 @@ export function useAdminTickets(options: LoadInquiriesOptions = {}) {
         const last = (row as any).customer_last_name || (row as any).customer?.last_name || '';
         const full = `${first} ${last}`.trim() || null;
         return {
-          inquiry_id: (row as any).inquiry_id,
+          inquiry_id: (row as any).display_id || (row as any).inquiry_id, // Prefer display_id
+          display_id: (row as any).display_id,
           inquiry_message: (row as any).inquiry_message ?? null,
           inquiry_status: (row as any).inquiry_status ?? null,
           inquiry_type: (row as any).inquiry_type ?? null,

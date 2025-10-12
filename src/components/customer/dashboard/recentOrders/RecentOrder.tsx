@@ -24,7 +24,7 @@ const RecentOrder: React.FC<RecentOrderProps> = ({ recentOrder }) => {
           <Text variant="h3" size="lg" weight="semibold" className="mb-1">
             Recent Order
           </Text>
-          <OrderID id={recentOrder.id} />
+          <OrderID id={recentOrder.id} displayId={recentOrder.displayId} />
           <StatusBadge status={recentOrder.status} />
         </div>
         <div className="text-right space-y-2 flex flex-col items-end justify-start pt-7">

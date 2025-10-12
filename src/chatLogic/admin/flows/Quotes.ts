@@ -20,6 +20,7 @@ export const quotesFlow: ChatFlow = {
         .select(`
           conversation_id,
           quote_id,
+          display_id,
           status,
           customer_id
         `)
@@ -37,7 +38,7 @@ export const quotesFlow: ChatFlow = {
         const messages: BotMessage[] = [
           {
             role: 'printy',
-            text: `Quote ID: ${conversation.quote_id ? conversation.quote_id.slice(0, 8) : conversation.conversation_id.slice(0, 8)}...`
+            text: `Quote ID: ${conversation.display_id || (conversation.quote_id ? conversation.quote_id.slice(0, 8) : conversation.conversation_id.slice(0, 8))}`
           },
           {
             role: 'printy',
@@ -210,7 +211,7 @@ export const quotesFlow: ChatFlow = {
       }
     }
 
-            const inputLower = input.toLowerCase();
+            // const inputLower = input.toLowerCase(); // Unused
             
             if (input === 'Summarize Order Specs') {
               return handleSummarizeSpecs(quote);
@@ -254,7 +255,7 @@ export const quotesFlow: ChatFlow = {
             order_specs: proposal.spec_final,
             currency: 'PHP'
           })
-          .select('order_id')
+          .select('order_id, display_id')
           .single();
 
         if (orderError) throw orderError;
@@ -274,7 +275,7 @@ export const quotesFlow: ChatFlow = {
           messages: [
             {
               role: 'printy',
-              text: `Order created successfully!\n\nOrder ID: ${orderData.order_id}\nStatus: Pending Payment\nTotal: ₱${proposal.quoted_price}`
+              text: `Order created successfully!\n\nOrder ID: ${orderData.display_id || orderData.order_id}\nStatus: Pending Payment\nTotal: ₱${proposal.quoted_price}`
             },
             {
               role: 'printy',
@@ -339,7 +340,7 @@ export const quotesFlow: ChatFlow = {
         messages: [
           {
             role: 'printy',
-            text: `Order ID: ${orderDetails.order_id}`
+            text: `Order ID: ${orderDetails.display_id || orderDetails.order_id}`
           },
           {
             role: 'printy',
@@ -495,7 +496,7 @@ async function displayQuoteWithCustomerDescription(quote: any): Promise<BotMessa
   // Quote ID
   messages.push({
     role: 'printy',
-    text: `Quote ID: ${quote.quote_id ? quote.quote_id.slice(0, 8) : quote.conversation_id.slice(0, 8)}...`
+    text: `Quote ID: ${quote.display_id || (quote.quote_id ? quote.quote_id.slice(0, 8) : quote.conversation_id.slice(0, 8))}`
   });
 
   // Customer info
@@ -541,13 +542,13 @@ async function displayQuoteWithCustomerDescription(quote: any): Promise<BotMessa
   return messages;
 }
 
-function displayQuoteOverview(quote: any): BotMessage[] {
+function _displayQuoteOverview(quote: any): BotMessage[] {
     const messages: BotMessage[] = [];
     
     // Quote ID
     messages.push({
       role: 'printy',
-      text: `Quote ID: ${quote.quote_id ? quote.quote_id.slice(0, 8) : quote.conversation_id.slice(0, 8)}...`
+      text: `Quote ID: ${quote.display_id || (quote.quote_id ? quote.quote_id.slice(0, 8) : quote.conversation_id.slice(0, 8))}`
     });
 
     // Customer info

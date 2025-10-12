@@ -297,7 +297,7 @@ export const issueTicketFlow: ChatFlow = {
 
       // Format output cleanly
       const lines = [
-        `Ticket ID: ${inquiry.inquiry_id}`,
+        `Ticket ID: ${inquiry.display_id || inquiry.inquiry_id}`,
         `Issue submitted: ${inquiry.inquiry_message || '(no message provided)'}`,
         `Issue type: ${inquiry.inquiry_type || '(not specified)'}`,
         `Received: ${new Date(inquiry.received_at).toLocaleString()}`,

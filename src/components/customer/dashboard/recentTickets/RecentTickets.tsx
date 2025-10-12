@@ -18,7 +18,7 @@ const RecentTickets: React.FC<RecentTicketsProps> = ({ recentTicket }) => {
       </Text>
       <div className="space-y-2">
         <TicketSubject subject={recentTicket.subject} />
-        <TicketID id={recentTicket.id} />
+        <TicketID id={recentTicket.id} displayId={recentTicket.displayId} />
         <StatusBadge status={recentTicket.status} />
       </div>
       <div className="mt-4">

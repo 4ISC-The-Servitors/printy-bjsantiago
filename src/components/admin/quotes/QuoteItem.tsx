@@ -43,7 +43,7 @@ const QuoteItem: React.FC<QuoteItemProps> = ({
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-2">
             <Text variant="p" size="sm" weight="medium" className="text-neutral-600">
-              Quote #{quote.quote_id ? quote.quote_id.slice(0, 8) : quote.conversation_id.slice(0, 8)}
+              {quote.display_id || (quote.quote_id ? `Quote #${quote.quote_id.slice(0, 8)}` : `Quote #${quote.conversation_id.slice(0, 8)}`)}
             </Text>
             <Badge variant={getQuoteStatusBadgeVariant(quote.status)} size="sm">
               {formatQuoteStatus(quote.status)}

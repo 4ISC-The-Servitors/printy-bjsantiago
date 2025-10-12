@@ -1,5 +1,6 @@
 export interface RecentOrder {
   id: string;
+  displayId?: string;
   title: string;
   status: string;
   updatedAt: number;
@@ -8,6 +9,7 @@ export interface RecentOrder {
 
 export interface RecentTicket {
   id: string;
+  displayId?: string;
   subject: string;
   status: string;
   updatedAt: number;
@@ -15,6 +17,7 @@ export interface RecentTicket {
 
 export interface RecentQuote {
   id: string;
+  displayId?: string;
   subject: string;
   status: 'active' | 'spec_proposed' | 'accepted' | 'rejected' | 'ended';
   updatedAt: number;

@@ -3,16 +3,17 @@ import { Text } from '../../../shared';
 
 interface QuoteIDProps {
   id: string;
+  displayId?: string;
 }
 
-const QuoteID: React.FC<QuoteIDProps> = ({ id }) => {
+const QuoteID: React.FC<QuoteIDProps> = ({ id, displayId }) => {
   return (
     <div>
       <Text variant="p" size="sm" weight="medium" color="muted" className="mb-1">
         Quote ID:
       </Text>
       <Text variant="p" size="sm" className="font-mono">
-        {id}
+        {displayId || id}
       </Text>
     </div>
   );

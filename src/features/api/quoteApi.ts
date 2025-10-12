@@ -10,8 +10,8 @@ export type ProposalStatus = 'draft' | 'sent' | 'accepted' | 'rejected' | 'expir
 export interface ConversationData {
   conversation_id: string;
   customer_id: string;
-  admin_id?: string;
   quote_id: string;
+  display_id?: string;
   status: QuoteStatus;
   language?: 'tl' | 'en';
   created_at: string;
@@ -34,7 +34,6 @@ export interface Proposal {
   proposal_id: string;
   conversation_id: string;
   spec_id: string;
-  admin_id: string;
   spec_final: SpecData;
   quoted_price: number;
   currency: string;
@@ -102,7 +101,7 @@ export async function sendMessage(params: {
 }
 
 // AI spec generation
-export async function summarizeConversation(conversationId: string, adminId: string): Promise<{
+export async function summarizeConversation(conversationId: string): Promise<{
   specId: string;
   specData: SpecData;
   language: 'tl' | 'en';
@@ -127,8 +126,7 @@ export async function summarizeConversation(conversationId: string, adminId: str
     .from('quote_specs')
     .insert({
       conversation_id: conversationId,
-      spec_data: result.spec,
-      triggered_by_admin_id: adminId
+      spec_data: result.spec
     })
     .select('spec_id')
     .single();
@@ -152,7 +150,6 @@ export async function summarizeConversation(conversationId: string, adminId: str
 export async function createProposal(params: {
   conversationId: string;
   specId: string;
-  adminId: string;
   specFinal: SpecData;
   quotedPrice: number;
   notes?: string;
@@ -163,7 +160,6 @@ export async function createProposal(params: {
     .insert({
       conversation_id: params.conversationId,
       spec_id: params.specId,
-      admin_id: params.adminId,
       spec_final: params.specFinal,
       quoted_price: params.quotedPrice,
       notes: params.notes,
@@ -253,7 +249,7 @@ export async function rejectProposal(proposalId: string, reason?: string): Promi
 }
 
 // Order conversion
-export async function convertProposalToOrder(proposalId: string): Promise<string> {
+export async function convertProposalToOrder(_proposalId: string): Promise<string> {
   // This would integrate with your existing order system
   // For now, return a placeholder
   throw new Error('convertProposalToOrder not yet implemented');

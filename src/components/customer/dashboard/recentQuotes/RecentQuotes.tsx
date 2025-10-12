@@ -18,7 +18,7 @@ const RecentQuotes: React.FC<RecentQuotesProps> = ({ recentQuote }) => {
       </Text>
       <div className="space-y-2">
         <QuoteSubject subject={recentQuote.subject} />
-        <QuoteID id={recentQuote.id} />
+        <QuoteID id={recentQuote.id} displayId={recentQuote.displayId} />
         <StatusBadge status={recentQuote.status} />
       </div>
       <div className="mt-4">

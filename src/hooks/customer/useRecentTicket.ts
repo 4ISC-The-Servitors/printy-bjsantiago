@@ -39,7 +39,8 @@ export function useRecentTicket() {
         }
         if (row) {
           setData({
-            id: row.inquiry_id,
+            id: row.inquiry_id, // Use actual inquiry_id for database queries
+            displayId: row.display_id, // Store display_id separately for display
             subject: row.inquiry_message || '(no subject)',
             status: row.inquiry_status || 'unknown',
             updatedAt: new Date(row.received_at).getTime(),

@@ -66,9 +66,9 @@ export function useQuoteConversation(conversationId: string) {
   }, [conversationId, loadConversation]);
 
   // Summarize conversation with AI
-  const summarizeSpecs = useCallback(async (adminId: string) => {
+  const summarizeSpecs = useCallback(async () => {
     try {
-      const result = await summarizeConversation(conversationId, adminId);
+      const result = await summarizeConversation(conversationId);
       
       // Reload conversation to get updated language
       await loadConversation();

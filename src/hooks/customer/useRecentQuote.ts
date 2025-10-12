@@ -23,8 +23,9 @@ export function useRecentQuote(customerId?: string) {
         if (conversations.length > 0) {
           const latest = conversations[0];
           setRecentQuote({
-            id: latest.conversation_id,
-            subject: `Quote Request #${latest.quote_id ? latest.quote_id.slice(0, 8) : latest.conversation_id.slice(0, 8)}`,
+            id: latest.conversation_id, // Use actual conversation_id for database queries
+            displayId: latest.display_id, // Store display_id separately for display
+            subject: `Quote Request #${latest.display_id || (latest.quote_id ? latest.quote_id.slice(0, 8) : latest.conversation_id.slice(0, 8))}`,
             status: latest.status,
             updatedAt: new Date(latest.updated_at).getTime()
           });
