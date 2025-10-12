@@ -11,14 +11,19 @@
     "type-check": "tsc --noEmit",
     "format": "prettier --write .",
     "format:staged": "powershell -NoProfile -Command \"$files = git diff --name-only --cached --diff-filter=d -- '*.ts' '*.tsx' '*.js' '*.jsx' '*.json' '*.css' '*.md'; if ($files) { npx prettier --ignore-unknown --write $files } else { 'No staged files to format.' }\"",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "backup:run": "node --env-file=.env.backup --experimental-strip-types scripts/backup/backup.ts",
+    "backup:restore": "node --env-file=.env.backup --experimental-strip-types scripts/backup/restore.ts",
+    "backup:schedule": "node --env-file=.env.backup --experimental-strip-types scripts/backup/scheduler.ts"
   },
   "dependencies": {
     "@supabase/auth-ui-react": "^0.4.7",
     "@supabase/auth-ui-shared": "^0.1.8",
     "@supabase/supabase-js": "^2.57.4",
+    "dotenv": "^16.4.5",
     "clsx": "^2.1.1",
     "lucide-react": "^0.544.0",
+    "node-cron": "^3.0.3",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-router-dom": "^7.9.1",
