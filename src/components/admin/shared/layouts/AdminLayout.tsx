@@ -76,6 +76,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       dashboard: '/admin',
       orders: '/admin/orders',
       tickets: '/admin/tickets',
+      quotes: '/admin/quotes',
       portfolio: '/admin/portfolio',
     };
     navigate(routes[route]);

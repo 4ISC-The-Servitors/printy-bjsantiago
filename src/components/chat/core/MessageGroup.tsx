@@ -1,5 +1,6 @@
 import React from 'react';
 import MessageBubble from './MessageBubble';
+import { QuickReplyGrid } from './QuickReply';
 import type { ChatMessage, QuickReply } from '../types';
 import {
   formatShortTime,
@@ -85,59 +86,5 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({
   );
 };
 
-// Quick Reply Grid Component (extracted for reusability)
-interface QuickReplyGridProps {
-  replies: QuickReply[];
-  onQuickReply?: (value: string) => void;
-  onEndChat?: () => void;
-}
-
-const QuickReplyGrid: React.FC<QuickReplyGridProps> = ({
-  replies,
-  onQuickReply,
-  onEndChat,
-}) => {
-  const endLabels = new Set([
-    'end',
-    'end chat',
-    'close chat',
-    'end conversation',
-    'finish',
-    'done',
-  ]);
-
-  return (
-    <div className="flex flex-wrap gap-3 mt-3 ml-6 sm:gap-3 sm:ml-8">
-      {replies.map((reply, index) => {
-        const isEnd = endLabels.has(reply.label.trim().toLowerCase());
-        const handleClick = () => {
-          if (isEnd) {
-            onEndChat?.();
-          } else {
-            onQuickReply?.(reply.value);
-          }
-        };
-
-        return (
-          <button
-            key={index}
-            onClick={handleClick}
-            className={`
-              px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all
-              ${
-                isEnd
-                  ? 'bg-neutral-200 text-neutral-700 hover:bg-neutral-300'
-                  : 'bg-brand-primary text-white hover:bg-brand-primary-900'
-              }
-              active:scale-95
-            `}
-          >
-            {reply.label}
-          </button>
-        );
-      })}
-    </div>
-  );
-};
 
 export default MessageGroup;

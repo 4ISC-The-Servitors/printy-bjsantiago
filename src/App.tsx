@@ -17,6 +17,7 @@ import './index.css';
 const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'));
 const AdminOrders = lazy(() => import('./pages/admin/Orders'));
 const AdminTickets = lazy(() => import('./pages/admin/Tickets'));
+const AdminQuotes = lazy(() => import('./pages/admin/Quotes'));
 const AdminSettingsPage = lazy(() => import('./pages/admin/AdminSettings'));
 const AdminPortfolio = lazy(() => import('./pages/admin/Portfolio'));
 const AdminChats = lazy(() => import('./pages/admin/Chats'));
@@ -68,6 +69,14 @@ function App() {
           element={
             <Suspense fallback={<PageLoading variant="list" />}>
               <AdminTickets />
+            </Suspense>
+          }
+        />
+        <Route
+          path="quotes"
+          element={
+            <Suspense fallback={<PageLoading variant="list" />}>
+              <AdminQuotes />
             </Suspense>
           }
         />

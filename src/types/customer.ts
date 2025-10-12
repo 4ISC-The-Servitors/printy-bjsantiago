@@ -13,6 +13,13 @@ export interface RecentTicket {
   updatedAt: number;
 }
 
+export interface RecentQuote {
+  id: string;
+  subject: string;
+  status: 'active' | 'spec_proposed' | 'accepted' | 'rejected' | 'ended';
+  updatedAt: number;
+}
+
 export interface RecentActivityProps {
   recentOrder: RecentOrder;
   recentTicket: RecentTicket;

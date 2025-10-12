@@ -69,6 +69,9 @@ export const useAdminChat = (): UseAdminChatReturn => {
     if (t.includes('tickets') || t.includes('ticket')) {
       return orderId ? `Tickets • ${orderId}` : 'Tickets';
     }
+    if (t.includes('quotes') || t.includes('quote')) {
+      return orderId ? `Quotes • ${orderId}` : 'Quotes';
+    }
     if (t.includes('add-service') || t.includes('add service')) {
       return 'Add Service';
     }
@@ -240,49 +243,17 @@ export const useAdminChat = (): UseAdminChatReturn => {
           },
           refreshTickets: refreshOrders,
         };
-        setCurrentInquiryId(orderId || null);
-        // For ticket chats, create a DB-backed chat session tied to the ticket's customer
-        if (orderId) {
-          void (async () => {
-            try {
-              // Fetch inquiry data for display
-              const inquiry = await ChatDatabaseService.fetchInquiryById(orderId);
-              
-              if (inquiry) {
-                // Update context with inquiry data
-                setCurrentContext((prev: any) => ({
-                  ...prev,
-                  inquiry: inquiry
-                }));
-                
-                // Get or create chat session linked to this inquiry
-                const { data: sessionIdData, error: sessionError } = await supabase.rpc(
-                  'api_get_or_create_inquiry_session',
-                  { p_inquiry_id: orderId }
-                );
-                
-                if (!sessionError && sessionIdData) {
-                  setDbSessionId(sessionIdData);
-                  
-                  // Fetch conversation history
-                  try {
-                    const chatHistory = await ChatDatabaseService.fetchSessionMessages(sessionIdData);
-                    setCurrentContext((prev: any) => ({
-                      ...prev,
-                      chatHistory: chatHistory || []
-                    }));
-                  } catch (historyError) {
-                    console.error('Failed to fetch conversation history:', historyError);
-                  }
-                }
-              }
-            } catch (e) {
-              // Best-effort session creation; continue even if it fails
-              // eslint-disable-next-line no-console
-              console.error('Failed to init DB session for ticket chat', e);
-            }
-          })();
-        }
+      } else if (nextTopic === 'quotes') {
+        context = {
+          conversationId: orderId,
+          quotes: orders,
+          // Future: Add quote update functions when quote API is implemented
+          updateQuote: async (conversationId: string, updates: any) => {
+            console.log('Quote update not yet implemented:', conversationId, updates);
+          },
+          refreshQuotes: refreshOrders,
+        };
+        // Note: Quotes use conversationId, not inquiryId
       } else {
         context = orderId
           ? { orderId, updateOrder, orders, refreshOrders, orderIds }

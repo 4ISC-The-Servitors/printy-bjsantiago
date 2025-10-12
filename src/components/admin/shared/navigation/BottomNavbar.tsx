@@ -6,25 +6,23 @@ import {
   Package,
   Ticket,
   BriefcaseBusiness,
-  MessageSquare,
+  FileText,
 } from 'lucide-react';
 
-export type NavRoute = 'dashboard' | 'orders' | 'tickets' | 'portfolio';
+export type NavRoute = 'dashboard' | 'orders' | 'tickets' | 'portfolio' | 'quotes';
 
 export interface BottomNavbarProps {
   onNavigate: (route: NavRoute) => void;
-  onOpenChat: () => void;
 }
 
 /**
  * Bottom navigation bar for admin
  * Consistent across desktop and mobile
- * Contains: Dashboard, Orders, Tickets, Portfolio, Printy (chat)
+ * Contains: Dashboard, Orders, Tickets, Portfolio, Quotes
  * Settings & Logout are in the collapsible sidebar
  */
 export const BottomNavbar: React.FC<BottomNavbarProps> = ({
   onNavigate,
-  onOpenChat,
 }) => {
   const location = useLocation();
 
@@ -33,6 +31,7 @@ export const BottomNavbar: React.FC<BottomNavbarProps> = ({
     if (location.pathname.startsWith('/admin/orders')) return 'orders';
     if (location.pathname.startsWith('/admin/tickets')) return 'tickets';
     if (location.pathname.startsWith('/admin/portfolio')) return 'portfolio';
+    if (location.pathname.startsWith('/admin/quotes')) return 'quotes';
     return null;
   };
 
@@ -58,6 +57,11 @@ export const BottomNavbar: React.FC<BottomNavbarProps> = ({
       id: 'portfolio' as NavRoute,
       label: 'Portfolio',
       icon: BriefcaseBusiness,
+    },
+    {
+      id: 'quotes' as NavRoute,
+      label: 'Quotes',
+      icon: FileText,
     },
   ];
 
@@ -90,20 +94,6 @@ export const BottomNavbar: React.FC<BottomNavbarProps> = ({
               </Button>
             );
           })}
-
-          {/* Printy Chat Button */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onOpenChat}
-            className="flex flex-col items-center gap-1 min-h-[56px] text-neutral-600 hover:text-brand-primary"
-            aria-label="Open Printy chat"
-          >
-            <MessageSquare className="h-5 w-5" />
-            <Text variant="p" size="xs" className="hidden sm:block">
-              Printy
-            </Text>
-          </Button>
         </div>
       </div>
 
