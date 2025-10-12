@@ -4,6 +4,7 @@ import { faqsFlow } from './flows/Faqs';
 import { placeOrderFlow } from './flows/PlaceOrder';
 import { servicesOfferedFlow } from './flows/ServicesOffered';
 import { trackTicketFlow } from './flows/TrackTicket';
+import { trackQuoteFlow } from './flows/TrackQuote';
 import { paymentFlow } from './flows/Payment';
 import { cancelOrderFlow } from './flows/CancelOrder';
 import { askQuoteFlow } from './flows/AskQuote';
@@ -17,6 +18,7 @@ export const customerFlows: Record<string, ChatFlow> = {
   'ask-quote': askQuoteFlow,
   services: servicesOfferedFlow,
   'track-ticket': trackTicketFlow,
+  'track-quote': trackQuoteFlow,
   payment: paymentFlow,
   'cancel-order': cancelOrderFlow,
 };
@@ -30,6 +32,7 @@ export function resolveCustomerFlow(
   if (t.includes('place') || t.includes('order')) return placeOrderFlow;
   if (t.includes('ask') && t.includes('quote')) return askQuoteFlow;
   if (t.includes('service')) return servicesOfferedFlow;
+  if (t.includes('track') && t.includes('quote')) return trackQuoteFlow;
   if (t.includes('track')) return trackTicketFlow;
   if (t.includes('pay')) return paymentFlow;
   if (t.includes('cancel')) return cancelOrderFlow;

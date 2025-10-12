@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Modal, Text, Button, ToastContainer } from '../../../shared';
+import { SpecEditorModal } from '../../quotes/SpecEditorModal';
 import { X } from 'lucide-react';
 import { useIsMobile } from '../../../../hooks/ui/useIsMobile';
 import { useToast } from '../../../../lib/useToast';
@@ -153,6 +154,9 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           {children}
         </DesktopLayout>
       )}
+
+      {/* Spec Editor Modal */}
+      <SpecEditorModal />
 
       {/* Logout Confirmation Modal */}
       <Modal

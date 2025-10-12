@@ -92,34 +92,20 @@ export function useAdminTickets(options: LoadInquiriesOptions = {}) {
           }
         }
       } else {
-        // Original logic - try duplicate first, then fallback to original
-        let table = 'inquiries_duplicate';
-        let res = await supabase
-          .from(table)
+        // Use real inquiries table only
+        const res = await supabase
+          .from('inquiries')
           .select(
             'inquiry_id,inquiry_message,inquiry_status,inquiry_type,customer_id,received_at,resolution_comments,assigned_to,customer:customer_id(first_name,last_name,customer_type)'
           )
           .order('received_at', { ascending: false })
           .range(from, from + pageSize - 1);
           
-        if (res.error) {
-          // fallback to original
-          table = 'inquiries';
-          res = await supabase
-            .from(table)
-            .select(
-              'inquiry_id,inquiry_message,inquiry_status,inquiry_type,customer_id,received_at,resolution_comments,assigned_to,customer:customer_id(first_name,last_name,customer_type)'
-            )
-            .order('received_at', { ascending: false })
-            .range(from, from + pageSize - 1);
-        }
         if (res.error) throw res.error;
         
         rows = res.data as any[] || [];
         console.debug(
-          '[useAdminTickets] table:',
-          table,
-          'rows:',
+          '[useAdminTickets] table: inquiries, rows:',
           rows.length
         );
       }

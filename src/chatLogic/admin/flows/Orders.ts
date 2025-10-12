@@ -1,8 +1,6 @@
 // Refactored Orders Flow using shared utilities and base framework
 
 import type { BotMessage } from '../../../types/chatFlow';
-// BACKEND_TODO: Remove mockOrders import; rely solely on context-provided orders from Supabase.
-import { mockOrders } from '../../../data/orders'; // DELETE when backend is wired
 import { FlowBase, ORDER_STATUS_OPTIONS, createInfoMessage } from '../shared';
 import { normalizeOrderStatus } from '../shared/utils/StatusNormalizers';
 import type { FlowState, FlowContext, NodeHandler } from '../shared';
@@ -37,7 +35,7 @@ class OrdersFlow extends FlowBase {
 
   protected initializeState(context: FlowContext): void {
     this.state.currentOrderId = (context?.orderId as string) || null;
-    this.state.currentOrders = (context?.orders as any[]) || mockOrders;
+    this.state.currentOrders = (context?.orders as any[]) || [];
     this.state.selectedIds = Array.isArray(context?.orderIds)
       ? ((context?.orderIds as string[]) || []).map(x => x.toUpperCase())
       : [];
@@ -89,7 +87,6 @@ class OrdersFlow extends FlowBase {
       getOrders: (_s, _c) => (this.state as OrdersState).currentOrders,
       getOrderById: (_s, id) =>
         (this.state as OrdersState).currentOrders.find(o => o.id === id) ||
-        mockOrders.find(o => o.id === id) ||
         null,
       setCurrentOrderId: (_s, id) => {
         (this.state as OrdersState).currentOrderId = id;
@@ -361,10 +358,7 @@ class OrdersFlow extends FlowBase {
   private getCurrentOrder(state: OrdersState): any {
     if (!state.currentOrderId) return null;
     const up = state.currentOrderId.toUpperCase();
-    return (
-      state.currentOrders.find(o => (o.id || '').toUpperCase() === up) ||
-      mockOrders.find(o => (o.id || '').toUpperCase() === up)
-    );
+    return state.currentOrders.find(o => (o.id || '').toUpperCase() === up);
   }
 
   private getStatusIndicator(status: string): string {
@@ -409,11 +403,8 @@ class OrdersFlow extends FlowBase {
       this.context.updateOrder(orderId, updates);
     }
 
-    // Update mock data
-    const mi = mockOrders.findIndex(o => o.id === orderId);
-    if (mi !== -1) {
-      mockOrders[mi] = { ...mockOrders[mi], ...updates };
-    }
+    // Note: In a real implementation, this would update the database
+    // For now, we rely on the context to provide updated data
 
     // Update local state
     state.currentOrders = state.currentOrders.map(o =>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Badge, Button, Checkbox, Text } from '../../shared';
 import { getServiceStatusBadgeVariant } from '../../../utils/admin/statusColors';
+import { formatStatus } from '../../../utils/shared/statusFormatter';
 import { MessageSquare } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 import { useIsMobile } from '../../../hooks/ui/useIsMobile';
@@ -79,7 +80,7 @@ export const ServiceItem: React.FC<ServiceItemProps> = ({
               variant={getServiceStatusBadgeVariant(service.status)}
               className="text-sm px-3 py-1"
             >
-              {service.status}
+              {formatStatus(service.status)}
             </Badge>
           </div>
         </div>

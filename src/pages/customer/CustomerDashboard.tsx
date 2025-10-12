@@ -12,11 +12,13 @@ import LogoutModal from '../../components/customer/shared/sidebar/LogoutModal';
 import ChatCards from '../../components/customer/dashboard/chatCards/ChatCards';
 import RecentOrder from '../../components/customer/dashboard/recentOrders/RecentOrder';
 import RecentTickets from '../../components/customer/dashboard/recentTickets/RecentTickets';
+import RecentQuotes from '../../components/customer/dashboard/recentQuotes/RecentQuotes';
 // Shared UI components
 import { ToastContainer, Text, PageLoading } from '../../components/shared';
 import { useLogoutWithToast } from '../../hooks/auth/useLogoutWithToast';
 import { useRecentOrder } from '../../hooks/customer/useRecentOrder';
 import { useRecentTicket } from '../../hooks/customer/useRecentTicket';
+import { useRecentQuote } from '../../hooks/customer/useRecentQuote';
 import { useRecentChatSessions } from '../../hooks/customer/useRecentChatSessions';
 import { useDashboardChatEvents } from '../../hooks/customer/useDashboardChatEvents';
 import { useChatAttachments } from '../../hooks/core/useChatAttachments';
@@ -134,9 +136,21 @@ const CustomerDashboard: React.FC = () => {
 
   const [isLoading, setIsLoading] = useState(true);
 
-  // Live recent order/ticket from Supabase
+  // Live recent order/ticket/quote from Supabase
   const { data: recentOrder } = useRecentOrder();
   const { data: recentTicket } = useRecentTicket();
+  
+  // Get current user for recent quote
+  const [customerId, setCustomerId] = useState<string | undefined>();
+  useEffect(() => {
+    const getCustomerId = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setCustomerId(user?.id);
+    };
+    getCustomerId();
+  }, []);
+  
+  const { data: recentQuote } = useRecentQuote(customerId);
   useRecentChatSessions(setConversations);
 
   // Initial loading shimmer for dashboard visuals
@@ -282,7 +296,7 @@ const CustomerDashboard: React.FC = () => {
                 </Text>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
                 <RecentOrder
                   recentOrder={
                     recentOrder ?? {
@@ -299,6 +313,16 @@ const CustomerDashboard: React.FC = () => {
                       id: '—',
                       subject: 'No recent ticket',
                       status: 'none',
+                      updatedAt: Date.now(),
+                    }
+                  }
+                />
+                <RecentQuotes
+                  recentQuote={
+                    recentQuote ?? {
+                      id: '—',
+                      subject: 'No recent quote request',
+                      status: 'active',
                       updatedAt: Date.now(),
                     }
                   }

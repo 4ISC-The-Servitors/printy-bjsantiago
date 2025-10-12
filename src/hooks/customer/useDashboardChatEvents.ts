@@ -104,6 +104,33 @@ export function useDashboardChatEvents(
         handler as EventListener
       );
   }, [initializeFlow]);
+
+  // Track Quote - Open quote conversation
+  useEffect(() => {
+    const handler = async (e: Event) => {
+      const detail = (e as CustomEvent).detail as { 
+        conversationId: string; 
+        subject: string; 
+      };
+      const { conversationId, subject } = detail;
+      
+      if (!conversationId) return;
+      
+      // Use track-quote flow with conversation context
+      const title = `Quote: ${subject}`;
+      initializeFlow('track-quote', title, {
+        conversationId,
+        subject
+      });
+    };
+    
+    window.addEventListener('customer-open-quote-chat', handler as EventListener);
+    return () =>
+      window.removeEventListener(
+        'customer-open-quote-chat',
+        handler as EventListener
+      );
+  }, [initializeFlow]);
 }
 
 export default useDashboardChatEvents;

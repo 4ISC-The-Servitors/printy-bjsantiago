@@ -7,7 +7,7 @@ import type { FlowDriver } from './FlowDriver';
 
 type ScriptedFlow = {
   id: string;
-  initial: (ctx: unknown) => { text: string }[];
+  initial: (ctx: unknown) => { text: string }[] | Promise<{ text: string }[]>;
   respond: (
     ctx: unknown,
     input: string
@@ -18,6 +18,7 @@ type ScriptedFlow = {
 export class ScriptedFlowDriver implements FlowDriver {
   id: string;
   private flow: ScriptedFlow;
+  private context: unknown = {};
 
   constructor(flow: ScriptedFlow) {
     this.id = flow.id;
@@ -25,11 +26,15 @@ export class ScriptedFlowDriver implements FlowDriver {
   }
 
   async initial(ctx: unknown): Promise<{ text: string }[]> {
-    return this.flow.initial(ctx);
+    // Store the initial context so it can be used in respond()
+    this.context = ctx;
+    return await this.flow.initial(ctx);
   }
 
   async respond(ctx: unknown, input: string): Promise<{ messages: { text: string }[]; quickReplies?: string[] }> {
-    return this.flow.respond(ctx, input);
+    // Merge any new context with the stored context, prioritizing new context
+    const mergedCtx = { ...this.context, ...ctx };
+    return this.flow.respond(mergedCtx, input);
   }
 }
 

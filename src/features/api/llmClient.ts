@@ -5,7 +5,7 @@ export type LLMMessage = {
 };
 
 const BASE_URL = import.meta.env.VITE_LLM_BASE_URL || 'https://api.cohere.ai/v1';
-const MODEL = import.meta.env.VITE_LLM_MODEL || 'command';
+const MODEL = import.meta.env.VITE_LLM_MODEL || 'command-light';
 const API_KEY = import.meta.env.VITE_COHERE_API_KEY || '';
 
 function ensureKeyIfNeeded() {
@@ -20,7 +20,8 @@ export async function generateJSON(messages: LLMMessage[], forceJson = false) {
 
 export async function generateWithCohere(
   messages: LLMMessage[],
-  forceJson = false
+  forceJson = false,
+  modelOverride?: string
 ): Promise<any> {
   ensureKeyIfNeeded();
   
@@ -38,7 +39,7 @@ export async function generateWithCohere(
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: MODEL,
+      model: modelOverride || MODEL,
       message: lastMessage.content,
       chat_history: chatHistory,
       temperature: 0.2,
@@ -47,7 +48,20 @@ export async function generateWithCohere(
   });
   
   if (!res.ok) {
-    throw new Error(`Cohere error ${res.status}: ${await res.text()}`);
+    const errorText = await res.text();
+    let errorMessage = `Cohere error ${res.status}`;
+    try {
+      const errorJson = JSON.parse(errorText);
+      errorMessage += `: ${errorJson.message}`;
+      if (errorJson.message?.includes('model') && !modelOverride) {
+        // If model error and no override was specified, try with command-light
+        console.warn('Retrying with command-light model...');
+        return generateWithCohere(messages, forceJson, 'command-light');
+      }
+    } catch {
+      errorMessage += `: ${errorText}`;
+    }
+    throw new Error(errorMessage);
   }
   
   const data = await res.json();

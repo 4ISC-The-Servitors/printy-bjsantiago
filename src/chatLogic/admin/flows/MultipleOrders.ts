@@ -1,8 +1,6 @@
 // Refactored MultipleOrders Flow using shared utilities and base framework
 
 import type { BotMessage } from '../../../types/chatFlow';
-// BACKEND_TODO: Remove mockOrders import; rely solely on context-provided orders from Supabase.
-import { mockOrders } from '../../../data/orders'; // DELETE when backend is wired
 import { FlowBase, ORDER_STATUS_OPTIONS, createSelectionListMessage } from '../shared';
 import { normalizeOrderStatus } from '../shared/utils/StatusNormalizers';
 import type { FlowState, FlowContext, NodeHandler } from '../shared';
@@ -51,7 +49,7 @@ class MultipleOrdersFlow extends FlowBase {
     this.state.selectedIds = Array.isArray(context?.orderIds)
       ? (context?.orderIds as string[]).map(x => x.toUpperCase())
       : [];
-    this.state.ordersRef = (context?.orders as any[]) || mockOrders;
+    this.state.ordersRef = (context?.orders as any[]) || [];
     this.state.changedIds = new Set<string>();
     this.state.quotedIds = new Set<string>();
     this.state.currentTargetId = null;
@@ -488,10 +486,7 @@ class MultipleOrdersFlow extends FlowBase {
 
   private findOrder(id: string, state: MultipleOrdersState): any {
     const up = id.toUpperCase();
-    return (
-      state.ordersRef.find(o => (o.id || '').toUpperCase() === up) ||
-      mockOrders.find(o => (o.id || '').toUpperCase() === up)
-    );
+    return state.ordersRef.find(o => (o.id || '').toUpperCase() === up);
   }
 
   private updateOrder(
@@ -504,11 +499,8 @@ class MultipleOrdersFlow extends FlowBase {
       this.context.updateOrder(orderId, updates);
     }
 
-    // Update mock data
-    const mi = mockOrders.findIndex(o => o.id === orderId);
-    if (mi !== -1) {
-      mockOrders[mi] = { ...mockOrders[mi], ...updates };
-    }
+    // Note: In a real implementation, this would update the database
+    // For now, we rely on the context to provide updated data
 
     // Update local state
     state.ordersRef = state.ordersRef.map(o =>

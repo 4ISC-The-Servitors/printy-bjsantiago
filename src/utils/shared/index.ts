@@ -2,4 +2,4 @@
 export * from './priceFormatter';
 export * from './dateFormatter';
 export * from './timeFormatter';
-export * from './dateFormatter';
+export * from './statusFormatter';

@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import MessageBubble from './MessageBubble';
 import { QuickReplyGrid } from './QuickReply';
+import TypingIndicator from './TypingIndicator';
 import type { ChatMessage, QuickReply } from '../types';
 import {
   formatShortTime,
@@ -24,10 +25,55 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({
   onQuickReply,
   onEndChat,
 }) => {
+  const [visibleCount, setVisibleCount] = useState(0);
+  const [showTyping, setShowTyping] = useState(false);
+  const [hasAnimated, setHasAnimated] = useState(false);
+  const [initialMessageCount] = useState(messages.length);
+
   if (messages.length === 0) return null;
 
   const isBot = messages[0]?.role === 'printy';
   const mostRecentTs = messages[messages.length - 1]?.ts ?? 0;
+
+  // Determine if we should animate (only for new messages, not on refresh)
+  const shouldAnimate = isBot && !hasAnimated;
+
+  // Animate bot messages appearing one by one with typing indicator
+  useEffect(() => {
+    if (shouldAnimate && visibleCount < messages.length) {
+      // Show typing indicator
+      setShowTyping(true);
+
+      // Hide typing indicator and show next message after delay
+      const typingDelay = Math.min(500 + (messages[visibleCount]?.text?.length || 0) * 10, 2000);
+      const timer = setTimeout(() => {
+        setShowTyping(false);
+        setVisibleCount(prev => prev + 1);
+      }, typingDelay);
+
+      return () => clearTimeout(timer);
+    } else if (shouldAnimate && visibleCount >= messages.length) {
+      // Animation complete
+      setHasAnimated(true);
+    }
+  }, [visibleCount, messages.length, shouldAnimate, messages]);
+
+  // Initialize visible count
+  useEffect(() => {
+    if (!isBot) {
+      // User messages appear instantly
+      setVisibleCount(messages.length);
+      setHasAnimated(true);
+    } else if (messages.length === initialMessageCount) {
+      // This is the initial render - start animation from 0
+      setVisibleCount(0);
+      setHasAnimated(false);
+    } else {
+      // New messages added to existing group - show all immediately (no re-animation)
+      setVisibleCount(messages.length);
+      setHasAnimated(true);
+    }
+  }, [messages.length, isBot, initialMessageCount]);
 
   const formatRelativeTime = (ts: number, isMostRecent: boolean): string => {
     if (isMostRecent) return formatRelativeTimeLabel(ts);
@@ -50,9 +96,12 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({
       .trim();
   };
 
+  // Get visible messages (for bot animation or show all if already animated)
+  const visibleMessages = (isBot && shouldAnimate) ? messages.slice(0, visibleCount) : messages;
+
   return (
     <div className={`space-y-2 ${isBot ? 'text-left' : 'text-right'}`}>
-      {messages.map(m => {
+      {visibleMessages.map(m => {
         const preserveNewlines =
           isBot &&
           /Order .* — Status: /.test(m.text) &&
@@ -74,8 +123,11 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({
         );
       })}
 
-      {/* Quick Replies for bot messages */}
-      {isBot && quickReplies && quickReplies.length > 0 && (
+      {/* Show typing indicator while bot is "typing" (only during animation) */}
+      {isBot && shouldAnimate && showTyping && <TypingIndicator />}
+
+      {/* Quick Replies for bot messages - show when all messages are visible or animation is done */}
+      {isBot && quickReplies && quickReplies.length > 0 && (hasAnimated || visibleCount >= messages.length) && (
         <QuickReplyGrid
           replies={quickReplies}
           onQuickReply={onQuickReply}

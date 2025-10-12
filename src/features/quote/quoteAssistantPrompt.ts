@@ -49,6 +49,7 @@ export interface SpecData {
   artwork?: string;
   deadline?: string;
   notes?: string;
+  quoted_price?: number;
 }
 
 export interface QuoteAnalysisResult {

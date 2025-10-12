@@ -1,6 +1,8 @@
 import React from 'react';
 import { Text, Badge } from '../../../shared';
 import { useAdminConversations } from '../../../../hooks/admin/useAdminConversations';
+import { formatQuoteStatus } from '../../../../utils/shared/statusFormatter';
+import { getQuoteStatusBadgeVariant } from '../../../../utils/admin/statusColors';
 
 interface RecentChatsProps {
   onSelect?: (conversationId: string) => void;
@@ -61,10 +63,10 @@ const RecentChats: React.FC<RecentChatsProps> = ({
                       {c.title}
                     </Text>
                     <Badge
-                      variant={c.status === 'active' ? 'success' : 'error'}
+                      variant={getQuoteStatusBadgeVariant(c.status)}
                       size="sm"
                     >
-                      {c.status === 'active' ? 'Active' : 'Ended'}
+                      {formatQuoteStatus(c.status)}
                     </Badge>
                   </div>
                   <Text

@@ -1,6 +1,7 @@
 import React from 'react';
-import { Badge, Button, Checkbox, Text } from '../../shared';
+import { Badge, Button, Checkbox } from '../../shared';
 import { getTicketStatusBadgeVariant } from '../../../utils/admin/statusColors';
+import { formatTicketStatus } from '../../../utils/shared/statusFormatter';
 import { MessageSquare } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 import { useIsMobile } from '../../../hooks/ui/useIsMobile';
@@ -71,7 +72,7 @@ export const TicketItem: React.FC<TicketItemProps> = ({
               variant={getTicketStatusBadgeVariant(ticket.inquiry_status || '')}
               className="text-xs sm:text-sm"
             >
-              {ticket.inquiry_status}
+              {formatTicketStatus(ticket.inquiry_status || '')}
             </Badge>
           </div>
         </div>

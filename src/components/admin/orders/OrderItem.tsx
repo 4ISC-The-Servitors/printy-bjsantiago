@@ -1,19 +1,15 @@
 import React from 'react';
 import { Badge, Button, Checkbox } from '../../shared';
 import { getOrderStatusBadgeVariant } from '../../../utils/admin/statusColors';
+import { formatOrderStatus } from '../../../utils/shared/statusFormatter';
 import { MessageSquare } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 import { useIsMobile } from '../../../hooks/ui/useIsMobile';
 import { MobileCardMenu } from '../mobile';
+import type { AdminOrderRow } from '../../../hooks/admin/useAdminOrders';
 
-interface Order {
-  id: string;
-  customer: string;
-  total: string;
-  date: string;
-  status: string;
-  priority?: string;
-}
+// Use AdminOrderRow type instead of local Order interface
+type Order = AdminOrderRow;
 
 interface OrderItemProps {
   order: Order;
@@ -83,7 +79,7 @@ export const OrderItem: React.FC<OrderItemProps> = ({
                 variant={getOrderStatusBadgeVariant(order.status)}
                 className="text-xs"
               >
-                {order.status}
+                {formatOrderStatus(order.status)}
               </Badge>
             </div>
           </div>
@@ -107,7 +103,7 @@ export const OrderItem: React.FC<OrderItemProps> = ({
               variant={getOrderStatusBadgeVariant(order.status)}
               className="text-xs sm:text-sm"
             >
-              {order.status}
+              {formatOrderStatus(order.status)}
             </Badge>
           </div>
         </div>

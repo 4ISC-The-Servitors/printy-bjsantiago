@@ -137,21 +137,25 @@ export const useAdminChat = (): UseAdminChatReturn => {
       setCurrentConversationId(convId);
       const flow = resolveAdminFlow('intro');
       if (!flow) return;
-      const initial = flow.initial({});
-      setMessages(
-        initial.map(m => ({
-          id: crypto.randomUUID(),
-          role: m.role as ChatRole,
-          text: m.text,
-          ts: Date.now(),
-        }))
-      );
-      initial.forEach(m => addConvMessage('printy', m.text, convId));
-      setQuickReplies(
-        flow
-          .quickReplies()
-          .map((l, index) => ({ id: `qr-${index}`, label: l, value: l }))
-      );
+
+      // Handle async initial() and quickReplies()
+      void (async () => {
+        const initial = await Promise.resolve(flow.initial({}));
+        setMessages(
+          initial.map(m => ({
+            id: crypto.randomUUID(),
+            role: m.role as ChatRole,
+            text: m.text,
+            ts: Date.now(),
+          }))
+        );
+        initial.forEach(m => addConvMessage('printy', m.text, convId));
+
+        const quickRepliesResult = await Promise.resolve(flow.quickReplies({}));
+        setQuickReplies(
+          quickRepliesResult.map((l, index) => ({ id: `qr-${index}`, label: l, value: l }))
+        );
+      })();
     }
   };
 
@@ -274,22 +278,27 @@ export const useAdminChat = (): UseAdminChatReturn => {
       const title = buildConversationTitle(nextTopic, orderId);
       const convId = startConversation(title);
       setCurrentConversationId(convId);
-      const initial = flow.initial(context);
 
-      console.log('💬 Initial messages from useAdminChat:', initial);
-      console.log('⚡ Quick replies from flow:', flow.quickReplies());
+      // Handle async initial() method
+      void (async () => {
+        const initial = await Promise.resolve(flow.initial(context));
 
-      setMessages(
-        initial.map(m => ({
-          id: crypto.randomUUID(),
-          role: m.role as ChatRole,
-          text: m.text,
-          ts: Date.now(),
-        }))
-      );
-      // Persist initial bot messages to DB if this is a ticket chat and a session was created
-      if (nextTopic.includes('ticket')) {
-        void (async () => {
+        console.log('💬 Initial messages from useAdminChat:', initial);
+
+        const quickRepliesResult = await Promise.resolve(flow.quickReplies(context));
+        console.log('⚡ Quick replies from flow:', quickRepliesResult);
+
+        setMessages(
+          initial.map(m => ({
+            id: crypto.randomUUID(),
+            role: m.role as ChatRole,
+            text: m.text,
+            ts: Date.now(),
+          }))
+        );
+
+        // Persist initial bot messages to DB if this is a ticket chat and a session was created
+        if (nextTopic.includes('ticket')) {
           try {
             // Small delay to allow session creation async to complete
             await new Promise(r => setTimeout(r, 80));
@@ -303,14 +312,41 @@ export const useAdminChat = (): UseAdminChatReturn => {
               }
             }
           } catch {}
-        })();
-      }
-      initial.forEach(m => addConvMessage('printy', m.text, convId));
-      setQuickReplies(
-        flow
-          .quickReplies()
-          .map((l, index) => ({ id: `qr-${index}`, label: l, value: l }))
-      );
+        }
+
+        initial.forEach(m => addConvMessage('printy', m.text, convId));
+        setQuickReplies(
+          quickRepliesResult.map((l, index) => ({ id: `qr-${index}`, label: l, value: l }))
+        );
+
+        // For quotes flow, automatically load customer description after initial messages
+        if (nextTopic === 'quotes' && orderId) {
+          setIsTyping(true);
+          const resp = await flow.respond(context, '');
+          const botMessages = resp.messages.map(m => ({
+            id: crypto.randomUUID(),
+            role: m.role as ChatRole,
+            text: m.text,
+            ts: Date.now(),
+          }));
+          setMessages(prev => [...prev, ...botMessages]);
+          if (convId) {
+            resp.messages.forEach(m =>
+              addConvMessage('printy', m.text, convId)
+            );
+          }
+          const quickRepliesForResp = await Promise.resolve(flow.quickReplies(context));
+          setQuickReplies(
+            (resp.quickReplies || quickRepliesForResp).map((l, index) => ({
+              id: `qr-${index}`,
+              label: l,
+              value: l,
+            }))
+          );
+          setIsTyping(false);
+        }
+      })();
+
       return;
     }
   };

@@ -29,18 +29,18 @@ export function useRecentOrder() {
           return;
         }
         const { data, error } = await supabase
-          .from('orders')
+          .from('orders_duplicate')
           .select(
             `
             order_id,
-            order_status,
-            order_datetime,
-            service_id,
-            quotes:quotes(initial_price, negotiated_price)
+            status,
+            created_at,
+            total_amount,
+            order_specs
           `
           )
           .eq('customer_id', user.id)
-          .order('order_datetime', { ascending: false })
+          .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle();
         if (error) {
@@ -50,16 +50,14 @@ export function useRecentOrder() {
         }
         if (data) {
           let total: string | undefined = undefined;
-          if (data.quotes && data.quotes.length > 0) {
-            const quote = data.quotes[0];
-            const quotedPrice = quote.negotiated_price || quote.initial_price;
-            if (quotedPrice) total = `₱${quotedPrice.toFixed(2)}`;
+          if (data.total_amount) {
+            total = `₱${Number(data.total_amount)}`;
           }
           setData({
             id: data.order_id,
-            title: data.service_id || 'Unknown Service',
-            status: data.order_status || 'unknown',
-            updatedAt: new Date(data.order_datetime).getTime(),
+            title: data.order_specs?.product_name || 'Order',
+            status: data.status || 'unknown',
+            updatedAt: new Date(data.created_at).getTime(),
             total,
           });
         }

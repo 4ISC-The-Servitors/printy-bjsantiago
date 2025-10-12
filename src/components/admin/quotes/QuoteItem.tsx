@@ -3,6 +3,8 @@ import { Badge, Button, Text } from '../../shared';
 import { MoreVertical, MessageSquare } from 'lucide-react';
 import type { ConversationData } from '../../../features/api/quoteApi';
 import { formatLongDate } from '../../../utils/shared/dateFormatter';
+import { formatQuoteStatus } from '../../../utils/shared/statusFormatter';
+import { getQuoteStatusBadgeVariant } from '../../../utils/admin/statusColors';
 
 interface QuoteItemProps {
   quote: ConversationData;
@@ -27,39 +29,7 @@ const QuoteItem: React.FC<QuoteItemProps> = ({
   onViewInChat,
   onToggleMenu,
 }) => {
-  const getStatusVariant = (status: string) => {
-    switch (status) {
-      case 'active':
-        return 'success';
-      case 'spec_proposed':
-        return 'warning';
-      case 'accepted':
-        return 'success';
-      case 'rejected':
-        return 'error';
-      case 'ended':
-        return 'secondary';
-      default:
-        return 'secondary';
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'active':
-        return 'Active';
-      case 'spec_proposed':
-        return 'Quote Sent';
-      case 'accepted':
-        return 'Accepted';
-      case 'rejected':
-        return 'Rejected';
-      case 'ended':
-        return 'Ended';
-      default:
-        return status;
-    }
-  };
+  // Using centralized status badge variant and formatter utilities
 
   return (
     <div
@@ -75,8 +45,8 @@ const QuoteItem: React.FC<QuoteItemProps> = ({
             <Text variant="p" size="sm" weight="medium" className="text-neutral-600">
               Quote #{quote.quote_id ? quote.quote_id.slice(0, 8) : quote.conversation_id.slice(0, 8)}
             </Text>
-            <Badge variant={getStatusVariant(quote.status)} size="sm">
-              {getStatusText(quote.status)}
+            <Badge variant={getQuoteStatusBadgeVariant(quote.status)} size="sm">
+              {formatQuoteStatus(quote.status)}
             </Badge>
           </div>
           

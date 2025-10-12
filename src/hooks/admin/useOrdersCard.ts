@@ -4,22 +4,17 @@ import { createOrderSelectionItems } from '../../utils/admin/selectionUtils';
 import { useAdmin } from './AdminContext';
 import { useOrders } from './OrdersContext';
 import useResponsivePageSize from '../ui/useResponsivePageSize';
+import type { AdminOrderRow } from './useAdminOrders';
 
 export const useOrdersCard = () => {
   const orderSelection = useOrderSelection();
   const { openChatWithTopic, openChat, addSelected } = useAdmin();
-  const { orders, updateOrder, refreshOrders } = useOrders();
-  const [isLoading, setIsLoading] = useState(true);
+  const { orders, updateOrder, refreshOrders, loading: ordersLoading, error } = useOrders();
   const [hoveredOrderId, setHoveredOrderId] = useState<string | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
-  // Simulate data loading
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, []);
+  // Use the loading state from the orders context
+  const isLoading = ordersLoading;
 
   // Pagination
   const basePageSize = useResponsivePageSize({
