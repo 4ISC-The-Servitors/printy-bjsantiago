@@ -110,7 +110,7 @@ interface Conversation {
 // ---------------- Component ----------------
 // Customer landing experience: shows recent activity and provides chat entrypoints.
 // Manages two chat implementations:
-// 1) In-memory scripted flows (e.g., payment, cancel-order)
+// 1) In-memory scripted flows (e.g., payment)
 // 2) Database-backed flow for 'About Us' using chat_flow tables
 const CustomerDashboard: React.FC = () => {
   const navigate = useNavigate();

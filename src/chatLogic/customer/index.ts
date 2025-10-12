@@ -6,7 +6,6 @@ import { servicesOfferedFlow } from './flows/ServicesOffered';
 import { trackTicketFlow } from './flows/TrackTicket';
 import { trackQuoteFlow } from './flows/TrackQuote';
 import { paymentFlow } from './flows/Payment';
-import { cancelOrderFlow } from './flows/CancelOrder';
 import { askQuoteFlow } from './flows/AskQuote';
 
 
@@ -20,7 +19,6 @@ export const customerFlows: Record<string, ChatFlow> = {
   'track-ticket': trackTicketFlow,
   'track-quote': trackQuoteFlow,
   payment: paymentFlow,
-  'cancel-order': cancelOrderFlow,
 };
 
 export function resolveCustomerFlow(
@@ -35,7 +33,6 @@ export function resolveCustomerFlow(
   if (t.includes('track') && t.includes('quote')) return trackQuoteFlow;
   if (t.includes('track')) return trackTicketFlow;
   if (t.includes('pay')) return paymentFlow;
-  if (t.includes('cancel')) return cancelOrderFlow;
   // default fallback to FAQs for scripted; About is DB-backed
   return faqsFlow;
 }

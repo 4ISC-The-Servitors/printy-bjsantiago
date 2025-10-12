@@ -24,7 +24,6 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
     if (v === 'verifying payment' || v === 'payment_verified') return 'info';
     if (v === 'for delivery/pick-up' || v === 'for_delivery') return 'accent';
     if (v === 'completed') return 'success';
-    if (v === 'requesting cancellation' || v === 'requesting_cancellation') return 'error';
     if (v === 'cancelled') return 'error';
     return 'info';
   };

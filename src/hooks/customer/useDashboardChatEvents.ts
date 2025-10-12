@@ -1,10 +1,8 @@
 /**
  * useDashboardChatEvents
- * Wires dashboard-level events: cancel order, pay now, open session.
+ * Wires dashboard-level events: pay now, open session.
  */
 import { useEffect } from 'react';
-import { supabase } from '../../lib/supabase';
-import { ChatDatabaseService } from '../../features/chat/core/services/ChatDatabaseService';
 
 export function useDashboardChatEvents(
   initializeFlow: (flowId: string, title: string, ctx?: any) => void,
@@ -12,31 +10,6 @@ export function useDashboardChatEvents(
   getRecentOrderId: () => string | undefined,
   getRecentTotal: () => string | undefined
 ) {
-  // Cancel Order
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail as {
-        orderId?: string;
-        orderStatus?: string;
-      };
-      const orderId = detail?.orderId || getRecentOrderId();
-      const title = `Cancel Order ${orderId ?? ''}`;
-      initializeFlow('cancel-order', title, {
-        orderId,
-        orderStatus: detail?.orderStatus,
-      });
-    };
-    window.addEventListener(
-      'customer-open-cancel-chat',
-      handler as EventListener
-    );
-    return () =>
-      window.removeEventListener(
-        'customer-open-cancel-chat',
-        handler as EventListener
-      );
-  }, [initializeFlow, getRecentOrderId]);
-
   // Pay Now
   useEffect(() => {
     const handler = (e: Event) => {

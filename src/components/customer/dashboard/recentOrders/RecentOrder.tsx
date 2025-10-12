@@ -5,7 +5,6 @@ import OrderID from './OrderID';
 import StatusBadge from './StatusBadge';
 import Price from './Price';
 import DateUpdated from './DateUpdated';
-import CancelOrderButton from './CancelOrderButton';
 import PayNowButton from './PayNowButton';
 
 interface RecentOrderProps {
@@ -14,8 +13,7 @@ interface RecentOrderProps {
 
 const RecentOrder: React.FC<RecentOrderProps> = ({ recentOrder }) => {
   const s = recentOrder.status.toLowerCase();
-  const hideCancel = s === 'completed' || s === 'cancelled' || s === 'for delivery/pick-up';
-  const isAwaitingPayment = s === 'awaiting payment';
+  const isAwaitingPayment = s === 'awaiting payment' || s === 'awaiting_payment';
 
   return (
     <Card className="p-6 md:p-7">
@@ -33,7 +31,7 @@ const RecentOrder: React.FC<RecentOrderProps> = ({ recentOrder }) => {
               <Text variant="p" size="xl" weight="semibold">
                 Awaiting Quote
               </Text>
-            ) : ['awaiting quote approval', 'awaiting payment', 'verifying payment'].includes(s) ? (
+            ) : ['awaiting quote approval', 'awaiting payment', 'awaiting_payment', 'verifying payment'].includes(s) ? (
               <Price total={recentOrder.total} />
             ) : null}
           </div>
@@ -43,12 +41,9 @@ const RecentOrder: React.FC<RecentOrderProps> = ({ recentOrder }) => {
         </div>
       </div>
 
-      {(!hideCancel || isAwaitingPayment) && (
-        <div className={`flex justify-end mt-4 ${isAwaitingPayment ? 'gap-3' : ''}`}>
-          {!hideCancel && (
-            <CancelOrderButton orderId={recentOrder.id} orderStatus={recentOrder.status} />
-          )}
-          {isAwaitingPayment && <PayNowButton orderId={recentOrder.id} total={recentOrder.total} />}
+      {isAwaitingPayment && (
+        <div className="flex justify-end mt-4">
+          <PayNowButton orderId={recentOrder.id} total={recentOrder.total} />
         </div>
       )}
     </Card>
