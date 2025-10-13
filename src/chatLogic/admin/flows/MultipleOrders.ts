@@ -6,7 +6,6 @@ import { normalizeOrderStatus } from '../shared/utils/StatusNormalizers';
 import type { FlowState, FlowContext, NodeHandler } from '../shared';
 import { extractOrderIds } from '../shared/utils/IdExtractors';
 import { createStatusChangeNode as createStatusChangeNodeFactory } from './orders/ChangeOrderStatus';
-import { createQuotePriceNode as createQuotePriceNodeFactory } from './orders/Qouting';
 
 type MultipleOrdersNodeId =
   | 'multi_start'
@@ -14,8 +13,6 @@ type MultipleOrdersNodeId =
   | 'choose_id'
   | 'choose_status'
   | 'choose_bulk_status'
-  | 'choose_quote_target'
-  | 'ask_quote_price'
   | 'verify_payment_pick'
   | 'verify_payment_proof'
   | 'done';
@@ -26,7 +23,6 @@ interface MultipleOrdersState extends FlowState {
   ordersRef: any[];
   currentTargetId: string | null;
   changedIds: Set<string>;
-  quotedIds: Set<string>;
 }
 
 class MultipleOrdersFlow extends FlowBase {
@@ -40,7 +36,6 @@ class MultipleOrdersFlow extends FlowBase {
       ordersRef: [],
       currentTargetId: null,
       changedIds: new Set(),
-      quotedIds: new Set(),
     });
     this.registerNodes();
   }
@@ -51,7 +46,6 @@ class MultipleOrdersFlow extends FlowBase {
       : [];
     this.state.ordersRef = (context?.orders as any[]) || [];
     this.state.changedIds = new Set<string>();
-    this.state.quotedIds = new Set<string>();
     this.state.currentTargetId = null;
     this.state.currentNodeId =
       this.state.selectedIds.length > 1 ? 'multi_start' : 'action';
@@ -88,27 +82,6 @@ class MultipleOrdersFlow extends FlowBase {
     // Bulk status change node
     this.registerNode('choose_bulk_status', this.createBulkStatusChangeNode());
 
-    // Choose quote target node
-    this.registerNode(
-      'choose_quote_target',
-      this.createChooseQuoteTargetNode()
-    );
-
-    // Quote price node (shared)
-    this.registerNode(
-      'ask_quote_price',
-      createQuotePriceNodeFactory({
-        getCurrentOrder: () =>
-          this.getCurrentOrder(this.state as MultipleOrdersState),
-        updateOrder: (
-          id: string,
-          updates: Partial<any>,
-          _s: FlowState,
-          _c: FlowContext
-        ) => this.updateOrder(id, updates, this.state as MultipleOrdersState),
-        nextNodeId: 'choose_quote_target',
-      })
-    );
 
     // Verify payment nodes (multi)
     this.registerNode('verify_payment_pick', this.createVerifyPickNode());
@@ -141,8 +114,8 @@ class MultipleOrdersFlow extends FlowBase {
         const s = state as MultipleOrdersState;
         const hasVerifying = this.getVerifyingSelectedOrders(s).length > 0;
         return hasVerifying
-          ? ['Change Status', 'Create Quote', 'Verify Payment', 'End Chat']
-          : ['Change Status', 'Create Quote', 'End Chat'];
+          ? ['Change Status', 'Verify Payment', 'End Chat']
+          : ['Change Status', 'End Chat'];
       },
       handleInput: (input: string) => {
         const lower = input.toLowerCase();
@@ -151,13 +124,6 @@ class MultipleOrdersFlow extends FlowBase {
           return { nextNodeId: 'choose_id' };
         }
 
-        if (
-          lower.includes('create quote') ||
-          lower === 'create quote' ||
-          lower === 'quote'
-        ) {
-          return { nextNodeId: 'choose_quote_target' };
-        }
 
         if (lower.includes('verify') && lower.includes('payment')) {
           return { nextNodeId: 'verify_payment_pick' };
@@ -183,8 +149,8 @@ class MultipleOrdersFlow extends FlowBase {
         const s = state as MultipleOrdersState;
         const hasVerifying = this.getVerifyingSelectedOrders(s).length > 0;
         return hasVerifying
-          ? ['Change Status', 'Create Quote', 'Verify Payment', 'End Chat']
-          : ['Change Status', 'Create Quote', 'End Chat'];
+          ? ['Change Status', 'Verify Payment', 'End Chat']
+          : ['Change Status', 'End Chat'];
       },
       handleInput: (input: string) => {
         const lower = input.toLowerCase();
@@ -193,13 +159,6 @@ class MultipleOrdersFlow extends FlowBase {
           return { nextNodeId: 'choose_id' };
         }
 
-        if (
-          lower.includes('create quote') ||
-          lower === 'create quote' ||
-          lower === 'quote'
-        ) {
-          return { nextNodeId: 'choose_quote_target' };
-        }
 
         if (lower.includes('verify') && lower.includes('payment')) {
           return { nextNodeId: 'verify_payment_pick' };
@@ -314,50 +273,6 @@ class MultipleOrdersFlow extends FlowBase {
     };
   }
 
-  private createChooseQuoteTargetNode(): NodeHandler {
-    return {
-      messages: () => {
-        // const orderState = state as MultipleOrdersState;
-        // const remaining = this.getRemainingQuoteOrders(orderState);
-        return [
-          {
-            role: 'printy',
-            text: 'Which order ID would you like to create a quote for?',
-          },
-        ];
-      },
-      quickReplies: (state: FlowState) => {
-        const orderState = state as MultipleOrdersState;
-        const remaining = this.getRemainingQuoteOrders(orderState);
-        return [...remaining.map(o => o.id), 'End Chat'];
-      },
-      handleInput: (input: string, state: FlowState) => {
-        const orderState = state as MultipleOrdersState;
-        const remaining = this.getRemainingQuoteOrders(orderState);
-        const ids = extractOrderIds(input);
-        const pick =
-          ids[0] ||
-          remaining.find(o => o.id.toLowerCase() === input.toLowerCase())?.id;
-
-        if (!pick || !remaining.find(o => o.id === pick)) {
-          return {
-            messages: [
-              {
-                role: 'printy',
-                text: 'Please pick one of the selected order IDs.',
-              },
-            ],
-            quickReplies: [...remaining.map(o => o.id), 'End Chat'],
-          };
-        }
-
-        return {
-          nextNodeId: 'ask_quote_price',
-          stateUpdates: { currentTargetId: pick },
-        };
-      },
-    };
-  }
 
   
 
@@ -472,12 +387,6 @@ class MultipleOrdersFlow extends FlowBase {
       .filter(Boolean);
   }
 
-  private getRemainingQuoteOrders(state: MultipleOrdersState): any[] {
-    return state.selectedIds
-      .filter(id => !state.quotedIds.has(id))
-      .map(id => this.findOrder(id, state))
-      .filter(Boolean);
-  }
 
   private getCurrentOrder(state: MultipleOrdersState): any {
     if (!state.currentTargetId) return null;

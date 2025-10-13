@@ -13,7 +13,19 @@ interface RecentOrderProps {
 
 const RecentOrder: React.FC<RecentOrderProps> = ({ recentOrder }) => {
   const s = recentOrder.status.toLowerCase();
-  const isAwaitingPayment = s === 'awaiting payment' || s === 'awaiting_payment';
+  
+  // Database format (primary)
+  const isAwaitingPayment = s === 'awaiting_payment';
+  const isReuploadPayment = s === 'reupload_payment_proof';
+  const isVerifyingPayment = s === 'verifying_payment';
+  const isProcessing = s === 'processing';
+  
+  // Legacy format support
+  const isLegacyAwaitingPayment = s === 'awaiting payment';
+  const isLegacyVerifyingPayment = s === 'verifying payment';
+  
+  const shouldShowPayNow = isAwaitingPayment || isReuploadPayment || isLegacyAwaitingPayment;
+  const shouldShowVerifyingMessage = isVerifyingPayment || isLegacyVerifyingPayment;
 
   return (
     <Card className="p-6 md:p-7">
@@ -31,7 +43,7 @@ const RecentOrder: React.FC<RecentOrderProps> = ({ recentOrder }) => {
               <Text variant="p" size="xl" weight="semibold">
                 Awaiting Quote
               </Text>
-            ) : ['awaiting quote approval', 'awaiting payment', 'awaiting_payment', 'verifying payment'].includes(s) ? (
+                ) : ['awaiting quote approval', 'awaiting payment', 'awaiting_payment', 'verifying payment', 'verifying_payment', 'reupload_payment_proof'].includes(s) ? (
               <Price total={recentOrder.total} />
             ) : null}
           </div>
@@ -41,11 +53,26 @@ const RecentOrder: React.FC<RecentOrderProps> = ({ recentOrder }) => {
         </div>
       </div>
 
-      {isAwaitingPayment && (
-        <div className="flex justify-end mt-4">
-          <PayNowButton orderId={recentOrder.id} total={recentOrder.total} />
-        </div>
-      )}
+      {/* Action buttons and status messages */}
+      <div className="flex justify-end mt-4">
+            {shouldShowPayNow && (
+              <PayNowButton orderId={recentOrder.id} total={recentOrder.total} />
+            )}
+            {shouldShowVerifyingMessage && (
+              <div className="text-right">
+                <Text variant="p" size="sm" className="text-blue-600 font-medium">
+                  Awaiting Verification
+                </Text>
+              </div>
+            )}
+            {isProcessing && (
+              <div className="text-right">
+                <Text variant="p" size="sm" className="text-green-600 font-medium">
+                  Payment Confirmed - In Production
+                </Text>
+              </div>
+            )}
+      </div>
     </Card>
   );
 };

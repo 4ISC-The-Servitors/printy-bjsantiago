@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Bot, User } from 'lucide-react';
+import { supabase } from '../../../lib/supabase';
 
 export interface MessageBubbleProps {
   role: 'user' | 'printy';
@@ -25,6 +26,51 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   showTimestamp = true,
 }) => {
   const isBot = role === 'printy';
+  const [processedImageUrls, setProcessedImageUrls] = useState<string[]>([]);
+
+  // Convert supabase:// URLs to signed URLs for display
+  useEffect(() => {
+    const processImageUrls = async () => {
+      const processed = await Promise.all(
+        imageUrls.map(async (url) => {
+          if (url.startsWith('supabase://payment-proofs/')) {
+            try {
+              // Extract the file path from the supabase:// URL
+              const filePath = url.replace('supabase://payment-proofs/', '');
+              
+              console.log('Attempting to create signed URL for file path:', filePath);
+              console.log('Full URL:', url);
+              
+              // Get signed URL for the private file
+              const { data, error } = await supabase.storage
+                .from('payment-proofs')
+                .createSignedUrl(filePath, 3600); // 1 hour expiry
+              
+              if (error) {
+                console.error('Error creating signed URL:', error);
+                console.error('File path that failed:', filePath);
+                return url; // Fallback to original URL
+              }
+              
+              console.log('Successfully created signed URL for:', filePath);
+              return data.signedUrl;
+            } catch (error) {
+              console.error('Error processing supabase URL:', error);
+              return url; // Fallback to original URL
+            }
+          }
+          return url;
+        })
+      );
+      setProcessedImageUrls(processed);
+    };
+
+    if (imageUrls.length > 0) {
+      processImageUrls();
+    } else {
+      setProcessedImageUrls([]);
+    }
+  }, [imageUrls]);
 
   return (
     <div className={isBot ? 'text-left' : 'text-right'}>
@@ -59,9 +105,9 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
               </div>
             )}
 
-            {imageUrls.length > 0 && (
+            {processedImageUrls.length > 0 && (
               <div className="mt-3 grid grid-cols-2 gap-3">
-                {imageUrls.map((src, idx) => (
+                {processedImageUrls.map((src, idx) => (
                   <a
                     key={idx}
                     href={src}
@@ -72,7 +118,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                   >
                     <img
                       src={src}
-                      alt={`attachment-${idx + 1}`}
+                      alt={`Payment proof ${idx + 1}`}
                       className="w-full h-auto object-contain transition-transform duration-200 group-hover:scale-[1.02] cursor-zoom-in"
                     />
                   </a>

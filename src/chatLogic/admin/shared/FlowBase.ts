@@ -48,7 +48,7 @@ export abstract class FlowBase implements ChatFlow {
 
     // Try custom handler first
     if (handler.handleInput) {
-      const result = handler.handleInput(input, this.state, this.context);
+      const result = await handler.handleInput(input, this.state, this.context);
       if (result) {
         return this.processHandlerResult(result);
       }

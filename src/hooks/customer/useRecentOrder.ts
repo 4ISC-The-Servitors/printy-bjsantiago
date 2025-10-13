@@ -55,8 +55,8 @@ export function useRecentOrder() {
             total = `₱${Number(data.total_amount)}`;
           }
           setData({
-            id: data.order_id, // Use actual order_id for database queries
-            displayId: data.display_id, // Store display_id separately for display
+            id: data.display_id, // Use display_id for consistency with payment flows
+            displayId: data.display_id, // Store display_id for display
             title: data.order_specs?.product_name || 'Order',
             status: data.status || 'unknown',
             updatedAt: new Date(data.created_at).getTime(),

@@ -1,6 +1,6 @@
 // Supabase client for auth and database queries
 import { supabase } from '../../lib/supabase';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 // Customer chat UI and types
 import { CustomerChatPanel } from '../../components/chat/layouts';
@@ -22,6 +22,7 @@ import { useRecentQuote } from '../../hooks/customer/useRecentQuote';
 import { useRecentChatSessions } from '../../hooks/customer/useRecentChatSessions';
 import { useDashboardChatEvents } from '../../hooks/customer/useDashboardChatEvents';
 import { useChatAttachments } from '../../hooks/core/useChatAttachments';
+import { usePaymentProofUpload } from '../../hooks/customer/usePaymentProofUpload';
 // Chat feature hooks
 import { useCustomerConversations } from '../../hooks/customer/useCustomerConversations';
 
@@ -232,6 +233,52 @@ const CustomerDashboard: React.FC = () => {
 
   // Attachments
   const { handleAttachFiles } = useChatAttachments(sendViaHook);
+  const { handlePaymentProofUpload } = usePaymentProofUpload();
+
+  // Check if current conversation is a payment flow
+  const isPaymentFlow = activeId && conversations.find(c => c.id === activeId)?.title?.toLowerCase().includes('payment');
+
+  // Enhanced file upload handler that uses payment proof upload for payment flows
+  const handleFileUpload = useCallback(async (files: FileList) => {
+    console.log('File upload triggered:', files);
+    console.log('Is payment flow:', isPaymentFlow);
+    console.log('Recent order ID:', recentOrder?.id);
+    console.log('Active conversation:', conversations.find(c => c.id === activeId));
+    
+    if (isPaymentFlow) {
+      // Get order ID from payment flow context or fallback to recent order
+      let orderId = recentOrder?.id;
+      
+      // Try to get order ID from payment flow context if available
+      const activeConversation = conversations.find(c => c.id === activeId);
+      if (activeConversation?.context?.orderId) {
+        orderId = activeConversation.context.orderId;
+      }
+      
+      console.log('Using order ID:', orderId);
+      
+      if (orderId) {
+        // Use payment proof upload for payment flows
+        console.log('Starting payment proof upload...');
+        await handlePaymentProofUpload(files, orderId, (url) => {
+          // Send the uploaded file URL to the chat
+          console.log('Upload successful, sending URL to chat:', url);
+          sendViaHook(url);
+        }, (error) => {
+          // Handle error - could show a toast or error message
+          console.error('Payment proof upload failed:', error);
+          sendViaHook(`Upload failed: ${error}`);
+        });
+      } else {
+        console.error('No order ID available for payment proof upload');
+        sendViaHook('Error: No order ID available. Please try again.');
+      }
+    } else {
+      // Use regular chat attachments for other flows
+      console.log('Using regular chat attachments');
+      handleAttachFiles(files);
+    }
+  }, [isPaymentFlow, recentOrder?.id, conversations, activeId, handlePaymentProofUpload, sendViaHook, handleAttachFiles]);
 
   const handleTopic = (key: TopicKey) => {
     const cfg = topicConfig[key];
@@ -271,7 +318,7 @@ const CustomerDashboard: React.FC = () => {
             quickReplies={quickReplies}
             onQuickReply={quickReplyViaHook}
             onEndChat={endChatViaHook}
-            onAttachFiles={handleAttachFiles}
+            onAttachFiles={handleFileUpload}
             readOnly={
               conversations.find(c => c.id === activeId)?.status === 'ended'
             }

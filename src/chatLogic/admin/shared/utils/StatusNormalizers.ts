@@ -1,24 +1,28 @@
 // Status normalization utilities for all chat flows
 
 export type OrderStatus =
-  | 'Awaiting Quote Approval'
-  | 'Processing'
-  | 'Awaiting Payment'
-  | 'For Delivery/Pick-up'
-  | 'Completed'
-  | 'Cancelled';
+  | 'awaiting_payment'
+  | 'verifying_payment'
+  | 'reupload_payment_proof'
+  | 'processing'
+  | 'for_delivery'
+  | 'for_pickup'
+  | 'completed'
+  | 'cancelled';
 
 export type ServiceStatus = 'Active' | 'Inactive' | 'Retired';
 
 export type TicketStatus = 'Open' | 'Pending' | 'Closed';
 
 export const ORDER_STATUS_OPTIONS: OrderStatus[] = [
-  'Awaiting Quote Approval',
-  'Processing',
-  'Awaiting Payment',
-  'For Delivery/Pick-up',
-  'Completed',
-  'Cancelled',
+  'awaiting_payment',
+  'verifying_payment',
+  'reupload_payment_proof',
+  'processing',
+  'for_delivery',
+  'for_pickup',
+  'completed',
+  'cancelled',
 ];
 
 export const SERVICE_STATUS_OPTIONS: ServiceStatus[] = [
@@ -34,29 +38,29 @@ export const TICKET_STATUS_OPTIONS: TicketStatus[] = [
 ];
 
 export function normalizeOrderStatus(input: string): OrderStatus | null {
-  const t = (input || '').toLowerCase();
+  const t = (input || '').toLowerCase().replace(/[^a-z_]/g, '_');
 
-  // Check for exact matches first
-  if (t === 'Awaiting Quote Approval') return 'Awaiting Quote Approval';
-  if (t === 'processing') return 'Processing';
-  if (t === 'awaiting payment') return 'Awaiting Payment';
-  if (t === 'for delivery/pick-up') return 'For Delivery/Pick-up';
-  if (t === 'completed') return 'Completed';
-  if (t === 'cancelled') return 'Cancelled';
+  // Check for exact matches first (database format)
+  if (t === 'awaiting_payment') return 'awaiting_payment';
+  if (t === 'verifying_payment') return 'verifying_payment';
+  if (t === 'reupload_payment_proof') return 'reupload_payment_proof';
+  if (t === 'processing') return 'processing';
+  if (t === 'for_delivery') return 'for_delivery';
+  if (t === 'for_pickup') return 'for_pickup';
+  if (t === 'completed') return 'completed';
+  if (t === 'cancelled') return 'cancelled';
 
-  // Then check for partial matches
-  if (t.startsWith('pend')) return 'Awaiting Quote Approval';
-  if (t.startsWith('proc')) return 'Processing';
-  if (t.startsWith('await') || t.startsWith('payment'))
-    return 'Awaiting Payment';
-  if (
-    t.startsWith('deliver') ||
-    t.startsWith('pick') ||
-    t.startsWith('for delivery')
-  )
-    return 'For Delivery/Pick-up';
-  if (t.startsWith('comp')) return 'Completed';
-  if (t.startsWith('cancel')) return 'Cancelled';
+  // Check for formatted versions (frontend display format)
+  if (t.includes('awaiting') && t.includes('payment')) return 'awaiting_payment';
+  if (t.includes('verifying') && t.includes('payment')) return 'verifying_payment';
+  if (t.includes('reupload') || t.includes('re_upload')) return 'reupload_payment_proof';
+  if (t.includes('processing') || t.includes('in_production')) return 'processing';
+  if (t.includes('delivery') && t.includes('pick')) return 'for_delivery';
+  if (t.includes('delivery') && !t.includes('pick')) return 'for_delivery';
+  if (t.includes('pickup') || t.includes('pick_up')) return 'for_pickup';
+  if (t.includes('completed')) return 'completed';
+  if (t.includes('cancelled')) return 'cancelled';
+
   return null;
 }
 

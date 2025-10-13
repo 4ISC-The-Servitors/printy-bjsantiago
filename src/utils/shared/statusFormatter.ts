@@ -20,12 +20,17 @@ export function formatStatus(status: string): string {
 export function formatOrderStatus(status: string): string {
   const statusMap: Record<string, string> = {
     'awaiting_payment': 'Awaiting Payment',
+    'verifying_payment': 'Verifying Payment',
+    'reupload_payment_proof': 'Re-upload Payment Proof',
+    'processing': 'Processing',
+    'for_delivery': 'For Delivery',
+    'for_pickup': 'For Pickup',
+    'completed': 'Completed',
+    'cancelled': 'Cancelled',
+    // Legacy format support
     'payment_pending': 'Payment Pending',
     'payment_verified': 'Payment Verified',
     'in_production': 'In Production',
-    'completed': 'Completed',
-    'cancelled': 'Cancelled',
-    'for_delivery': 'For Delivery',
     'delivered': 'Delivered',
   };
 

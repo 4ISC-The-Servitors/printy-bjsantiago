@@ -82,14 +82,16 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({
 
   // Extract image URLs from message text
   const extractImageUrls = (text: string): string[] => {
+    if (!text || typeof text !== 'string') return [];
     const imageUrlRegex =
-      /(blob:[^\s]+|https?:\/\/[^\s]+?\.(?:jpg|jpeg|png|gif)(?:\?[^\s]*)?|\/(?:[\w.-]+)\.(?:jpg|jpeg|png|gif)|data:image\/[a-zA-Z0-9+]+;base64,[^\s)]+)/gi;
+      /(blob:[^\s]+|https?:\/\/[^\s]+?\.(?:jpg|jpeg|png|gif)(?:\?[^\s]*)?|\/(?:[\w.-]+)\.(?:jpg|jpeg|png|gif)|data:image\/[a-zA-Z0-9+]+;base64,[^\s)]+|supabase:\/\/payment-proofs\/[^\s]+)/gi;
     return Array.from(text.matchAll(imageUrlRegex)).map(match => match[0]);
   };
 
   const removeImageTokens = (text: string): string => {
+    if (!text || typeof text !== 'string') return '';
     const imageUrlRegex =
-      /(blob:[^\s]+|https?:\/\/[^\s]+?\.(?:jpg|jpeg|png|gif)(?:\?[^\s]*)?|\/(?:[\w.-]+)\.(?:jpg|jpeg|png|gif)|data:image\/[a-zA-Z0-9+]+;base64,[^\s)]+)/gi;
+      /(blob:[^\s]+|https?:\/\/[^\s]+?\.(?:jpg|jpeg|png|gif)(?:\?[^\s]*)?|\/(?:[\w.-]+)\.(?:jpg|jpeg|png|gif)|data:image\/[a-zA-Z0-9+]+;base64,[^\s)]+|supabase:\/\/payment-proofs\/[^\s]+)/gi;
     return text
       .replace(imageUrlRegex, '')
       .replace(/\(\s*\)/g, ' ')
