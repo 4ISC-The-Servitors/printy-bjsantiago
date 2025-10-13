@@ -9,6 +9,7 @@ import {
 } from '../shared';
 import { normalizeTicketStatus } from '../shared/utils/StatusNormalizers';
 import type { FlowState, FlowContext, NodeHandler } from '../shared';
+import { supabase } from '../../../lib/supabase';
 // extractTicketIds import removed - no longer needed for single ticket flow
 // ChatDatabaseService import removed - data is now fetched by useAdminChat and passed via context
 
@@ -147,19 +148,16 @@ class TicketsFlow extends FlowBase {
         // Display conversation history if available
         const chatHistory = (context as any)?.chatHistory;
         if (chatHistory && chatHistory.length > 0) {
-          msgs.push({ role: 'printy', text: '\n--- Conversation History ---' });
-          
-          // Display ALL messages from conversation history
-          chatHistory.forEach((msg: any) => {
+          const historyText = chatHistory.map((msg: any) => {
             const sender = msg.role === 'user' ? 'Customer' : 'Admin';
             const timestamp = new Date(msg.ts).toLocaleString();
-            msgs.push({
-              role: 'printy',
-              text: `[${timestamp}] ${sender}: ${msg.text}`,
-            });
-          });
+            return `[${timestamp}] ${sender}: ${msg.text}`;
+          }).join('\n');
           
-          msgs.push({ role: 'printy', text: '--- End of History ---\n' });
+          msgs.push({ 
+            role: 'printy', 
+            text: `Conversation History:\n\n${historyText}` 
+          });
         }
 
         msgs.push({ role: 'printy', text: '\nWhat would you like to do?' });
@@ -201,7 +199,7 @@ class TicketsFlow extends FlowBase {
         ];
       },
       quickReplies: () => ['Back', ...TICKET_STATUS_OPTIONS, 'End Chat'],
-      handleInput: (input: string, state: FlowState, _context: FlowContext) => {
+      handleInput: async (input: string, state: FlowState, _context: FlowContext) => {
         const ticketState = state as TicketsState;
         const ticket = this.getCurrentTicket(ticketState);
         if (!ticket) {
@@ -230,7 +228,14 @@ class TicketsFlow extends FlowBase {
         }
 
         const prev = ticket.status;
-        this.updateTicket(ticket.id, { status: next }, ticketState);
+        try {
+          await this.updateTicket(ticket.id, { status: next }, ticketState);
+        } catch (error) {
+          return {
+            messages: [{ role: 'printy', text: 'Error updating ticket status. Please try again.' }],
+            quickReplies: ['Back', ...TICKET_STATUS_OPTIONS, 'End Chat'],
+          };
+        }
 
         return {
           nextNodeId: 'ticket_overview',
@@ -251,7 +256,7 @@ class TicketsFlow extends FlowBase {
         ];
       },
       quickReplies: () => ['End Chat'],
-      handleInput: (input: string, state: FlowState, _context: FlowContext) => {
+      handleInput: async (input: string, state: FlowState, _context: FlowContext) => {
         const ticketState = state as TicketsState;
         const ticket = this.getCurrentTicket(ticketState);
         if (!ticket) {
@@ -271,7 +276,14 @@ class TicketsFlow extends FlowBase {
           };
         }
 
-        this.updateTicket(ticket.id, { lastMessage: body }, ticketState);
+        try {
+          await this.updateTicket(ticket.id, { lastMessage: body }, ticketState);
+        } catch (error) {
+          return {
+            messages: [{ role: 'printy', text: 'Error updating ticket. Please try again.' }],
+            quickReplies: ['End Chat'],
+          };
+        }
 
         return {
           nextNodeId: 'ticket_overview',
@@ -300,24 +312,57 @@ class TicketsFlow extends FlowBase {
     return state.currentTickets.find(t => (t.id || '').toUpperCase() === up);
   }
 
-  private updateTicket(
+  private async updateTicket(
     ticketId: string,
     updates: Partial<any>,
     state: TicketsState
-  ): void {
-    // Update via context if available
-    if (this.context.updateTicket) {
-      this.context.updateTicket(ticketId, updates);
-    }
+  ): Promise<void> {
+    try {
+      console.log('Updating ticket in database (TicketsFlow):', { ticketId, updates });
+      
+      // Update the database - map status values for inquiries table
+      let dbUpdates = { ...updates };
+      if (updates.status) {
+        // Map ticket status to inquiry status
+        const statusMap: Record<string, string> = {
+          'Open': 'open',
+          'In Progress': 'in_progress', 
+          'Pending': 'pending',
+          'Resolved': 'resolved',
+          'Closed': 'closed',
+        };
+        dbUpdates.status = statusMap[updates.status] || updates.status;
+      }
 
-    // Update local state
-    state.currentTickets = state.currentTickets.map(t =>
-      t.id === ticketId ? { ...t, ...updates } : t
-    );
+      const { error } = await supabase
+        .from('inquiries')
+        .update(dbUpdates)
+        .eq('inquiry_id', ticketId);
 
-    // Refresh if available
-    if (this.context.refreshTickets) {
-      this.context.refreshTickets();
+      if (error) {
+        console.error('Error updating ticket in database (TicketsFlow):', error);
+        throw new Error(`Failed to update ticket: ${error.message}`);
+      }
+
+      console.log('Ticket updated successfully in database (TicketsFlow)');
+
+      // Update local state
+      state.currentTickets = state.currentTickets.map(t =>
+        t.id === ticketId ? { ...t, ...updates } : t
+      );
+
+      // Update via context if available
+      if (this.context.updateTicket) {
+        this.context.updateTicket(ticketId, updates);
+      }
+
+      // Refresh if available
+      if (this.context.refreshTickets) {
+        this.context.refreshTickets();
+      }
+    } catch (error) {
+      console.error('Error in updateTicket (TicketsFlow):', error);
+      throw error;
     }
   }
 }

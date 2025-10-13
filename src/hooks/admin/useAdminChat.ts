@@ -251,9 +251,25 @@ export const useAdminChat = (): UseAdminChatReturn => {
         context = {
           conversationId: orderId,
           quotes: orders,
-          // Future: Add quote update functions when quote API is implemented
+          // Bridge quotes flow updates to Supabase
           updateQuote: async (conversationId: string, updates: any) => {
-            console.log('Quote update not yet implemented:', conversationId, updates);
+            try {
+              if (typeof updates?.status === 'string') {
+                const { error } = await supabase
+                  .from('quote_conversations')
+                  .update({ status: updates.status })
+                  .eq('conversation_id', conversationId);
+                
+                if (error) {
+                  console.error('Failed to update quote status', error);
+                  throw error;
+                }
+              }
+              // Refresh the quotes data after update
+              refreshOrders();
+            } catch (e) {
+              console.error('Failed to update quote', e);
+            }
           },
           refreshQuotes: refreshOrders,
         };

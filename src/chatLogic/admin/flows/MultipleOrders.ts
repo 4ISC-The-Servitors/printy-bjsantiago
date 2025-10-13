@@ -6,6 +6,7 @@ import { normalizeOrderStatus } from '../shared/utils/StatusNormalizers';
 import type { FlowState, FlowContext, NodeHandler } from '../shared';
 import { extractOrderIds } from '../shared/utils/IdExtractors';
 import { createStatusChangeNode as createStatusChangeNodeFactory } from './orders/ChangeOrderStatus';
+import { supabase } from '../../../lib/supabase';
 
 type MultipleOrdersNodeId =
   | 'multi_start'
@@ -237,7 +238,7 @@ class MultipleOrdersFlow extends FlowBase {
         ];
       },
       quickReplies: () => [...ORDER_STATUS_OPTIONS, 'End Chat'],
-      handleInput: (input: string, state: FlowState) => {
+      handleInput: async (input: string, state: FlowState) => {
         const orderState = state as MultipleOrdersState;
         const next = normalizeOrderStatus(input);
 
@@ -258,11 +259,16 @@ class MultipleOrdersFlow extends FlowBase {
           },
         ];
 
-        selected.forEach(order => {
+        // Update all selected orders
+        for (const order of selected) {
           const prev = order.status;
-          this.updateOrder(order.id, { status: next }, orderState);
-          msgs.push({ role: 'printy', text: `${order.id}: ${prev} → ${next}` });
-        });
+          try {
+            await this.updateOrder(order.id, { status: next }, orderState);
+            msgs.push({ role: 'printy', text: `${order.id}: ${prev} → ${next}` });
+          } catch (error) {
+            msgs.push({ role: 'printy', text: `${order.id}: Error updating status` });
+          }
+        }
 
         return {
           nextNodeId: 'done',
@@ -398,27 +404,44 @@ class MultipleOrdersFlow extends FlowBase {
     return state.ordersRef.find(o => (o.id || '').toUpperCase() === up);
   }
 
-  private updateOrder(
+  private async updateOrder(
     orderId: string,
     updates: Partial<any>,
     state: MultipleOrdersState
-  ): void {
-    // Update via context if available
-    if (this.context.updateOrder) {
-      this.context.updateOrder(orderId, updates);
-    }
+  ): Promise<void> {
+    try {
+      console.log('Updating order in database (MultipleOrders):', { orderId, updates });
+      
+      // Update the database
+      const { error } = await supabase
+        .from('orders_duplicate')
+        .update(updates)
+        .eq('display_id', orderId);
 
-    // Note: In a real implementation, this would update the database
-    // For now, we rely on the context to provide updated data
+      if (error) {
+        console.error('Error updating order in database (MultipleOrders):', error);
+        throw new Error(`Failed to update order: ${error.message}`);
+      }
 
-    // Update local state
-    state.ordersRef = state.ordersRef.map(o =>
-      o.id === orderId ? { ...o, ...updates } : o
-    );
+      console.log('Order updated successfully in database (MultipleOrders)');
 
-    // Refresh if available
-    if (this.context.refreshOrders) {
-      this.context.refreshOrders();
+      // Update local state
+      state.ordersRef = state.ordersRef.map(o =>
+        o.id === orderId ? { ...o, ...updates } : o
+      );
+
+      // Update via context if available
+      if (this.context.updateOrder) {
+        this.context.updateOrder(orderId, updates);
+      }
+
+      // Refresh if available
+      if (this.context.refreshOrders) {
+        this.context.refreshOrders();
+      }
+    } catch (error) {
+      console.error('Error in updateOrder (MultipleOrders):', error);
+      throw error;
     }
   }
 }

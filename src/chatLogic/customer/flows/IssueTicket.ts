@@ -727,8 +727,7 @@ export const issueTicketFlow: ChatFlow = {
 
         return {
           messages: [
-            { role: 'printy', text: 'Ticket submitted successfully!' },
-            { role: 'printy', text: `Your ticket number is: ${inquiryId}` },
+            { role: 'printy', text: `Ticket submitted successfully!\n\nYour ticket number is: ${inquiryId}` },
           ],
           quickReplies: ['End Chat'],
         };

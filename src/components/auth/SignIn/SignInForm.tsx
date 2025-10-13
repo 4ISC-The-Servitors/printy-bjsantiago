@@ -9,7 +9,6 @@ interface Props {
   loading: boolean;
   showPassword: boolean;
   setShowPassword: (v: boolean) => void;
-  turnstileReady: boolean;
   onChange: (
     field: 'email' | 'password' | 'keepLoggedIn',
     value: string | boolean
@@ -24,7 +23,6 @@ const SignInForm: React.FC<Props> = ({
   loading,
   showPassword,
   setShowPassword,
-  turnstileReady,
   onChange,
   onForgotPassword,
 }) => {
@@ -108,10 +106,10 @@ const SignInForm: React.FC<Props> = ({
         size="lg"
         threeD
         loading={loading}
-        disabled={loading || !turnstileReady}
+        disabled={loading}
         className="w-full btn-responsive-primary"
       >
-        {loading ? 'Signing in...' : !turnstileReady ? 'Verifying...' : 'Sign in'}
+        {loading ? 'Signing in...' : 'Sign in'}
       </Button>
     </div>
   );

@@ -1,26 +1,53 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, Badge, Button } from '../../shared';
-import { useQuotesCard } from '../../../hooks/admin/useQuotesCard';
+import { useQuotes } from '../../../hooks/admin/QuotesContext';
+import { useAdmin } from '../../../hooks/admin/AdminContext';
 import QuoteItem from './QuoteItem';
 import QuotesSkeleton from './QuotesSkeleton';
 
+const ITEMS_PER_PAGE = 10;
+
 const QuotesCard: React.FC = () => {
-  const {
-    isLoading,
-    error,
-    displayQuotes,
-    page,
-    setPage,
-    hasMore,
-    hoveredQuoteId,
-    setHoveredQuoteId,
-    openMenuId,
-    setOpenMenuId,
-    isSelected,
-    selectionCount,
-    toggleQuoteSelection,
-    viewInChat,
-  } = useQuotesCard();
+  const { quotes, loading: isLoading, error } = useQuotes();
+  const { openChat, openChatWithTopic } = useAdmin();
+  
+  // Local state for pagination and UI interactions
+  const [page, setPage] = useState(1);
+  const [hoveredQuoteId, setHoveredQuoteId] = useState<string | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [selectedQuotes, setSelectedQuotes] = useState<Set<string>>(new Set());
+
+  // Pagination logic
+  const displayQuotes = useMemo(() => {
+    const start = (page - 1) * ITEMS_PER_PAGE;
+    return quotes.slice(start, start + ITEMS_PER_PAGE);
+  }, [quotes, page]);
+
+  const hasMore = quotes.length > page * ITEMS_PER_PAGE;
+
+  // Selection handlers
+  const isSelected = (quoteId: string) => selectedQuotes.has(quoteId);
+  
+  const toggleQuoteSelection = (quoteId: string) => {
+    setSelectedQuotes(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(quoteId)) {
+        newSet.delete(quoteId);
+      } else {
+        newSet.add(quoteId);
+      }
+      return newSet;
+    });
+  };
+
+  // Chat handlers
+  const viewInChat = (quoteId: string) => {
+    if (openChatWithTopic) {
+      openChatWithTopic('quotes', quoteId, undefined, quotes);
+    } else {
+      openChat();
+    }
+  };
 
   if (isLoading) {
     return <QuotesSkeleton />;
@@ -33,7 +60,7 @@ const QuotesCard: React.FC = () => {
           <div className="text-xs text-neutral-500">Page {page}</div>
           <div className="flex items-center gap-2 text-neutral-500 text-xs">
             <Badge size="sm" variant="secondary">
-              {displayQuotes.length}
+              {quotes.length}
             </Badge>
           </div>
         </div>
@@ -52,7 +79,7 @@ const QuotesCard: React.FC = () => {
                 quote={quote}
                 isSelected={isSelected(quote.conversation_id)}
                 isHovered={hoveredQuoteId === quote.conversation_id}
-                showCheckbox={selectionCount > 0}
+                showCheckbox={selectedQuotes.size > 0}
                 openMenuId={openMenuId}
                 onHover={setHoveredQuoteId}
                 onToggleSelection={toggleQuoteSelection}

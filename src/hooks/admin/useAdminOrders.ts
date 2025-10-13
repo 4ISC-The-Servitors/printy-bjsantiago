@@ -84,30 +84,35 @@ export function useAdminOrders(options: LoadOrdersOptions = {}) {
       console.debug('[useAdminOrders] Fetched orders:', data?.length || 0);
 
       // Transform the data to match the expected interface
-      const normalized: AdminOrderRow[] = (data || []).map((order: AdminOrderData) => ({
-        id: order.display_id || order.order_id, // Prefer display_id
-        display_id: order.display_id,
-        customer: order.customer 
-          ? `${order.customer.first_name || ''} ${order.customer.last_name || ''}`.trim() || 'Unknown Customer'
-          : 'Unknown Customer',
-        total: `₱${Number(order.total_amount).toLocaleString()}`,
-        date: new Date(order.created_at).toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'short',
-          day: 'numeric'
-        }),
-        status: order.status,
-        proofOfPaymentUrl: order.payment_proof || undefined,
-        proofUploadedAt: order.payment_verified_at 
-          ? new Date(order.payment_verified_at).toLocaleString('en-US', {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit'
-            })
-          : undefined,
-      }));
+      const normalized: AdminOrderRow[] = (data || []).map((order: any) => {
+        // Handle customer data - it might be an array or object
+        const customerData = Array.isArray(order.customer) ? order.customer[0] : order.customer;
+        
+        return {
+          id: order.display_id || order.order_id, // Prefer display_id
+          display_id: order.display_id,
+          customer: customerData 
+            ? `${customerData.first_name || ''} ${customerData.last_name || ''}`.trim() || 'Unknown Customer'
+            : 'Unknown Customer',
+          total: `₱${Number(order.total_amount).toLocaleString()}`,
+          date: new Date(order.created_at).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+          }),
+          status: order.status,
+          proofOfPaymentUrl: order.payment_proof || undefined,
+          proofUploadedAt: order.payment_verified_at 
+            ? new Date(order.payment_verified_at).toLocaleString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              })
+            : undefined,
+        };
+      });
 
       setOrders(normalized);
       setTotalCount(count || 0);
@@ -122,6 +127,24 @@ export function useAdminOrders(options: LoadOrdersOptions = {}) {
   // Load orders on mount and when dependencies change
   useEffect(() => {
     loadOrders();
+  }, [loadOrders]);
+
+  // Add real-time subscription for orders table changes
+  useEffect(() => {
+    const channel = supabase
+      .channel('orders-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'orders_duplicate' },
+        () => {
+          void loadOrders();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [loadOrders]);
 
   const refresh = useCallback(() => {

@@ -161,8 +161,12 @@ export function createVerifyPaymentNodes(opts: {
           if (spec.deadline) specsText += `• Deadline: ${spec.deadline}\n`;
           if (spec.notes) specsText += `• Notes: ${spec.notes}\n`;
 
-          specsText += `\nAgreed Price: ₱${quoteDetails.quoted_price}`;
           messages.push({ role: 'printy' as const, text: specsText.trim() });
+          
+          messages.push({ 
+            role: 'printy' as const, 
+            text: `Agreed Price: ₱${quoteDetails.quoted_price}` 
+          });
         } else {
           // Fallback to basic order specs if no quote details
           const orderSpecs = order.order_specs;

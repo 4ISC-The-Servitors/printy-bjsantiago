@@ -139,15 +139,6 @@ async function displayQuoteDetails(conversationId: string): Promise<FlowResponse
       throw new Error('Quote conversation not found');
     }
 
-    messages.push({
-      role: 'printy',
-      text: `Quote ID: ${conversation.display_id || (conversation.quote_id ? conversation.quote_id.slice(0, 8) : conversationId.slice(0, 8))}`
-    });
-    messages.push({
-      role: 'printy',
-      text: `Status: ${conversation.status}`
-    });
-
     // Load customer's original description
     const { data: customerMessages, error: msgError } = await supabase
       .from('quote_messages')
@@ -161,16 +152,10 @@ async function displayQuoteDetails(conversationId: string): Promise<FlowResponse
     }
 
     if (customerMessages && customerMessages.length > 0) {
+      const originalRequestText = customerMessages.map(msg => msg.message_text).join('\n');
       messages.push({
         role: 'printy',
-        text: 'Your Original Request:'
-      });
-      
-      customerMessages.forEach(msg => {
-        messages.push({
-          role: 'printy',
-          text: msg.message_text
-        });
+        text: `Your Original Request:\n\n${originalRequestText}`
       });
     }
 
@@ -193,90 +178,34 @@ async function displayQuoteDetails(conversationId: string): Promise<FlowResponse
       const proposal = proposals[0];
       const specData = proposal.spec_final;
 
-      messages.push({
-        role: 'printy',
-        text: '--- Admin Proposal ---'
-      });
-
-      messages.push({
-        role: 'printy',
-        text: `Product: ${specData.product_name || 'Not specified'}`
-      });
-
-      if (specData.category) {
-        messages.push({
-          role: 'printy',
-          text: `Category: ${specData.category}`
-        });
-      }
-
-      if (specData.description) {
-        messages.push({
-          role: 'printy',
-          text: `Description: ${specData.description}`
-        });
-      }
-
-      if (specData.size) {
-        messages.push({
-          role: 'printy',
-          text: `Size: ${specData.size}`
-        });
-      }
-
+      // Build proposal details
+      const proposalDetails = ['Admin Proposal:\n'];
+      proposalDetails.push(`• Product: ${specData.product_name || 'Not specified'}`);
+      
+      if (specData.category) proposalDetails.push(`• Category: ${specData.category}`);
+      if (specData.description) proposalDetails.push(`• Description: ${specData.description}`);
+      if (specData.size) proposalDetails.push(`• Size: ${specData.size}`);
       if (specData.materials && specData.materials.length > 0) {
-        messages.push({
-          role: 'printy',
-          text: `Materials: ${specData.materials.join(', ')}`
-        });
+        proposalDetails.push(`• Materials: ${specData.materials.join(', ')}`);
       }
-
-      if (specData.color) {
-        messages.push({
-          role: 'printy',
-          text: `Color: ${specData.color}`
-        });
-      }
-
+      if (specData.color) proposalDetails.push(`• Color: ${specData.color}`);
       if (specData.finishing && specData.finishing.length > 0) {
-        messages.push({
-          role: 'printy',
-          text: `Finishing: ${specData.finishing.join(', ')}`
-        });
+        proposalDetails.push(`• Finishing: ${specData.finishing.join(', ')}`);
       }
+      if (specData.quantity) proposalDetails.push(`• Quantity: ${specData.quantity}`);
+      if (specData.deadline) proposalDetails.push(`• Deadline: ${specData.deadline}`);
+       if (specData.notes) proposalDetails.push(`• Notes: ${specData.notes}`);
+       if (proposal.notes) proposalDetails.push(`• Admin Notes: ${proposal.notes}`);
 
-      if (specData.quantity) {
-        messages.push({
-          role: 'printy',
-          text: `Quantity: ${specData.quantity}`
-        });
-      }
+       messages.push({
+         role: 'printy',
+         text: proposalDetails.join('\n')
+       });
 
-      if (specData.deadline) {
-        messages.push({
-          role: 'printy',
-          text: `Deadline: ${specData.deadline}`
-        });
-      }
-
-      if (specData.notes) {
-        messages.push({
-          role: 'printy',
-          text: `Notes: ${specData.notes}`
-        });
-      }
-
-      messages.push({
-        role: 'printy',
-        text: `--- QUOTED PRICE: ₱${proposal.quoted_price} ---`
-      });
-
-      if (proposal.notes) {
-        messages.push({
-          role: 'printy',
-          text: `Admin Notes: ${proposal.notes}`
-        });
-      }
+       messages.push({
+         role: 'printy',
+         text: `Quoted Price: ₱${proposal.quoted_price}`
+       });
 
       // Add warning message before accept/reject options
       messages.push({
@@ -393,15 +322,7 @@ async function handleAcceptQuote(conversationId: string): Promise<FlowResponse> 
       messages: [
         {
           role: 'printy',
-          text: 'Great! You have accepted the quote proposal.'
-        },
-        {
-          role: 'printy',
-          text: 'Our admin will create your order and you will be instructed to pay for it before your order gets processed.'
-        },
-        {
-          role: 'printy',
-          text: 'Thank you for choosing Printy!'
+          text: 'Great! You have accepted the quote proposal.\n\nOur admin will create your order and you will be instructed to pay for it before your order gets processed.\n\nThank you for choosing B.J. Santiago!'
         }
       ],
       quickReplies: ['End Chat']
@@ -498,15 +419,7 @@ async function handleRejectQuote(conversationId: string): Promise<FlowResponse> 
       messages: [
         {
           role: 'printy',
-          text: 'You have rejected the quote proposal.'
-        },
-        {
-          role: 'printy',
-          text: 'If you would like to request a new quote or discuss modifications, please start a new quote request or contact our admin team.'
-        },
-        {
-          role: 'printy',
-          text: 'Thank you for considering Printy!'
+          text: 'You have rejected the quote proposal.\n\nIf you would like to request a new quote or discuss modifications, please start a new quote request or contact our admin team.\n\nThank you for considering B.J. Santiago!'
         }
       ],
       quickReplies: ['End Chat']

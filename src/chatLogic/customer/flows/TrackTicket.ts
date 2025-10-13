@@ -133,30 +133,22 @@ export const trackTicketFlow: ChatFlow = {
             // Fetch existing messages
             const messages = await ChatDatabaseService.fetchSessionMessages(sessionId);
             
-            const conversationMessages: BotMessage[] = [
-              { role: 'printy', text: '\n--- Conversation History ---' },
-            ];
+            let conversationText = 'Conversation History:\n\n';
             
             if (messages && messages.length > 0) {
-              messages.forEach((msg: any) => {
+              const messageTexts = messages.map((msg: any) => {
                 const sender = msg.role === 'user' ? 'You' : 'Admin';
                 const timestamp = new Date(msg.ts).toLocaleString();
-                conversationMessages.push({
-                  role: 'printy',
-                  text: `[${timestamp}] ${sender}: ${msg.text}`,
-                });
+                return `[${timestamp}] ${sender}: ${msg.text}`;
               });
+              conversationText += messageTexts.join('\n');
             } else {
-              conversationMessages.push({
-                role: 'printy',
-                text: 'No messages yet. Start the conversation below!',
-              });
+              conversationText += 'No messages yet. Start the conversation below!';
             }
             
-            conversationMessages.push({
-              role: 'printy',
-              text: '--- End of History ---\n',
-            });
+            const conversationMessages: BotMessage[] = [
+              { role: 'printy', text: conversationText },
+            ];
             
             return {
               messages: conversationMessages,
@@ -201,8 +193,7 @@ export const trackTicketFlow: ChatFlow = {
 
         return {
           messages: [
-            { role: 'printy', text: 'Your message has been sent to the admin team.' },
-            { role: 'printy', text: 'They will respond as soon as possible.' },
+            { role: 'printy', text: 'Your message has been sent to the admin team.\n\nThey will respond as soon as possible.' },
           ],
           quickReplies: nodeQuickReplies(NODES.reply_to_ticket),
         };
