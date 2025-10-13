@@ -65,3 +65,6 @@ export type { TooltipProps } from './Tooltip';
 // Checkbox Component
 export { default as Checkbox } from './Checkbox';
 export type { CheckboxProps } from './Checkbox';
+
+// Cloudflare Turnstile Component
+export { default as Turnstile } from './Turnstile';
