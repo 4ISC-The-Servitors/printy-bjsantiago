@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import MessageBubble from './MessageBubble';
 import { QuickReplyGrid } from './QuickReply';
 import TypingIndicator from './TypingIndicator';
+import ReadOnlyOverlay from './ReadOnlyOverlay';
 import type { ChatMessage, QuickReply } from '../types';
 import {
   formatShortTime,
@@ -13,6 +14,7 @@ interface MessageGroupProps {
   quickReplies?: QuickReply[];
   onQuickReply?: (value: string) => void;
   onEndChat?: () => void;
+  readOnly?: boolean;
 }
 
 /**
@@ -24,6 +26,7 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({
   quickReplies,
   onQuickReply,
   onEndChat,
+  readOnly = false,
 }) => {
   const [visibleCount, setVisibleCount] = useState(0);
   const [showTyping, setShowTyping] = useState(false);
@@ -135,6 +138,11 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({
           onQuickReply={onQuickReply}
           onEndChat={onEndChat}
         />
+      )}
+
+      {/* Read-only overlay - contained within message group */}
+      {readOnly && (
+        <ReadOnlyOverlay className="mt-4" />
       )}
     </div>
   );

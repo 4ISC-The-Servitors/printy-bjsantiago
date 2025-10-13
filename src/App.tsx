@@ -9,6 +9,9 @@ import CustomerDashboard from './pages/customer/CustomerDashboard';
 import CustomerAccountSettings from './pages/customer/CustomerAccountSettings';
 import CustomerRoot from './pages/customer/CustomerRoot';
 import CustomerChatHistory from './pages/customer/CustomerChatHistory';
+import CustomerOrderHistory from './pages/customer/CustomerOrderHistory';
+import CustomerTicketHistory from './pages/customer/CustomerTicketHistory';
+import CustomerQuoteHistory from './pages/customer/CustomerQuoteHistory';
 import AdminRoot from './pages/admin/AdminRoot';
 import { PageLoading } from './components/shared';
 import './index.css';
@@ -38,6 +41,9 @@ function App() {
         <Route index element={<CustomerDashboard />} />
         <Route path="account" element={<CustomerAccountSettings />} />
         <Route path="chats" element={<CustomerChatHistory />} />
+        <Route path="orders" element={<CustomerOrderHistory />} />
+        <Route path="tickets" element={<CustomerTicketHistory />} />
+        <Route path="quotes" element={<CustomerQuoteHistory />} />
       </Route>
       <Route path="/valued" element={<CustomerDashboard />} />
       <Route

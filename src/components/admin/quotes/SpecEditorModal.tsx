@@ -35,8 +35,8 @@ export function SpecEditorModal() {
   if (!isOpen || !modalData) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
-      <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-xl">
+    <div className="fixed inset-y-0 left-0 right-[420px] bg-black bg-opacity-30 flex items-center justify-center z-[9999]">
+      <div className="bg-white rounded-lg p-6 max-w-xl w-full max-h-[80vh] overflow-y-auto shadow-xl">
         <h2 className="text-xl font-semibold mb-4">Review Order Specifications</h2>
         
         <form className="space-y-4">

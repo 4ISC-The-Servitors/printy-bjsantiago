@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { MessageGroup, TypingIndicator, ChatInput, EmptyState } from '../../chat/core';
+import { MessageGroup, TypingIndicator, ChatInput } from '../../chat/core';
 import type { ChatMessage, QuickReply } from '../../chat/types';
 
 interface GuestChatPanelProps {
@@ -91,22 +91,15 @@ export const GuestChatPanel: React.FC<GuestChatPanelProps> = ({
         ref={scrollRef}
         className="flex-1 overflow-y-auto p-4 space-y-4"
       >
-        {messageGroups.length === 0 ? (
-          <EmptyState
-            title="Start a conversation"
-            description="Send a message to get started"
+        {messageGroups.map((group, idx) => (
+          <MessageGroup
+            key={idx}
+            messages={group.messages}
+            quickReplies={group.quickReplies}
+            onQuickReply={onQuickReply}
+            onEndChat={onEndChat}
           />
-        ) : (
-          messageGroups.map((group, idx) => (
-            <MessageGroup
-              key={idx}
-              messages={group.messages}
-              quickReplies={group.quickReplies}
-              onQuickReply={onQuickReply}
-              onEndChat={onEndChat}
-            />
-          ))
-        )}
+        ))}
         {isTyping && <TypingIndicator />}
       </div>
 

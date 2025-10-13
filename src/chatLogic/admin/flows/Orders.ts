@@ -273,11 +273,11 @@ class OrdersFlow extends FlowBase {
             // Try to get quote details if this order was created from a quote
             let quoteDetails = null;
             try {
-              const { data: quoteOrder } = await supabase
-                .from('quote_orders')
-                .select('conversation_id')
-                .eq('order_display_id', order.id)
-                .single();
+            const { data: quoteOrder } = await supabase
+              .from('quote_orders')
+              .select('conversation_id')
+              .eq('order_id', order.id)
+              .single();
 
               if (quoteOrder) {
                 const { data: proposal } = await supabase
@@ -311,24 +311,44 @@ class OrdersFlow extends FlowBase {
             // Add detailed specifications if available from quote
             if (quoteDetails && quoteDetails.spec_final) {
               const spec = quoteDetails.spec_final;
-              msgs.push({ role: 'printy', text: 'Service Details:' });
+              let specsText = 'Service Details:\n\n';
               
-              if (spec.product_name) msgs.push({ role: 'printy', text: `Product: ${spec.product_name}` });
-              if (spec.category) msgs.push({ role: 'printy', text: `Category: ${spec.category}` });
-              if (spec.description) msgs.push({ role: 'printy', text: `Description: ${spec.description}` });
-              if (spec.size) msgs.push({ role: 'printy', text: `Size: ${spec.size}` });
-              if (spec.materials && spec.materials.length > 0) msgs.push({ role: 'printy', text: `Materials: ${spec.materials.join(', ')}` });
-              if (spec.color) msgs.push({ role: 'printy', text: `Color: ${spec.color}` });
-              if (spec.finishing && spec.finishing.length > 0) msgs.push({ role: 'printy', text: `Finishing: ${spec.finishing.join(', ')}` });
-              if (spec.quantity) msgs.push({ role: 'printy', text: `Quantity: ${spec.quantity}` });
-              if (spec.deadline) msgs.push({ role: 'printy', text: `Deadline: ${spec.deadline}` });
-              if (spec.notes) msgs.push({ role: 'printy', text: `Notes: ${spec.notes}` });
+              if (spec.product_name) specsText += `• Product: ${spec.product_name}\n`;
+              if (spec.category) specsText += `• Category: ${spec.category}\n`;
+              if (spec.description) specsText += `• Description: ${spec.description}\n`;
+              if (spec.size) specsText += `• Size: ${spec.size}\n`;
+              if (spec.materials && spec.materials.length > 0) specsText += `• Materials: ${spec.materials.join(', ')}\n`;
+              if (spec.color) specsText += `• Color: ${spec.color}\n`;
+              if (spec.finishing && spec.finishing.length > 0) specsText += `• Finishing: ${spec.finishing.join(', ')}\n`;
+              if (spec.quantity) specsText += `• Quantity: ${spec.quantity}\n`;
+              if (spec.deadline) specsText += `• Deadline: ${spec.deadline}\n`;
+              if (spec.notes) specsText += `• Notes: ${spec.notes}\n`;
               
-              msgs.push({ role: 'printy', text: `Agreed Price: ₱${quoteDetails.quoted_price}` });
+              specsText += `\nAgreed Price: ₱${quoteDetails.quoted_price}`;
+              msgs.push({ role: 'printy', text: specsText.trim() });
             } else {
               // Fallback to basic order specs if no quote details
-              msgs.push({ role: 'printy', text: 'Service Details:' });
-              msgs.push({ role: 'printy', text: orderDetails.order_specs || 'No detailed specifications available' });
+              const orderSpecs = orderDetails.order_specs;
+              
+              if (orderSpecs && typeof orderSpecs === 'object' && Object.keys(orderSpecs).length > 0) {
+                // If order_specs is a JSONB object with content, format it nicely
+                let specsText = 'Service Details:\n\n';
+                Object.entries(orderSpecs).forEach(([key, value]) => {
+                  if (value !== null && value !== undefined && value !== '') {
+                    specsText += `• ${key}: ${value}\n`;
+                  }
+                });
+                
+                if (specsText.trim() !== 'Service Details:') {
+                  msgs.push({ role: 'printy', text: specsText.trim() });
+                } else {
+                  msgs.push({ role: 'printy', text: 'Service Details:\n\nNo detailed specifications available' });
+                }
+              } else if (typeof orderSpecs === 'string' && orderSpecs.trim()) {
+                msgs.push({ role: 'printy', text: `Service Details:\n\n${orderSpecs}` });
+              } else {
+                msgs.push({ role: 'printy', text: 'Service Details:\n\nNo detailed specifications available' });
+              }
             }
 
             return {

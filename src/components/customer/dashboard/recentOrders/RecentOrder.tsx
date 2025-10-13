@@ -1,17 +1,18 @@
 import React from 'react';
-import { Card, Text } from '../../../shared';
+import { useNavigate } from 'react-router-dom';
+import { Card, Text, Button, Badge } from '../../../shared';
 import type { RecentOrder as RecentOrderType } from '../../../../types/customer';
-import OrderID from './OrderID';
 import StatusBadge from './StatusBadge';
-import Price from './Price';
-import DateUpdated from './DateUpdated';
 import PayNowButton from './PayNowButton';
+import { formatLongDate } from '../../../../utils/shared/dateFormatter';
+import { formatRelativeTimeLabel } from '../../../../utils/shared/timeFormatter';
 
 interface RecentOrderProps {
   recentOrder: RecentOrderType;
 }
 
 const RecentOrder: React.FC<RecentOrderProps> = ({ recentOrder }) => {
+  const navigate = useNavigate();
   const s = recentOrder.status.toLowerCase();
   
   // Database format (primary)
@@ -28,50 +29,86 @@ const RecentOrder: React.FC<RecentOrderProps> = ({ recentOrder }) => {
   const shouldShowVerifyingMessage = isVerifyingPayment || isLegacyVerifyingPayment;
 
   return (
-    <Card className="p-6 md:p-7">
-      <div className="grid grid-cols-2 gap-6 items-start">
-        <div className="space-y-5">
-          <Text variant="h3" size="lg" weight="semibold" className="mb-1">
-            Recent Order
+    <Card className="p-6">
+      <div className="flex items-center justify-between mb-4">
+        <Text variant="h3" size="lg" weight="semibold">
+          Recent Order
+        </Text>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate('/customer/orders')}
+          className="text-brand-primary hover:text-brand-primary-600"
+        >
+          View all
+        </Button>
+      </div>
+      
+      <div className="space-y-3">
+        {/* Primary row: Display ID + Status */}
+        <div className="flex items-center justify-between">
+          <Text variant="h4" size="base" weight="medium" className="font-mono">
+            {recentOrder.displayId}
           </Text>
-          <OrderID id={recentOrder.id} displayId={recentOrder.displayId} />
           <StatusBadge status={recentOrder.status} />
         </div>
-        <div className="text-right space-y-2 flex flex-col items-end justify-start pt-7">
-          <div>
-            {s === 'needs quote' ? (
-              <Text variant="p" size="xl" weight="semibold">
-                Awaiting Quote
-              </Text>
-                ) : ['awaiting quote approval', 'awaiting payment', 'awaiting_payment', 'verifying payment', 'verifying_payment', 'reupload_payment_proof'].includes(s) ? (
-              <Price total={recentOrder.total} />
-            ) : null}
+        
+        {/* Secondary row: Title */}
+        <Text variant="p" size="sm" color="muted" className="line-clamp-2">
+          {recentOrder.title}
+        </Text>
+        
+        {/* Tertiary row: Important dates */}
+        <div className="flex flex-col gap-1">
+          <div className="flex justify-between">
+            <Text variant="p" size="xs" color="muted">Created:</Text>
+            <Text variant="p" size="xs" color="muted">{formatLongDate(recentOrder.createdAt)}</Text>
           </div>
-          <div>
-            <DateUpdated ts={recentOrder.updatedAt} />
+          <div className="flex justify-between">
+            <Text variant="p" size="xs" color="muted">Updated:</Text>
+            <Text variant="p" size="xs" color="muted">{formatRelativeTimeLabel(recentOrder.updatedAt)}</Text>
           </div>
+          {recentOrder.paymentVerifiedAt && (
+            <div className="flex justify-between">
+              <Text variant="p" size="xs" color="muted">Payment Verified:</Text>
+              <Text variant="p" size="xs" color="muted">{formatLongDate(recentOrder.paymentVerifiedAt)}</Text>
+            </div>
+          )}
+          {recentOrder.completedAt && (
+            <div className="flex justify-between">
+              <Text variant="p" size="xs" color="muted">Completed:</Text>
+              <Text variant="p" size="xs" color="muted">{formatLongDate(recentOrder.completedAt)}</Text>
+            </div>
+          )}
         </div>
-      </div>
-
-      {/* Action buttons and status messages */}
-      <div className="flex justify-end mt-4">
-            {shouldShowPayNow && (
-              <PayNowButton orderId={recentOrder.id} total={recentOrder.total} />
-            )}
-            {shouldShowVerifyingMessage && (
-              <div className="text-right">
-                <Text variant="p" size="sm" className="text-blue-600 font-medium">
-                  Awaiting Verification
-                </Text>
-              </div>
-            )}
-            {isProcessing && (
-              <div className="text-right">
-                <Text variant="p" size="sm" className="text-green-600 font-medium">
-                  Payment Confirmed - In Production
-                </Text>
-              </div>
-            )}
+        
+        {/* Price if available */}
+        {recentOrder.total && (
+          <Text variant="p" size="lg" weight="medium" className="text-brand-primary">
+            {recentOrder.total}
+          </Text>
+        )}
+        
+        {/* Action buttons and status messages */}
+        <div className="pt-2">
+          {shouldShowPayNow && (
+            <PayNowButton orderId={recentOrder.id} total={recentOrder.total} />
+          )}
+          {shouldShowVerifyingMessage && (
+            <div className="text-right">
+              <Badge variant="info" size="sm">
+                Awaiting Verification
+              </Badge>
+            </div>
+          )}
+          {isProcessing && (
+            <div className="text-right">
+              <Badge variant="success" size="sm">
+                Payment Confirmed - In Production
+              </Badge>
+            </div>
+          )}
+        </div>
       </div>
     </Card>
   );

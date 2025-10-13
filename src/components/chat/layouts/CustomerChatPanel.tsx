@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { ArrowLeft, X } from 'lucide-react';
 import { Button, Text } from '../../shared';
-import { MessageGroup, TypingIndicator, ChatInput, EmptyState } from '../core';
+import { MessageGroup, TypingIndicator, ChatInput } from '../core';
 import type { ChatMessage, QuickReply } from '../types';
 
 export interface CustomerChatPanelProps {
@@ -125,24 +125,18 @@ export const CustomerChatPanel: React.FC<CustomerChatPanelProps> = ({
       {/* Messages */}
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4"
+        className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 relative"
       >
-        {messageGroups.length === 0 ? (
-          <EmptyState
-            title="Start a conversation"
-            description="Send a message to get started with Printy"
+        {messageGroups.map((group, idx) => (
+          <MessageGroup
+            key={idx}
+            messages={group.messages}
+            quickReplies={group.quickReplies}
+            onQuickReply={onQuickReply}
+            onEndChat={onEndChat}
+            readOnly={readOnly}
           />
-        ) : (
-          messageGroups.map((group, idx) => (
-            <MessageGroup
-              key={idx}
-              messages={group.messages}
-              quickReplies={group.quickReplies}
-              onQuickReply={onQuickReply}
-              onEndChat={onEndChat}
-            />
-          ))
-        )}
+        ))}
         {isTyping && <TypingIndicator />}
       </div>
 
@@ -158,14 +152,6 @@ export const CustomerChatPanel: React.FC<CustomerChatPanelProps> = ({
             onAttachFiles={onAttachFiles}
             disabled={readOnly}
           />
-        </div>
-      )}
-
-      {readOnly && (
-        <div className="bg-neutral-50 border-t border-neutral-200 p-4 text-center">
-          <Text variant="p" size="sm" color="muted">
-            This conversation has ended
-          </Text>
         </div>
       )}
     </div>

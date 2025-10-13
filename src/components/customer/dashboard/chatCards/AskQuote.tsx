@@ -19,7 +19,7 @@ const AskQuote: React.FC<CardProps> = ({ onClick }) => {
         Ask Quote
       </Text>
       <Text variant="p" size="sm" color="muted">
-        Get a personalized quote for your printing needs with our AI assistant
+        Get a personalized quote for your printing needs
       </Text>
     </button>
   );

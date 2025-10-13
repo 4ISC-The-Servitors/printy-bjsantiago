@@ -5,13 +5,10 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 
-export interface RecentOrderData {
-  id: string;
-  title: string;
-  status: string;
-  updatedAt: number;
-  total?: string;
-}
+import { formatCurrency } from '../../utils/shared/priceFormatter';
+import type { RecentOrder } from '../../types/customer';
+
+export type RecentOrderData = RecentOrder;
 
 export function useRecentOrder() {
   const [data, setData] = useState<RecentOrderData | null>(null);
@@ -30,18 +27,20 @@ export function useRecentOrder() {
         }
         const { data, error } = await supabase
           .from('orders_duplicate')
-          .select(
-            `
+          .select(`
             order_id,
             display_id,
             status,
             created_at,
+            updated_at,
+            payment_verified_at,
+            completed_at,
+            cancelled_at,
             total_amount,
             order_specs
-          `
-          )
+          `)
           .eq('customer_id', user.id)
-          .order('created_at', { ascending: false })
+          .order('updated_at', { ascending: false })
           .limit(1)
           .maybeSingle();
         if (error) {
@@ -52,14 +51,18 @@ export function useRecentOrder() {
         if (data) {
           let total: string | undefined = undefined;
           if (data.total_amount) {
-            total = `₱${Number(data.total_amount)}`;
+            total = formatCurrency(Number(data.total_amount));
           }
           setData({
-            id: data.display_id, // Use display_id for consistency with payment flows
-            displayId: data.display_id, // Store display_id for display
+            id: data.order_id,
+            displayId: data.display_id,
             title: data.order_specs?.product_name || 'Order',
             status: data.status || 'unknown',
-            updatedAt: new Date(data.created_at).getTime(),
+            createdAt: new Date(data.created_at).getTime(),
+            updatedAt: new Date(data.updated_at).getTime(),
+            paymentVerifiedAt: data.payment_verified_at ? new Date(data.payment_verified_at).getTime() : undefined,
+            completedAt: data.completed_at ? new Date(data.completed_at).getTime() : undefined,
+            cancelledAt: data.cancelled_at ? new Date(data.cancelled_at).getTime() : undefined,
             total,
           });
         }

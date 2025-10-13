@@ -15,6 +15,10 @@ export interface ConversationItem {
   flowId: string;
   status: 'active' | 'ended';
   icon?: React.ReactNode;
+  context?: {
+    orderId?: string;
+    [key: string]: unknown;
+  };
 }
 
 export function useConversationState() {

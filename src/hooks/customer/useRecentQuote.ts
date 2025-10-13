@@ -18,16 +18,32 @@ export function useRecentQuote(customerId?: string) {
       }
 
       try {
-        const conversations = await fetchRecentQuoteConversations(customerId);
+        const { data, error } = await supabase
+          .from('quote_conversations')
+          .select(`
+            conversation_id,
+            display_id,
+            status,
+            created_at,
+            updated_at,
+            ended_at
+          `)
+          .eq('customer_id', customerId)
+          .order('updated_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (error) throw error;
         
-        if (conversations.length > 0) {
-          const latest = conversations[0];
+        if (data) {
           setRecentQuote({
-            id: latest.conversation_id, // Use actual conversation_id for database queries
-            displayId: latest.display_id, // Store display_id separately for display
-            subject: `Quote Request #${latest.display_id || (latest.quote_id ? latest.quote_id.slice(0, 8) : latest.conversation_id.slice(0, 8))}`,
-            status: latest.status,
-            updatedAt: new Date(latest.updated_at).getTime()
+            id: data.conversation_id,
+            displayId: data.display_id || data.conversation_id.slice(0, 8).toUpperCase(),
+            subject: `Quote Request #${data.display_id || data.conversation_id.slice(0, 8).toUpperCase()}`,
+            status: data.status,
+            createdAt: new Date(data.created_at).getTime(),
+            updatedAt: new Date(data.updated_at).getTime(),
+            endedAt: data.ended_at ? new Date(data.ended_at).getTime() : undefined
           });
         } else {
           setRecentQuote(null);

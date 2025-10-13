@@ -217,6 +217,10 @@ export const quotesFlow: ChatFlow = {
               return handleSummarizeSpecs(quote);
             }
             
+            if (input === 'Manual Order Specs') {
+              return handleManualSpecs(quote);
+            }
+            
             if (input === 'Send Specs to Customer') {
               return handleSendSpecs(quote);
             }
@@ -276,10 +280,6 @@ export const quotesFlow: ChatFlow = {
             {
               role: 'printy',
               text: `Order created successfully!\n\nOrder ID: ${orderData.display_id || orderData.order_id}\nStatus: Pending Payment\nTotal: ₱${proposal.quoted_price}`
-            },
-            {
-              role: 'printy',
-              text: 'Please proceed to contact the customer to arrange payment.'
             }
           ],
           quickReplies: ['End Chat']
@@ -582,13 +582,13 @@ async function getQuickRepliesForQuote(quote: any): Promise<string[]> {
       const hasSavedSpecs = existingSpecs && existingSpecs.length > 0;
       
       if (hasSavedSpecs) {
-        return ['Summarize Order Specs', 'Send Specs to Customer', 'End Chat'];
+        return ['Summarize Order Specs', 'Manual Order Specs', 'Send Specs to Customer', 'End Chat'];
       } else {
-        return ['Summarize Order Specs', 'End Chat'];
+        return ['Summarize Order Specs', 'Manual Order Specs', 'End Chat'];
       }
     } catch (error) {
       console.error('Error checking for existing specs:', error);
-      return ['Summarize Order Specs', 'End Chat'];
+      return ['Summarize Order Specs', 'Manual Order Specs', 'End Chat'];
     }
 }
 
@@ -661,6 +661,52 @@ async function handleSummarizeSpecs(quote: any): Promise<{ messages: BotMessage[
           }
         ],
         quickReplies: ['Send Specs to Customer', 'End Chat']
+      };
+    }
+}
+
+async function handleManualSpecs(quote: any): Promise<{ messages: BotMessage[]; quickReplies?: string[] }> {
+    try {
+      // Trigger spec editor modal with empty/default data for manual input
+      openSpecEditor({
+        conversationId: quote.conversation_id,
+        specData: {
+          product_name: '',
+          category: '',
+          description: '',
+          size: '',
+          materials: [],
+          color: '',
+          finishing: [],
+          others: [],
+          quantity: 1,
+          artwork: '',
+          deadline: '',
+          notes: '',
+          quoted_price: undefined // Admin must enter price
+        },
+        language: 'en' // Default language for manual input
+      });
+
+      return {
+        messages: [
+          {
+            role: 'printy',
+            text: 'Opening manual specification form... Please fill out the order details and save the draft.'
+          }
+        ],
+        quickReplies: ['Send Specs to Customer', 'End Chat']
+      };
+    } catch (error) {
+      console.error('Error opening manual specs form:', error);
+      return {
+        messages: [
+          {
+            role: 'printy',
+            text: 'Sorry, there was an error opening the manual specification form. Please try again.'
+          }
+        ],
+        quickReplies: ['Summarize Order Specs', 'Manual Order Specs', 'End Chat']
       };
     }
 }

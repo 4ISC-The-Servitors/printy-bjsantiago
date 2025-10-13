@@ -27,10 +27,10 @@ export abstract class FlowBase implements ChatFlow {
     this.nodes.set(nodeId, handler);
   }
 
-  initial = (ctx: FlowContext) => {
+  initial = async (ctx: FlowContext) => {
     this.context = ctx;
     this.initializeState(ctx);
-    return this.getCurrentMessages();
+    return await this.getCurrentMessages();
   };
 
   quickReplies = () => this.getCurrentQuickReplies();
@@ -50,7 +50,7 @@ export abstract class FlowBase implements ChatFlow {
     if (handler.handleInput) {
       const result = await handler.handleInput(input, this.state, this.context);
       if (result) {
-        return this.processHandlerResult(result);
+        return await this.processHandlerResult(result);
       }
     }
 
@@ -60,11 +60,11 @@ export abstract class FlowBase implements ChatFlow {
 
   protected abstract initializeState(context: FlowContext): void;
 
-  protected getCurrentMessages(): BotMessage[] {
+  protected async getCurrentMessages(): Promise<BotMessage[]> {
     const handler = this.nodes.get(this.state.currentNodeId);
     if (!handler) return [];
 
-    const messages = handler.messages(this.state, this.context);
+    const messages = await handler.messages(this.state, this.context);
     // Ensure all messages have the correct role type
     return messages.map(msg => ({
       ...msg,
@@ -79,7 +79,7 @@ export abstract class FlowBase implements ChatFlow {
       : ['End Chat'];
   }
 
-  protected processHandlerResult(result: NodeHandlerResult): FlowResponse {
+  protected async processHandlerResult(result: NodeHandlerResult): Promise<FlowResponse> {
     // Update state if needed
     if (result.stateUpdates) {
       this.state = { ...this.state, ...result.stateUpdates };
@@ -91,7 +91,7 @@ export abstract class FlowBase implements ChatFlow {
     }
 
     // Return messages and quick replies
-    const messages = result.messages || this.getCurrentMessages();
+    const messages = result.messages || await this.getCurrentMessages();
     // Ensure all messages have the correct role type
     const typedMessages = messages.map(msg => ({
       ...msg,

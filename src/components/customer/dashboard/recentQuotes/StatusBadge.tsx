@@ -26,7 +26,7 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
 
   return (
     <div>
-      <Badge variant={getVariant(status)} size="sm">
+      <Badge variant={getVariant(status)} size="md" className="text-sm font-semibold">
         {formatQuoteStatus(status)}
       </Badge>
     </div>

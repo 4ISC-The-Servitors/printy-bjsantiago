@@ -5,12 +5,9 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 
-export interface RecentTicketData {
-  id: string;
-  subject: string;
-  status: string;
-  updatedAt: number;
-}
+import type { RecentTicket } from '../../types/customer';
+
+export type RecentTicketData = RecentTicket;
 
 export function useRecentTicket() {
   const [data, setData] = useState<RecentTicketData | null>(null);
@@ -38,12 +35,16 @@ export function useRecentTicket() {
           return;
         }
         if (row) {
+          const receivedAt = new Date(row.received_at).getTime();
           setData({
-            id: row.inquiry_id, // Use actual inquiry_id for database queries
-            displayId: row.display_id, // Store display_id separately for display
+            id: row.inquiry_id,
+            displayId: row.display_id || row.inquiry_id.slice(0, 8).toUpperCase(),
             subject: row.inquiry_message || '(no subject)',
             status: row.inquiry_status || 'unknown',
-            updatedAt: new Date(row.received_at).getTime(),
+            createdAt: receivedAt,
+            updatedAt: receivedAt, // Using received_at as updatedAt since it's the only date we have
+            resolvedAt: row.inquiry_status === 'resolved' ? receivedAt : undefined,
+            priority: row.priority
           });
         }
       } catch (e: any) {

@@ -69,6 +69,7 @@ export function useCustomerConversations() {
           flowId,
           status: 'active' as const,
           icon: undefined,
+          context: enrichedCtx
         };
         setConversations(prev => [conv, ...prev]);
         if (result.sessionId) setControllerSession(result.sessionId);
@@ -168,16 +169,78 @@ export function useCustomerConversations() {
     ]
   );
 
+  const endChatWithSequence = useCallback(async () => {
+    if (!activeId) return;
+    
+    // Step 1: Add goodbye message
+    const goodbyeMessage = {
+      id: `goodbye-${Date.now()}`,
+      role: 'printy' as const,
+      text: "Thank you for chatting with Printy! Have a great day.",
+      ts: Date.now(),
+    };
+    
+    // Add the goodbye message to current messages
+    setMessages(prev => [...prev, goodbyeMessage]);
+    
+    // Step 2: Mark conversation as ended (this will show ReadOnlyOverlay)
+    setConversations(prev => prev.map(conv => 
+      conv.id === activeId 
+        ? { ...conv, status: 'ended' as const }
+        : conv
+    ));
+    
+    // Step 3: Clear quick replies
+    setQuickReplies([]);
+    
+    // Step 4: After delay, actually end the conversation
+    setTimeout(async () => {
+      const flowId = conversations.find(c => c.id === activeId)?.flowId;
+      await end(flowId);
+      // Refresh messages so closing line appears
+      const sid = sessionId || activeId;
+      try {
+        const fetched = await fetchSessionMessages(sid);
+        setMessages(
+          fetched.map(m => ({
+            id: m.id,
+            role: m.role as any,
+            text: m.text,
+            ts: m.ts,
+          })) as any
+        );
+        setConversations(prev =>
+          prev.map(c =>
+            c.id === activeId
+              ? {
+                  ...c,
+                  messages: fetched.map(m => ({
+                    id: m.id,
+                    role: m.role as any,
+                    text: m.text,
+                    ts: m.ts,
+                  })),
+                  status: 'ended' as const,
+                }
+              : c
+          )
+        );
+      } catch (error) {
+        console.error('Failed to refresh messages after ending chat:', error);
+      }
+    }, 3000); // 3 second delay
+  }, [activeId, conversations, end, sessionId, setMessages, setConversations, setQuickReplies]);
+
   const handleQuickReply = useCallback(
     (value: string) => {
       const normalized = (value ?? '').trim().toLowerCase();
       if (normalized === 'end chat' || normalized === 'end') {
-        void endChat();
+        void endChatWithSequence();
         return;
       }
       void handleSend(value);
     },
-    [handleSend]
+    [handleSend, endChatWithSequence]
   );
 
   const endChat = useCallback(async () => {

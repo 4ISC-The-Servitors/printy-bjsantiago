@@ -6,7 +6,7 @@ import LogoutModal from '../../components/customer/shared/sidebar/LogoutModal';
 import Header from '../../components/customer/chatHistory/Header';
 import Filters from '../../components/customer/chatHistory/Filters';
 import ConversationList from '../../components/customer/chatHistory/ConversationList';
-import EmptyState from '../../components/customer/chatHistory/EmptyState';
+import { Text } from '../../components/shared';
 import type { ChatMessage } from '../../components/chat/types';
 import { fetchUserSessions } from '../../features/api/chatFlowApi';
 
@@ -143,7 +143,11 @@ const ChatHistory: React.FC = () => {
             />
 
             {filtered.length === 0 ? (
-              <EmptyState />
+              <div className="text-center py-12">
+                <Text variant="p" size="base" color="muted">
+                  No conversations found.
+                </Text>
+              </div>
             ) : (
               <ConversationList
                 conversations={filtered}

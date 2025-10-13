@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { X, Minus } from 'lucide-react';
 import { Button, Text } from '../../shared';
-import { MessageGroup, TypingIndicator, ChatInput, EmptyState } from '../core';
+import { MessageGroup, TypingIndicator, ChatInput } from '../core';
 import type { ChatMessage, QuickReply } from '../types';
 
 export interface AdminChatOverlayProps {
@@ -140,19 +140,16 @@ export const AdminChatOverlay: React.FC<AdminChatOverlayProps> = ({
 
         {/* Messages */}
         <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4">
-          {messageGroups.length === 0 ? (
-            <EmptyState />
-          ) : (
-            messageGroups.map((group, idx) => (
-              <MessageGroup
-                key={idx}
-                messages={group.messages}
-                quickReplies={group.quickReplies}
-                onQuickReply={onQuickReply}
-                onEndChat={onEndChat}
-              />
-            ))
-          )}
+          {messageGroups.map((group, idx) => (
+            <MessageGroup
+              key={idx}
+              messages={group.messages}
+              quickReplies={group.quickReplies}
+              onQuickReply={onQuickReply}
+              onEndChat={onEndChat}
+              readOnly={readOnly}
+            />
+          ))}
           {isTyping && <TypingIndicator />}
         </div>
 
@@ -167,14 +164,6 @@ export const AdminChatOverlay: React.FC<AdminChatOverlayProps> = ({
               showAttach={false}
               disabled={readOnly}
             />
-          </div>
-        )}
-
-        {readOnly && (
-          <div className="bg-neutral-50 border-t border-neutral-200 p-3 text-center">
-            <Text variant="p" size="sm" color="muted">
-              This conversation has ended
-            </Text>
           </div>
         )}
       </div>

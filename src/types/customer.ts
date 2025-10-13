@@ -1,26 +1,34 @@
 export interface RecentOrder {
   id: string;
-  displayId?: string;
+  displayId: string;
   title: string;
   status: string;
-  updatedAt: number;
   total?: string;
+  createdAt: number;
+  updatedAt: number;
+  paymentVerifiedAt?: number;
+  completedAt?: number;
+  cancelledAt?: number;
 }
 
 export interface RecentTicket {
   id: string;
-  displayId?: string;
+  displayId: string;
   subject: string;
   status: string;
+  createdAt: number;
   updatedAt: number;
+  resolvedAt?: number;
+  priority?: string;
 }
 
 export interface RecentQuote {
   id: string;
-  displayId?: string;
-  subject: string;
+  displayId: string;
   status: 'active' | 'spec_proposed' | 'accepted' | 'rejected' | 'ended';
+  createdAt: number;
   updatedAt: number;
+  endedAt?: number;
 }
 
 export interface RecentActivityProps {

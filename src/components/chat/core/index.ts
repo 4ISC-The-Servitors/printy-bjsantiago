@@ -9,5 +9,4 @@ export type { TypingIndicatorProps } from './TypingIndicator';
 export { ChatInput } from './ChatInput';
 export type { ChatInputProps } from './ChatInput';
 
-export { EmptyState } from './EmptyState';
-export type { EmptyStateProps } from './EmptyState';
+export { ReadOnlyOverlay } from './ReadOnlyOverlay';

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { X, Minus } from 'lucide-react';
 import { Button, Text } from '../../shared';
-import { MessageGroup, TypingIndicator, ChatInput, EmptyState } from '../core';
+import { MessageGroup, TypingIndicator, ChatInput } from '../core';
 import SelectedChipsBar from '../../shared/SelectedChipsBar';
 import type { ChatMessage, QuickReply } from '../types';
 
@@ -141,22 +141,16 @@ export const AdminChatDock: React.FC<AdminChatDockProps> = ({
 
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messageGroups.length === 0 ? (
-          <EmptyState
-            title="Start chatting"
-            description="Ask Printy anything about orders, tickets, or services"
+        {messageGroups.map((group, idx) => (
+          <MessageGroup
+            key={idx}
+            messages={group.messages}
+            quickReplies={group.quickReplies}
+            onQuickReply={onQuickReply}
+            onEndChat={onEndChat}
+            readOnly={readOnly}
           />
-        ) : (
-          messageGroups.map((group, idx) => (
-            <MessageGroup
-              key={idx}
-              messages={group.messages}
-              quickReplies={group.quickReplies}
-              onQuickReply={onQuickReply}
-              onEndChat={onEndChat}
-            />
-          ))
-        )}
+        ))}
         {isTyping && <TypingIndicator />}
       </div>
 
@@ -172,14 +166,6 @@ export const AdminChatDock: React.FC<AdminChatDockProps> = ({
             onAttachFiles={onAttachFiles}
             disabled={readOnly}
           />
-        </div>
-      )}
-
-      {readOnly && (
-        <div className="bg-neutral-50 border-t border-neutral-200 p-3 text-center">
-          <Text variant="p" size="sm" color="muted">
-            This conversation has ended
-          </Text>
         </div>
       )}
     </aside>

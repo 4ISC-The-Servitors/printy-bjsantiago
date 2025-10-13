@@ -7,8 +7,8 @@ type Updater = (id: string, updates: Partial<any>, state: FlowState) => Promise<
 // Helper function to fetch detailed order information
 async function fetchOrderDetails(orderId: string) {
   try {
-    // Fetch order with customer info
-    const { data: order, error: orderError } = await supabase
+    // Fetch order with customer info - try both display_id and order_id
+    let { data: order, error: orderError } = await supabase
       .from('orders_duplicate')
       .select(`
         *,
@@ -20,9 +20,26 @@ async function fetchOrderDetails(orderId: string) {
       .eq('display_id', orderId)
       .single();
 
+    // If not found by display_id, try order_id (UUID)
     if (orderError || !order) {
-      console.error('Error fetching order:', orderError);
-      return null;
+      const { data: orderByUuid, error: uuidError } = await supabase
+        .from('orders_duplicate')
+        .select(`
+          *,
+          customer:customer_id (
+            first_name,
+            last_name
+          )
+        `)
+        .eq('order_id', orderId)
+        .single();
+      
+      if (uuidError || !orderByUuid) {
+        console.error('Error fetching order by both display_id and order_id:', orderError, uuidError);
+        return null;
+      }
+      
+      order = orderByUuid;
     }
 
     // Try to get quote details if this order was created from a quote
@@ -31,7 +48,7 @@ async function fetchOrderDetails(orderId: string) {
       const { data: quoteOrder } = await supabase
         .from('quote_orders')
         .select('conversation_id')
-        .eq('order_display_id', orderId)
+        .eq('order_id', order.order_id)  // Use the actual order_id from the fetched order
         .single();
 
       if (quoteOrder) {
@@ -66,7 +83,7 @@ export function createVerifyPaymentNodes(opts: {
   const { getOrders, setCurrentOrderId, updateOrder } = opts;
 
   const start: NodeHandler = {
-    messages: (state, context) => {
+    messages: async (state, context) => {
       const orders = (getOrders(state, context) || []).filter(
         o => String(o.status).toLowerCase() === 'verifying_payment'
       );
@@ -83,7 +100,7 @@ export function createVerifyPaymentNodes(opts: {
       // Get the first order (or selected order)
       const currentId = (state as any).currentOrderId as string | null;
       let orderToProcess;
-      
+
       if (currentId) {
         orderToProcess = orders.find(
           o => (o.id || '').toLowerCase() === currentId.toLowerCase()
@@ -102,118 +119,97 @@ export function createVerifyPaymentNodes(opts: {
         ];
       }
 
-      // Show basic info immediately, then fetch details on first interaction
-      return [
-        { role: 'printy' as const, text: `Payment Verification - ${orderToProcess.id}` },
-        { role: 'printy' as const, text: `Customer: ${orderToProcess.customer}` },
-        { role: 'printy' as const, text: `Status: ${orderToProcess.status}` },
-        { role: 'printy' as const, text: `Amount: ₱${orderToProcess.total_amount || orderToProcess.total || 'N/A'}` },
-        { role: 'printy' as const, text: 'Click "Load Full Details" to see complete order information and payment proof.' },
-      ];
+      // Fetch and display full order details immediately
+      try {
+        const orderDetails = await fetchOrderDetails(currentId || orderToProcess.id);
+
+        if (!orderDetails) {
+          return [
+            { role: 'printy', text: `Could not fetch details for order ${currentId || orderToProcess.id}` }
+          ];
+        }
+
+        const { order, quoteDetails } = orderDetails;
+        const uploadedAt = order.payment_proof_uploaded_at ? new Date(order.payment_proof_uploaded_at).toLocaleString() : 'Not provided';
+        const img = order.payment_proof || '';
+        console.log('Payment proof URL from database:', img);
+
+        const customerName = order.customer?.first_name
+          ? `${order.customer.first_name} ${order.customer.last_name}`
+          : 'Unknown Customer';
+
+        const messages = [
+          {
+            role: 'printy' as const,
+            text: `Complete Order Details - ${order.display_id || order.order_id}\n\nCustomer: ${customerName}\nProof Upload Date: ${uploadedAt}`
+          },
+        ];
+
+        // Add detailed specifications if available from quote
+        if (quoteDetails && quoteDetails.spec_final) {
+          const spec = quoteDetails.spec_final;
+          let specsText = 'Order Specifications:\n\n';
+
+          if (spec.product_name) specsText += `• Product: ${spec.product_name}\n`;
+          if (spec.category) specsText += `• Category: ${spec.category}\n`;
+          if (spec.description) specsText += `• Description: ${spec.description}\n`;
+          if (spec.size) specsText += `• Size: ${spec.size}\n`;
+          if (spec.materials && spec.materials.length > 0) specsText += `• Materials: ${spec.materials.join(', ')}\n`;
+          if (spec.color) specsText += `• Color: ${spec.color}\n`;
+          if (spec.finishing && spec.finishing.length > 0) specsText += `• Finishing: ${spec.finishing.join(', ')}\n`;
+          if (spec.quantity) specsText += `• Quantity: ${spec.quantity}\n`;
+          if (spec.deadline) specsText += `• Deadline: ${spec.deadline}\n`;
+          if (spec.notes) specsText += `• Notes: ${spec.notes}\n`;
+
+          specsText += `\nAgreed Price: ₱${quoteDetails.quoted_price}`;
+          messages.push({ role: 'printy' as const, text: specsText.trim() });
+        } else {
+          // Fallback to basic order specs if no quote details
+          const orderSpecs = order.order_specs;
+
+          if (orderSpecs && typeof orderSpecs === 'object' && Object.keys(orderSpecs).length > 0) {
+            // If order_specs is a JSONB object with content, format it nicely
+            let specsText = 'Order Specifications:\n\n';
+            Object.entries(orderSpecs).forEach(([key, value]) => {
+              if (value !== null && value !== undefined && value !== '') {
+                specsText += `• ${key}: ${value}\n`;
+              }
+            });
+
+            if (specsText.trim() !== 'Order Specifications:') {
+              messages.push({ role: 'printy' as const, text: specsText.trim() });
+            } else {
+              messages.push({ role: 'printy' as const, text: 'Order Specifications:\n\nNo detailed specifications available' });
+            }
+          } else if (typeof orderSpecs === 'string' && orderSpecs.trim()) {
+            messages.push({ role: 'printy' as const, text: `Order Specifications:\n\n${orderSpecs}` });
+          } else {
+            messages.push({ role: 'printy' as const, text: 'Order Specifications:\n\nNo detailed specifications available' });
+          }
+        }
+
+        if (img) {
+          messages.push({ role: 'printy' as const, text: `Payment Proof:\n\n${img}` });
+        }
+
+        messages.push({ role: 'printy' as const, text: 'Review the payment proof above and decide:' });
+
+        return messages;
+
+      } catch (error) {
+        console.error('Error fetching order details:', error);
+        return [
+          { role: 'printy', text: `Error loading order details for ${currentId || orderToProcess.id}` }
+        ];
+      }
     },
     quickReplies: (_state, _context) => {
-      return ['Load Full Details', 'Accept Payment', 'Deny Payment', 'End Chat'];
+      return ['Accept Payment', 'Deny Payment', 'End Chat'];
     },
     handleInput: async (input, state, _context) => {
       const lower = input.trim().toLowerCase();
       const currentId = (state as any).currentOrderId as string | null;
       if (!currentId) return null;
-
-      if (lower.includes('load') && lower.includes('details')) {
-        // Fetch and display full order details with payment proof
-        try {
-          const orderDetails = await fetchOrderDetails(currentId);
-          
-          if (!orderDetails) {
-            return {
-              messages: [
-                { role: 'printy', text: `Could not fetch details for order ${currentId}` }
-              ],
-              quickReplies: ['Accept Payment', 'Deny Payment', 'End Chat']
-            };
-          }
-
-          const { order, quoteDetails } = orderDetails;
-          const uploadedAt = order.payment_proof_uploaded_at ? new Date(order.payment_proof_uploaded_at).toLocaleString() : 'Not provided';
-          const img = order.payment_proof || '';
-          console.log('Payment proof URL from database:', img);
-          
-          const customerName = order.customer?.first_name 
-            ? `${order.customer.first_name} ${order.customer.last_name}`
-            : 'Unknown Customer';
-          
-          const messages = [
-            { role: 'printy' as const, text: `Complete Order Details - ${order.display_id || order.order_id}` },
-            { role: 'printy' as const, text: `Customer: ${customerName}` },
-            { role: 'printy' as const, text: `Uploaded: ${uploadedAt}` },
-            { role: 'printy' as const, text: `Amount to Verify: ₱${order.total_amount || order.total || 'N/A'}` },
-          ];
-          
-          // Add detailed specifications if available from quote
-          if (quoteDetails && quoteDetails.spec_final) {
-            const spec = quoteDetails.spec_final;
-            messages.push({ role: 'printy' as const, text: `Order Specifications:` });
-            
-            if (spec.product_name) messages.push({ role: 'printy' as const, text: `Product: ${spec.product_name}` });
-            if (spec.category) messages.push({ role: 'printy' as const, text: `Category: ${spec.category}` });
-            if (spec.description) messages.push({ role: 'printy' as const, text: `Description: ${spec.description}` });
-            if (spec.size) messages.push({ role: 'printy' as const, text: `Size: ${spec.size}` });
-            if (spec.materials && spec.materials.length > 0) messages.push({ role: 'printy' as const, text: `Materials: ${spec.materials.join(', ')}` });
-            if (spec.color) messages.push({ role: 'printy' as const, text: `Color: ${spec.color}` });
-            if (spec.finishing && spec.finishing.length > 0) messages.push({ role: 'printy' as const, text: `Finishing: ${spec.finishing.join(', ')}` });
-            if (spec.quantity) messages.push({ role: 'printy' as const, text: `Quantity: ${spec.quantity}` });
-            if (spec.deadline) messages.push({ role: 'printy' as const, text: `Deadline: ${spec.deadline}` });
-            if (spec.notes) messages.push({ role: 'printy' as const, text: `Notes: ${spec.notes}` });
-            
-            messages.push({ role: 'printy' as const, text: `Agreed Price: ₱${quoteDetails.quoted_price}` });
-          } else {
-            // Fallback to basic order specs if no quote details
-            messages.push({ role: 'printy' as const, text: `Order Specifications:` });
-            const orderSpecs = order.order_specs;
-            
-            if (orderSpecs && typeof orderSpecs === 'object' && Object.keys(orderSpecs).length > 0) {
-              // If order_specs is a JSONB object with content, format it nicely
-              let specsText = '';
-              Object.entries(orderSpecs).forEach(([key, value]) => {
-                if (value !== null && value !== undefined && value !== '') {
-                  specsText += `${key}: ${value}\n`;
-                }
-              });
-              
-              if (specsText.trim()) {
-                messages.push({ role: 'printy' as const, text: specsText.trim() });
-              } else {
-                messages.push({ role: 'printy' as const, text: 'No detailed specifications available' });
-              }
-            } else if (typeof orderSpecs === 'string' && orderSpecs.trim()) {
-              messages.push({ role: 'printy' as const, text: orderSpecs });
-            } else {
-              messages.push({ role: 'printy' as const, text: 'No detailed specifications available' });
-            }
-          }
-          
-          if (img) {
-            messages.push({ role: 'printy' as const, text: `Payment Proof:` });
-            messages.push({ role: 'printy' as const, text: img });
-          }
-
-          messages.push({ role: 'printy' as const, text: 'Review the payment proof above and decide:' });
-          
-          return {
-            messages: messages,
-            quickReplies: ['Accept Payment', 'Deny Payment', 'End Chat']
-          };
-
-        } catch (error) {
-          console.error('Error fetching order details:', error);
-          return {
-            messages: [
-              { role: 'printy', text: `Error loading order details for ${currentId}` }
-            ],
-            quickReplies: ['Accept Payment', 'Deny Payment', 'End Chat']
-          };
-        }
-      }
 
       if (lower.startsWith('accept')) {
         try {
@@ -236,7 +232,7 @@ export function createVerifyPaymentNodes(opts: {
                 text: `Error updating order status: ${error instanceof Error ? error.message : 'Unknown error'}`,
               },
             ],
-            quickReplies: ['Accept Payment', 'Deny Payment', 'End Chat']
+            quickReplies: ['End Chat']
           };
         }
       }
@@ -262,7 +258,7 @@ export function createVerifyPaymentNodes(opts: {
                 text: `Error updating order status: ${error instanceof Error ? error.message : 'Unknown error'}`,
               },
             ],
-            quickReplies: ['Accept Payment', 'Deny Payment', 'End Chat']
+            quickReplies: ['End Chat']
           };
         }
       }

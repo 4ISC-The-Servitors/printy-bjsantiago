@@ -42,9 +42,31 @@ export const trackQuoteFlow: ChatFlow = {
     return messages;
   },
 
-  quickReplies(): string[] {
-    // This will need to be dynamic based on whether there's a proposal
-    return ['Accept Quote', 'Reject Quote', 'End Chat'];
+  async quickReplies(ctx?: FlowContext): Promise<string[]> {
+    const conversationId = ctx?.conversationId as string;
+    
+    if (!conversationId) {
+      return ['End Chat'];
+    }
+
+    try {
+      // Check if there are any proposals for this conversation
+      const { data: proposals } = await supabase
+        .from('quote_proposals')
+        .select('proposal_id')
+        .eq('conversation_id', conversationId)
+        .limit(1);
+
+      // Only show Accept/Reject buttons if there's a proposal
+      if (proposals && proposals.length > 0) {
+        return ['Accept Quote', 'Reject Quote', 'End Chat'];
+      } else {
+        return ['End Chat'];
+      }
+    } catch (error) {
+      console.error('Error checking for proposals in quickReplies:', error);
+      return ['End Chat'];
+    }
   },
 
   async respond(ctx: FlowContext, input: string): Promise<FlowResponse> {
@@ -74,12 +96,7 @@ export const trackQuoteFlow: ChatFlow = {
       
       if (input === 'End Chat') {
         return {
-          messages: [
-            {
-              role: 'printy',
-              text: 'Quote tracking ended. Thank you for using Printy!'
-            }
-          ],
+          messages: [],
           quickReplies: []
         };
       }

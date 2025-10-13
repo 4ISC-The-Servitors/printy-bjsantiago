@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 // Customer chat UI and types
 import { CustomerChatPanel } from '../../components/chat/layouts';
-import type { ChatMessage } from '../../components/chat/types';
+import type { ConversationItem } from '../../hooks/core/useConversationState';
 // Sidebar and dashboard widgets
 import SidebarPanel from '../../components/customer/shared/sidebar/SidebarPanel';
 import LogoutButton from '../../components/customer/shared/sidebar/LogoutButton';
@@ -94,15 +94,7 @@ const topicConfig: Record<
   },
 };
 
-interface Conversation {
-  id: string;
-  title: string;
-  createdAt: number;
-  messages: ChatMessage[];
-  flowId: string;
-  status: 'active' | 'ended';
-  icon?: React.ReactNode;
-}
+type Conversation = ConversationItem;
 
 // topicConfig now imported from feature config
 
@@ -286,29 +278,28 @@ const CustomerDashboard: React.FC = () => {
   };
 
   // ---------------- UI ----------------
-  return (
-    <div className="h-screen bg-gradient-to-br from-neutral-50 to-brand-primary-50 flex">
-      {/* Sidebar (desktop) */}
-      <aside className="hidden lg:flex w-64 bg-white border-r border-neutral-200">
-        <SidebarPanel
-          conversations={conversations}
-          activeId={activeId}
-          onSwitchConversation={switchConversationHook}
-          onNavigateToAccount={() => navigate('/customer/account')}
-          bottomActions={
-            <LogoutButton
-              onClick={() => {
-                setShowLogoutModal(true);
-              }}
-            />
-          }
+  const sidebar = (
+    <SidebarPanel
+      conversations={conversations}
+      activeId={activeId}
+      onSwitchConversation={switchConversationHook}
+      onNavigateToAccount={() => navigate('/customer/account')}
+      bottomActions={
+        <LogoutButton
+          onClick={() => {
+            setShowLogoutModal(true);
+          }}
         />
-      </aside>
+      }
+    />
+  );
 
-      <main className="flex-1 flex flex-col pl-16 lg:pl-0">
-        {isLoading ? (
-          <PageLoading variant="dashboard" />
-        ) : activeId ? (
+  const content = (
+    <>
+      {isLoading ? (
+        <PageLoading variant="dashboard" />
+      ) : activeId ? (
+        <div className="h-full">
           <CustomerChatPanel
             title={conversations.find(c => c.id === activeId)?.title || 'Chat'}
             messages={messages}
@@ -326,60 +317,99 @@ const CustomerDashboard: React.FC = () => {
               conversations.find(c => c.id === activeId)?.status === 'ended'
             }
           />
-        ) : (
-          <div className="p-8 overflow-y-auto">
-            <div className="max-w-6xl mx-auto w-full">
-              <div className="text-center space-y-1 mb-8">
-                <Text
-                  variant="h1"
-                  size="4xl"
-                  weight="bold"
-                  className="text-brand-primary"
-                >
-                  How can I help you today?
-                </Text>
-                <Text variant="p" size="base" color="muted">
-                  Check recent activity or start a new chat
-                </Text>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
-                <RecentOrder
-                  recentOrder={
-                    recentOrder ?? {
-                      id: '—',
-                      title: 'No recent order',
-                      status: 'none',
-                      updatedAt: Date.now(),
-                    }
-                  }
-                />
-                <RecentTickets
-                  recentTicket={
-                    recentTicket ?? {
-                      id: '—',
-                      subject: 'No recent ticket',
-                      status: 'none',
-                      updatedAt: Date.now(),
-                    }
-                  }
-                />
-                <RecentQuotes
-                  recentQuote={
-                    recentQuote ?? {
-                      id: '—',
-                      subject: 'No recent quote request',
-                      status: 'active',
-                      updatedAt: Date.now(),
-                    }
-                  }
-                />
-              </div>
-              <ChatCards onSelect={key => handleTopic(key as TopicKey)} />
+        </div>
+      ) : (
+        <div className="p-8 overflow-y-auto">
+          <div className="max-w-6xl mx-auto w-full">
+            <div className="text-center space-y-1 mb-8">
+              <Text
+                variant="h1"
+                size="4xl"
+                weight="bold"
+                className="text-brand-primary"
+              >
+                How can I help you today?
+              </Text>
+              <Text variant="p" size="base" color="muted">
+                Check recent activity or start a new chat
+              </Text>
             </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
+              <RecentOrder
+                recentOrder={
+                  recentOrder ?? {
+                    id: '—',
+                    displayId: 'NO-ORDER',
+                    title: 'No recent order',
+                    status: 'none',
+                    createdAt: Date.now(),
+                    updatedAt: Date.now()
+                  }
+                }
+              />
+              <RecentTickets
+                recentTicket={
+                  recentTicket ?? {
+                    id: '—',
+                    displayId: 'NO-TICKET',
+                    subject: 'No recent ticket',
+                    status: 'none',
+                    createdAt: Date.now(),
+                    updatedAt: Date.now()
+                  }
+                }
+              />
+              <RecentQuotes
+                recentQuote={
+                  recentQuote ?? {
+                    id: '—',
+                    displayId: 'NO-QUOTE',
+                    status: 'active',
+                    createdAt: Date.now(),
+                    updatedAt: Date.now()
+                  }
+                }
+              />
+            </div>
+            <ChatCards onSelect={key => handleTopic(key as TopicKey)} />
           </div>
-        )}
-      </main>
+        </div>
+      )}
+    </>
+  );
+
+  return (
+    <>
+      {/* Desktop Layout */}
+      <div className="hidden lg:block">
+        <div className="h-screen bg-gradient-to-br from-neutral-50 to-brand-primary-50 flex">
+          {/* Sidebar (desktop) */}
+          <aside className="w-64 bg-white border-r border-neutral-200">
+            {sidebar}
+          </aside>
+
+          {/* Main Content */}
+          <main className="flex-1 flex flex-col">
+            {content}
+          </main>
+        </div>
+      </div>
+
+      {/* Mobile Layout */}
+      <div className="lg:hidden">
+        <div className="h-screen bg-gradient-to-br from-neutral-50 to-brand-primary-50 flex">
+          {/* Compact left rail (mobile) */}
+          <div className="fixed left-0 top-0 bottom-0 w-16 bg-white border-r border-neutral-200 z-50">
+            {sidebar}
+          </div>
+
+          {/* Main content with left offset for rail */}
+          <main className="flex-1 flex flex-col pl-16 h-full w-full">
+            {content}
+          </main>
+        </div>
+      </div>
 
       {/* Logout Modal */}
       <LogoutModal
@@ -398,7 +428,7 @@ const CustomerDashboard: React.FC = () => {
         onRemoveToast={id => toast.remove(id)}
         position="bottom-right"
       />
-    </div>
+    </>
   );
 };
 
