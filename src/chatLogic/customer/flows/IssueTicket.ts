@@ -28,8 +28,11 @@ const NODES: Record<string, Node> = {
   issue_ticket_start: {
     id: 'issue_ticket_start',
     message:
-      "Hi! I'm Printy. I'll help you create a support ticket. What's your order number?",
-    options: [{ label: 'End Chat', next: 'end' }],
+      "I'll help you create a support ticket. What's your order number?",
+      options: [
+        { label: 'Back to Start', next: 'issue_ticket_start' },
+        { label: 'End Chat', next: 'end' },
+      ],
   },
 
   ticket_status_start: {
@@ -41,7 +44,7 @@ const NODES: Record<string, Node> = {
       { label: 'End Chat', next: 'end' },
     ],
   },
-  // ====================
+
   order_issue_menu: {
     id: 'order_issue_menu',
     answer:
@@ -54,7 +57,6 @@ const NODES: Record<string, Node> = {
       { label: 'End Chat', next: 'end' },
     ],
   },
-  // ====================
 
   no_order_number: {
     id: 'no_order_number',
@@ -131,7 +133,7 @@ const NODES: Record<string, Node> = {
 
 let currentNodeId: keyof typeof NODES = 'issue_ticket_start';
 let collectedIssueDetails = '';
-let currentInquiryType: string | null = null; // added
+let currentInquiryType: string | null = null;
 
 const DETAIL_NODE_IDS = new Set<keyof typeof NODES>([
   'quality_issue',
@@ -139,8 +141,6 @@ const DETAIL_NODE_IDS = new Set<keyof typeof NODES>([
   'billing_issue',
   'other_issue',
 ]);
-
-// Added a function to retrieve the current logged-in user's customer_id
 
 function nodeToMessages(node: Node): BotMessage[] {
   if (node.message) return [{ role: 'printy', text: node.message }];
@@ -163,7 +163,7 @@ export const issueTicketFlow: ChatFlow = {
   id: 'issue-ticket',
   title: 'Issue a Ticket',
   initial: () => {
-    currentNodeId = 'issue_ticket_intro'; // start with intro question
+    currentNodeId = 'issue_ticket_intro';
     collectedIssueDetails = '';
     currentInquiryType = null;
     return nodeToMessages(NODES[currentNodeId]);
@@ -173,24 +173,11 @@ export const issueTicketFlow: ChatFlow = {
     const current = NODES[currentNodeId];
 
     // ====================
-    // Blacklisted words (basic profanity filter)
-    // ====================
+    // Blacklisted words filter
     const BLACKLIST = ['fuck', 'shit', 'bitch', 'asshole', 'bastard', 'nigger'];
-
-    function checkBlacklistedWord(input: string): string | null {
-      const lower = input.toLowerCase();
-      for (const word of BLACKLIST) {
-        if (lower.includes(word)) {
-          return word; // return the matched bad word
-        }
-      }
-      return null;
-    }
-
-    // ====================
-    // Global profanity filter
-    // ====================
-    const flaggedWord = checkBlacklistedWord(input);
+    const flaggedWord = BLACKLIST.find(word =>
+      input.toLowerCase().includes(word)
+    );
     if (flaggedWord) {
       if (
         currentNodeId === 'issue_ticket_start' ||
@@ -198,10 +185,7 @@ export const issueTicketFlow: ChatFlow = {
       ) {
         return {
           messages: [
-            {
-              role: 'printy',
-              text: `You have entered a flagged word that is "${flaggedWord}".`,
-            },
+            { role: 'printy', text: `You have entered a flagged word: "${flaggedWord}".` },
             { role: 'printy', text: 'Please type a valid order number.' },
           ],
           quickReplies: nodeQuickReplies(NODES.issue_ticket_start),
@@ -209,17 +193,13 @@ export const issueTicketFlow: ChatFlow = {
       } else if (DETAIL_NODE_IDS.has(currentNodeId)) {
         return {
           messages: [
-            {
-              role: 'printy',
-              text: `You have entered a flagged word that is "${flaggedWord}".`,
-            },
-            { role: 'printy', text: 'Please rephrase, use appropriate words.' },
+            { role: 'printy', text: `You have entered a flagged word: "${flaggedWord}".` },
+            { role: 'printy', text: 'Please rephrase your description.' },
           ],
           quickReplies: nodeQuickReplies(NODES[currentNodeId]),
         };
       }
     }
-    // ====================
 
     const selection = current.options.find(
       o => o.label.toLowerCase() === input.trim().toLowerCase()
@@ -229,17 +209,12 @@ export const issueTicketFlow: ChatFlow = {
     // Backtracking handler
     if (/^(go\s*back|see\s*menu\s*again|back|menu)$/i.test(input.trim())) {
       return {
-        messages: [
-          { role: 'printy', text: 'Where would you like to back track?' },
-        ],
-        quickReplies: [
-          '🔄 Back to start (order number check)',
-          '📋 Back to choosing issue type',
-        ],
+        messages: [{ role: 'printy', text: 'Where would you like to go back?' }],
+        quickReplies: ['Back to start', 'Back to choosing issue type'],
       };
     }
 
-    if (/^🔄\s*Back to start/i.test(input.trim())) {
+    if (/^back to start/i.test(input.trim())) {
       currentNodeId = 'issue_ticket_start';
       collectedIssueDetails = '';
       currentInquiryType = null;
@@ -249,7 +224,7 @@ export const issueTicketFlow: ChatFlow = {
       };
     }
 
-    if (/^📋\s*Back to choosing issue type/i.test(input.trim())) {
+    if (/^back to choosing issue type/i.test(input.trim())) {
       currentNodeId = 'order_issue_menu';
       collectedIssueDetails = '';
       currentInquiryType = null;
@@ -258,46 +233,40 @@ export const issueTicketFlow: ChatFlow = {
         quickReplies: nodeQuickReplies(NODES.order_issue_menu),
       };
     }
-    // ====================
 
     // ====================
-    // Handle Ticket Status Inquiry
-    // ====================
+    // Ticket Status Inquiry
     if (!selection && currentNodeId === 'ticket_status_start') {
-      const inquiryId = input.trim().replace(/[^a-zA-Z0-9-]/g, ''); // sanitize input
-
-      if (!inquiryId) {
+      const displayId = input.trim().replace(/[^a-zA-Z0-9-]/g, '');
+      if (!displayId) {
         return {
-          messages: [
-            {
-              role: 'printy',
-              text: 'Please enter a valid ticket number (inquiry ID).',
-            },
-          ],
+          messages: [{ role: 'printy', text: 'Please enter a valid ticket number.' }],
           quickReplies: nodeQuickReplies(NODES.ticket_status_start),
         };
       }
 
-      const { data, error } = await supabase.rpc('api_inquiry_by_id', {
-        p_inquiry_id: inquiryId,
-      });
-      const inquiry = ((data as any[]) || [])[0];
+      // Fetch by display_id but scoped to current user
+      const { data: userData } = await supabase.auth.getUser();
+      const customerId = userData?.user?.id;
+      const { data, error } = await supabase
+        .from('inquiries')
+        .select('*')
+        .eq('customer_id', customerId)
+        .eq('display_id', displayId)
+        .maybeSingle();
+      const inquiry = data;
 
       if (error || !inquiry) {
         return {
           messages: [
-            {
-              role: 'printy',
-              text: `I couldn't find a ticket with ID "${inquiryId}". Please check and try again.`,
-            },
+            { role: 'printy', text: `No ticket found with number "${displayId}".` },
           ],
           quickReplies: nodeQuickReplies(NODES.ticket_status_start),
         };
       }
 
-      // Format output cleanly
       const lines = [
-        `Ticket ID: ${inquiry.inquiry_id}`,
+        `Ticket Number: ${inquiry.display_id}`,
         `Issue submitted: ${inquiry.inquiry_message || '(no message provided)'}`,
         `Issue type: ${inquiry.inquiry_type || '(not specified)'}`,
         `Received: ${new Date(inquiry.received_at).toLocaleString()}`,
@@ -307,163 +276,29 @@ export const issueTicketFlow: ChatFlow = {
           : 'Resolution: (not yet provided)',
       ];
 
-      // after formatting `lines` array
       return {
         messages: lines.map(line => ({ role: 'printy', text: line })),
         quickReplies: nodeQuickReplies(NODES.ticket_status_start),
       };
     }
 
-    // Free-text handling at start: treat input as an order number and look it up
-    if (!selection && currentNodeId === 'issue_ticket_start') {
+    // ====================
+    // Free-text order number handling
+    if (!selection && (currentNodeId === 'issue_ticket_start' || currentNodeId === 'no_order_number')) {
       const orderNumber = input.trim().replace(/[^a-zA-Z0-9-]/g, '');
       if (!orderNumber) {
         return {
-          messages: [
-            {
-              role: 'printy',
-              text: 'Please enter a valid order number or choose an option.',
-            },
-          ],
+          messages: [{ role: 'printy', text: 'Please enter a valid order number.' }],
           quickReplies: nodeQuickReplies(current),
         };
       }
-      // ====================
-      // Fetch order from Supabase
-      try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (!user) {
-          return {
-            messages: [
-              {
-                role: 'printy',
-                text: 'You must be signed in to create a ticket.',
-              },
-            ],
-            quickReplies: nodeQuickReplies(current),
-          };
-        }
 
-        const uid = user?.id;
-        if (!uid) {
-          return {
-            messages: [
-              {
-                role: 'printy',
-                text: 'You must be signed in to create a ticket.',
-              },
-            ],
-            quickReplies: nodeQuickReplies(current),
-          };
-        }
-
-        const { data: order, error } = await supabase
-          .from('orders')
-          .select(
-            `
-            order_id,
-            order_status,
-            order_datetime,
-            completed_datetime,
-            page_size,
-            quantity,
-            product_service_name,
-            specification,
-            quotes:quotes(quoted_price)
-          `
-          )
-          .eq('order_id', orderNumber)
-          .eq('customer_id', uid)
-          .maybeSingle();
-
-        if (error) {
-          console.error('Error fetching order:', error);
-          return {
-            messages: [
-              {
-                role: 'printy',
-                text: 'Error fetching order details. Please try again.',
-              },
-            ],
-            quickReplies: nodeQuickReplies(current),
-          };
-        }
-
-        if (!order) {
-          return {
-            messages: [
-              {
-                role: 'printy',
-                text: `Order ${orderNumber} not found or you are not authorized to view it.`,
-              },
-            ],
-            quickReplies: nodeQuickReplies(current),
-          };
-        }
-
-        const quote =
-          order.quotes && order.quotes.length > 0 ? order.quotes[0] : null;
-        const orderLines = [
-          `Order ${order.order_id} — Status: ${order.order_status}`,
-          `Placed: ${new Date(order.order_datetime).toLocaleString()}`,
-          `Product: ${order.product_service_name || 'N/A'}`,
-          `Specification: ${order.specification || 'N/A'}`,
-          `Page Size: ${order.page_size || 'N/A'}`,
-          `Quantity: ${order.quantity || 'N/A'}`,
-          `Total: ${quote?.quoted_price ? `₱${quote.quoted_price.toFixed(2)}` : 'Awaiting Quote'}`,
-        ];
-
-        currentNodeId = 'order_issue_menu';
+      const { data: userData } = await supabase.auth.getUser();
+      const customerId = userData?.user?.id;
+      if (!customerId) {
         return {
-          messages: [
-            { role: 'printy', text: orderLines.join('\n') },
-            { role: 'printy', text: 'Is this the correct order?' },
-            ...nodeToMessages(NODES.order_issue_menu),
-          ],
-          quickReplies: nodeQuickReplies(NODES.order_issue_menu),
-        };
-      } catch (error) {
-        console.error('Error in order lookup:', error);
-        return {
-          messages: [
-            {
-              role: 'printy',
-              text: 'Error looking up order. Please try again.',
-            },
-          ],
+          messages: [{ role: 'printy', text: 'You must be signed in to view orders.' }],
           quickReplies: nodeQuickReplies(current),
-        };
-      }
-      // ====================
-
-      // Lookup order for the signed-in customer with the provided order number
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) {
-        return {
-          messages: [
-            {
-              role: 'printy',
-              text: 'You need to be signed in to view your orders.',
-            },
-          ],
-          quickReplies: nodeQuickReplies(NODES.issue_ticket_start),
-        };
-      }
-
-      const uid = user?.id;
-      if (!uid) {
-        return {
-          messages: [
-            {
-              role: 'printy',
-              text: 'You need to be signed in to view your orders.',
-            },
-          ],
-          quickReplies: nodeQuickReplies(NODES.issue_ticket_start),
         };
       }
 
@@ -471,28 +306,19 @@ export const issueTicketFlow: ChatFlow = {
         .from('orders')
         .select('order_id,order_status,order_datetime')
         .eq('order_id', orderNumber)
-        .eq('customer_id', uid)
+        .eq('customer_id', customerId)
         .maybeSingle();
 
       if (error || !order) {
         return {
-          messages: [
-            {
-              role: 'printy',
-              text: `I couldn't find an order with number "${orderNumber}". Please check and try again.`,
-            },
-          ],
-          quickReplies: nodeQuickReplies(NODES.issue_ticket_start),
+          messages: [{ role: 'printy', text: `Order "${orderNumber}" not found.` }],
+          quickReplies: nodeQuickReplies(current),
         };
       }
 
       const lines = [
-        `Order ${(order as any).order_id} — Status: ${(order as any).order_status ?? 'N/A'}`,
-        `Placed: ${
-          (order as any).order_datetime
-            ? new Date((order as any).order_datetime).toLocaleString()
-            : 'N/A'
-        }`,
+        `Order ${order.order_id} — Status: ${order.order_status ?? 'N/A'}`,
+        `Placed: ${order.order_datetime ? new Date(order.order_datetime).toLocaleString() : 'N/A'}`,
       ];
 
       currentNodeId = 'order_issue_menu';
@@ -506,251 +332,84 @@ export const issueTicketFlow: ChatFlow = {
       };
     }
 
-    if (!selection) {
-      if (DETAIL_NODE_IDS.has(currentNodeId)) {
-        const detail = input.trim();
-        if (detail) {
-          collectedIssueDetails = collectedIssueDetails
-            ? `${collectedIssueDetails}\n${detail}`
-            : detail;
-          return {
-            messages: [
-              {
-                role: 'printy',
-                text: "Got it. I've added that to your ticket notes. You can add more details or choose 'Submit ticket' when ready.",
-              },
-            ],
-            quickReplies: nodeQuickReplies(current),
-          };
-        }
-      }
-
-      // ====================
-      // In no_order_number state: either list orders, or accept an order number selection
-      if (currentNodeId === 'no_order_number') {
-        const typed = input.trim();
-        // If user typed an order number, fetch that order and proceed
-        if (typed) {
-          const sanitized = typed.trim().replace(/[^a-zA-Z0-9-]/g, '');
-          const {
-            data: { user },
-          } = await supabase.auth.getUser();
-          const uid = user?.id;
-          const { data: orderPick, error: pickErr } = await supabase
-            .from('orders')
-            .select('order_id,order_status,order_datetime')
-            .eq('order_id', sanitized)
-            .eq('customer_id', uid || '')
-            .maybeSingle();
-
-          if (!pickErr && orderPick) {
-            const lines = [
-              `Order ${(orderPick as any).order_id} — Status: ${(orderPick as any).order_status ?? 'N/A'}`,
-              `Placed: ${
-                (orderPick as any).order_datetime
-                  ? new Date((orderPick as any).order_datetime).toLocaleString()
-                  : 'N/A'
-              }`,
-            ];
-
-            currentNodeId = 'order_issue_menu';
-            return {
-              messages: [
-                { role: 'printy', text: lines.join('\n') },
-                { role: 'printy', text: 'Is this the correct order?' },
-                ...nodeToMessages(NODES.order_issue_menu),
-              ],
-              quickReplies: nodeQuickReplies(NODES.order_issue_menu),
-            };
-          }
-        }
-
-        // Otherwise, list recent orders for the signed-in user
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        const uid = user?.id;
-        if (!uid) {
-          return {
-            messages: [
-              {
-                role: 'printy',
-                text: 'You need to be signed in to view your orders.',
-              },
-            ],
-            quickReplies: ['End Chat'],
-          };
-        }
-
-        // Query up to 10 latest orders for this user (by customer_id)
-        const { data: orders, error: ordersErr } = await supabase
-          .from('orders')
-          .select('order_id,order_datetime')
-          .eq('customer_id', uid)
-          .order('order_datetime', { ascending: false })
-          .limit(10);
-
-        if (ordersErr || !orders || orders.length === 0) {
-          return {
-            messages: [
-              {
-                role: 'printy',
-                text: "I couldn't find any past orders for your account. If you think this is a mistake, please try again later or contact support.",
-              },
-            ],
-            quickReplies: ['End Chat'],
-          };
-        }
-
-        // Compose a compact list: date — order number — total
-        const lines: string[] = ['Here are your recent orders:', ''];
-        for (const o of orders as any[]) {
-          lines.push(
-            `${new Date(o.order_datetime).toLocaleDateString()} — ${o.order_id}`
-          );
-        }
-
-        return {
-          messages: [
-            {
-              role: 'printy',
-              text:
-                lines.join('\n') +
-                '\n\nPlease type or click the order number you have an issue with.',
-            },
-          ],
-          quickReplies: (orders as any[]).map(o => o.order_id as string),
-        };
-      }
-      // ====================
-
-      return {
-        messages: [
-          { role: 'printy', text: 'Please choose one of the options.' },
-        ],
-        quickReplies: nodeQuickReplies(NODES.order_issue_menu),
-      };
-    }
-
-    const nextNodeId = selection.next as keyof typeof NODES;
-
     // ====================
-    // Capture inquiry_type from the chosen category button
-    if (nextNodeId === 'quality_issue') currentInquiryType = 'quality';
-    else if (nextNodeId === 'delivery_issue') currentInquiryType = 'delivery';
-    else if (nextNodeId === 'billing_issue') currentInquiryType = 'billing';
-    else if (nextNodeId === 'other_issue') currentInquiryType = 'other';
-    // ====================
-
-    if (nextNodeId === 'no_order_number') {
-      // ====================
-      // Immediately list orders when entering the no_order_number node
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      const uid = user?.id;
-      if (!uid) {
+    // Free-text issue description
+    if (!selection && DETAIL_NODE_IDS.has(currentNodeId)) {
+      const detail = input.trim();
+      if (detail) {
+        collectedIssueDetails = collectedIssueDetails
+          ? `${collectedIssueDetails}\n${detail}`
+          : detail;
         return {
           messages: [
-            {
-              role: 'printy',
-              text: 'You need to be signed in to view your orders.',
-            },
-          ],
-          quickReplies: ['End Chat'],
-        };
-      }
-
-      const { data: orders } = await supabase
-        .from('orders')
-        .select('order_id,order_datetime')
-        .eq('customer_id', uid)
-        .order('order_datetime', { ascending: false })
-        .limit(10);
-
-      const lines: string[] = ['Here are your recent orders:', ''];
-      for (const o of (orders as any[]) ?? []) {
-        lines.push(
-          `${new Date(o.order_datetime).toLocaleDateString()} — ${o.order_id}`
-        );
-      }
-
-      currentNodeId = 'no_order_number';
-      return {
-        messages: [
-          {
-            role: 'printy',
-            text:
-              lines.join('\n') +
-              '\n\nPlease type or click the order number you have an issue with.',
-          },
-        ],
-        quickReplies: ((orders as any[]) ?? []).map(o => o.order_id as string),
-      };
-      // ====================
-    }
-    if (nextNodeId === 'submit_ticket') {
-      let inquiryId = (crypto as any)?.randomUUID?.()
-        ? (crypto as any).randomUUID()
-        : `${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
-
-      const message = collectedIssueDetails || '(no details provided)';
-
-      try {
-        // Edge function will resolve the authenticated user from the JWT
-
-        const inquiryType = currentInquiryType ?? 'other';
-
-        const token = await getTurnstileToken('issue_ticket_submit');
-        const { data, error } = await supabase.functions.invoke(
-          'create-inquiry-with-turnstile',
-          { body: { token, message, inquiry_type: inquiryType } }
-        );
-
-        if (error || !data?.ok) {
-          console.error('Insert failed:', error);
-          return {
-            messages: [
-              {
-                role: 'printy',
-                text: "Couldn't create the ticket. Try again later.",
-              },
-            ],
-            quickReplies: nodeQuickReplies(current),
-          };
-        }
-        inquiryId = (data?.inquiry_id as string) || inquiryId;
-
-        // ✅ Reset state
-        collectedIssueDetails = '';
-        currentInquiryType = null;
-
-        return {
-          messages: [
-            { role: 'printy', text: 'Ticket submitted successfully!' },
-            { role: 'printy', text: `Your ticket number is: ${inquiryId}` },
-          ],
-          quickReplies: ['End Chat'],
-        };
-      } catch (_e) {
-        console.error('Insert error:', _e);
-        return {
-          messages: [
-            {
-              role: 'printy',
-              text: 'Error creating ticket. Please try again.',
-            },
+            { role: 'printy', text: "Got it. I've added that to your ticket notes. Add more details or choose 'Submit ticket' when ready." },
           ],
           quickReplies: nodeQuickReplies(current),
         };
       }
     }
 
-    // Continue to the selected next node
-    currentNodeId = nextNodeId;
+    // ====================
+    // Capture inquiry_type from issue type selection
+    if (selection) {
+      const nextNodeId = selection.next as keyof typeof NODES;
+      if (nextNodeId === 'quality_issue') currentInquiryType = 'quality';
+      if (nextNodeId === 'delivery_issue') currentInquiryType = 'delivery';
+      if (nextNodeId === 'billing_issue') currentInquiryType = 'billing';
+      if (nextNodeId === 'other_issue') currentInquiryType = 'other';
+
+      if (nextNodeId === 'submit_ticket') {
+        const message = collectedIssueDetails || '(no details provided)';
+        const inquiryType = currentInquiryType ?? 'other';
+        try {
+          const token = await getTurnstileToken('issue_ticket_submit');
+          const { data, error } = await supabase.functions.invoke(
+            'create-inquiry-with-turnstile',
+            { body: { token, message, inquiry_type: inquiryType } }
+          );
+
+          if (error || !data?.ok) {
+            return {
+              messages: [{ role: 'printy', text: "Couldn't create the ticket. Try again later." }],
+              quickReplies: nodeQuickReplies(current),
+            };
+          }
+
+          // Use display_id from function response
+          const displayId = data?.display_id || '(unknown ticket number)';
+
+          collectedIssueDetails = '';
+          currentInquiryType = null;
+
+          return {
+            messages: [
+              { role: 'printy', text: 'Ticket submitted successfully!' },
+              { role: 'printy', text: `Your ticket number is: ${displayId}` },
+            ],
+            quickReplies: ['End Chat'],
+          };
+        } catch (_e) {
+          return {
+            messages: [{ role: 'printy', text: 'Error creating ticket. Please try again.' }],
+            quickReplies: nodeQuickReplies(current),
+          };
+        }
+      }
+
+      currentNodeId = nextNodeId;
+      return {
+        messages: nodeToMessages(NODES[nextNodeId]),
+        quickReplies: nodeQuickReplies(NODES[nextNodeId]),
+      };
+    }
+
     return {
-      messages: nodeToMessages(NODES[nextNodeId]),
-      quickReplies: nodeQuickReplies(NODES[nextNodeId]),
+      messages: [{ role: 'printy', text: 'Please choose one of the options.' }],
+      quickReplies: nodeQuickReplies(NODES.order_issue_menu),
     };
   },
 };
+
+
+
+
