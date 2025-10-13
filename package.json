@@ -4,7 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host --clearCache",
+    "dev:verbose": "vite --host --clearCache --logLevel info",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
