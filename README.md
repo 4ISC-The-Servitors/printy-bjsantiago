@@ -2,6 +2,31 @@
 
 ## 📄 Changelogs
 
+### 2025-10-15-Andeng
+
+- **Admin UI/UX Enhancements**
+  - Improved contextual time information for Updates in orders, tickets, and quote admin pages
+  - Enhanced status colors across admin interface for better visual distinction
+  - Added updated_at column in inquiries table and implemented new statuses for tickets
+  - Enhanced admin tickets page UI with improved layout and functionality
+
+- **Admin Orders/Tickets/Quotes Page Improvements**
+  - Implemented UI enhancements
+  - Improved display and interaction elements
+  - Added comprehensive search and filter functionality
+  - Removed priority-related codes to streamline order management
+  - Enhanced responsiveness for different screen sizes
+  - Updated date displays
+  - Removed AddtoChat and three-dot menu options for mobile interface
+
+- **Responsive Design Improvements**
+  - Enhanced responsive utilities for better mobile and tablet experience
+  - Improved mobile interface consistency across admin pages
+
+- **Code Cleanup**
+  - Removed references to mock tickets and cleaned up legacy code
+  - Streamlined admin interface components
+
 ### 2025-10-14-Andeng
 
 - **Cohere AI Integration**  
