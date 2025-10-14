@@ -3,7 +3,7 @@ import { useAdmin } from './AdminContext';
 import { useOrders } from './OrdersContext';
 import useResponsivePageSize from '../ui/useResponsivePageSize';
 
-export const useOrdersCard = () => {
+export const useOrdersCard = (overridePageSize?: number) => {
   const { openChatWithTopic, openChat, addSelected } = useAdmin();
   const { orders, updateOrder, refreshOrders, loading: ordersLoading } = useOrders();
   const [hoveredOrderId, setHoveredOrderId] = useState<string | null>(null);
@@ -11,23 +11,28 @@ export const useOrdersCard = () => {
   // Use the loading state from the orders context
   const isLoading = ordersLoading;
 
-  // Pagination
-  const basePageSize = useResponsivePageSize({
-    phone: 2,
-    tablet: 3,
-    desktop: 4,
+  // Pagination with dynamic viewport-based calculation
+  const dynamicPageSize = useResponsivePageSize({
+    useDynamicCalculation: true,
+    itemHeight: 140, // Approximate height of OrderItem card
+    itemSpacing: 24, // space-y-6 = 24px between items
+    headerOffset: 140, // Admin navbar + card header + padding
+    footerOffset: 100, // Pagination + bottom padding
+    minItems: 2,
+    maxItems: 20,
+    breakpoints: {
+      phone: 2,
+      tablet: 3,
+      desktop: 4,
+    },
   });
 
   const [page, setPage] = useState(1);
 
   const pageSize = useMemo(() => {
-    if (typeof window === 'undefined') return basePageSize;
-    const viewportHeight = window.innerHeight;
-    if (viewportHeight < 800 && basePageSize > 2) {
-      return Math.max(2, basePageSize - 1);
-    }
-    return basePageSize;
-  }, [basePageSize]);
+    if (overridePageSize && overridePageSize > 0) return overridePageSize;
+    return dynamicPageSize;
+  }, [dynamicPageSize, overridePageSize]);
 
   const start = (page - 1) * pageSize;
   const displayOrders = orders.slice(start, start + pageSize);

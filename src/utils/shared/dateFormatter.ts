@@ -22,7 +22,7 @@ export function formatOrderDateDesktop(input: number | string | Date): string {
     const d = input instanceof Date ? input : new Date(input);
     return d.toLocaleDateString('en-US', {
       year: 'numeric',
-      month: 'long',
+      month: 'short',
       day: 'numeric',
     });
   } catch {

@@ -3,8 +3,10 @@ import { Card, Pagination } from '../../shared';
 import { useOrdersCard } from '../../../hooks/admin/useOrdersCard';
 import { OrderItem } from './OrderItem';
 import { OrdersSkeleton } from './OrdersSkeleton';
+import { useResponsiveLayout } from '../../../hooks/ui';
 
 const OrdersCard: React.FC = () => {
+  useResponsiveLayout();
   const {
     isLoading,
     displayOrders,
@@ -23,7 +25,7 @@ const OrdersCard: React.FC = () => {
   return (
     <div className="relative">
       <Card className="p-0">
-        <div className="flex items-center justify-end px-3 py-2 sm:px-4">
+        <div className={`flex items-center justify-end px-3 py-2 sm:px-4`}>
           <div className="flex items-center gap-2 text-neutral-500 text-xs"></div>
         </div>
 

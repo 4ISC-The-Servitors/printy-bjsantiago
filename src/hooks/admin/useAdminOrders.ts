@@ -103,13 +103,16 @@ export function useAdminOrders(options: LoadOrdersOptions = {}) {
         // Extract product name from order_specs JSONB
         const productName = order.order_specs?.product_name || 'Unnamed Order';
         
+        // Normalize currency to use peso sign when currency is PHP
+        const currencySymbol = (order.currency || '').toUpperCase() === 'PHP' ? '₱' : (order.currency || '₱');
+
         return {
           id: order.display_id || order.order_id, // Prefer display_id
           display_id: order.display_id,
           customer_name: customerName,
           customer_type: customerData?.customer_type || 'regular',
           product_name: productName,
-          total_amount: `${order.currency || '₱'}${Number(order.total_amount).toLocaleString()}`,
+          total_amount: `${currencySymbol}${Number(order.total_amount).toLocaleString()}`,
           status: order.status,
           created_at: order.created_at,
           updated_at: order.updated_at,

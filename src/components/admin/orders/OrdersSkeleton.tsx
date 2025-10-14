@@ -1,7 +1,10 @@
 import React from 'react';
 import { Card, Skeleton } from '../../shared';
+import { useResponsiveLayout } from '../../../hooks/ui';
 
 export const OrdersSkeleton: React.FC = () => {
+  const { getCardLayout } = useResponsiveLayout();
+  const layout = getCardLayout;
   return (
     <div className="relative">
       <Card className="p-0">
@@ -12,7 +15,7 @@ export const OrdersSkeleton: React.FC = () => {
           {[...Array(5)].map((_, i) => (
             <div
               key={i}
-              className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 lg:p-5 rounded-lg border bg-white/60"
+              className={`flex items-center gap-3 sm:gap-4 ${layout.container}`}
             >
               <Skeleton variant="circular" width="16px" height="16px" />
               <div className="flex-1 space-y-2">

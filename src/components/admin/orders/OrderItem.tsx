@@ -9,6 +9,7 @@ import {
 } from '../../../utils/shared/dateFormatter';
 import { MessageSquare } from 'lucide-react';
 import type { AdminOrderRow } from '../../../hooks/admin/useAdminOrders';
+import { useResponsiveLayout } from '../../../hooks/ui';
 
 // Use AdminOrderRow type instead of local Order interface
 type Order = AdminOrderRow;
@@ -24,6 +25,10 @@ export const OrderItem: React.FC<OrderItemProps> = ({
   onHover,
   onViewInChat,
 }) => {
+  // Get responsive layout classes
+  const { getOrderCardLayout } = useResponsiveLayout();
+  const layout = getOrderCardLayout;
+  
   // Show Urgent badge for valued customers
   const showUrgentBadge = order.customer_type === 'valued';
   
@@ -46,36 +51,32 @@ export const OrderItem: React.FC<OrderItemProps> = ({
 
   return (
     <div
-      className="group p-3 sm:p-4 md:p-5 lg:p-6 rounded-lg border bg-white/60 hover:bg-white transition-colors"
+      className={`group ${layout.container}`}
       onMouseEnter={() => onHover(order.id)}
       onMouseLeave={() => onHover(null)}
     >
       {/* Row 1: Order ID + Product Name | Status Badges */}
-      <div className="flex items-center justify-between gap-2 sm:gap-3 md:gap-4 lg:gap-6 mb-2 sm:mb-3">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1 sm:gap-2 md:gap-3 min-w-0">
-            <span className="device-text-caption font-semibold text-neutral-900 whitespace-nowrap">
-              {displayId}
-            </span>
+      <div className={layout.structure.row1}>
+        <div className={layout.leftSection}>
+          <div className={`flex items-center ${layout.elementGap} min-w-0`}>
+            <span className={layout.orderId}>{displayId}</span>
             <span className="text-neutral-400">•</span>
-            <span className="device-text-caption font-medium text-neutral-700 truncate">
-              {order.product_name}
-            </span>
+            <span className={layout.productName}>{order.product_name}</span>
           </div>
         </div>
         
-        <div className="flex items-center gap-1 sm:gap-2 md:gap-3 shrink-0">
+        <div className={layout.badgeContainer}>
           {showUrgentBadge && (
             <Badge 
               variant="error" 
-              className="text-xs sm:text-sm md:text-base lg:text-lg px-1.5 py-0.5 sm:px-2 sm:py-0.5 md:px-2.5 md:py-1 lg:px-3 lg:py-1"
+              className={layout.urgentBadge}
             >
               Urgent
             </Badge>
           )}
           <Badge
             variant={getOrderStatusBadgeVariant(order.status)}
-            className="text-xs sm:text-sm md:text-base lg:text-lg px-1.5 py-0.5 sm:px-2 sm:py-0.5 md:px-2.5 md:py-1 lg:px-3 lg:py-1"
+            className={layout.statusBadge}
           >
             {formatOrderStatus(order.status)}
           </Badge>
@@ -83,31 +84,27 @@ export const OrderItem: React.FC<OrderItemProps> = ({
       </div>
 
       {/* Row 2: Customer Name | Amount */}
-      <div className="flex items-center justify-between gap-2 sm:gap-3 md:gap-4 lg:gap-6 mb-2 sm:mb-3">
-        <div className="flex-1 min-w-0">
-          <span className="device-text-body font-medium text-neutral-900 truncate">
-            {order.customer_name}
-          </span>
+      <div className={layout.structure.row2}>
+        <div className={layout.leftSection}>
+          <span className={layout.customerName}>{order.customer_name}</span>
         </div>
         
         <div className="text-right">
-          <div className="text-sm sm:text-base md:text-lg lg:text-xl font-semibold text-neutral-900">
-            {order.total_amount}
-          </div>
+          <div className={layout.amount}>{order.total_amount}</div>
         </div>
       </div>
 
       {/* Row 3: Chat Button and Dates */}
-      <div className="flex items-center justify-between gap-2 sm:gap-3 md:gap-4 lg:gap-6">
-        <div className="device-text-caption text-neutral-500">
+      <div className={layout.structure.row3}>
+        <div className={layout.dates}>
           <span className="hidden lg:inline">
             Ordered: {createdDateDesktop} • {lastActionLabel}: {lastActionDateDesktop}
           </span>
           <span className="hidden sm:inline lg:hidden">
-            {createdDateTablet} • {lastActionLabel}: {lastActionDateTablet}
+            Ordered: {createdDateTablet} • {lastActionLabel}: {lastActionDateTablet}
           </span>
           <span className="sm:hidden">
-            {createdDateMobile} • {lastActionLabel} {lastActionDateMobile}
+            Ordered: {createdDateMobile} • {lastActionLabel}: {lastActionDateMobile}
           </span>
         </div>
         
@@ -117,9 +114,9 @@ export const OrderItem: React.FC<OrderItemProps> = ({
           threeD
           aria-label={`Ask about ${displayId}`}
           onClick={() => onViewInChat(order.id)}
-          className="device-btn-secondary shrink-0"
+          className={layout.chatButton}
         >
-          <MessageSquare className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5" />
+          <MessageSquare className={layout.chatIcon} />
         </Button>
       </div>
     </div>

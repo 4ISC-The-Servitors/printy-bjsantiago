@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Modal, Text, Button, ToastContainer } from '../../../shared';
 import { SpecEditorModal } from '../../quotes/SpecEditorModal';
 import { X } from 'lucide-react';
-import { useIsMobile } from '../../../../hooks/ui/useIsMobile';
+import { useDeviceUtils } from '../../../../hooks/ui';
 import { useToast } from '../../../../lib/useToast';
 import { useAdminChat } from '../../../../hooks/admin/useAdminChat';
 import { useAdminConversations } from '../../../../hooks/admin/useAdminConversations';
@@ -23,7 +23,7 @@ export interface AdminLayoutProps {
  * Manages chat state, navigation, and logout
  */
 export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
-  const isMobile = useIsMobile();
+  const { isMobile } = useDeviceUtils();
   const navigate = useNavigate();
   const [toasts, toast] = useToast();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
