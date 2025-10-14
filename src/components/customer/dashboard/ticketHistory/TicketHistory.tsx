@@ -24,6 +24,7 @@ interface Ticket {
   description?: string;
   priority?: string;
   resolvedAt?: number;
+  assignedTo?: string;
 }
 
 const TicketHistory: React.FC = () => {
@@ -52,8 +53,8 @@ const TicketHistory: React.FC = () => {
             inquiry_status,
             received_at,
             inquiry_type,
-            priority,
-            resolved_at
+            customer_id,
+            assigned_to
           `)
           .eq('customer_id', user.id)
           .order('received_at', { ascending: false });
@@ -63,17 +64,35 @@ const TicketHistory: React.FC = () => {
           return;
         }
 
+        console.log('Loaded tickets data:', data);
+        console.log('Current user ID:', user.id);
+
+        // If no tickets found for this user, let's try a broader query to debug
+        if (!data || data.length === 0) {
+          console.log('No tickets found for user, checking all inquiries...');
+          const { data: allData, error: allError } = await supabase
+            .from('inquiries')
+            .select('inquiry_id, display_id, inquiry_status, received_at, inquiry_type, customer_id')
+            .order('received_at', { ascending: false })
+            .limit(5);
+          
+          if (!allError) {
+            console.log('Sample of all inquiries:', allData);
+          }
+        }
+
         const ticketList: Ticket[] = (data || []).map(ticket => ({
           id: ticket.inquiry_id,
           title: ticket.inquiry_type || 'Support Ticket',
           createdAt: new Date(ticket.received_at).getTime(),
           updatedAt: new Date(ticket.received_at).getTime(), // Using received_at as updated_at since it's not available
           status: ticket.inquiry_status,
-          displayId: ticket.display_id || ticket.inquiry_id,
+          displayId: ticket.display_id || ticket.inquiry_id.substring(0, 8).toUpperCase(),
           subject: ticket.inquiry_type,
           description: undefined, // No description field available in inquiries table
-          priority: ticket.priority,
-          resolvedAt: ticket.resolved_at ? new Date(ticket.resolved_at).getTime() : undefined,
+          priority: undefined, // Priority column doesn't exist in inquiries table
+          resolvedAt: undefined, // Resolved_at column doesn't exist in inquiries table
+          assignedTo: ticket.assigned_to,
         }));
 
         setTickets(ticketList);
@@ -168,19 +187,15 @@ const TicketHistory: React.FC = () => {
                 <Text variant="p" size="xs" color="muted">Updated:</Text>
                 <Text variant="p" size="xs" color="muted">{formatRelativeTimeLabel(ticket.updatedAt)}</Text>
               </div>
-              {ticket.resolvedAt && (
-                <div className="flex justify-between">
-                  <Text variant="p" size="xs" color="muted">Resolved:</Text>
-                  <Text variant="p" size="xs" color="muted">{formatLongDate(ticket.resolvedAt)}</Text>
-                </div>
-              )}
             </div>
 
-            {/* Priority if available */}
-            {ticket.priority && (
-              <Badge variant="secondary" size="sm">
-                Priority: {ticket.priority}
-              </Badge>
+            {/* Show assigned_to if available */}
+            {ticket.assignedTo && (
+              <div className="mt-2">
+                <Badge variant="secondary" size="sm">
+                  Assigned: {ticket.assignedTo}
+                </Badge>
+              </div>
             )}
           </div>
         </div>
@@ -253,8 +268,21 @@ const TicketHistory: React.FC = () => {
       {filtered.length === 0 ? (
         <div className="text-center py-12">
           <Text variant="p" size="base" color="muted">
-            {tickets.length === 0 ? 'No tickets found.' : 'No tickets match your filters.'}
+            {tickets.length === 0 
+              ? 'No tickets found. If you just created an inquiry, it may take a moment to appear.' 
+              : 'No tickets match your filters.'}
           </Text>
+          {tickets.length === 0 && (
+            <div className="mt-4">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => navigate('/customer')}
+              >
+                Start New Chat
+              </Button>
+            </div>
+          )}
         </div>
       ) : (
         <div className="space-y-4">
