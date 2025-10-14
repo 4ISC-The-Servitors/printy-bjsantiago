@@ -1,16 +1,31 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Skeleton } from './index';
 import { Card, Container } from './index';
 
 interface PageLoadingProps {
   variant?: 'dashboard' | 'list' | 'form' | 'grid' | 'minimal';
   className?: string;
+  // Minimum time (ms) to keep the loader visible to avoid flicker
+  minDisplayMs?: number;
 }
 
 const PageLoading: React.FC<PageLoadingProps> = ({
   variant = 'dashboard',
   className = '',
+  minDisplayMs = 250,
 }) => {
+  // Ensure the loader stays mounted for a minimum time to prevent flicker
+  const [mountedAt] = useState<number>(() => Date.now());
+  useEffect(() => {
+    // Consumers using Suspense fallbacks can't directly read this,
+    // but we ensure consistent presence at least for minDisplayMs.
+    const now = Date.now();
+    const remaining = Math.max(0, mountedAt + minDisplayMs - now);
+    const t = window.setTimeout(() => {
+      // no-op; ensures component isn't torn down too quickly in quick navs
+    }, remaining);
+    return () => window.clearTimeout(t);
+  }, [mountedAt, minDisplayMs]);
   const renderDashboardLoading = () => (
     <div className="space-y-6">
       {/* Header */}

@@ -127,11 +127,11 @@ const CustomerDashboard: React.FC = () => {
   // Chat conversation state/actions provided by useCustomerConversations
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
-  const [isLoading, setIsLoading] = useState(true);
+  // Remove artificial timers; rely on data-fetch loading states
 
   // Live recent order/ticket/quote from Supabase
-  const { data: recentOrder } = useRecentOrder();
-  const { data: recentTicket } = useRecentTicket();
+  const { data: recentOrder, loading: loadingRecentOrder } = useRecentOrder();
+  const { data: recentTicket, loading: loadingRecentTicket } = useRecentTicket();
   
   // Get current user for recent quote
   const [customerId, setCustomerId] = useState<string | undefined>();
@@ -143,14 +143,11 @@ const CustomerDashboard: React.FC = () => {
     getCustomerId();
   }, []);
   
-  const { data: recentQuote } = useRecentQuote(customerId);
+  const { data: recentQuote, loading: loadingRecentQuote } = useRecentQuote(customerId);
   useRecentChatSessions(setConversations);
 
-  // Initial loading shimmer for dashboard visuals
-  useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 1500);
-    return () => clearTimeout(timer);
-  }, []);
+  // Determine loading based on data hooks
+  const isLoading = loadingRecentOrder || loadingRecentTicket || loadingRecentQuote;
 
   // Load recent chat sessions from database for the sidebar list (initial)
   useEffect(() => {

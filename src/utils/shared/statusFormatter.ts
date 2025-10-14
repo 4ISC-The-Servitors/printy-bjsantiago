@@ -21,17 +21,12 @@ export function formatOrderStatus(status: string): string {
   const statusMap: Record<string, string> = {
     'awaiting_payment': 'Awaiting Payment',
     'verifying_payment': 'Verifying Payment',
-    'reupload_payment_proof': 'Re-upload Payment Proof',
+    'reupload_payment': 'Reupload Payment',
     'processing': 'Processing',
     'for_delivery': 'For Delivery',
     'for_pickup': 'For Pickup',
     'completed': 'Completed',
     'cancelled': 'Cancelled',
-    // Legacy format support
-    'payment_pending': 'Payment Pending',
-    'payment_verified': 'Payment Verified',
-    'in_production': 'In Production',
-    'delivered': 'Delivered',
   };
 
   return statusMap[status.toLowerCase()] || formatStatus(status);

@@ -44,28 +44,26 @@ const LandingPage: React.FC = () => {
     setIsTyping(true);
     setMessages([]);
     setQuickReplies([]);
-    setTimeout(() => {
-      const initialMessages = flow.initial({});
-      const botMessages: ChatMessage[] = initialMessages.map(
-        (msg: { text: string }) => ({
-          id: crypto.randomUUID(),
-          role: 'printy' as ChatRole,
-          text: msg.text,
-          ts: Date.now(),
-        })
-      );
-      setMessages(botMessages);
-      const replies = flow
-        .quickReplies()
-        .map((label: string, index: number) => ({
-          id: `qr-${index}`,
-          label,
-          value: label,
-        }));
-      setQuickReplies(replies);
-      setInputPlaceholder('Type a message...');
-      setIsTyping(false);
-    }, 1500);
+    const initialMessages = flow.initial({});
+    const botMessages: ChatMessage[] = initialMessages.map(
+      (msg: { text: string }) => ({
+        id: crypto.randomUUID(),
+        role: 'printy' as ChatRole,
+        text: msg.text,
+        ts: Date.now(),
+      })
+    );
+    setMessages(botMessages);
+    const replies = flow
+      .quickReplies()
+      .map((label: string, index: number) => ({
+        id: `qr-${index}`,
+        label,
+        value: label,
+      }));
+    setQuickReplies(replies);
+    setInputPlaceholder('Type a message...');
+    setIsTyping(false);
     document
       .getElementById('chat-section')
       ?.scrollIntoView({ behavior: 'smooth' });
@@ -87,40 +85,38 @@ const LandingPage: React.FC = () => {
 
     try {
       const response = await currentFlow.respond({}, text);
-      setTimeout(() => {
-        const newBotMessages: ChatMessage[] = response.messages.map(
-          (m: { text: string }) => ({
-            id: crypto.randomUUID(),
-            role: 'printy',
-            text: m.text,
-            ts: Date.now(),
-          })
-        );
-        setMessages(prev => [...prev, ...newBotMessages]);
-        const replies = (response.quickReplies ?? []).map(
-          (label: string, index: number) => ({
-            id: `qr-${index}`,
-            label,
-            value: label,
-          })
-        );
-        setQuickReplies(replies);
-        setInputPlaceholder('Type a message...');
-        setIsTyping(false);
+      const newBotMessages: ChatMessage[] = response.messages.map(
+        (m: { text: string }) => ({
+          id: crypto.randomUUID(),
+          role: 'printy',
+          text: m.text,
+          ts: Date.now(),
+        })
+      );
+      setMessages(prev => [...prev, ...newBotMessages]);
+      const replies = (response.quickReplies ?? []).map(
+        (label: string, index: number) => ({
+          id: `qr-${index}`,
+          label,
+          value: label,
+        })
+      );
+      setQuickReplies(replies);
+      setInputPlaceholder('Type a message...');
+      setIsTyping(false);
 
-        // If guest is in place-order flow, redirect on auth choices
-        const normalized = text.trim().toLowerCase();
-        if (currentFlow?.id === 'guest_place_order') {
-          if (normalized.includes('sign up')) {
-            setTimeout(() => navigate('/auth/signup'), 1500);
-          } else if (
-            normalized.includes('already have an account') ||
-            normalized.includes('sign in')
-          ) {
-            setTimeout(() => navigate('/auth/signin'), 1500);
-          }
+      // If guest is in place-order flow, redirect on auth choices
+      const normalized = text.trim().toLowerCase();
+      if (currentFlow?.id === 'guest_place_order') {
+        if (normalized.includes('sign up')) {
+          navigate('/auth/signup');
+        } else if (
+          normalized.includes('already have an account') ||
+          normalized.includes('sign in')
+        ) {
+          navigate('/auth/signin');
         }
-      }, 1500);
+      }
     } catch {
       setIsTyping(false);
     }
@@ -143,14 +139,12 @@ const LandingPage: React.FC = () => {
         ts: Date.now(),
       },
     ]);
-    // After a short delay, close panel and reset state
-    setTimeout(() => {
-      setIsChatOpen(false);
-      setMessages([]);
-      setCurrentFlow(null);
-      setChatTitle('Chat');
-      setInputPlaceholder('Type a message...');
-    }, 2000);
+    // Close panel and reset state deterministically (no delay)
+    setIsChatOpen(false);
+    setMessages([]);
+    setCurrentFlow(null);
+    setChatTitle('Chat');
+    setInputPlaceholder('Type a message...');
   };
 
   return (

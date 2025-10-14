@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, Text, Button, Badge } from '../../../shared';
+import { Card, Text, Button } from '../../../shared';
 import type { RecentOrder as RecentOrderType } from '../../../../types/customer';
 import StatusBadge from './StatusBadge';
 import PayNowButton from './PayNowButton';
@@ -17,16 +17,10 @@ const RecentOrder: React.FC<RecentOrderProps> = ({ recentOrder }) => {
   
   // Database format (primary)
   const isAwaitingPayment = s === 'awaiting_payment';
-  const isReuploadPayment = s === 'reupload_payment_proof';
-  const isVerifyingPayment = s === 'verifying_payment';
-  const isProcessing = s === 'processing';
+  const isReuploadPayment = s === 'reupload_payment';
   
-  // Legacy format support
-  const isLegacyAwaitingPayment = s === 'awaiting payment';
-  const isLegacyVerifyingPayment = s === 'verifying payment';
   
-  const shouldShowPayNow = isAwaitingPayment || isReuploadPayment || isLegacyAwaitingPayment;
-  const shouldShowVerifyingMessage = isVerifyingPayment || isLegacyVerifyingPayment;
+  const shouldShowPayNow = isAwaitingPayment || isReuploadPayment;
 
   return (
     <Card className="p-6">
@@ -89,24 +83,10 @@ const RecentOrder: React.FC<RecentOrderProps> = ({ recentOrder }) => {
           </Text>
         )}
         
-        {/* Action buttons and status messages */}
+        {/* Action buttons */}
         <div className="pt-2">
           {shouldShowPayNow && (
             <PayNowButton orderId={recentOrder.id} total={recentOrder.total} />
-          )}
-          {shouldShowVerifyingMessage && (
-            <div className="text-right">
-              <Badge variant="info" size="sm">
-                Awaiting Verification
-              </Badge>
-            </div>
-          )}
-          {isProcessing && (
-            <div className="text-right">
-              <Badge variant="success" size="sm">
-                Payment Confirmed - In Production
-              </Badge>
-            </div>
           )}
         </div>
       </div>

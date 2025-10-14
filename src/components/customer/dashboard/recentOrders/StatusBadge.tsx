@@ -21,7 +21,7 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
     // Database format (primary)
     if (v === 'awaiting_payment') return 'warning';
     if (v === 'verifying_payment') return 'info';
-    if (v === 'reupload_payment_proof') return 'warning';
+    if (v === 'reupload_payment') return 'warning';
     if (v === 'processing') return 'primary';
     if (v === 'for_delivery') return 'accent';
     if (v === 'for_pickup') return 'accent';

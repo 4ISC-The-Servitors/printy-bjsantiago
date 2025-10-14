@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   getPortfolioServices,
   getServicesOffered,
@@ -11,7 +11,8 @@ import { useAdmin } from '@hooks/admin/AdminContext';
 export const usePortfolioCard = () => {
   const serviceSelection = useServiceSelection();
   const { openChat, openChatWithTopic, addSelected } = useAdmin();
-  const [isLoading, setIsLoading] = useState(true);
+  // No artificial timers: compute data synchronously; rely on route Suspense for bundle load
+  const [isLoading] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [openAllCategoryId, setOpenAllCategoryId] = useState<string | null>(
     null
@@ -21,10 +22,7 @@ export const usePortfolioCard = () => {
   >(null);
   const [hoveredServiceId, setHoveredServiceId] = useState<string | null>(null);
 
-  useEffect(() => {
-    const t = setTimeout(() => setIsLoading(false), 800);
-    return () => clearTimeout(t);
-  }, []);
+  // No delayed UI: portfolio uses local data for now, so we render immediately
 
   const allServices = getPortfolioServices();
   const offeredServices = getServicesOffered();

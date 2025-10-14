@@ -5,13 +5,8 @@ import SignIn from './pages/auth/SignIn';
 import SignUp from './pages/auth/SignUp';
 import ForgotPassword from './pages/auth/ForgotPassword';
 import ResetPassword from './pages/auth/ResetPassword';
-import CustomerDashboard from './pages/customer/CustomerDashboard';
 import CustomerAccountSettings from './pages/customer/CustomerAccountSettings';
 import CustomerRoot from './pages/customer/CustomerRoot';
-import CustomerChatHistory from './pages/customer/CustomerChatHistory';
-import CustomerOrderHistory from './pages/customer/CustomerOrderHistory';
-import CustomerTicketHistory from './pages/customer/CustomerTicketHistory';
-import CustomerQuoteHistory from './pages/customer/CustomerQuoteHistory';
 import AdminRoot from './pages/admin/AdminRoot';
 import { PageLoading } from './components/shared';
 import './index.css';
@@ -28,6 +23,11 @@ const SuperAdminDashboard = lazy(() => import('./pages/superadmin/Dashboard'));
 const ComponentShowcase = lazy(
   () => import('./components/shared/showcase/ComponentShowcase')
 );
+const CustomerDashboard = lazy(() => import('./pages/customer/CustomerDashboard'));
+const CustomerChatHistory = lazy(() => import('./pages/customer/CustomerChatHistory'));
+const CustomerOrderHistory = lazy(() => import('./pages/customer/CustomerOrderHistory'));
+const CustomerTicketHistory = lazy(() => import('./pages/customer/CustomerTicketHistory'));
+const CustomerQuoteHistory = lazy(() => import('./pages/customer/CustomerQuoteHistory'));
 
 function App() {
   return (
@@ -37,15 +37,64 @@ function App() {
       <Route path="/auth/signup" element={<SignUp />} />
       <Route path="/auth/forgot-password" element={<ForgotPassword />} />
       <Route path="/auth/reset-password/confirm" element={<ResetPassword />} />
-      <Route path="/customer" element={<CustomerRoot />}>
-        <Route index element={<CustomerDashboard />} />
+      <Route
+        path="/customer"
+        element={
+          <Suspense fallback={<PageLoading variant="dashboard" />}>
+            <CustomerRoot />
+          </Suspense>
+        }
+      >
+        <Route
+          index
+          element={
+            <Suspense fallback={<PageLoading variant="dashboard" />}>
+              <CustomerDashboard />
+            </Suspense>
+          }
+        />
         <Route path="account" element={<CustomerAccountSettings />} />
-        <Route path="chats" element={<CustomerChatHistory />} />
-        <Route path="orders" element={<CustomerOrderHistory />} />
-        <Route path="tickets" element={<CustomerTicketHistory />} />
-        <Route path="quotes" element={<CustomerQuoteHistory />} />
+        <Route
+          path="chats"
+          element={
+            <Suspense fallback={<PageLoading variant="list" />}>
+              <CustomerChatHistory />
+            </Suspense>
+          }
+        />
+        <Route
+          path="orders"
+          element={
+            <Suspense fallback={<PageLoading variant="list" />}>
+              <CustomerOrderHistory />
+            </Suspense>
+          }
+        />
+        <Route
+          path="tickets"
+          element={
+            <Suspense fallback={<PageLoading variant="list" />}>
+              <CustomerTicketHistory />
+            </Suspense>
+          }
+        />
+        <Route
+          path="quotes"
+          element={
+            <Suspense fallback={<PageLoading variant="list" />}>
+              <CustomerQuoteHistory />
+            </Suspense>
+          }
+        />
       </Route>
-      <Route path="/valued" element={<CustomerDashboard />} />
+      <Route
+        path="/valued"
+        element={
+          <Suspense fallback={<PageLoading variant="dashboard" />}>
+            <CustomerDashboard />
+          </Suspense>
+        }
+      />
       <Route
         path="/admin"
         element={

@@ -243,7 +243,7 @@ export function createVerifyPaymentNodes(opts: {
 
       if (lower.startsWith('deny')) {
         try {
-          await updateOrder(currentId, { status: 'reupload_payment_proof' }, state);
+          await updateOrder(currentId, { status: 'reupload_payment' }, state);
           return {
             nextNodeId: 'done',
             messages: [

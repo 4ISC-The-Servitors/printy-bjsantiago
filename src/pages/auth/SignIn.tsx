@@ -1,13 +1,12 @@
 // BACKEND_TODO: Wire Supabase Auth here (email/password + OAuth)
 // after role-based routing/guards are implemented. Persist session and support remember-me.
 // Also replace any mock/toast-only flows with real error handling from Supabase.
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Button,
   Container,
   ToastContainer,
-  PageLoading,
 } from '../../components/shared';
 import Header from '../../components/auth/SignIn/Header';
 import SignInForm from '../../components/auth/SignIn/SignInForm';
@@ -24,7 +23,6 @@ import { ArrowLeft } from 'lucide-react';
 
 const SignIn: React.FC = () => {
   const navigate = useNavigate();
-  const [isPageLoading, setIsPageLoading] = useState(true);
   const {
     toasts,
     toast,
@@ -34,25 +32,8 @@ const SignIn: React.FC = () => {
     setShowPassword,
     loading,
     isDesktop,
-    turnstileReady,
     handleSubmit,
   } = useSignIn();
-
-  // Simulate page loading
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsPageLoading(false);
-    }, 800);
-    return () => clearTimeout(timer);
-  }, []);
-
-  if (isPageLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-brand-primary-50 flex items-center justify-center p-4">
-        <PageLoading variant="form" />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-brand-primary-50 flex items-center justify-center p-4">
@@ -84,7 +65,6 @@ const SignIn: React.FC = () => {
               loading={loading}
               showPassword={showPassword}
               setShowPassword={setShowPassword}
-              turnstileReady={turnstileReady}
               onChange={(f, v) => setField(f, v)}
               onForgotPassword={() => navigate('/auth/forgot-password')}
             />

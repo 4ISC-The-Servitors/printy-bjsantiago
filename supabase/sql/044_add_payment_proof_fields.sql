@@ -11,7 +11,7 @@ ALTER TABLE orders_duplicate ADD CONSTRAINT orders_duplicate_status_check
 CHECK (status IN (
   'awaiting_payment',           -- Initial state after order creation
   'verifying_payment',          -- Admin is checking payment proof (EXISTING)
-  'reupload_payment_proof',     -- NEW: Admin rejected proof, customer must reupload
+  'reupload_payment',           -- Admin rejected proof, customer must reupload
   'processing',                 -- Payment verified, order being processed
   'for_delivery',               -- Ready for delivery
   'for_pickup',                 -- Ready for pickup

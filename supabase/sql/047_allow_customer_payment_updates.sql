@@ -8,11 +8,11 @@ DROP POLICY IF EXISTS "Customers can update own order payment fields" ON orders_
 CREATE POLICY "Customers can update own order payment fields" ON orders_duplicate
   FOR UPDATE USING (
     auth.uid() = customer_id
-    AND status IN ('awaiting_payment', 'reupload_payment_proof')
+    AND status IN ('awaiting_payment', 'reupload_payment')
   )
   WITH CHECK (
     auth.uid() = customer_id
-    AND status IN ('awaiting_payment', 'verifying_payment', 'reupload_payment_proof')
+    AND status IN ('awaiting_payment', 'verifying_payment', 'reupload_payment')
   );
 
 -- Add comment explaining the policy

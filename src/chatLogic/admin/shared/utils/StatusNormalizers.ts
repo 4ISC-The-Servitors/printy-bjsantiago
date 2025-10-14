@@ -3,7 +3,7 @@
 export type OrderStatus =
   | 'awaiting_payment'
   | 'verifying_payment'
-  | 'reupload_payment_proof'
+  | 'reupload_payment'
   | 'processing'
   | 'for_delivery'
   | 'for_pickup'
@@ -17,7 +17,7 @@ export type TicketStatus = 'Open' | 'Pending' | 'Closed';
 export const ORDER_STATUS_OPTIONS: OrderStatus[] = [
   'awaiting_payment',
   'verifying_payment',
-  'reupload_payment_proof',
+  'reupload_payment',
   'processing',
   'for_delivery',
   'for_pickup',
@@ -43,23 +43,12 @@ export function normalizeOrderStatus(input: string): OrderStatus | null {
   // Check for exact matches first (database format)
   if (t === 'awaiting_payment') return 'awaiting_payment';
   if (t === 'verifying_payment') return 'verifying_payment';
-  if (t === 'reupload_payment_proof') return 'reupload_payment_proof';
+  if (t === 'reupload_payment') return 'reupload_payment';
   if (t === 'processing') return 'processing';
   if (t === 'for_delivery') return 'for_delivery';
   if (t === 'for_pickup') return 'for_pickup';
   if (t === 'completed') return 'completed';
   if (t === 'cancelled') return 'cancelled';
-
-  // Check for formatted versions (frontend display format)
-  if (t.includes('awaiting') && t.includes('payment')) return 'awaiting_payment';
-  if (t.includes('verifying') && t.includes('payment')) return 'verifying_payment';
-  if (t.includes('reupload') || t.includes('re_upload')) return 'reupload_payment_proof';
-  if (t.includes('processing') || t.includes('in_production')) return 'processing';
-  if (t.includes('delivery') && t.includes('pick')) return 'for_delivery';
-  if (t.includes('delivery') && !t.includes('pick')) return 'for_delivery';
-  if (t.includes('pickup') || t.includes('pick_up')) return 'for_pickup';
-  if (t.includes('completed')) return 'completed';
-  if (t.includes('cancelled')) return 'cancelled';
 
   return null;
 }
