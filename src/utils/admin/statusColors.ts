@@ -24,7 +24,7 @@ export const getOrderStatusBadgeVariant = (status: string): BadgeVariant => {
   // Match actual database status values from orders_duplicate table
   if (s === 'awaiting_payment') return 'warning';
   if (s === 'verifying_payment') return 'info';
-  if (s === 'reupload_payment') return 'warning';
+  if (s === 'reupload_payment_proof') return 'error';
   if (s === 'processing') return 'info';
   if (s === 'for_delivery') return 'info';
   if (s === 'for_pickup') return 'info';
@@ -39,7 +39,7 @@ export const getQuoteStatusBadgeVariant = (status: string): BadgeVariant => {
   const s = (status || '').toLowerCase();
   
   // Match actual database status values from quote_conversations table
-  if (s === 'active') return 'success';
+  if (s === 'active') return 'info';
   if (s === 'spec_proposed') return 'warning';
   if (s === 'accepted') return 'success';
   if (s === 'rejected') return 'error';

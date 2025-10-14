@@ -62,6 +62,10 @@ export { default as Tooltip } from './Tooltip';
 export { default as Pagination } from './Pagination';
 export type { TooltipProps } from './Tooltip';
 
+// Search & Filter
+export { default as Search } from './Search';
+export { default as Filter } from './Filter';
+
 // Checkbox Component
 export { default as Checkbox } from './Checkbox';
 export type { CheckboxProps } from './Checkbox';

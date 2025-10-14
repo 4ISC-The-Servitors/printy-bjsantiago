@@ -43,8 +43,7 @@ export function useRecentTicket() {
             status: row.inquiry_status || 'unknown',
             createdAt: receivedAt,
             updatedAt: receivedAt, // Using received_at as updatedAt since it's the only date we have
-            resolvedAt: row.inquiry_status === 'resolved' ? receivedAt : undefined,
-            priority: row.priority
+            resolvedAt: row.inquiry_status === 'resolved' ? receivedAt : undefined
           });
         }
       } catch (e: any) {

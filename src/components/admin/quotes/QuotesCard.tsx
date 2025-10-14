@@ -1,54 +1,39 @@
-import React, { useState, useMemo } from 'react';
-import { Card, Badge, Button } from '../../shared';
-import { useQuotes } from '../../../hooks/admin/QuotesContext';
-import { useAdmin } from '../../../hooks/admin/AdminContext';
-import QuoteItem from './QuoteItem';
+import React from 'react';
+import { Card, Pagination } from '../../shared';
+import { useQuotesCard } from '../../../hooks/admin/useQuotesCard';
+import { QuoteItem } from './QuoteItem';
 import QuotesSkeleton from './QuotesSkeleton';
+import { useResponsiveLayout } from '../../../hooks/ui';
+import type { AdminQuoteRow } from '../../../hooks/admin/useAdminQuotes';
 
-const ITEMS_PER_PAGE = 10;
+export interface QuotesCardProps {
+  filteredQuotes: AdminQuoteRow[];
+}
 
-const QuotesCard: React.FC = () => {
-  const { quotes, loading: isLoading, error } = useQuotes();
-  const { openChat, openChatWithTopic } = useAdmin();
-  
-  // Local state for pagination and UI interactions
-  const [page, setPage] = useState(1);
-  const [hoveredQuoteId, setHoveredQuoteId] = useState<string | null>(null);
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-  const [selectedQuotes, setSelectedQuotes] = useState<Set<string>>(new Set());
+const QuotesCard: React.FC<QuotesCardProps> = ({ filteredQuotes }) => {
+  // All hooks must be called unconditionally before any early returns
+  useResponsiveLayout();
+  const {
+    isLoading,
+    page,
+    setPage,
+    pageSize,
+    setHoveredQuoteId,
+  } = useQuotesCard();
 
-  // Pagination logic
-  const displayQuotes = useMemo(() => {
-    const start = (page - 1) * ITEMS_PER_PAGE;
-    return quotes.slice(start, start + ITEMS_PER_PAGE);
-  }, [quotes, page]);
+  // Calculate paginated display quotes from filtered quotes
+  const start = (page - 1) * pageSize;
+  const displayQuotes = filteredQuotes.slice(start, start + pageSize);
 
-  const hasMore = quotes.length > page * ITEMS_PER_PAGE;
-
-  // Selection handlers
-  const isSelected = (quoteId: string) => selectedQuotes.has(quoteId);
-  
-  const toggleQuoteSelection = (quoteId: string) => {
-    setSelectedQuotes(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(quoteId)) {
-        newSet.delete(quoteId);
-      } else {
-        newSet.add(quoteId);
-      }
-      return newSet;
-    });
-  };
-
-  // Chat handlers
-  const viewInChat = (quoteId: string) => {
-    if (openChatWithTopic) {
-      openChatWithTopic('quotes', quoteId, undefined, quotes);
-    } else {
-      openChat();
+  // Reset to page 1 if current page exceeds available pages
+  React.useEffect(() => {
+    const maxPage = Math.max(1, Math.ceil(filteredQuotes.length / pageSize));
+    if (page > maxPage) {
+      setPage(maxPage);
     }
-  };
+  }, [filteredQuotes.length, pageSize, page, setPage]);
 
+  // Now we can do early return for loading state
   if (isLoading) {
     return <QuotesSkeleton />;
   }
@@ -56,59 +41,34 @@ const QuotesCard: React.FC = () => {
   return (
     <div className="relative">
       <Card className="p-0">
-        <div className="flex items-center justify-between px-3 py-2 sm:px-4">
-          <div className="text-xs text-neutral-500">Page {page}</div>
-          <div className="flex items-center gap-2 text-neutral-500 text-xs">
-            <Badge size="sm" variant="secondary">
-              {quotes.length}
-            </Badge>
-          </div>
+        {/* Pagination Header */}
+        <div className="flex items-center justify-center px-1 py-1 sm:px-1 sm:py-1">
+          <Pagination
+            page={page}
+            pageSize={pageSize}
+            total={filteredQuotes.length}
+            onPageChange={setPage}
+          />
         </div>
 
-        <div className="space-y-4 sm:space-y-6 px-3 sm:px-4 pb-3">
-          {error && <div className="p-4 text-sm text-error-600">{error}</div>}
-          {!error && displayQuotes.length === 0 && (
-            <div className="p-4 text-sm text-neutral-500">
-              No quote conversations found.
-            </div>
-          )}
-          {!error &&
+        {/* Quotes List */}
+        <div className="space-y-4 sm:space-y-6 px-3 sm:px-4 py-4">
+          {displayQuotes.length > 0 ? (
             displayQuotes.map(quote => (
               <QuoteItem
-                key={quote.conversation_id}
+                key={quote.id}
                 quote={quote}
-                isSelected={isSelected(quote.conversation_id)}
-                isHovered={hoveredQuoteId === quote.conversation_id}
-                showCheckbox={selectedQuotes.size > 0}
-                openMenuId={openMenuId}
                 onHover={setHoveredQuoteId}
-                onToggleSelection={toggleQuoteSelection}
-                onViewInChat={viewInChat}
-                onToggleMenu={setOpenMenuId}
               />
-            ))}
+            ))
+          ) : (
+            <div className="text-center py-12 text-neutral-500">
+              <p className="text-lg font-medium">No quotes found</p>
+              <p className="text-sm mt-1">Try adjusting your search or filters</p>
+            </div>
+          )}
         </div>
       </Card>
-
-      {/* Pagination controls */}
-      <div className="mt-3 flex items-center justify-center gap-3">
-        <Button
-          variant="secondary"
-          size="sm"
-          disabled={page === 1 || isLoading}
-          onClick={() => setPage(p => Math.max(1, p - 1))}
-        >
-          Previous
-        </Button>
-        <Button
-          variant="secondary"
-          size="sm"
-          disabled={!hasMore || isLoading}
-          onClick={() => setPage(p => p + 1)}
-        >
-          Next
-        </Button>
-      </div>
     </div>
   );
 };

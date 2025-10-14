@@ -19,7 +19,6 @@ export interface RecentTicket {
   createdAt: number;
   updatedAt: number;
   resolvedAt?: number;
-  priority?: string;
 }
 
 export interface RecentQuote {

@@ -214,15 +214,15 @@ export const quotesFlow: ChatFlow = {
             // const inputLower = input.toLowerCase(); // Unused
             
             if (input === 'Summarize Order Specs') {
-              return handleSummarizeSpecs(quote);
+              return handleSummarizeSpecs(conversationId);
             }
             
             if (input === 'Manual Order Specs') {
-              return handleManualSpecs(quote);
+              return handleManualSpecs(conversationId);
             }
             
             if (input === 'Send Specs to Customer') {
-              return handleSendSpecs(quote);
+              return handleSendSpecs(conversationId);
             }
             
     if (input === 'Create Order') {
@@ -230,7 +230,7 @@ export const quotesFlow: ChatFlow = {
       const { data: proposals } = await supabase
         .from('quote_proposals')
         .select('proposal_id, quoted_price, spec_final')
-        .eq('conversation_id', quote.conversation_id)
+        .eq('conversation_id', conversationId)
         .order('created_at', { ascending: false })
         .limit(1);
 
@@ -256,8 +256,7 @@ export const quotesFlow: ChatFlow = {
             customer_id: quote.customer_id,
             total_amount: proposal.quoted_price,
             status: 'awaiting_payment',
-            order_specs: proposal.spec_final,
-            currency: 'PHP'
+            order_specs: proposal.spec_final
           })
           .select('order_id, display_id')
           .single();
@@ -268,7 +267,7 @@ export const quotesFlow: ChatFlow = {
         const { error: linkError } = await supabase
           .from('quote_orders')
           .insert({
-            conversation_id: quote.conversation_id,
+            conversation_id: conversationId,
             proposal_id: proposal.proposal_id,
             order_id: orderData.order_id
           });
@@ -279,7 +278,7 @@ export const quotesFlow: ChatFlow = {
           messages: [
             {
               role: 'printy',
-              text: `Order created successfully!\n\nOrder ID: ${orderData.display_id || orderData.order_id}\nStatus: Pending Payment\nTotal: ₱${proposal.quoted_price}`
+              text: `Order created successfully!\n\nOrder ID: ${orderData.display_id || orderData.order_id}\nStatus: Awaiting Payment\nTotal: ₱${proposal.quoted_price}`
             }
           ],
           quickReplies: ['End Chat']
@@ -303,7 +302,7 @@ export const quotesFlow: ChatFlow = {
       const { data: quoteOrder } = await supabase
         .from('quote_orders')
         .select('order_id')
-        .eq('conversation_id', quote.conversation_id)
+        .eq('conversation_id', conversationId)
         .single();
 
       if (!quoteOrder) {
@@ -373,8 +372,8 @@ export const quotesFlow: ChatFlow = {
     
             // For any other input, show the full quote info again
             return {
-              messages: await displayQuoteWithCustomerDescription(quote),
-              quickReplies: await getQuickRepliesForQuote(quote)
+              messages: await displayQuoteWithCustomerDescription(quote, conversationId),
+              quickReplies: await getQuickRepliesForQuote(conversationId)
             };
   }
 };
@@ -490,19 +489,17 @@ async function displayAcceptedProposal(conversationId: string, proposal: any): P
   };
 }
 
-async function displayQuoteWithCustomerDescription(quote: any): Promise<BotMessage[]> {
+async function displayQuoteWithCustomerDescription(quote: any, conversationId: string): Promise<BotMessage[]> {
   const messages: BotMessage[] = [];
   
   // Quote ID
   messages.push({
     role: 'printy',
-    text: `Quote ID: ${quote.display_id || (quote.quote_id ? quote.quote_id.slice(0, 8) : quote.conversation_id.slice(0, 8))}`
+    text: `Quote ID: ${quote.display_id || quote.id}`
   });
 
   // Customer info
-  const customerName = quote.customer?.first_name 
-    ? `${quote.customer.first_name} ${quote.customer.last_name}`
-    : 'Unknown Customer';
+  const customerName = quote.customer_name || 'Unknown Customer';
   
   messages.push({
     role: 'printy',
@@ -516,7 +513,7 @@ async function displayQuoteWithCustomerDescription(quote: any): Promise<BotMessa
   });
 
   // Load and display customer description
-  const customerMessages = await loadCustomerMessages(quote.conversation_id);
+  const customerMessages = await loadCustomerMessages(conversationId);
   
   if (customerMessages && customerMessages.length > 0) {
     customerMessages.forEach((msg: any) => {
@@ -542,41 +539,14 @@ async function displayQuoteWithCustomerDescription(quote: any): Promise<BotMessa
   return messages;
 }
 
-function _displayQuoteOverview(quote: any): BotMessage[] {
-    const messages: BotMessage[] = [];
-    
-    // Quote ID
-    messages.push({
-      role: 'printy',
-      text: `Quote ID: ${quote.display_id || (quote.quote_id ? quote.quote_id.slice(0, 8) : quote.conversation_id.slice(0, 8))}`
-    });
 
-    // Customer info
-    const customerName = quote.customer?.first_name 
-      ? `${quote.customer.first_name} ${quote.customer.last_name}`
-      : 'Unknown Customer';
-    
-    messages.push({
-      role: 'printy',
-      text: `Customer: ${customerName}`
-    });
-
-    // Status
-    messages.push({
-      role: 'printy',
-      text: `Status: ${quote.status}`
-    });
-
-    return messages;
-}
-
-async function getQuickRepliesForQuote(quote: any): Promise<string[]> {
+async function getQuickRepliesForQuote(conversationId: string): Promise<string[]> {
     try {
       // Check if there are existing specs for this quote
       const { data: existingSpecs } = await supabase
         .from('quote_specs')
         .select('spec_id')
-        .eq('conversation_id', quote.conversation_id)
+        .eq('conversation_id', conversationId)
         .limit(1);
 
       const hasSavedSpecs = existingSpecs && existingSpecs.length > 0;
@@ -613,10 +583,10 @@ async function loadCustomerMessages(conversationId: string): Promise<any[]> {
     }
 }
 
-async function handleSummarizeSpecs(quote: any): Promise<{ messages: BotMessage[]; quickReplies?: string[] }> {
+async function handleSummarizeSpecs(conversationId: string): Promise<{ messages: BotMessage[]; quickReplies?: string[] }> {
     try {
       // Load all messages for this quote
-      const customerMessages = await loadCustomerMessages(quote.conversation_id);
+      const customerMessages = await loadCustomerMessages(conversationId);
       
       // Build conversation history for AI
       const history = customerMessages.map(msg => ({
@@ -634,12 +604,12 @@ async function handleSummarizeSpecs(quote: any): Promise<{ messages: BotMessage[
 
       // Trigger spec editor modal via event
       openSpecEditor({
-        conversationId: quote.conversation_id,
+        conversationId: conversationId,
         specData: {
           ...analysis.spec,
           quoted_price: undefined // Ensure admin must enter price
         },
-        language: analysis.language
+        language: 'en' // Default language since we removed language detection
       });
 
       return {
@@ -665,11 +635,11 @@ async function handleSummarizeSpecs(quote: any): Promise<{ messages: BotMessage[
     }
 }
 
-async function handleManualSpecs(quote: any): Promise<{ messages: BotMessage[]; quickReplies?: string[] }> {
+async function handleManualSpecs(conversationId: string): Promise<{ messages: BotMessage[]; quickReplies?: string[] }> {
     try {
       // Trigger spec editor modal with empty/default data for manual input
       openSpecEditor({
-        conversationId: quote.conversation_id,
+        conversationId: conversationId,
         specData: {
           product_name: '',
           category: '',
@@ -711,13 +681,13 @@ async function handleManualSpecs(quote: any): Promise<{ messages: BotMessage[]; 
     }
 }
 
-async function handleSendSpecs(quote: any): Promise<{ messages: BotMessage[]; quickReplies?: string[] }> {
+async function handleSendSpecs(conversationId: string): Promise<{ messages: BotMessage[]; quickReplies?: string[] }> {
     try {
       // First, check if there's a saved draft in quote_specs
       const { data: existingSpecs, error: specError } = await supabase
         .from('quote_specs')
         .select('*')
-        .eq('conversation_id', quote.conversation_id)
+        .eq('conversation_id', conversationId)
         .order('created_at', { ascending: false })
         .limit(1);
 
@@ -766,11 +736,10 @@ async function handleSendSpecs(quote: any): Promise<{ messages: BotMessage[]; qu
       const { data: proposalData, error: proposalError } = await supabase
         .from('quote_proposals')
         .insert({
-          conversation_id: quote.conversation_id,
+          conversation_id: conversationId,
           spec_id: latestSpec.spec_id,
           spec_final: specData,
           quoted_price: specData.quoted_price,
-          currency: 'PHP',
           status: 'sent',
           sent_at: new Date().toISOString()
         })
@@ -794,7 +763,7 @@ async function handleSendSpecs(quote: any): Promise<{ messages: BotMessage[]; qu
       await supabase
         .from('quote_conversations')
         .update({ status: 'spec_proposed' })
-        .eq('conversation_id', quote.conversation_id);
+        .eq('conversation_id', conversationId);
 
       return {
         messages: [

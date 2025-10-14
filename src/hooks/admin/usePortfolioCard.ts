@@ -13,7 +13,6 @@ export const usePortfolioCard = () => {
   const { openChat, openChatWithTopic, addSelected } = useAdmin();
   // No artificial timers: compute data synchronously; rely on route Suspense for bundle load
   const [isLoading] = useState(false);
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [openAllCategoryId, setOpenAllCategoryId] = useState<string | null>(
     null
   );
@@ -44,31 +43,6 @@ export const usePortfolioCard = () => {
     else openChat();
   };
 
-  const addSelectedToChat = () => {
-    const selectedIds = serviceSelection.selectedIds;
-    if (selectedIds.length === 0) return;
-    const servicesArr = allServices;
-    // Update chips bar for UI context
-    selectedIds.forEach(id => {
-      const svc = servicesArr.find(s => s.id === id);
-      const label = svc ? `${svc.name} (${svc.code})` : id;
-      addSelected({ id, label, type: 'service' });
-    });
-    if (selectedIds.length > 1) {
-      openChatWithTopic?.(
-        'multiple-portfolio',
-        undefined,
-        undefined,
-        servicesArr,
-        undefined,
-        selectedIds
-      );
-    } else {
-      openChatWithTopic?.('portfolio', selectedIds[0], undefined, servicesArr);
-    }
-    if (!openChatWithTopic) openChat();
-    serviceSelection.clear();
-  };
 
   const handleAddService = () => {
     if (openChatWithTopic) openChatWithTopic('add-service');
@@ -95,14 +69,10 @@ export const usePortfolioCard = () => {
     openOfferedCategoryId,
     hoveredServiceId,
     setHoveredServiceId,
-    openMenuId,
-    setOpenMenuId,
     isSelected: serviceSelection.isSelected,
     selectionCount: serviceSelection.selectionCount,
-    hasSelections: serviceSelection.hasSelections,
     toggleServiceSelection,
     viewInChat,
-    addSelectedToChat,
     handleAddService,
     toggleAllCategory,
     toggleOfferedCategory,

@@ -11,7 +11,6 @@ export type OrderData = {
   specification: string; // varchar
   page_size: string; // varchar
   quantity: number; // numeric
-  priority_level: number; // numeric
 };
 
 export async function createOrder(order: Omit<OrderData, 'order_id'>) {
@@ -29,7 +28,6 @@ export async function createOrder(order: Omit<OrderData, 'order_id'>) {
           specification: order.specification,
           page_size: order.page_size,
           quantity: order.quantity,
-          priority_level: order.priority_level,
           delivery_mode: order.delivery_mode,
           order_date_time: order.order_date_time,
           completed_date_time: order.completed_date_time,

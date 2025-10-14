@@ -3,7 +3,6 @@ import { Card, Badge, Button, Text } from '../../shared';
 import { Plus, ChevronDown } from 'lucide-react';
 import { ServiceItem } from './ServiceItem';
 import { PortfolioSkeleton } from './PortfolioSkeleton';
-import { AddToChatButton } from '../orders/AddToChatButton';
 import { usePortfolioCard } from '../../../hooks/admin/usePortfolioCard';
 
 const PortfolioCard: React.FC = () => {
@@ -17,14 +16,10 @@ const PortfolioCard: React.FC = () => {
     openOfferedCategoryId,
     hoveredServiceId,
     setHoveredServiceId,
-    openMenuId,
-    setOpenMenuId,
     isSelected,
     selectionCount,
-    hasSelections,
     toggleServiceSelection,
     viewInChat,
-    addSelectedToChat,
     handleAddService,
     toggleAllCategory,
     toggleOfferedCategory,
@@ -96,11 +91,9 @@ const PortfolioCard: React.FC = () => {
                         isSelected={isSelected(s.id)}
                         isHovered={hoveredServiceId === s.id}
                         showCheckbox={selectionCount > 0}
-                        openMenuId={openMenuId}
                         onHover={setHoveredServiceId}
                         onToggleSelection={toggleServiceSelection}
                         onViewInChat={viewInChat}
-                        onToggleMenu={setOpenMenuId}
                       />
                     ))}
                   </div>
@@ -197,7 +190,6 @@ const PortfolioCard: React.FC = () => {
         </div>
       </Card>
 
-      <AddToChatButton count={selectionCount} onClick={addSelectedToChat} />
     </div>
   );
 };

@@ -4,8 +4,6 @@ import { getServiceStatusBadgeVariant } from '../../../utils/admin/statusColors'
 import { formatStatus } from '../../../utils/shared/statusFormatter';
 import { MessageSquare } from 'lucide-react';
 import { cn } from '../../../lib/utils';
-import { useIsMobile } from '../../../hooks/ui/useIsMobile';
-import { MobileCardMenu } from '../mobile';
 
 interface Service {
   id: string;
@@ -19,11 +17,9 @@ interface ServiceItemProps {
   isSelected: boolean;
   isHovered: boolean;
   showCheckbox: boolean;
-  openMenuId: string | null;
   onHover: (serviceId: string | null) => void;
   onToggleSelection: (serviceId: string) => void;
   onViewInChat: (serviceId: string) => void;
-  onToggleMenu: (serviceId: string | null) => void;
 }
 
 export const ServiceItem: React.FC<ServiceItemProps> = ({
@@ -31,13 +27,10 @@ export const ServiceItem: React.FC<ServiceItemProps> = ({
   isSelected,
   isHovered,
   showCheckbox,
-  openMenuId,
   onHover,
   onToggleSelection,
   onViewInChat,
-  onToggleMenu,
 }) => {
-  const isMobile = useIsMobile();
 
   return (
     <div
@@ -86,37 +79,18 @@ export const ServiceItem: React.FC<ServiceItemProps> = ({
         </div>
       </div>
 
-      {/* Desktop: Button, Mobile: Menu */}
+      {/* Action Button */}
       <div className="text-right flex-shrink-0 ml-4">
-        {isMobile ? (
-          <MobileCardMenu
-            isOpen={openMenuId === service.id}
-            onToggle={() =>
-              onToggleMenu(openMenuId === service.id ? null : service.id)
-            }
-            actions={[
-              {
-                label: 'View in Chat',
-                onClick: () => onViewInChat(service.id),
-              },
-              {
-                label: isSelected ? 'Unselect' : 'Select',
-                onClick: () => onToggleSelection(service.id),
-              },
-            ]}
-          />
-        ) : (
-          <Button
-            variant="secondary"
-            size="sm"
-            threeD
-            className="min-h-[44px] min-w-[44px]"
-            title="Chat about this service"
-            onClick={() => onViewInChat(service.id)}
-          >
-            <MessageSquare className="h-4 w-4" />
-          </Button>
-        )}
+        <Button
+          variant="secondary"
+          size="sm"
+          threeD
+          className="min-h-[44px] min-w-[44px]"
+          title="Chat about this service"
+          onClick={() => onViewInChat(service.id)}
+        >
+          <MessageSquare className="h-4 w-4" />
+        </Button>
       </div>
     </div>
   );
