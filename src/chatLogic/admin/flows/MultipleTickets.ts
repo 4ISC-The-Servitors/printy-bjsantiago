@@ -1,8 +1,4 @@
-// Refactored MultipleTickets Flow using shared utilities and base framework
-
 import type { BotMessage } from '../../../types/chatFlow';
-// BACKEND_TODO: Remove mockTickets import; rely solely on context-provided tickets from Supabase.
-import { mockTickets } from '../../../data/tickets'; // DELETE when backend is wired
 import {
   FlowBase,
   TICKET_STATUS_OPTIONS,
@@ -53,7 +49,7 @@ class MultipleTicketsFlow extends FlowBase {
     this.state.selectedIds = Array.isArray(context?.ticketIds)
       ? (context?.ticketIds as string[]).map(x => x.toUpperCase())
       : [];
-    this.state.ticketsRef = (context?.tickets as any[]) || mockTickets;
+    this.state.ticketsRef = (context?.tickets as any[]) || [];
     this.state.changedIds = new Set<string>();
     this.state.repliedIds = new Set<string>();
     this.state.currentTargetId = null;
@@ -534,7 +530,7 @@ class MultipleTicketsFlow extends FlowBase {
     const up = id.toUpperCase();
     return (
       state.ticketsRef.find(t => (t.id || '').toUpperCase() === up) ||
-      mockTickets.find(t => (t.id || '').toUpperCase() === up)
+      state.ticketsRef.find(t => (t.id || '').toUpperCase() === up)
     );
   }
 
@@ -573,9 +569,9 @@ class MultipleTicketsFlow extends FlowBase {
       console.log('Ticket updated successfully in database (MultipleTickets)');
 
       // Update mock data
-      const mi = mockTickets.findIndex(t => t.id === ticketId);
+      const mi = state.ticketsRef.findIndex(t => t.id === ticketId);
       if (mi !== -1) {
-        mockTickets[mi] = { ...mockTickets[mi], ...updates };
+        state.ticketsRef[mi] = { ...state.ticketsRef[mi], ...updates };
       }
 
       // Update local state
