@@ -12,11 +12,7 @@ const OrdersCard: React.FC = () => {
     setPage,
     pageSize,
     totalOrders,
-    hoveredOrderId,
     setHoveredOrderId,
-    isSelected,
-    selectionCount,
-    toggleOrderSelection,
     viewInChat,
   } = useOrdersCard();
 
@@ -36,11 +32,7 @@ const OrdersCard: React.FC = () => {
             <OrderItem
               key={order.id}
               order={order}
-              isSelected={isSelected(order.id)}
-              isHovered={hoveredOrderId === order.id}
-              showCheckbox={selectionCount > 0}
               onHover={setHoveredOrderId}
-              onToggleSelection={toggleOrderSelection}
               onViewInChat={viewInChat}
             />
           ))}

@@ -27,10 +27,17 @@ export interface AdminOrderData {
 export interface AdminOrderRow {
   id: string;
   display_id?: string;
+  customer_name: string;
+  customer_type: string;
+  product_name: string;
+  total_amount: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  // Legacy fields for backward compatibility
   customer: string;
   total: string;
   date: string;
-  status: string;
   priority?: string;
   proofOfPaymentUrl?: string;
   proofUploadedAt?: string;
@@ -70,7 +77,7 @@ export function useAdminOrders(options: LoadOrdersOptions = {}) {
           order_specs,
           payment_proof,
           payment_verified_at,
-          customer:customer_id(first_name, last_name)
+          customer:customer_id(first_name, last_name, customer_type)
         `, { count: 'exact' })
         .order('created_at', { ascending: false })
         .range(from, from + pageSize - 1);
@@ -87,20 +94,31 @@ export function useAdminOrders(options: LoadOrdersOptions = {}) {
       const normalized: AdminOrderRow[] = (data || []).map((order: any) => {
         // Handle customer data - it might be an array or object
         const customerData = Array.isArray(order.customer) ? order.customer[0] : order.customer;
+        const customerName = customerData 
+          ? `${customerData.first_name || ''} ${customerData.last_name || ''}`.trim() || 'Unknown Customer'
+          : 'Unknown Customer';
+        
+        // Extract product name from order_specs JSONB
+        const productName = order.order_specs?.product_name || 'Unnamed Order';
         
         return {
           id: order.display_id || order.order_id, // Prefer display_id
           display_id: order.display_id,
-          customer: customerData 
-            ? `${customerData.first_name || ''} ${customerData.last_name || ''}`.trim() || 'Unknown Customer'
-            : 'Unknown Customer',
+          customer_name: customerName,
+          customer_type: customerData?.customer_type || 'regular',
+          product_name: productName,
+          total_amount: `${order.currency || '₱'}${Number(order.total_amount).toLocaleString()}`,
+          status: order.status,
+          created_at: order.created_at,
+          updated_at: order.updated_at,
+          // Legacy fields for backward compatibility
+          customer: customerName,
           total: `₱${Number(order.total_amount).toLocaleString()}`,
           date: new Date(order.created_at).toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'short',
             day: 'numeric'
           }),
-          status: order.status,
           proofOfPaymentUrl: order.payment_proof || undefined,
           proofUploadedAt: order.payment_verified_at 
             ? new Date(order.payment_verified_at).toLocaleString('en-US', {

@@ -1,9 +1,13 @@
 import React from 'react';
-import { Badge, Button, Checkbox } from '../../shared';
+import { Badge, Button } from '../../shared';
 import { getOrderStatusBadgeVariant } from '../../../utils/admin/statusColors';
 import { formatOrderStatus } from '../../../utils/shared/statusFormatter';
+import { 
+  formatOrderDateDesktop, 
+  formatOrderDateTablet, 
+  formatOrderDateMobile 
+} from '../../../utils/shared/dateFormatter';
 import { MessageSquare } from 'lucide-react';
-import { cn } from '../../../lib/utils';
 import type { AdminOrderRow } from '../../../hooks/admin/useAdminOrders';
 
 // Use AdminOrderRow type instead of local Order interface
@@ -11,119 +15,106 @@ type Order = AdminOrderRow;
 
 interface OrderItemProps {
   order: Order;
-  isSelected: boolean;
-  isHovered: boolean;
-  showCheckbox: boolean;
   onHover: (orderId: string | null) => void;
-  onToggleSelection: (orderId: string) => void;
   onViewInChat: (orderId: string) => void;
 }
 
 export const OrderItem: React.FC<OrderItemProps> = ({
   order,
-  isSelected,
-  isHovered,
-  showCheckbox,
   onHover,
-  onToggleSelection,
   onViewInChat,
 }) => {
+  // Show Urgent badge for valued customers
+  const showUrgentBadge = order.customer_type === 'valued';
+  
+  // Get display ID with fallback to UUID
+  const displayId = order.display_id || order.id;
+  
+  // Format dates responsively
+  const createdDateDesktop = formatOrderDateDesktop(order.created_at);
+  const createdDateTablet = formatOrderDateTablet(order.created_at);
+  const createdDateMobile = formatOrderDateMobile(order.created_at);
+  
+  const updatedDateDesktop = formatOrderDateDesktop(order.updated_at);
+  const updatedDateTablet = formatOrderDateTablet(order.updated_at);
+  const updatedDateMobile = formatOrderDateMobile(order.updated_at);
 
   return (
     <div
-      className="group flex items-center gap-3 sm:gap-4 p-3 sm:p-4 lg:p-5 rounded-lg border bg-white/60 hover:bg-white transition-colors relative"
+      className="group p-3 sm:p-4 md:p-5 lg:p-6 rounded-lg border bg-white/60 hover:bg-white transition-colors"
       onMouseEnter={() => onHover(order.id)}
       onMouseLeave={() => onHover(null)}
     >
-      {/* Hover checkbox on left */}
-      <div className="absolute -left-3 top-1/2 -translate-y-1/2 z-10">
-        <Checkbox
-          checked={isSelected}
-          onCheckedChange={() => onToggleSelection(order.id)}
-          className={cn(
-            'transition-opacity bg-white border-2 border-gray-300 w-5 h-5 rounded data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500',
-            isHovered || showCheckbox ? 'opacity-100' : 'opacity-0'
-          )}
-        />
-      </div>
-
-      <div className="flex w-full items-center justify-between gap-3 sm:gap-4 pl-6">
-        {/* Left section: identifiers, customer, badges */}
-        <div className="flex-1 min-w-0 space-y-1 sm:space-y-2">
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-            <span className="text-xs sm:text-sm lg:text-base font-medium text-neutral-500 truncate">
-              {order.id}
+      {/* Row 1: Order ID + Product Name | Status Badges */}
+      <div className="flex items-center justify-between gap-2 sm:gap-3 md:gap-4 lg:gap-6 mb-2 sm:mb-3">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1 sm:gap-2 md:gap-3 min-w-0">
+            <span className="device-text-caption font-semibold text-neutral-900 whitespace-nowrap">
+              {displayId}
             </span>
-            <div className="text-sm sm:text-base lg:text-lg font-medium text-neutral-900 sm:hidden truncate">
-              {order.customer}
-            </div>
-          </div>
-
-          {/* Mobile badges */}
-          <div className="flex items-center justify-between sm:hidden">
-            <div className="flex items-center gap-2">
-              {order.priority && (
-                <Badge size="sm" variant="error" className="text-xs">
-                  {order.priority}
-                </Badge>
-              )}
-              <Badge
-                size="sm"
-                variant={getOrderStatusBadgeVariant(order.status)}
-                className="text-xs"
-              >
-                {formatOrderStatus(order.status)}
-              </Badge>
-            </div>
-          </div>
-
-          {/* Desktop: customer + badges */}
-          <div className="hidden sm:block text-sm sm:text-base lg:text-lg font-medium text-neutral-900 truncate">
-            {order.customer}
-          </div>
-          <div className="hidden sm:flex sm:items-center sm:gap-3">
-            {order.priority && (
-              <Badge
-                size="sm"
-                variant="error"
-                className="text-xs sm:text-sm"
-              >
-                {order.priority}
-              </Badge>
-            )}
-            <Badge
-              size="sm"
-              variant={getOrderStatusBadgeVariant(order.status)}
-              className="text-xs sm:text-sm"
-            >
-              {formatOrderStatus(order.status)}
-            </Badge>
+            <span className="text-neutral-400">•</span>
+            <span className="device-text-caption font-medium text-neutral-700 truncate">
+              {order.product_name}
+            </span>
           </div>
         </div>
+        
+        <div className="flex items-center gap-1 sm:gap-2 md:gap-3 shrink-0">
+          {showUrgentBadge && (
+            <Badge 
+              variant="error" 
+              className="text-xs sm:text-sm md:text-base lg:text-lg px-1.5 py-0.5 sm:px-2 sm:py-0.5 md:px-2.5 md:py-1 lg:px-3 lg:py-1"
+            >
+              Urgent
+            </Badge>
+          )}
+          <Badge
+            variant={getOrderStatusBadgeVariant(order.status)}
+            className="text-xs sm:text-sm md:text-base lg:text-lg px-1.5 py-0.5 sm:px-2 sm:py-0.5 md:px-2.5 md:py-1 lg:px-3 lg:py-1"
+          >
+            {formatOrderStatus(order.status)}
+          </Badge>
+        </div>
+      </div>
 
-        {/* Right section: amount/date + action */}
-        <div className="flex items-center gap-3 sm:gap-4">
+      {/* Row 2: Customer Name | Amount + Chat Button */}
+      <div className="flex items-center justify-between gap-2 sm:gap-3 md:gap-4 lg:gap-6 mb-2 sm:mb-3">
+        <div className="flex-1 min-w-0">
+          <span className="device-text-body font-medium text-neutral-900 truncate">
+            {order.customer_name}
+          </span>
+        </div>
+        
+        <div className="flex items-center gap-2 sm:gap-3 md:gap-4 shrink-0">
           <div className="text-right">
-            <div className="text-sm sm:text-base lg:text-lg xl:text-xl font-semibold">
-              {order.total}
-            </div>
-            <div className="text-xs sm:text-sm text-neutral-500">
-              {order.date}
+            <div className="text-sm sm:text-base md:text-lg lg:text-xl font-semibold text-neutral-900">
+              {order.total_amount}
             </div>
           </div>
-
-          {/* Action Button */}
           <Button
             variant="secondary"
             size="sm"
             threeD
-            aria-label={`Ask about ${order.id}`}
+            aria-label={`Ask about ${displayId}`}
             onClick={() => onViewInChat(order.id)}
-            className="shrink-0"
+            className="device-btn-secondary shrink-0"
           >
-            <MessageSquare className="w-4 h-4" />
+            <MessageSquare className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5" />
           </Button>
         </div>
+      </div>
+
+      {/* Row 3: Dates */}
+      <div className="device-text-caption text-neutral-500">
+        <span className="hidden lg:inline">
+          Ordered: {createdDateDesktop} • Last Updated: {updatedDateDesktop}
+        </span>
+        <span className="hidden sm:inline lg:hidden">
+          {createdDateTablet} • Updated: {updatedDateTablet}
+        </span>
+        <span className="sm:hidden">
+          {createdDateMobile} • Updated {updatedDateMobile}
+        </span>
       </div>
     </div>
   );

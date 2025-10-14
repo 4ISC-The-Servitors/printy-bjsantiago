@@ -1,12 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useOrderSelection } from './SelectionContext';
-import { createOrderSelectionItems } from '../../utils/admin/selectionUtils';
 import { useAdmin } from './AdminContext';
 import { useOrders } from './OrdersContext';
 import useResponsivePageSize from '../ui/useResponsivePageSize';
 
 export const useOrdersCard = () => {
-  const orderSelection = useOrderSelection();
   const { openChatWithTopic, openChat, addSelected } = useAdmin();
   const { orders, updateOrder, refreshOrders, loading: ordersLoading } = useOrders();
   const [hoveredOrderId, setHoveredOrderId] = useState<string | null>(null);
@@ -41,17 +38,6 @@ export const useOrdersCard = () => {
     if (page > totalPages) setPage(totalPages);
   }, [pageSize, orders.length, page]);
 
-  const orderItems = useMemo(
-    () => createOrderSelectionItems(displayOrders),
-    [displayOrders]
-  );
-
-  const toggleOrderSelection = (orderId: string) => {
-    const orderItem = orderItems.find(item => item.id === orderId);
-    if (orderItem) {
-      orderSelection.toggle(orderItem);
-    }
-  };
 
 
   const viewInChat = (orderId: string) => {
@@ -75,9 +61,6 @@ export const useOrdersCard = () => {
     totalOrders: orders.length,
     hoveredOrderId,
     setHoveredOrderId,
-    isSelected: orderSelection.isSelected,
-    selectionCount: orderSelection.selectionCount,
-    toggleOrderSelection,
     viewInChat,
   };
 };
