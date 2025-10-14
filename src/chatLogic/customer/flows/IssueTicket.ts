@@ -266,7 +266,7 @@ export const issueTicketFlow: ChatFlow = {
       }
 
       const lines = [
-        `Ticket Number: ${inquiry.display_id}`,
+        `Ticket ID: ${inquiry.display_id || inquiry.inquiry_id}`,
         `Issue submitted: ${inquiry.inquiry_message || '(no message provided)'}`,
         `Issue type: ${inquiry.inquiry_type || '(not specified)'}`,
         `Received: ${new Date(inquiry.received_at).toLocaleString()}`,
@@ -394,6 +394,29 @@ export const issueTicketFlow: ChatFlow = {
             quickReplies: nodeQuickReplies(current),
           };
         }
+        inquiryId = (data?.inquiry_id as string) || inquiryId;
+
+        // ✅ Reset state
+        collectedIssueDetails = '';
+        currentInquiryType = null;
+
+        return {
+          messages: [
+            { role: 'printy', text: `Ticket submitted successfully!\n\nYour ticket number is: ${inquiryId}` },
+          ],
+          quickReplies: ['End Chat'],
+        };
+      } catch (_e) {
+        console.error('Insert error:', _e);
+        return {
+          messages: [
+            {
+              role: 'printy',
+              text: 'Error creating ticket. Please try again.',
+            },
+          ],
+          quickReplies: nodeQuickReplies(current),
+        };
       }
 
       currentNodeId = nextNodeId;

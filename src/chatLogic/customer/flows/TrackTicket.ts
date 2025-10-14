@@ -1,5 +1,6 @@
 import type { BotMessage, ChatFlow } from '../../../types/chatFlow';
-import { supabase } from '../../../lib/supabase'; // ensure Supabase client is imported
+import { supabase } from '../../../lib/supabase';
+import { ChatDatabaseService } from '../../../features/chat/core/services/ChatDatabaseService';
 
 // ====================
 // Type Definitions
@@ -28,14 +29,21 @@ const NODES: Record<string, Node> = {
     ],
   },
 
-  has_ticket_number: {
-    id: 'has_ticket_number',
-    question: 'Ticket Number',
-    answer:
-      'Great! Please provide your ticket number (e.g., TCK-000123) and I will check the status for you.',
+  view_ticket_conversation: {
+    id: 'view_ticket_conversation',
+    message: 'Here is your ticket conversation:',
     options: [
-      { label: 'Check another ticket', next: 'has_ticket_number' },
-      { label: 'Back', next: 'track_ticket_start' },
+      { label: 'Reply to ticket', next: 'reply_to_ticket' },
+      { label: 'End Chat', next: 'end' },
+    ],
+  },
+
+  reply_to_ticket: {
+    id: 'reply_to_ticket',
+    question: 'Reply to Ticket',
+    answer: 'Type your message to reply to this ticket:',
+    options: [
+      { label: 'Send another message', next: 'reply_to_ticket' },
       { label: 'End Chat', next: 'end' },
     ],
   },
@@ -62,7 +70,7 @@ const NODES: Record<string, Node> = {
 // State Tracking
 // ====================
 let currentNodeId: keyof typeof NODES = 'track_ticket_start';
-let awaitingTicketInput: boolean = false; // Flag for recent tickets input
+let currentSessionId: string | null = null;
 
 // ====================
 // Helper Functions
@@ -83,45 +91,131 @@ function nodeQuickReplies(node: Node): string[] {
 export const trackTicketFlow: ChatFlow = {
   id: 'track-ticket',
   title: 'Track a Ticket',
-
-  initial: () => {
+  initial: (ctx) => {
+    // Check if we have an inquiry_id in context (from Track Ticket button)
+    const inquiryId = (ctx as any)?.inquiryId;
+    const subject = (ctx as any)?.subject;
+    
+    if (inquiryId) {
+      // Direct to conversation view for existing ticket
+      currentNodeId = 'view_ticket_conversation';
+      return [
+        { role: 'printy', text: `Ticket: ${subject || 'Support Request'}` },
+        { role: 'printy', text: `Ticket ID: ${inquiryId}` },
+        { role: 'printy', text: 'Loading conversation history...' },
+      ];
+    }
+    
+    // Default flow for manual ticket tracking
     currentNodeId = 'track_ticket_start';
     awaitingTicketInput = false;
     return nodeToMessages(NODES[currentNodeId]);
   },
 
   quickReplies: () => nodeQuickReplies(NODES[currentNodeId]),
-
-  respond: async (_ctx, input) => {
-    // ====================
-    // Handle input when awaiting ticket number after recent tickets
-    // ====================
-    if (awaitingTicketInput) {
-      const ticketNumber = input.trim();
-      if (!ticketNumber) {
-        return {
-          messages: [
-            { role: 'printy', text: 'Please enter a ticket number from the list above.' },
-          ],
-          quickReplies: [],
-        };
-      }
-
-      // Reset flag
-      awaitingTicketInput = false;
-      currentNodeId = 'has_ticket_number';
-
-      // Redirect to normal ticket lookup
-      return trackTicketFlow.respond(_ctx, ticketNumber);
-    }
-
+  respond: async (ctx, input) => {
     const current = NODES[currentNodeId];
     const selection = current.options.find(
       (o) => o.label.toLowerCase() === input.trim().toLowerCase()
     );
 
     // ====================
-    // Handle Ticket Status Inquiry (User entered Ticket ID)
+    // Handle Conversation Loading (first interaction)
+    // ====================
+    if (currentNodeId === 'view_ticket_conversation' && !currentSessionId) {
+      const inquiryId = (ctx as any)?.inquiryId;
+      
+      if (inquiryId) {
+        try {
+          // Get or create chat session for this inquiry
+          const { data: sessionId, error } = await supabase.rpc(
+            'api_get_or_create_inquiry_session',
+            { p_inquiry_id: inquiryId }
+          );
+          
+          if (!error && sessionId) {
+            currentSessionId = sessionId;
+            
+            // Fetch existing messages
+            const messages = await ChatDatabaseService.fetchSessionMessages(sessionId);
+            
+            let conversationText = 'Conversation History:\n\n';
+            
+            if (messages && messages.length > 0) {
+              const messageTexts = messages.map((msg: any) => {
+                const sender = msg.role === 'user' ? 'You' : 'Admin';
+                const timestamp = new Date(msg.ts).toLocaleString();
+                return `[${timestamp}] ${sender}: ${msg.text}`;
+              });
+              conversationText += messageTexts.join('\n');
+            } else {
+              conversationText += 'No messages yet. Start the conversation below!';
+            }
+            
+            const conversationMessages: BotMessage[] = [
+              { role: 'printy', text: conversationText },
+            ];
+            
+            return {
+              messages: conversationMessages,
+              quickReplies: nodeQuickReplies(NODES.view_ticket_conversation),
+            };
+          }
+        } catch (error) {
+          console.error('Failed to load ticket conversation:', error);
+        }
+        
+        // Fallback if session loading fails
+        return {
+          messages: [
+            { role: 'printy', text: 'Unable to load conversation history. You can still reply to this ticket.' },
+          ],
+          quickReplies: nodeQuickReplies(NODES.view_ticket_conversation),
+        };
+      }
+    }
+
+    // ====================
+    // Handle Reply to Ticket
+    // ====================
+    if (!selection && currentNodeId === 'reply_to_ticket' && currentSessionId) {
+      const message = input.trim();
+      if (!message) {
+        return {
+          messages: [
+            { role: 'printy', text: 'Please enter a message to send.' },
+          ],
+          quickReplies: nodeQuickReplies(NODES.reply_to_ticket),
+        };
+      }
+
+      try {
+        // Save customer message to database
+        await ChatDatabaseService.insertMessage({
+          sessionId: currentSessionId,
+          text: message,
+          role: 'user',
+        });
+
+        return {
+          messages: [
+            { role: 'printy', text: 'Your message has been sent to the admin team.\n\nThey will respond as soon as possible.' },
+          ],
+          quickReplies: nodeQuickReplies(NODES.reply_to_ticket),
+        };
+      } catch (error) {
+        console.error('Failed to send message:', error);
+        return {
+          messages: [
+            { role: 'printy', text: 'Failed to send message. Please try again.' },
+          ],
+          quickReplies: nodeQuickReplies(NODES.reply_to_ticket),
+        };
+      }
+    }
+
+    // ====================
+    // Handle Ticket Status Inquiry (manual entry)
     // ====================
     if (!selection && currentNodeId === 'has_ticket_number') {
       const displayId = input.trim().replace(/[^a-zA-Z0-9-]/g, ''); // sanitize input
@@ -218,12 +312,16 @@ if (
       };
     }
 
-    const { data: tickets, error } = await supabase
-      .from('inquiries')
-      .select('display_id, inquiry_status, received_at')
-      .eq('customer_id', user.id)
-      .order('received_at', { ascending: false })
-      .limit(10);
+      const lines = [
+        `📌 Ticket ID: ${inquiry.display_id || inquiry.inquiry_id}`,
+        `📝 Issue submitted: ${inquiry.inquiry_message || '(no message provided)'}`,
+        `📂 Issue type: ${inquiry.inquiry_type || '(not specified)'}`,
+        `📅 Received: ${new Date(inquiry.received_at).toLocaleString()}`,
+        `📊 Status: ${inquiry.inquiry_status}`,
+        inquiry.resolution_comments
+          ? `✅ Resolution: ${inquiry.resolution_comments}`
+          : '✅ Resolution: (not yet provided)',
+      ];
 
     if (error) {
       console.error('❌ Supabase query error:', error);

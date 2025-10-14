@@ -23,7 +23,7 @@ export interface FlowResponse {
 export interface ChatFlow {
   id: string;
   title: string;
-  initial: (ctx: FlowContext) => BotMessage[];
-  quickReplies: () => string[];
+  initial: (ctx: FlowContext) => BotMessage[] | Promise<BotMessage[]>;
+  quickReplies: (ctx?: FlowContext) => string[] | Promise<string[]>;
   respond: (ctx: FlowContext, input: string) => Promise<FlowResponse>;
 }

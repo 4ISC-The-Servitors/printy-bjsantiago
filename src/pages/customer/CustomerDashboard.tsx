@@ -1,10 +1,10 @@
 // Supabase client for auth and database queries
 import { supabase } from '../../lib/supabase';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 // Customer chat UI and types
-import ChatPanel from '../../components/customer/chatPanel/ChatPanel';
-import type { ChatMessage } from '../../components/chat/_shared/types';
+import { CustomerChatPanel } from '../../components/chat/layouts';
+import type { ConversationItem } from '../../hooks/core/useConversationState';
 // Sidebar and dashboard widgets
 import SidebarPanel from '../../components/customer/shared/sidebar/SidebarPanel';
 import LogoutButton from '../../components/customer/shared/sidebar/LogoutButton';
@@ -12,16 +12,19 @@ import LogoutModal from '../../components/customer/shared/sidebar/LogoutModal';
 import ChatCards from '../../components/customer/dashboard/chatCards/ChatCards';
 import RecentOrder from '../../components/customer/dashboard/recentOrders/RecentOrder';
 import RecentTickets from '../../components/customer/dashboard/recentTickets/RecentTickets';
+import RecentQuotes from '../../components/customer/dashboard/recentQuotes/RecentQuotes';
 // Shared UI components
 import { ToastContainer, Text, PageLoading } from '../../components/shared';
-import { useLogoutWithToast } from '../../features/toast/hooks/useLogoutWithToast';
-import { useRecentOrder } from '../../features/chat/customer/hooks/useRecentOrder';
-import { useRecentTicket } from '../../features/chat/customer/hooks/useRecentTicket';
-import { useRecentChatSessions } from '../../features/chat/customer/hooks/useRecentChatSessions';
-import { useDashboardChatEvents } from '../../features/chat/customer/hooks/useDashboardChatEvents';
-import { useChatAttachments } from '../../features/chat/core/hooks/useChatAttachments';
+import { useLogoutWithToast } from '../../hooks/auth/useLogoutWithToast';
+import { useRecentOrder } from '../../hooks/customer/useRecentOrder';
+import { useRecentTicket } from '../../hooks/customer/useRecentTicket';
+import { useRecentQuote } from '../../hooks/customer/useRecentQuote';
+import { useRecentChatSessions } from '../../hooks/customer/useRecentChatSessions';
+import { useDashboardChatEvents } from '../../hooks/customer/useDashboardChatEvents';
+import { useChatAttachments } from '../../hooks/core/useChatAttachments';
+import { usePaymentProofUpload } from '../../hooks/customer/usePaymentProofUpload';
 // Chat feature hooks
-import { useCustomerConversations } from '../../features/chat/customer/hooks/useCustomerConversations';
+import { useCustomerConversations } from '../../hooks/customer/useCustomerConversations';
 
 // ---------------- Types / Config ----------------
 import {
@@ -31,9 +34,11 @@ import {
   Info,
   MessageSquare,
   Settings,
+  Calculator,
 } from 'lucide-react';
 type TopicKey =
   | 'placeOrder'
+  | 'askQuote'
   | 'issueTicket'
   | 'trackTicket'
   | 'servicesOffered'
@@ -55,6 +60,12 @@ const topicConfig: Record<
     icon: <ShoppingCart className="w-6 h-6" />,
     flowId: 'place-order',
     description: "Avail B.J. Santiago's printing services",
+  },
+  askQuote: {
+    label: 'Ask Quote',
+    icon: <Calculator className="w-6 h-6" />,
+    flowId: 'ask-quote',
+    description: 'Get a personalized quote for your printing needs',
   },
   issueTicket: {
     label: 'Ask Quote or Assistance',
@@ -83,15 +94,7 @@ const topicConfig: Record<
   },
 };
 
-interface Conversation {
-  id: string;
-  title: string;
-  createdAt: number;
-  messages: ChatMessage[];
-  flowId: string;
-  status: 'active' | 'ended';
-  icon?: React.ReactNode;
-}
+type Conversation = ConversationItem;
 
 // topicConfig now imported from feature config
 
@@ -100,7 +103,7 @@ interface Conversation {
 // ---------------- Component ----------------
 // Customer landing experience: shows recent activity and provides chat entrypoints.
 // Manages two chat implementations:
-// 1) In-memory scripted flows (e.g., payment, cancel-order)
+// 1) In-memory scripted flows (e.g., payment)
 // 2) Database-backed flow for 'About Us' using chat_flow tables
 const CustomerDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -112,7 +115,6 @@ const CustomerDashboard: React.FC = () => {
     conversations,
     activeId,
     quickReplies,
-    inputPlaceholder,
     handleSend: sendViaHook,
     handleQuickReply: quickReplyViaHook,
     endChat: endChatViaHook,
@@ -125,18 +127,27 @@ const CustomerDashboard: React.FC = () => {
   // Chat conversation state/actions provided by useCustomerConversations
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
-  const [isLoading, setIsLoading] = useState(true);
+  // Remove artificial timers; rely on data-fetch loading states
 
-  // Live recent order/ticket from Supabase
-  const { data: recentOrder } = useRecentOrder();
-  const { data: recentTicket } = useRecentTicket();
+  // Live recent order/ticket/quote from Supabase
+  const { data: recentOrder, loading: loadingRecentOrder } = useRecentOrder();
+  const { data: recentTicket, loading: loadingRecentTicket } = useRecentTicket();
+  
+  // Get current user for recent quote
+  const [customerId, setCustomerId] = useState<string | undefined>();
+  useEffect(() => {
+    const getCustomerId = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setCustomerId(user?.id);
+    };
+    getCustomerId();
+  }, []);
+  
+  const { data: recentQuote, loading: loadingRecentQuote } = useRecentQuote(customerId);
   useRecentChatSessions(setConversations);
 
-  // Initial loading shimmer for dashboard visuals
-  useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 1500);
-    return () => clearTimeout(timer);
-  }, []);
+  // Determine loading based on data hooks
+  const isLoading = loadingRecentOrder || loadingRecentTicket || loadingRecentQuote;
 
   // Load recent chat sessions from database for the sidebar list (initial)
   useEffect(() => {
@@ -211,6 +222,52 @@ const CustomerDashboard: React.FC = () => {
 
   // Attachments
   const { handleAttachFiles } = useChatAttachments(sendViaHook);
+  const { handlePaymentProofUpload } = usePaymentProofUpload();
+
+  // Check if current conversation is a payment flow
+  const isPaymentFlow = activeId && conversations.find(c => c.id === activeId)?.title?.toLowerCase().includes('payment');
+
+  // Enhanced file upload handler that uses payment proof upload for payment flows
+  const handleFileUpload = useCallback(async (files: FileList) => {
+    console.log('File upload triggered:', files);
+    console.log('Is payment flow:', isPaymentFlow);
+    console.log('Recent order ID:', recentOrder?.id);
+    console.log('Active conversation:', conversations.find(c => c.id === activeId));
+    
+    if (isPaymentFlow) {
+      // Get order ID from payment flow context or fallback to recent order
+      let orderId = recentOrder?.id;
+      
+      // Try to get order ID from payment flow context if available
+      const activeConversation = conversations.find(c => c.id === activeId);
+      if (activeConversation?.context?.orderId) {
+        orderId = activeConversation.context.orderId;
+      }
+      
+      console.log('Using order ID:', orderId);
+      
+      if (orderId) {
+        // Use payment proof upload for payment flows
+        console.log('Starting payment proof upload...');
+        await handlePaymentProofUpload(files, orderId, (url) => {
+          // Send the uploaded file URL to the chat
+          console.log('Upload successful, sending URL to chat:', url);
+          sendViaHook(url);
+        }, (error) => {
+          // Handle error - could show a toast or error message
+          console.error('Payment proof upload failed:', error);
+          sendViaHook(`Upload failed: ${error}`);
+        });
+      } else {
+        console.error('No order ID available for payment proof upload');
+        sendViaHook('Error: No order ID available. Please try again.');
+      }
+    } else {
+      // Use regular chat attachments for other flows
+      console.log('Using regular chat attachments');
+      handleAttachFiles(files);
+    }
+  }, [isPaymentFlow, recentOrder?.id, conversations, activeId, handlePaymentProofUpload, sendViaHook, handleAttachFiles]);
 
   const handleTopic = (key: TopicKey) => {
     const cfg = topicConfig[key];
@@ -218,30 +275,29 @@ const CustomerDashboard: React.FC = () => {
   };
 
   // ---------------- UI ----------------
-  return (
-    <div className="h-screen bg-gradient-to-br from-neutral-50 to-brand-primary-50 flex">
-      {/* Sidebar (desktop) */}
-      <aside className="hidden lg:flex w-64 bg-white border-r border-neutral-200">
-        <SidebarPanel
-          conversations={conversations}
-          activeId={activeId}
-          onSwitchConversation={switchConversationHook}
-          onNavigateToAccount={() => navigate('/customer/account')}
-          bottomActions={
-            <LogoutButton
-              onClick={() => {
-                setShowLogoutModal(true);
-              }}
-            />
-          }
+  const sidebar = (
+    <SidebarPanel
+      conversations={conversations}
+      activeId={activeId}
+      onSwitchConversation={switchConversationHook}
+      onNavigateToAccount={() => navigate('/customer/account')}
+      bottomActions={
+        <LogoutButton
+          onClick={() => {
+            setShowLogoutModal(true);
+          }}
         />
-      </aside>
+      }
+    />
+  );
 
-      <main className="flex-1 flex flex-col pl-16 lg:pl-0">
-        {isLoading ? (
-          <PageLoading variant="dashboard" />
-        ) : activeId ? (
-          <ChatPanel
+  const content = (
+    <>
+      {isLoading ? (
+        <PageLoading variant="dashboard" />
+      ) : activeId ? (
+        <div className="h-full">
+          <CustomerChatPanel
             title={conversations.find(c => c.id === activeId)?.title || 'Chat'}
             messages={messages}
             onSend={sendViaHook}
@@ -249,9 +305,8 @@ const CustomerDashboard: React.FC = () => {
             onBack={() => setActiveId(null)}
             quickReplies={quickReplies}
             onQuickReply={quickReplyViaHook}
-            inputPlaceholder={inputPlaceholder}
             onEndChat={endChatViaHook}
-            onAttachFiles={handleAttachFiles}
+            onAttachFiles={handleFileUpload}
             readOnly={
               conversations.find(c => c.id === activeId)?.status === 'ended'
             }
@@ -259,50 +314,99 @@ const CustomerDashboard: React.FC = () => {
               conversations.find(c => c.id === activeId)?.status === 'ended'
             }
           />
-        ) : (
-          <div className="p-8 overflow-y-auto">
-            <div className="max-w-6xl mx-auto w-full">
-              <div className="text-center space-y-1 mb-8">
-                <Text
-                  variant="h1"
-                  size="4xl"
-                  weight="bold"
-                  className="text-brand-primary"
-                >
-                  How can I help you today?
-                </Text>
-                <Text variant="p" size="base" color="muted">
-                  Check recent activity or start a new chat
-                </Text>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
-                <RecentOrder
-                  recentOrder={
-                    recentOrder ?? {
-                      id: '—',
-                      title: 'No recent order',
-                      status: 'none',
-                      updatedAt: Date.now(),
-                    }
-                  }
-                />
-                <RecentTickets
-                  recentTicket={
-                    recentTicket ?? {
-                      id: '—',
-                      subject: 'No recent ticket',
-                      status: 'none',
-                      updatedAt: Date.now(),
-                    }
-                  }
-                />
-              </div>
-              <ChatCards onSelect={key => handleTopic(key as TopicKey)} />
+        </div>
+      ) : (
+        <div className="p-8 overflow-y-auto">
+          <div className="max-w-6xl mx-auto w-full">
+            <div className="text-center space-y-1 mb-8">
+              <Text
+                variant="h1"
+                size="4xl"
+                weight="bold"
+                className="text-brand-primary"
+              >
+                How can I help you today?
+              </Text>
+              <Text variant="p" size="base" color="muted">
+                Check recent activity or start a new chat
+              </Text>
             </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
+              <RecentOrder
+                recentOrder={
+                  recentOrder ?? {
+                    id: '—',
+                    displayId: 'NO-ORDER',
+                    title: 'No recent order',
+                    status: 'none',
+                    createdAt: Date.now(),
+                    updatedAt: Date.now()
+                  }
+                }
+              />
+              <RecentTickets
+                recentTicket={
+                  recentTicket ?? {
+                    id: '—',
+                    displayId: 'NO-TICKET',
+                    subject: 'No recent ticket',
+                    status: 'none',
+                    createdAt: Date.now(),
+                    updatedAt: Date.now()
+                  }
+                }
+              />
+              <RecentQuotes
+                recentQuote={
+                  recentQuote ?? {
+                    id: '—',
+                    displayId: 'NO-QUOTE',
+                    status: 'active',
+                    createdAt: Date.now(),
+                    updatedAt: Date.now()
+                  }
+                }
+              />
+            </div>
+            <ChatCards onSelect={key => handleTopic(key as TopicKey)} />
           </div>
-        )}
-      </main>
+        </div>
+      )}
+    </>
+  );
+
+  return (
+    <>
+      {/* Desktop Layout */}
+      <div className="hidden lg:block">
+        <div className="h-screen bg-gradient-to-br from-neutral-50 to-brand-primary-50 flex">
+          {/* Sidebar (desktop) */}
+          <aside className="w-64 bg-white border-r border-neutral-200">
+            {sidebar}
+          </aside>
+
+          {/* Main Content */}
+          <main className="flex-1 flex flex-col">
+            {content}
+          </main>
+        </div>
+      </div>
+
+      {/* Mobile Layout */}
+      <div className="lg:hidden">
+        <div className="h-screen bg-gradient-to-br from-neutral-50 to-brand-primary-50 flex">
+          {/* Compact left rail (mobile) */}
+          <div className="fixed left-0 top-0 bottom-0 w-16 bg-white border-r border-neutral-200 z-50">
+            {sidebar}
+          </div>
+
+          {/* Main content with left offset for rail */}
+          <main className="flex-1 flex flex-col pl-16 h-full w-full">
+            {content}
+          </main>
+        </div>
+      </div>
 
       {/* Logout Modal */}
       <LogoutModal
@@ -321,7 +425,7 @@ const CustomerDashboard: React.FC = () => {
         onRemoveToast={id => toast.remove(id)}
         position="bottom-right"
       />
-    </div>
+    </>
   );
 };
 

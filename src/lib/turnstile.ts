@@ -118,31 +118,53 @@ import { supabase } from './supabase';
 export async function renderInlineTurnstile(
   containerId: string,
   action: string,
-  appearance: 'always' | 'interaction-only' = 'always'
+  appearance: 'always' | 'interaction-only' = 'always',
+  onSuccess?: (token: string) => void
 ) {
   const siteKey = (import.meta as any).env?.VITE_TURNSTILE_SITE_KEY as string | undefined;
-  if (!siteKey) return;
+  if (!siteKey) {
+    throw new Error('Missing VITE_TURNSTILE_SITE_KEY');
+  }
   const el = document.getElementById(containerId) as HTMLElement | null;
-  if (!el) return;
+  if (!el) {
+    throw new Error(`Element with id "${containerId}" not found`);
+  }
+
+  dbg('renderInlineTurnstile starting', { containerId, action, appearance });
+
   const turnstile = await ensureTurnstile();
+
   try {
     const existing = inlineWidgetIds[containerId];
-    if (existing && window.turnstile?.remove) window.turnstile.remove(existing);
-  } catch {}
+    if (existing && window.turnstile?.remove) {
+      dbg('Removing existing widget', existing);
+      window.turnstile.remove(existing);
+    }
+  } catch (e) {
+    dbg('Error removing existing widget', e);
+  }
+
+  dbg('Rendering turnstile widget');
   const widgetId = turnstile.render(el, {
     sitekey: siteKey,
     appearance,
     action,
     callback: (t: string) => {
+      dbg('Turnstile callback received', { action, tokenLength: t?.length });
       inlineTokens[action] = { token: t, ts: Date.now() };
+      onSuccess?.(t);
     },
     'error-callback': () => {
+      dbg('Turnstile error callback', { action });
       // keep widget mounted; user can retry automatically
     },
     'timeout-callback': () => {
+      dbg('Turnstile timeout callback', { action });
       // keep widget mounted; user can retry automatically
     },
   } as unknown as Record<string, unknown>);
+
+  dbg('Widget rendered with ID', widgetId);
   inlineWidgetIds[containerId] = widgetId;
 }
 

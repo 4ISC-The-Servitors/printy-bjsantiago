@@ -1,0 +1,72 @@
+import React from 'react';
+import { Card, Pagination } from '../../shared';
+import { useOrdersCard } from '../../../hooks/admin/useOrdersCard';
+import { OrderItem } from './OrderItem';
+import { OrdersSkeleton } from './OrdersSkeleton';
+import { AddToChatButton } from './AddToChatButton';
+
+const OrdersCard: React.FC = () => {
+  const {
+    isLoading,
+    displayOrders,
+    page,
+    setPage,
+    pageSize,
+    totalOrders,
+    hoveredOrderId,
+    setHoveredOrderId,
+    openMenuId,
+    setOpenMenuId,
+    isSelected,
+    selectionCount,
+    toggleOrderSelection,
+    addSelectedToChat,
+    viewInChat,
+  } = useOrdersCard();
+
+  if (isLoading) {
+    return <OrdersSkeleton />;
+  }
+
+  return (
+    <div className="relative">
+      <Card className="p-0">
+        <div className="flex items-center justify-end px-3 py-2 sm:px-4">
+          <div className="flex items-center gap-2 text-neutral-500 text-xs"></div>
+        </div>
+
+        <div className="space-y-4 sm:space-y-6 px-3 sm:px-4 pb-3">
+          {displayOrders.map(order => (
+            <OrderItem
+              key={order.id}
+              order={order}
+              isSelected={isSelected(order.id)}
+              isHovered={hoveredOrderId === order.id}
+              showCheckbox={selectionCount > 0}
+              openMenuId={openMenuId}
+              onHover={setHoveredOrderId}
+              onToggleSelection={toggleOrderSelection}
+              onViewInChat={viewInChat}
+              onToggleMenu={setOpenMenuId}
+            />
+          ))}
+        </div>
+      </Card>
+
+      {/* Pagination below the card list */}
+      <div className="px-4 pt-3 pb-6">
+        <Pagination
+          page={page}
+          pageSize={pageSize}
+          total={totalOrders}
+          onPageChange={setPage}
+        />
+      </div>
+
+      {/* Floating Add to Chat button */}
+      <AddToChatButton count={selectionCount} onClick={addSelectedToChat} />
+    </div>
+  );
+};
+
+export default OrdersCard;

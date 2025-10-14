@@ -5,12 +5,13 @@ import type {
   ChatMessage,
   QuickReply,
   ChatRole,
-} from '../../components/chat/_shared/types';
+} from '../../components/chat/types';
 import { resolveAdminFlow, dispatchAdminCommand } from '../../chatLogic/admin';
 import { useAdmin } from '@hooks/admin/AdminContext';
 import { useInquiryActions } from './useInquiryActions';
 import { useAdminConversations } from './useAdminConversations';
 import { ChatDatabaseService } from '../../features/chat/core/services/ChatDatabaseService';
+import { supabase } from '../../lib/supabase';
 
 export interface UseAdminChatReturn {
   chatOpen: boolean;
@@ -67,6 +68,9 @@ export const useAdminChat = (): UseAdminChatReturn => {
     }
     if (t.includes('tickets') || t.includes('ticket')) {
       return orderId ? `Tickets • ${orderId}` : 'Tickets';
+    }
+    if (t.includes('quotes') || t.includes('quote')) {
+      return orderId ? `Quotes • ${orderId}` : 'Quotes';
     }
     if (t.includes('add-service') || t.includes('add service')) {
       return 'Add Service';
@@ -133,21 +137,25 @@ export const useAdminChat = (): UseAdminChatReturn => {
       setCurrentConversationId(convId);
       const flow = resolveAdminFlow('intro');
       if (!flow) return;
-      const initial = flow.initial({});
-      setMessages(
-        initial.map(m => ({
-          id: crypto.randomUUID(),
-          role: m.role as ChatRole,
-          text: m.text,
-          ts: Date.now(),
-        }))
-      );
-      initial.forEach(m => addConvMessage('printy', m.text, convId));
-      setQuickReplies(
-        flow
-          .quickReplies()
-          .map((l, index) => ({ id: `qr-${index}`, label: l, value: l }))
-      );
+
+      // Handle async initial() and quickReplies()
+      void (async () => {
+        const initial = await Promise.resolve(flow.initial({}));
+        setMessages(
+          initial.map(m => ({
+            id: crypto.randomUUID(),
+            role: m.role as ChatRole,
+            text: m.text,
+            ts: Date.now(),
+          }))
+        );
+        initial.forEach(m => addConvMessage('printy', m.text, convId));
+
+        const quickRepliesResult = await Promise.resolve(flow.quickReplies({}));
+        setQuickReplies(
+          quickRepliesResult.map((l, index) => ({ id: `qr-${index}`, label: l, value: l }))
+        );
+      })();
     }
   };
 
@@ -239,24 +247,33 @@ export const useAdminChat = (): UseAdminChatReturn => {
           },
           refreshTickets: refreshOrders,
         };
-        setCurrentInquiryId(orderId || null);
-        // For ticket chats, create a DB-backed chat session tied to the ticket's customer
-        if (orderId) {
-          void (async () => {
+      } else if (nextTopic === 'quotes') {
+        context = {
+          conversationId: orderId,
+          quotes: orders,
+          // Bridge quotes flow updates to Supabase
+          updateQuote: async (conversationId: string, updates: any) => {
             try {
-              const inquiry = await ChatDatabaseService.fetchInquiryById(orderId);
-              const customerId = (inquiry as any)?.customer_id as string | undefined;
-              if (customerId) {
-                const sessionId = await ChatDatabaseService.createSession(customerId);
-                if (sessionId) setDbSessionId(sessionId);
+              if (typeof updates?.status === 'string') {
+                const { error } = await supabase
+                  .from('quote_conversations')
+                  .update({ status: updates.status })
+                  .eq('conversation_id', conversationId);
+                
+                if (error) {
+                  console.error('Failed to update quote status', error);
+                  throw error;
+                }
               }
+              // Refresh the quotes data after update
+              refreshOrders();
             } catch (e) {
-              // Best-effort session creation; continue even if it fails
-              // eslint-disable-next-line no-console
-              console.error('Failed to init DB session for ticket chat', e);
+              console.error('Failed to update quote', e);
             }
-          })();
-        }
+          },
+          refreshQuotes: refreshOrders,
+        };
+        // Note: Quotes use conversationId, not inquiryId
       } else {
         context = orderId
           ? { orderId, updateOrder, orders, refreshOrders, orderIds }
@@ -277,22 +294,27 @@ export const useAdminChat = (): UseAdminChatReturn => {
       const title = buildConversationTitle(nextTopic, orderId);
       const convId = startConversation(title);
       setCurrentConversationId(convId);
-      const initial = flow.initial(context);
 
-      console.log('💬 Initial messages from useAdminChat:', initial);
-      console.log('⚡ Quick replies from flow:', flow.quickReplies());
+      // Handle async initial() method
+      void (async () => {
+        const initial = await Promise.resolve(flow.initial(context));
 
-      setMessages(
-        initial.map(m => ({
-          id: crypto.randomUUID(),
-          role: m.role as ChatRole,
-          text: m.text,
-          ts: Date.now(),
-        }))
-      );
-      // Persist initial bot messages to DB if this is a ticket chat and a session was created
-      if (nextTopic.includes('ticket')) {
-        void (async () => {
+        console.log('💬 Initial messages from useAdminChat:', initial);
+
+        const quickRepliesResult = await Promise.resolve(flow.quickReplies(context));
+        console.log('⚡ Quick replies from flow:', quickRepliesResult);
+
+        setMessages(
+          initial.map(m => ({
+            id: crypto.randomUUID(),
+            role: m.role as ChatRole,
+            text: m.text,
+            ts: Date.now(),
+          }))
+        );
+
+        // Persist initial bot messages to DB if this is a ticket chat and a session was created
+        if (nextTopic.includes('ticket')) {
           try {
             // Small delay to allow session creation async to complete
             await new Promise(r => setTimeout(r, 80));
@@ -306,14 +328,41 @@ export const useAdminChat = (): UseAdminChatReturn => {
               }
             }
           } catch {}
-        })();
-      }
-      initial.forEach(m => addConvMessage('printy', m.text, convId));
-      setQuickReplies(
-        flow
-          .quickReplies()
-          .map((l, index) => ({ id: `qr-${index}`, label: l, value: l }))
-      );
+        }
+
+        initial.forEach(m => addConvMessage('printy', m.text, convId));
+        setQuickReplies(
+          quickRepliesResult.map((l, index) => ({ id: `qr-${index}`, label: l, value: l }))
+        );
+
+        // For quotes flow, automatically load customer description after initial messages
+        if (nextTopic === 'quotes' && orderId) {
+          setIsTyping(true);
+          const resp = await flow.respond(context, '');
+          const botMessages = resp.messages.map(m => ({
+            id: crypto.randomUUID(),
+            role: m.role as ChatRole,
+            text: m.text,
+            ts: Date.now(),
+          }));
+          setMessages(prev => [...prev, ...botMessages]);
+          if (convId) {
+            resp.messages.forEach(m =>
+              addConvMessage('printy', m.text, convId)
+            );
+          }
+          const quickRepliesForResp = await Promise.resolve(flow.quickReplies(context));
+          setQuickReplies(
+            (resp.quickReplies || quickRepliesForResp).map((l, index) => ({
+              id: `qr-${index}`,
+              label: l,
+              value: l,
+            }))
+          );
+          setIsTyping(false);
+        }
+      })();
+
       return;
     }
   };

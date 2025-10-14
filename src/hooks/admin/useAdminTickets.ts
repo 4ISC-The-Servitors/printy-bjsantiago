@@ -1,0 +1,186 @@
+import { useEffect, useMemo, useState, useCallback } from 'react';
+import { supabase } from '../../lib/supabase';
+
+export type AdminTicketRow = {
+  inquiry_id: string;
+  display_id?: string;
+  inquiry_message: string | null;
+  inquiry_status: string | null;
+  inquiry_type: string | null;
+  customer_id: string | null;
+  received_at: string | null;
+  resolution_comments: string | null;
+  assigned_to: string | null;
+  customer_full_name?: string | null;
+  customer_first_name?: string | null;
+  customer_last_name?: string | null;
+};
+
+type LoadInquiriesOptions = {
+  page?: number;
+  pageSize?: number;
+  useAdvancedFallbacks?: boolean;
+};
+
+export function useAdminTickets(options: LoadInquiriesOptions = {}) {
+  const { page = 1, pageSize = 10, useAdvancedFallbacks = false } = options;
+  
+  const [tickets, setTickets] = useState<AdminTicketRow[]>([]);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState<boolean>(false);
+
+  const loadInquiries = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    const from = (page - 1) * pageSize;
+    
+    try {
+      let rows: any[] = [];
+
+      if (useAdvancedFallbacks) {
+        // Advanced fallback logic from desktop/mobile components
+        // Primary: admin RPC (includes customer names, decrypts message)
+        const { data, error } = await supabase.rpc('api_inquiries_admin_list', {
+          p_limit: pageSize,
+          p_offset: from,
+        });
+
+        if (!error && Array.isArray(data)) {
+          rows = data as any[];
+        } else {
+          // Fallback A: per-user list (if admin flag not present)
+          const { data: userRows, error: userErr } = await supabase.rpc(
+            'api_inquiries_for_user',
+            { p_limit: pageSize, p_offset: from }
+          );
+          if (!userErr && Array.isArray(userRows)) {
+            rows = userRows as any[];
+          } else {
+            // Fallback B: direct read from secure view
+            const { data: viewRows, error: viewErr } = await supabase
+              .from('inquiries_secure')
+              .select(
+                'inquiry_id, customer_id, inquiry_type, inquiry_status, inquiry_message, resolution_comments'
+              )
+              .order('received_at', { ascending: false })
+              .range(from, from + pageSize - 1);
+            if (!viewErr && Array.isArray(viewRows)) rows = viewRows as any[];
+            if (viewErr && error) {
+              // If all failed, surface the primary error
+              throw error;
+            }
+          }
+        }
+
+        // If the admin RPC returned zero rows (e.g., not an admin), try fallbacks
+        if ((rows || []).length === 0) {
+          const { data: userRows } = await supabase.rpc(
+            'api_inquiries_for_user',
+            { p_limit: pageSize, p_offset: from }
+          );
+          if (Array.isArray(userRows) && userRows.length > 0) rows = userRows as any[];
+          if (rows.length === 0) {
+            const { data: viewRows } = await supabase
+              .from('inquiries_secure')
+              .select(
+                'inquiry_id, customer_id, inquiry_type, inquiry_status, inquiry_message, resolution_comments'
+              )
+              .order('received_at', { ascending: false })
+              .range(from, from + pageSize - 1);
+            if (Array.isArray(viewRows)) rows = viewRows as any[];
+          }
+        }
+      } else {
+        // Use real inquiries table only
+        const res = await supabase
+          .from('inquiries')
+          .select(
+            'inquiry_id,display_id,inquiry_message,inquiry_status,inquiry_type,customer_id,received_at,resolution_comments,assigned_to,customer:customer_id(first_name,last_name,customer_type)'
+          )
+          .order('received_at', { ascending: false })
+          .range(from, from + pageSize - 1);
+          
+        if (res.error) throw res.error;
+        
+        rows = res.data as any[] || [];
+        console.debug(
+          '[useAdminTickets] table: inquiries, rows:',
+          rows.length
+        );
+      }
+
+      const normalized: AdminTicketRow[] = (rows || []).map(row => {
+        const first = (row as any).customer_first_name || (row as any).customer?.first_name || '';
+        const last = (row as any).customer_last_name || (row as any).customer?.last_name || '';
+        const full = `${first} ${last}`.trim() || null;
+        return {
+          inquiry_id: (row as any).display_id || (row as any).inquiry_id, // Prefer display_id
+          display_id: (row as any).display_id,
+          inquiry_message: (row as any).inquiry_message ?? null,
+          inquiry_status: (row as any).inquiry_status ?? null,
+          inquiry_type: (row as any).inquiry_type ?? null,
+          customer_id: (row as any).customer_id ?? null,
+          received_at: (row as any).received_at ?? null,
+          resolution_comments: (row as any).resolution_comments ?? null,
+          assigned_to: (row as any).assigned_to ?? null,
+          customer_full_name: full,
+          customer_first_name: first || null,
+          customer_last_name: last || null,
+        } as AdminTicketRow;
+      });
+      
+      setTickets(normalized);
+      setHasMore(normalized.length === pageSize);
+      
+      if (!activeId && normalized.length > 0) {
+        setActiveId(normalized[0].inquiry_id);
+      }
+    } catch (e: any) {
+      console.error('Failed to load inquiries', e);
+      setError('Unable to load inquiries.');
+      setTickets([]);
+      setHasMore(false);
+    } finally {
+      setLoading(false);
+    }
+  }, [page, pageSize, useAdvancedFallbacks, activeId]);
+
+  useEffect(() => {
+    void loadInquiries();
+  }, [loadInquiries]);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('inquiries-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'inquiries' },
+        () => {
+          void loadInquiries();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [loadInquiries]);
+
+  const active = useMemo(
+    () => tickets.find(t => t.inquiry_id === activeId) || null,
+    [tickets, activeId]
+  );
+
+  return { 
+    tickets, 
+    active, 
+    activeId, 
+    setActiveId, 
+    loading, 
+    error, 
+    hasMore,
+    reload: loadInquiries 
+  };
+}

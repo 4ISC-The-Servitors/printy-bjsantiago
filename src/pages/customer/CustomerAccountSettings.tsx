@@ -16,7 +16,7 @@ import PersonalInfoForm from '../../components/customer/accountSettings/desktop/
 import SecuritySettings from '../../components/customer/accountSettings/desktop/SecuritySettings.tsx';
 import NotificationPreferences from '../../components/customer/accountSettings/desktop/NotificationPreferences.tsx';
 // Use the same conversations hook as Dashboard so the sidebar is consistent
-import { useCustomerConversations } from '../../features/chat/customer/hooks/useCustomerConversations.ts';
+import { useCustomerConversations } from '../../hooks/customer/useCustomerConversations';
 
 export interface UserData {
   displayName: string;

@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Button,
   Text,
   Container,
   ToastContainer,
-  PageLoading,
 } from '../../components/shared';
 import ProgressIndicator from '../../components/auth/SignUp/ProgressIndicator';
 import Step1Account from '../../components/auth/SignUp/Step1Account';
@@ -17,7 +16,6 @@ import { ArrowLeft } from 'lucide-react';
 
 const SignUp: React.FC = () => {
   const navigate = useNavigate();
-  const [isPageLoading, setIsPageLoading] = useState(true);
   const {
     toasts,
     toast,
@@ -35,13 +33,6 @@ const SignUp: React.FC = () => {
     handleSubmit,
   } = useSignUp();
 
-  // Simulate page loading
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsPageLoading(false);
-    }, 800);
-    return () => clearTimeout(timer);
-  }, []);
 
   const titles: Record<number, string> = {
     1: 'Account Information',
@@ -51,14 +42,6 @@ const SignUp: React.FC = () => {
 
   const next = () => currentStep < 3 && setCurrentStep(currentStep + 1);
   const prev = () => currentStep > 1 && setCurrentStep(currentStep - 1);
-
-  if (isPageLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-brand-primary-50 flex items-center justify-center p-3">
-        <PageLoading variant="form" />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-brand-primary-50 flex items-center justify-center p-3">

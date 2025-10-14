@@ -1,18 +1,15 @@
-// BACKEND_TODO: Replace any ticket mock usage in downstream components with Supabase data.
-// Wire realtime subscriptions for ticket status/messages.
+// Admin tickets page with real-time subscriptions and consistent context pattern
 import React from 'react';
-import { TicketsDesktopCard, TicketsMobileCard } from '@components/admin';
+import { TicketsCard } from '@components/admin';
+import { TicketsProvider } from '../../hooks/admin/TicketsContext';
 
 const AdminTickets: React.FC = () => {
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-6">
-      <div className="lg:hidden mb-4">
-        <TicketsMobileCard />
+    <TicketsProvider>
+      <div className="px-4 sm:px-6 lg:px-8 py-6">
+        <TicketsCard />
       </div>
-      <div className="hidden lg:block">
-        <TicketsDesktopCard />
-      </div>
-    </div>
+    </TicketsProvider>
   );
 };
 

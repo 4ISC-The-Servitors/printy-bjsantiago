@@ -6,6 +6,7 @@ import { multipleTicketsFlow } from './flows/MultipleTickets';
 import { portfolioFlow } from './flows/Portfolio';
 import { multiplePortfolioFlow } from './flows/MultiplePortfolio';
 import { addServiceFlow } from './flows/AddService';
+import { quotesFlow } from './flows/Quotes';
 
 const introFlow: ChatFlow = {
   id: 'admin-intro',
@@ -82,6 +83,7 @@ export const adminFlows: Record<string, ChatFlow> = {
   portfolio: portfolioFlow,
   multiplePortfolio: multiplePortfolioFlow,
   addService: addServiceFlow,
+  quotes: quotesFlow,
 };
 
 export function resolveAdminFlow(topic?: string | null): ChatFlow | null {
@@ -98,6 +100,7 @@ export function resolveAdminFlow(topic?: string | null): ChatFlow | null {
     t.includes('bulk')
   )
     return multipleOrdersFlow;
+  if (t.includes('quote')) return quotesFlow;
   if (t.includes('order')) return ordersFlow;
   if (t.includes('ticket')) return ticketsFlow;
   if (t.includes('portfolio') || t.includes('service')) return portfolioFlow;
