@@ -1,88 +1,110 @@
 import React from 'react';
-import { Badge, Button, Text } from '../../shared';
-import { MessageSquare } from 'lucide-react';
-import type { ConversationData } from '../../../features/api/quoteApi';
-import { formatLongDate } from '../../../utils/shared/dateFormatter';
-import { formatQuoteStatus } from '../../../utils/shared/statusFormatter';
+import { Badge, Button } from '../../shared';
 import { getQuoteStatusBadgeVariant } from '../../../utils/admin/statusColors';
+import { formatQuoteStatus } from '../../../utils/shared/statusFormatter';
+import { 
+  formatOrderDateDesktop, 
+  formatOrderDateTablet, 
+  formatOrderDateMobile 
+} from '../../../utils/shared/dateFormatter';
+import { MessageSquare } from 'lucide-react';
+import type { AdminQuoteRow } from '../../../hooks/admin/useAdminQuotes';
+import { useResponsiveLayout } from '../../../hooks/ui';
+
+// Use AdminQuoteRow type instead of local Quote interface
+type Quote = AdminQuoteRow;
 
 interface QuoteItemProps {
-  quote: ConversationData;
-  isSelected: boolean;
-  isHovered: boolean;
-  showCheckbox: boolean;
-  onHover: (id: string | null) => void;
-  onToggleSelection: (id: string) => void;
-  onViewInChat: (id: string) => void;
+  quote: Quote;
+  onHover: (quoteId: string | null) => void;
+  onViewInChat: (quoteId: string) => void;
 }
 
-const QuoteItem: React.FC<QuoteItemProps> = ({
+export const QuoteItem: React.FC<QuoteItemProps> = ({
   quote,
-  isSelected,
-  isHovered,
-  showCheckbox,
   onHover,
-  onToggleSelection,
   onViewInChat,
 }) => {
-  // Using centralized status badge variant and formatter utilities
+  // Get responsive layout classes
+  const { getQuoteCardLayout } = useResponsiveLayout();
+  const layout = getQuoteCardLayout;
+  
+  // Get display ID with fallback to UUID
+  const displayId = quote.display_id || quote.id;
+  
+  // Format dates responsively
+  const createdDateDesktop = formatOrderDateDesktop(quote.created_at);
+  const createdDateTablet = formatOrderDateTablet(quote.created_at);
+  const createdDateMobile = formatOrderDateMobile(quote.created_at);
+  
+  // Use ended_at if status is 'ended', otherwise use updated_at
+  const isEnded = quote.status === 'ended';
+  const lastActionDate = isEnded && quote.ended_at ? quote.ended_at : quote.updated_at;
+  const lastActionLabel = isEnded ? 'Ended' : 'Updated';
+  
+  const lastActionDateDesktop = formatOrderDateDesktop(lastActionDate);
+  const lastActionDateTablet = formatOrderDateTablet(lastActionDate);
+  const lastActionDateMobile = formatOrderDateMobile(lastActionDate);
 
   return (
     <div
-      className={`p-4 border rounded-lg transition-all ${
-        isHovered ? 'border-brand-primary shadow-sm' : 'border-neutral-200'
-      } ${isSelected ? 'bg-brand-primary-50' : 'bg-white'}`}
-      onMouseEnter={() => onHover(quote.conversation_id)}
+      className={`group ${layout.container}`}
+      onMouseEnter={() => onHover(quote.id)}
       onMouseLeave={() => onHover(null)}
     >
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-2">
-            <Text variant="p" size="sm" weight="medium" className="text-neutral-600">
-              {quote.display_id || (quote.quote_id ? `Quote #${quote.quote_id.slice(0, 8)}` : `Quote #${quote.conversation_id.slice(0, 8)}`)}
-            </Text>
-            <Badge variant={getQuoteStatusBadgeVariant(quote.status)} size="md" className="text-sm font-semibold">
-              {formatQuoteStatus(quote.status)}
-            </Badge>
-          </div>
-          
-          <div className="space-y-1">
-            <Text variant="p" size="sm" className="text-neutral-500">
-              Customer: {(quote as any).customer?.first_name ? 
-                `${(quote as any).customer.first_name} ${(quote as any).customer.last_name}` : 
-                quote.customer_id}
-            </Text>
-            <Text variant="p" size="sm" className="text-neutral-500">
-              Language: {quote.language || 'Not detected'}
-            </Text>
+      {/* Row 1: Quote ID + Product Name | Status Badge */}
+      <div className={layout.structure.row1}>
+        <div className={layout.leftSection}>
+          <div className={`flex items-center ${layout.elementGap} min-w-0`}>
+            <span className={layout.orderId}>{displayId}</span>
           </div>
         </div>
-
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onViewInChat(quote.conversation_id)}
+        
+        <div className={layout.badgeContainer}>
+          <Badge
+            variant={getQuoteStatusBadgeVariant(quote.status)}
+            className={layout.statusBadge}
           >
-            <MessageSquare className="w-4 h-4" />
-          </Button>
-          
+            {formatQuoteStatus(quote.status)}
+          </Badge>
         </div>
       </div>
 
-      <div className="flex items-center justify-between">
-        <Text variant="p" size="xs" className="text-neutral-400">
-          Updated: {formatLongDate(new Date(quote.updated_at).getTime())}
-        </Text>
+      {/* Row 2: Customer Name | Quoted Amount */}
+      <div className={layout.structure.row2}>
+        <div className={layout.leftSection}>
+          <span className={layout.customerName}>{quote.customer_name}</span>
+        </div>
         
-        {showCheckbox && (
-          <input
-            type="checkbox"
-            checked={isSelected}
-            onChange={() => onToggleSelection(quote.conversation_id)}
-            className="rounded border-gray-300 text-brand-primary focus:ring-brand-primary"
-          />
-        )}
+        <div className="text-right">
+          <div className={layout.amount}>{quote.quoted_amount}</div>
+        </div>
+      </div>
+
+      {/* Row 3: Chat Button and Dates */}
+      <div className={layout.structure.row3}>
+        <div className={layout.dates}>
+          <span className="hidden lg:inline">
+            Created: {createdDateDesktop} • {lastActionLabel}: {lastActionDateDesktop}
+          </span>
+          <span className="hidden sm:inline lg:hidden">
+            Created: {createdDateTablet} • {lastActionLabel}: {lastActionDateTablet}
+          </span>
+          <span className="sm:hidden">
+            Created: {createdDateMobile} • {lastActionLabel}: {lastActionDateMobile}
+          </span>
+        </div>
+        
+        <Button
+          variant="secondary"
+          size="sm"
+          threeD
+          aria-label={`Ask about ${displayId}`}
+          onClick={() => onViewInChat(quote.id)}
+          className={layout.chatButton}
+        >
+          <MessageSquare className={layout.chatIcon} />
+        </Button>
       </div>
     </div>
   );

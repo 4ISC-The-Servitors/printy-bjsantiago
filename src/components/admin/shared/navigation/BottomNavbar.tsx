@@ -51,18 +51,19 @@ export const BottomNavbar: React.FC<BottomNavbarProps> = ({
     {
       id: 'tickets' as NavRoute,
       label: 'Tickets',
-      icon: Ticket,
-    },
-    {
-      id: 'portfolio' as NavRoute,
-      label: 'Portfolio',
-      icon: BriefcaseBusiness,
+      icon: Ticket,      
     },
     {
       id: 'quotes' as NavRoute,
       label: 'Quotes',
       icon: FileText,
     },
+    {
+      id: 'portfolio' as NavRoute,
+      label: 'Portfolio',
+      icon: BriefcaseBusiness,
+    },
+
   ];
 
   return (

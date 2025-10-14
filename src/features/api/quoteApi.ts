@@ -13,7 +13,6 @@ export interface ConversationData {
   quote_id: string;
   display_id?: string;
   status: QuoteStatus;
-  language?: 'tl' | 'en';
   created_at: string;
   updated_at: string;
   ended_at?: string;
@@ -36,7 +35,6 @@ export interface Proposal {
   spec_id: string;
   spec_final: SpecData;
   quoted_price: number;
-  currency: string;
   notes?: string;
   valid_until?: string;
   status: ProposalStatus;
@@ -104,7 +102,6 @@ export async function sendMessage(params: {
 export async function summarizeConversation(conversationId: string): Promise<{
   specId: string;
   specData: SpecData;
-  language: 'tl' | 'en';
 }> {
   // Fetch all messages from the conversation
   const messages = await fetchMessages(conversationId);
@@ -133,16 +130,9 @@ export async function summarizeConversation(conversationId: string): Promise<{
 
   if (specError) throw specError;
 
-  // Update conversation language
-  await supabase
-    .from('quote_conversations')
-    .update({ language: result.language })
-    .eq('conversation_id', conversationId);
-
   return {
     specId: specData.spec_id,
-    specData: result.spec,
-    language: result.language
+    specData: result.spec
   };
 }
 
