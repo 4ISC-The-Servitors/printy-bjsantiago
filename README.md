@@ -2,28 +2,40 @@
 
 ## 📄 Changelogs
 
-### 2025-10-13-Andeng
+### 2025-10-14-Andeng
 
-- **Payment Proof System Implementation** (still on going)
-  - Added comprehensive payment proof upload functionality for customers
-  - Created secure storage buckets for payment methods (public) and payment proofs (private)
-  - Implemented `usePaymentProofUpload` hook for handling customer payment proof uploads
-  - Added `uploadPaymentProof` utility with file validation and secure storage
+- **Cohere AI Integration**  
+  - Added Cohere AI API (requires env file updates)
+
+- **Payment Proof System Improvements**  
+  - Added comprehensive payment proof upload functionality for customers  
+  - Created new payment-proofs (authenticated) and payment-methods (public) buckets in Supabase  
+  - Implemented `usePaymentProofUpload` hook for handling customer payment proof uploads  
+  - Added `uploadPaymentProof` utility with file validation and secure storage  
   - Created admin utility `getPaymentProofUrl` for viewing customer payment proofs
-  - Updated payment flow to automatically change order status to "verifying_payment" after upload
-  - Added proper RLS policies for secure file access (customers see own files, admins see all) - LIAM YOU NEED TO DO THIS, NEED DAW SCHEMA OWNER ANG GAGAWA
+  - Updated payment flow to automatically change order status to "verifying_payment" after upload  
+  - Altered some order status changes  
+  - Added proper RLS policies for secure file access (customers see own files, admins see all)
 
-- **Database Schema Enhancements**
-  - Added payment proof fields to orders table (`payment_proof`, `payment_proof_uploaded_at`)
-  - Created display_id system for better UI identification across quotes, orders, and tickets
-  - Added API functions for inquiry management with display_id support
+- **Database Schema Enhancements**  
+  - Made new quote tables in Supabase  
+  - Added payment-proofs, and payment-methods bucket in Supabase
+  - Created display_id system for better UI identification across quotes, orders, and tickets  
+  - Added API functions for inquiry management with display_id support  
   - Updated all relevant tables and functions to support the new display_id system
 
-- **UI/UX Improvements**
-  - Removed cancel order functionality to streamline order management
-  - Enhanced status badges and formatting across customer dashboard
-  - Updated order display components to use display_id for better user experience
-  - Improved payment verification flow for admin users
+- **Quote, Payment, and Order Flow**  
+  - Customer and admin quote, payment, and order flow working (needs more UI improvements for real-time status changes)  
+
+- **UI/UX Improvements**  
+  - Removed cancel order functionality to streamline order management  
+  - Enhanced status badges and formatting across customer dashboard  
+  - Improved recent order, ticket, and quote UI for customer side (to follow for admin next)  
+  - Updated order display components to use display_id for better user experience  
+  - Improved payment verification flow for admin users  
+  - Added order, ticket, and quote history pages for customer  
+  - Removed admin quick access in sign in page  
+  - Added visual widget for Cloudflare
 
 ### 2025-10-12-Andeng
 
@@ -37,7 +49,7 @@
 
 - **Quote Management Features**
   - Customer can request quotes through chat interface
-  - Admin can create, edit, and manage quotes with AI assistance
+  - Admin can create, edit, and manage quotes with AI assistance or manually
   - Quote specification editor with dynamic form handling
   - Quote acceptance flow for customers
   - Real-time quote status tracking and updates
