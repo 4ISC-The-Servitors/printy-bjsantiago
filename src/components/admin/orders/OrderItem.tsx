@@ -35,9 +35,14 @@ export const OrderItem: React.FC<OrderItemProps> = ({
   const createdDateTablet = formatOrderDateTablet(order.created_at);
   const createdDateMobile = formatOrderDateMobile(order.created_at);
   
-  const updatedDateDesktop = formatOrderDateDesktop(order.updated_at);
-  const updatedDateTablet = formatOrderDateTablet(order.updated_at);
-  const updatedDateMobile = formatOrderDateMobile(order.updated_at);
+  // Use completed_at if status is 'completed', otherwise use updated_at
+  const isCompleted = order.status === 'completed';
+  const lastActionDate = isCompleted && order.completed_at ? order.completed_at : order.updated_at;
+  const lastActionLabel = isCompleted ? 'Completed' : 'Updated';
+  
+  const lastActionDateDesktop = formatOrderDateDesktop(lastActionDate);
+  const lastActionDateTablet = formatOrderDateTablet(lastActionDate);
+  const lastActionDateMobile = formatOrderDateMobile(lastActionDate);
 
   return (
     <div
@@ -77,7 +82,7 @@ export const OrderItem: React.FC<OrderItemProps> = ({
         </div>
       </div>
 
-      {/* Row 2: Customer Name | Amount + Chat Button */}
+      {/* Row 2: Customer Name | Amount */}
       <div className="flex items-center justify-between gap-2 sm:gap-3 md:gap-4 lg:gap-6 mb-2 sm:mb-3">
         <div className="flex-1 min-w-0">
           <span className="device-text-body font-medium text-neutral-900 truncate">
@@ -85,36 +90,37 @@ export const OrderItem: React.FC<OrderItemProps> = ({
           </span>
         </div>
         
-        <div className="flex items-center gap-2 sm:gap-3 md:gap-4 shrink-0">
-          <div className="text-right">
-            <div className="text-sm sm:text-base md:text-lg lg:text-xl font-semibold text-neutral-900">
-              {order.total_amount}
-            </div>
+        <div className="text-right">
+          <div className="text-sm sm:text-base md:text-lg lg:text-xl font-semibold text-neutral-900">
+            {order.total_amount}
           </div>
-          <Button
-            variant="secondary"
-            size="sm"
-            threeD
-            aria-label={`Ask about ${displayId}`}
-            onClick={() => onViewInChat(order.id)}
-            className="device-btn-secondary shrink-0"
-          >
-            <MessageSquare className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5" />
-          </Button>
         </div>
       </div>
 
-      {/* Row 3: Dates */}
-      <div className="device-text-caption text-neutral-500">
-        <span className="hidden lg:inline">
-          Ordered: {createdDateDesktop} • Last Updated: {updatedDateDesktop}
-        </span>
-        <span className="hidden sm:inline lg:hidden">
-          {createdDateTablet} • Updated: {updatedDateTablet}
-        </span>
-        <span className="sm:hidden">
-          {createdDateMobile} • Updated {updatedDateMobile}
-        </span>
+      {/* Row 3: Chat Button and Dates */}
+      <div className="flex items-center justify-between gap-2 sm:gap-3 md:gap-4 lg:gap-6">
+        <div className="device-text-caption text-neutral-500">
+          <span className="hidden lg:inline">
+            Ordered: {createdDateDesktop} • {lastActionLabel}: {lastActionDateDesktop}
+          </span>
+          <span className="hidden sm:inline lg:hidden">
+            {createdDateTablet} • {lastActionLabel}: {lastActionDateTablet}
+          </span>
+          <span className="sm:hidden">
+            {createdDateMobile} • {lastActionLabel} {lastActionDateMobile}
+          </span>
+        </div>
+        
+        <Button
+          variant="secondary"
+          size="sm"
+          threeD
+          aria-label={`Ask about ${displayId}`}
+          onClick={() => onViewInChat(order.id)}
+          className="device-btn-secondary shrink-0"
+        >
+          <MessageSquare className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5" />
+        </Button>
       </div>
     </div>
   );

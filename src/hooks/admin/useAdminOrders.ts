@@ -34,6 +34,7 @@ export interface AdminOrderRow {
   status: string;
   created_at: string;
   updated_at: string;
+  completed_at?: string;
   // Legacy fields for backward compatibility
   customer: string;
   total: string;
@@ -72,6 +73,7 @@ export function useAdminOrders(options: LoadOrdersOptions = {}) {
           status,
           created_at,
           updated_at,
+          completed_at,
           total_amount,
           currency,
           order_specs,
@@ -111,6 +113,7 @@ export function useAdminOrders(options: LoadOrdersOptions = {}) {
           status: order.status,
           created_at: order.created_at,
           updated_at: order.updated_at,
+          completed_at: order.completed_at,
           // Legacy fields for backward compatibility
           customer: customerName,
           total: `₱${Number(order.total_amount).toLocaleString()}`,
