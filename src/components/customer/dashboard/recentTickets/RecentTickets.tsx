@@ -62,11 +62,6 @@ const RecentTickets: React.FC<RecentTicketsProps> = ({ recentTicket }) => {
         </div>
         
         {/* Priority if available */}
-        {recentTicket.priority && (
-          <Badge variant="secondary" size="sm">
-            Priority: {recentTicket.priority}
-          </Badge>
-        )}
         
         {/* Action button */}
         <div className="pt-2">

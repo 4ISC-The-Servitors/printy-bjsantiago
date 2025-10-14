@@ -444,8 +444,7 @@ async function createOrderFromCompilation(_ctx: any): Promise<any> {
         completed_date_time: null, 
         specification: orderRecord.specification!,
         page_size: orderRecord.page_size!,
-        quantity: orderRecord.quantity!,
-        priority_level: 1, 
+        quantity: orderRecord.quantity!, 
     };
 
     const { data: order, error } = await createOrder(compiledOrder);

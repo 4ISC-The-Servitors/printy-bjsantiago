@@ -22,7 +22,6 @@ interface Ticket {
   displayId: string;
   subject?: string;
   description?: string;
-  priority?: string;
   resolvedAt?: number;
   assignedTo?: string;
 }
@@ -90,7 +89,6 @@ const TicketHistory: React.FC = () => {
           displayId: ticket.display_id || ticket.inquiry_id.substring(0, 8).toUpperCase(),
           subject: ticket.inquiry_type,
           description: undefined, // No description field available in inquiries table
-          priority: undefined, // Priority column doesn't exist in inquiries table
           resolvedAt: undefined, // Resolved_at column doesn't exist in inquiries table
           assignedTo: ticket.assigned_to,
         }));

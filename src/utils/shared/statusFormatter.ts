@@ -21,7 +21,7 @@ export function formatOrderStatus(status: string): string {
   const statusMap: Record<string, string> = {
     'awaiting_payment': 'Awaiting Payment',
     'verifying_payment': 'Verifying Payment',
-    'reupload_payment': 'Reupload Payment',
+    'reupload_payment_proof': 'Reupload Payment Proof',
     'processing': 'Processing',
     'for_delivery': 'For Delivery',
     'for_pickup': 'For Pickup',

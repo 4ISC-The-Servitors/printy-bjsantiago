@@ -180,7 +180,6 @@ export interface Conversation extends BaseEntity {
   guest_id: string | null; // For guest users
   topic: string;
   status: 'active' | 'resolved' | 'archived';
-  priority: 'low' | 'normal' | 'high' | 'urgent';
   assigned_to: string | null;
   tags: string[];
   metadata: Record<string, unknown>;

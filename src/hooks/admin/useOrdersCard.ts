@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useAdmin } from './AdminContext';
 import { useOrders } from './OrdersContext';
 import useResponsivePageSize from '../ui/useResponsivePageSize';
@@ -16,7 +16,7 @@ export const useOrdersCard = (overridePageSize?: number) => {
     useDynamicCalculation: true,
     itemHeight: 140, // Approximate height of OrderItem card
     itemSpacing: 24, // space-y-6 = 24px between items
-    headerOffset: 140, // Admin navbar + card header + padding
+    headerOffset: 200, // Admin navbar + search/filter section + card header
     footerOffset: 100, // Pagination + bottom padding
     minItems: 2,
     maxItems: 20,
@@ -34,17 +34,6 @@ export const useOrdersCard = (overridePageSize?: number) => {
     return dynamicPageSize;
   }, [dynamicPageSize, overridePageSize]);
 
-  const start = (page - 1) * pageSize;
-  const displayOrders = orders.slice(start, start + pageSize);
-
-  // Clamp page when page size changes
-  useEffect(() => {
-    const totalPages = Math.max(1, Math.ceil(orders.length / pageSize));
-    if (page > totalPages) setPage(totalPages);
-  }, [pageSize, orders.length, page]);
-
-
-
   const viewInChat = (orderId: string) => {
     addSelected({ id: orderId, label: orderId, type: 'order' });
     (openChatWithTopic as any)?.(
@@ -59,11 +48,9 @@ export const useOrdersCard = (overridePageSize?: number) => {
 
   return {
     isLoading,
-    displayOrders,
     page,
     setPage,
     pageSize,
-    totalOrders: orders.length,
     hoveredOrderId,
     setHoveredOrderId,
     viewInChat,

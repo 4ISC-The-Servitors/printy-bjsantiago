@@ -39,7 +39,6 @@ export interface AdminOrderRow {
   customer: string;
   total: string;
   date: string;
-  priority?: string;
   proofOfPaymentUrl?: string;
   proofUploadedAt?: string;
 }
