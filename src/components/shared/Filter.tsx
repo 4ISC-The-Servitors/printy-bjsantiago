@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
 import Button from './Button';
 import Input from './Input';
-import { SlidersHorizontal, Calendar, ChevronDown, X } from 'lucide-react';
+import { SlidersHorizontal, Calendar, ChevronDown, X, CheckCircle } from 'lucide-react';
 import { useResponsiveClasses, useDeviceUtils } from '../../hooks/ui/useResponsiveClasses';
 import type { FilterValue, FilterConfig } from '../../types/filters';
 
@@ -164,10 +164,9 @@ const Filter: React.FC<FilterProps> = ({
           {/* Status Filter Section */}
           {filterConfig.showStatusFilter && filterConfig.statusOptions.length > 0 && (
             <div className="space-y-2 sm:space-y-3">
-              <div className={`text-xs sm:text-sm md:text-base lg:text-lg font-medium text-neutral-700`}>
-                {filterConfig.statusOptions[0]?.value.includes('quote') ? 'Quote Status' :
-                 filterConfig.statusOptions[0]?.value.includes('ticket') ? 'Ticket Status' :
-                 'Order Status'}
+              <div className={`flex items-center gap-2 text-xs sm:text-sm md:text-base lg:text-lg font-medium text-neutral-700`}>
+                <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
+                Status
               </div>
               <div className="relative" ref={statusDropdownRef}>
                 <button

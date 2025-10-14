@@ -1,97 +1,152 @@
 import React from 'react';
-import { Badge, Button, Checkbox } from '../../shared';
+import { Badge, Button } from '../../shared';
 import { getTicketStatusBadgeVariant } from '../../../utils/admin/statusColors';
 import { formatTicketStatus } from '../../../utils/shared/statusFormatter';
+import { 
+  formatOrderDateDesktop, 
+  formatOrderDateTablet, 
+  formatOrderDateMobile 
+} from '../../../utils/shared/dateFormatter';
 import { MessageSquare } from 'lucide-react';
-import { cn } from '../../../lib/utils';
+import { useResponsiveLayout } from '../../../hooks/ui';
 
 interface Ticket {
   inquiry_id: string;
+  display_id?: string | null;
   inquiry_type: string | null;
   inquiry_status: string | null;
   customer_full_name?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+  email_address?: string | null;
+  customer_type?: string | null;
+  received_at?: string | null;
+  updated_at?: string | null;
+  resolution_comments?: string | null;
+  customer?: {
+    first_name?: string | null;
+    last_name?: string | null;
+    customer_type?: string | null;
+  } | null;
 }
 
 interface TicketItemProps {
   ticket: Ticket;
-  isSelected: boolean;
-  isHovered: boolean;
-  showCheckbox: boolean;
-  onHover: (ticketId: string | null) => void;
-  onToggleSelection: (ticketId: string) => void;
   onViewInChat: (ticketId: string) => void;
 }
 
 export const TicketItem: React.FC<TicketItemProps> = ({
   ticket,
-  isSelected,
-  isHovered,
-  showCheckbox,
-  onHover,
-  onToggleSelection,
   onViewInChat,
 }) => {
+  // Debug logging
+  console.log('TicketItem received ticket:', {
+    inquiry_id: ticket.inquiry_id,
+    display_id: ticket.display_id,
+    received_at: ticket.received_at,
+    updated_at: ticket.updated_at,
+    inquiry_status: ticket.inquiry_status
+  });
+
+  // Get responsive layout classes
+  const { getTicketCardLayout } = useResponsiveLayout();
+  const layout = getTicketCardLayout;
+  
+  // Show Urgent badge for valued customers
+  const showUrgentBadge = ticket.customer_type === 'valued' || ticket.customer?.customer_type === 'valued';
+  
+  // Get display ID with fallback to UUID
+  const displayId = ticket.display_id || ticket.inquiry_id;
+  
+  // Format customer name - check multiple possible data structures
+  const customerName = ticket.customer_full_name || 
+    (ticket.first_name && ticket.last_name ? `${ticket.first_name} ${ticket.last_name}` : 
+    (ticket.customer?.first_name && ticket.customer?.last_name ? `${ticket.customer.first_name} ${ticket.customer.last_name}` : 'Customer'));
+  
+  // Format inquiry type for display
+  const inquiryType = ticket.inquiry_type || 'General Inquiry';
+  
+  // Format both received and updated dates responsively
+  const receivedDateDesktop = ticket.received_at ? formatOrderDateDesktop(ticket.received_at) : '—';
+  const receivedDateTablet = ticket.received_at ? formatOrderDateTablet(ticket.received_at) : '—';
+  const receivedDateMobile = ticket.received_at ? formatOrderDateMobile(ticket.received_at) : '—';
+  
+  const updatedDateDesktop = ticket.updated_at ? formatOrderDateDesktop(ticket.updated_at) : '—';
+  const updatedDateTablet = ticket.updated_at ? formatOrderDateTablet(ticket.updated_at) : '—';
+  const updatedDateMobile = ticket.updated_at ? formatOrderDateMobile(ticket.updated_at) : '—';
 
   return (
-    <div
-      className="group p-3 sm:p-4 lg:p-5 rounded-lg border bg-white/60 hover:bg-white transition-colors relative"
-      onMouseEnter={() => onHover(ticket.inquiry_id)}
-      onMouseLeave={() => onHover(null)}
-    >
-      {/* Hover checkbox on left */}
-      <div className="absolute -left-3 top-1/2 -translate-y-1/2 z-10">
-        <Checkbox
-          checked={isSelected}
-          onCheckedChange={() => onToggleSelection(ticket.inquiry_id)}
-          className={cn(
-            'transition-opacity bg-white border-2 border-gray-300 w-5 h-5 rounded data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500',
-            isHovered || showCheckbox ? 'opacity-100' : 'opacity-0'
-          )}
-        />
-      </div>
+    <div className={`group ${layout.container}`}>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center pl-6">
-        {/* Left grid: Ticket ID, Subject, then Status below subject */}
-        <div className="min-w-0">
-          <div className="text-xs sm:text-sm lg:text-base font-medium text-neutral-500 truncate">
-            {ticket.inquiry_id}
-          </div>
-          <div className="mt-1 text-sm sm:text-base lg:text-lg font-medium text-neutral-900 truncate">
-            {ticket.inquiry_type || '—'}
-          </div>
-          <div className="mt-2">
-            <Badge
-              size="sm"
-              variant={getTicketStatusBadgeVariant(ticket.inquiry_status || '')}
-              className="text-xs sm:text-sm"
-            >
-              {formatTicketStatus(ticket.inquiry_status || '')}
-            </Badge>
+      {/* Row 1: Ticket ID + Type | Status Badges */}
+      <div className={layout.structure.row1}>
+        <div className={layout.leftSection}>
+          <div className={`flex items-center ${layout.elementGap} min-w-0`}>
+            <span className={layout.orderId}>{displayId}</span>
+            <span className="text-neutral-400">•</span>
+            <span className={layout.productName}>{inquiryType}</span>
           </div>
         </div>
+        
+        <div className={layout.badgeContainer}>
+          {showUrgentBadge && (
+            <Badge 
+              variant="error" 
+              className={layout.urgentBadge}
+            >
+              Urgent
+            </Badge>
+          )}
+          <Badge
+            variant={getTicketStatusBadgeVariant(ticket.inquiry_status || '')}
+            className={layout.statusBadge}
+          >
+            {formatTicketStatus(ticket.inquiry_status || '')}
+          </Badge>
+        </div>
+      </div>
 
-        {/* Middle grid spacer on md+ */}
-        <div className="hidden md:block" />
-
-        {/* Right grid: Requester and action */}
-        <div className="flex items-center justify-between md:justify-end gap-4">
-          <div className="min-w-0 text-right">
-            <div className="text-sm sm:text-base font-medium text-neutral-900 truncate">
-              {ticket.customer_full_name ?? '—'}
-            </div>
-          </div>
-
-          {/* Action Button */}
+      {/* Row 2: Customer Name | Chat Button */}
+      <div className={layout.structure.row2}>
+        <div className={layout.leftSection}>
+          <span className={layout.customerName}>{customerName}</span>
+        </div>
+        
+        <div className="flex items-center gap-2 sm:gap-3 md:gap-4 shrink-0">
           <Button
             variant="secondary"
             size="sm"
             threeD
-            aria-label={`Ask about ${ticket.inquiry_id}`}
+            aria-label={`Ask about ${displayId}`}
             onClick={() => onViewInChat(ticket.inquiry_id)}
-            className="shrink-0 min-h-[40px] min-w-[40px]"
+            className={layout.chatButton}
           >
-            <MessageSquare className="w-4 h-4" />
+            <MessageSquare className={layout.chatIcon} />
           </Button>
+        </div>
+      </div>
+
+      {/* Row 3: Dates */}
+      <div className={layout.structure.row3}>
+        <div className={layout.dates}>
+          <span className="hidden lg:inline">
+            Received: {receivedDateDesktop}
+            {ticket.updated_at && ticket.updated_at !== ticket.received_at && (
+              <span className="ml-2">• Updated: {updatedDateDesktop}</span>
+            )}
+          </span>
+          <span className="hidden sm:inline lg:hidden">
+            Received: {receivedDateTablet}
+            {ticket.updated_at && ticket.updated_at !== ticket.received_at && (
+              <span className="ml-2">• Updated: {updatedDateTablet}</span>
+            )}
+          </span>
+          <span className="sm:hidden">
+            Received: {receivedDateMobile}
+            {ticket.updated_at && ticket.updated_at !== ticket.received_at && (
+              <span className="ml-1 text-xs">• Updated:  {updatedDateMobile}</span>
+            )}
+          </span>
         </div>
       </div>
     </div>

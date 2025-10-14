@@ -1,24 +1,37 @@
 import React from 'react';
-import { Card, Badge, Button } from '../../shared';
+import { Card, Pagination } from '../../shared';
 import { useTicketsCard } from '../../../hooks/admin/useTicketsCard';
 import { TicketItem } from './TicketItem';
 import { TicketsSkeleton } from './TicketsSkeleton';
+import { useResponsiveLayout } from '../../../hooks/ui';
 
-const TicketsCard: React.FC = () => {
+interface TicketsCardProps {
+  filteredTickets?: any[];
+}
+
+const TicketsCard: React.FC<TicketsCardProps> = ({ filteredTickets }) => {
+  // All hooks must be called unconditionally before any early returns
+  useResponsiveLayout();
   const {
     isLoading,
     error,
-    displayInquiries,
     page,
     setPage,
-    hasMore,
-    hoveredTicketId,
-    setHoveredTicketId,
-    isSelected,
-    selectionCount,
-    toggleTicketSelection,
+    pageSize,
     viewInChat,
   } = useTicketsCard();
+
+  // Calculate paginated display tickets from filtered tickets
+  const start = (page - 1) * pageSize;
+  const displayInquiries = filteredTickets?.slice(start, start + pageSize) || [];
+
+  // Reset to page 1 if current page exceeds available pages
+  React.useEffect(() => {
+    const maxPage = Math.max(1, Math.ceil((filteredTickets?.length || 0) / pageSize));
+    if (page > maxPage) {
+      setPage(maxPage);
+    }
+  }, [filteredTickets?.length, pageSize, page, setPage]);
 
   if (isLoading) {
     return <TicketsSkeleton />;
@@ -27,58 +40,35 @@ const TicketsCard: React.FC = () => {
   return (
     <div className="relative">
       <Card className="p-0">
-        <div className="flex items-center justify-between px-3 py-2 sm:px-4">
-          <div className="text-xs text-neutral-500">Page {page}</div>
-          <div className="flex items-center gap-2 text-neutral-500 text-xs">
-            <Badge size="sm" variant="secondary">
-              {displayInquiries.length}
-            </Badge>
-          </div>
+        {/* Pagination Header */}
+        <div className="flex items-center justify-center px-1 py-1 sm:px-1 sm:py-1">
+          <Pagination
+            page={page}
+            pageSize={pageSize}
+            total={filteredTickets?.length || 0}
+            onPageChange={setPage}
+          />
         </div>
 
-        <div className="space-y-4 sm:space-y-6 px-3 sm:px-4 pb-3">
+        {/* Tickets List */}
+        <div className="space-y-4 sm:space-y-6 px-3 sm:px-4 py-4">
           {error && <div className="p-4 text-sm text-error-600">{error}</div>}
-          {!error && displayInquiries.length === 0 && (
-            <div className="p-4 text-sm text-neutral-500">
-              No inquiries found.
-            </div>
-          )}
-          {!error &&
+          {!error && displayInquiries.length > 0 ? (
             displayInquiries.map(ticket => (
               <TicketItem
                 key={ticket.inquiry_id}
                 ticket={ticket}
-                isSelected={isSelected(ticket.inquiry_id)}
-                isHovered={hoveredTicketId === ticket.inquiry_id}
-                showCheckbox={selectionCount > 0}
-                onHover={setHoveredTicketId}
-                onToggleSelection={toggleTicketSelection}
-                onViewInChat={viewInChat}
+                onViewInChat={(ticketId) => viewInChat(ticketId, filteredTickets)}
               />
-            ))}
+            ))
+          ) : !error ? (
+            <div className="text-center py-12 text-neutral-500">
+              <p className="text-lg font-medium">No tickets found</p>
+              <p className="text-sm mt-1">Try adjusting your search or filters</p>
+            </div>
+          ) : null}
         </div>
       </Card>
-
-
-      {/* Pagination controls */}
-      <div className="mt-3 flex items-center justify-center gap-3">
-        <Button
-          variant="secondary"
-          size="sm"
-          disabled={page === 1 || isLoading}
-          onClick={() => setPage(p => Math.max(1, p - 1))}
-        >
-          Previous
-        </Button>
-        <Button
-          variant="secondary"
-          size="sm"
-          disabled={!hasMore || isLoading}
-          onClick={() => setPage(p => p + 1)}
-        >
-          Next
-        </Button>
-      </div>
     </div>
   );
 };

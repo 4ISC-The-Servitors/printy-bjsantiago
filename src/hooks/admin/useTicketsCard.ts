@@ -1,74 +1,63 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useAdmin } from './AdminContext';
 import { useAdminTickets } from '../../features/chat/admin/hooks/useAdminTickets';
+import useResponsivePageSize from '../ui/useResponsivePageSize';
 
-type InquiryRecord = {
-  inquiry_id: string;
-  inquiry_type: string | null;
-  inquiry_status: string | null;
-  inquiry_message?: string | null;
-  customer_id?: string | null;
-  customer_full_name?: string | null;
-  customer_first_name?: string | null;
-  customer_last_name?: string | null;
-};
-
-export const useTicketsCard = () => {
+export const useTicketsCard = (overridePageSize?: number) => {
   const { openChat, openChatWithTopic } = useAdmin();
   const [hoveredTicketId, setHoveredTicketId] = useState<string | null>(null);
-  const [selectedTickets, setSelectedTickets] = useState<Set<string>>(
-    new Set()
-  );
-  const [page, setPage] = useState<number>(1);
-  const pageSize = 10;
 
-  // Use the enhanced useAdminTickets with advanced fallbacks and server-side pagination
+  // Use the enhanced useAdminTickets for loading state only
+  // Data will be passed as props from the parent component
   const { 
-    tickets, 
     loading: isLoading, 
-    error, 
-    hasMore 
+    error 
   } = useAdminTickets({ 
-    page, 
-    pageSize, 
+    page: 1, 
+    pageSize: 1, // Minimal data since we're not using it for display
     useAdvancedFallbacks: true 
   });
 
-  const displayInquiries = tickets as unknown as InquiryRecord[];
+  // Pagination with dynamic viewport-based calculation
+  const dynamicPageSize = useResponsivePageSize({
+    useDynamicCalculation: true,
+    itemHeight: 140, // Approximate height of TicketItem card
+    itemSpacing: 24, // space-y-6 = 24px between items
+    headerOffset: 200, // Admin navbar + search/filter section + card header
+    footerOffset: 100, // Pagination + bottom padding
+    minItems: 2,
+    maxItems: 20,
+    breakpoints: {
+      phone: 2,
+      tablet: 3,
+      desktop: 4,
+    },
+  });
 
+  const [page, setPage] = useState(1);
 
-  const toggleTicketSelection = (ticketId: string) => {
-    setSelectedTickets(prev => {
-      const next = new Set(prev);
-      if (next.has(ticketId)) next.delete(ticketId);
-      else next.add(ticketId);
-      return next;
-    });
-  };
+  const pageSize = useMemo(() => {
+    if (overridePageSize && overridePageSize > 0) return overridePageSize;
+    return dynamicPageSize;
+  }, [dynamicPageSize, overridePageSize]);
 
-  const viewInChat = (ticketId: string) => {
+  const viewInChat = (ticketId: string, allTickets?: any[]) => {
     if (openChatWithTopic) {
-      // Pass the actual inquiry records (displayInquiries) instead of mappedTickets
-      // This ensures the chat flow has access to the full inquiry data from the database
-      openChatWithTopic('tickets', ticketId, undefined, displayInquiries);
+      // Pass the actual inquiry records to ensure the chat flow has access to the full inquiry data
+      openChatWithTopic('tickets', ticketId, undefined, allTickets);
     } else {
       openChat();
     }
   };
 
-
   return {
     isLoading,
     error,
-    displayInquiries,
     page,
     setPage,
-    hasMore,
+    pageSize,
     hoveredTicketId,
     setHoveredTicketId,
-    isSelected: (id: string) => selectedTickets.has(id),
-    selectionCount: selectedTickets.size,
-    toggleTicketSelection,
     viewInChat,
   };
 };

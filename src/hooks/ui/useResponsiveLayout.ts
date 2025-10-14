@@ -89,6 +89,7 @@ export function useResponsiveLayout() {
       
       // Ticket-specific elements
       statusBadge: getStatusBadgeClasses('standard'),
+      urgentBadge: getPriorityBadgeClasses('standard'),
       chatButton: getChatButtonClasses('sm'),
       chatIcon: getButtonIconClasses('sm'),
       
