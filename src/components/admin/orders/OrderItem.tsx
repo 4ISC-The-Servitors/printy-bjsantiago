@@ -1,5 +1,5 @@
 import React from 'react';
-import { Badge, Button } from '../../shared';
+import { Badge } from '../../shared';
 import { getOrderStatusBadgeVariant } from '../../../utils/admin/statusColors';
 import { formatOrderStatus } from '../../../utils/shared/statusFormatter';
 import { 
@@ -7,7 +7,7 @@ import {
   formatOrderDateTablet, 
   formatOrderDateMobile 
 } from '../../../utils/shared/dateFormatter';
-import { MessageSquare } from 'lucide-react';
+import { formatRelativeTimeLabel } from '../../../utils/shared/timeFormatter';
 import type { AdminOrderRow } from '../../../hooks/admin/useAdminOrders';
 import { useResponsiveLayout } from '../../../hooks/ui';
 
@@ -17,13 +17,11 @@ type Order = AdminOrderRow;
 interface OrderItemProps {
   order: Order;
   onHover: (orderId: string | null) => void;
-  onViewInChat: (orderId: string) => void;
 }
 
 export const OrderItem: React.FC<OrderItemProps> = ({
   order,
   onHover,
-  onViewInChat,
 }) => {
   // Get responsive layout classes
   const { getOrderCardLayout } = useResponsiveLayout();
@@ -45,9 +43,18 @@ export const OrderItem: React.FC<OrderItemProps> = ({
   const lastActionDate = isCompleted && order.completed_at ? order.completed_at : order.updated_at;
   const lastActionLabel = isCompleted ? 'Completed' : 'Updated';
   
-  const lastActionDateDesktop = formatOrderDateDesktop(lastActionDate);
-  const lastActionDateTablet = formatOrderDateTablet(lastActionDate);
-  const lastActionDateMobile = formatOrderDateMobile(lastActionDate);
+  // For "Updated" dates, use relative time format; for "Completed" dates, use regular date format
+  const useRelativeTime = !isCompleted && lastActionDate;
+  
+  const lastActionDateDesktop = useRelativeTime 
+    ? formatRelativeTimeLabel(lastActionDate)
+    : formatOrderDateDesktop(lastActionDate);
+  const lastActionDateTablet = useRelativeTime 
+    ? formatRelativeTimeLabel(lastActionDate)
+    : formatOrderDateTablet(lastActionDate);
+  const lastActionDateMobile = useRelativeTime 
+    ? formatRelativeTimeLabel(lastActionDate)
+    : formatOrderDateMobile(lastActionDate);
 
   return (
     <div
@@ -94,7 +101,7 @@ export const OrderItem: React.FC<OrderItemProps> = ({
         </div>
       </div>
 
-      {/* Row 3: Chat Button and Dates */}
+      {/* Row 3: Dates */}
       <div className={layout.structure.row3}>
         <div className={layout.dates}>
           <span className="hidden lg:inline">
@@ -107,17 +114,6 @@ export const OrderItem: React.FC<OrderItemProps> = ({
             Ordered: {createdDateMobile} • {lastActionLabel}: {lastActionDateMobile}
           </span>
         </div>
-        
-        <Button
-          variant="secondary"
-          size="sm"
-          threeD
-          aria-label={`Ask about ${displayId}`}
-          onClick={() => onViewInChat(order.id)}
-          className={layout.chatButton}
-        >
-          <MessageSquare className={layout.chatIcon} />
-        </Button>
       </div>
     </div>
   );

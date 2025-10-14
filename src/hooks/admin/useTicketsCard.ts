@@ -1,10 +1,8 @@
 import { useState, useMemo } from 'react';
-import { useAdmin } from './AdminContext';
 import { useAdminTickets } from '../../features/chat/admin/hooks/useAdminTickets';
 import useResponsivePageSize from '../ui/useResponsivePageSize';
 
 export const useTicketsCard = (overridePageSize?: number) => {
-  const { openChat, openChatWithTopic } = useAdmin();
   const [hoveredTicketId, setHoveredTicketId] = useState<string | null>(null);
 
   // Use the enhanced useAdminTickets for loading state only
@@ -41,15 +39,6 @@ export const useTicketsCard = (overridePageSize?: number) => {
     return dynamicPageSize;
   }, [dynamicPageSize, overridePageSize]);
 
-  const viewInChat = (ticketId: string, allTickets?: any[]) => {
-    if (openChatWithTopic) {
-      // Pass the actual inquiry records to ensure the chat flow has access to the full inquiry data
-      openChatWithTopic('tickets', ticketId, undefined, allTickets);
-    } else {
-      openChat();
-    }
-  };
-
   return {
     isLoading,
     error,
@@ -58,6 +47,5 @@ export const useTicketsCard = (overridePageSize?: number) => {
     pageSize,
     hoveredTicketId,
     setHoveredTicketId,
-    viewInChat,
   };
 };

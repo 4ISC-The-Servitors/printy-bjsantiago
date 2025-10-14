@@ -1,11 +1,9 @@
 import { useState, useMemo } from 'react';
-import { useAdmin } from './AdminContext';
 import { useAdminQuotes } from './useAdminQuotes';
 import useResponsivePageSize from '../ui/useResponsivePageSize';
 
 export const useQuotesCard = (overridePageSize?: number) => {
-  const { openChatWithTopic, openChat, addSelected } = useAdmin();
-  const { quotes, loading: quotesLoading, refresh: refreshQuotes } = useAdminQuotes();
+  const { loading: quotesLoading } = useAdminQuotes();
   const [hoveredQuoteId, setHoveredQuoteId] = useState<string | null>(null);
 
   // Use the loading state from the admin quotes hook
@@ -34,22 +32,6 @@ export const useQuotesCard = (overridePageSize?: number) => {
     return dynamicPageSize;
   }, [dynamicPageSize, overridePageSize]);
 
-  const viewInChat = (quoteId: string) => {
-    // Find the quote to get the conversation_id
-    const quote = quotes.find(q => q.id === quoteId);
-    const conversationId = quote?.conversation_id || quoteId;
-    
-    addSelected({ id: conversationId, label: quoteId, type: 'order' }); // Use 'order' type for compatibility
-    (openChatWithTopic as any)?.(
-      'quotes',
-      conversationId, // Pass conversation_id to chat flow
-      undefined, // updateQuote function not needed for chat
-      quotes,
-      refreshQuotes
-    );
-    if (!openChatWithTopic) openChat();
-  };
-
   return {
     isLoading,
     page,
@@ -57,6 +39,5 @@ export const useQuotesCard = (overridePageSize?: number) => {
     pageSize,
     hoveredQuoteId,
     setHoveredQuoteId,
-    viewInChat,
   };
 };

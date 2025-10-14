@@ -1,5 +1,5 @@
 import React from 'react';
-import { Badge, Button } from '../../shared';
+import { Badge } from '../../shared';
 import { getTicketStatusBadgeVariant } from '../../../utils/admin/statusColors';
 import { formatTicketStatus } from '../../../utils/shared/statusFormatter';
 import { 
@@ -7,7 +7,7 @@ import {
   formatOrderDateTablet, 
   formatOrderDateMobile 
 } from '../../../utils/shared/dateFormatter';
-import { MessageSquare } from 'lucide-react';
+import { formatRelativeTimeLabel } from '../../../utils/shared/timeFormatter';
 import { useResponsiveLayout } from '../../../hooks/ui';
 
 interface Ticket {
@@ -32,12 +32,10 @@ interface Ticket {
 
 interface TicketItemProps {
   ticket: Ticket;
-  onViewInChat: (ticketId: string) => void;
 }
 
 export const TicketItem: React.FC<TicketItemProps> = ({
   ticket,
-  onViewInChat,
 }) => {
   // Debug logging
   console.log('TicketItem received ticket:', {
@@ -71,9 +69,10 @@ export const TicketItem: React.FC<TicketItemProps> = ({
   const receivedDateTablet = ticket.received_at ? formatOrderDateTablet(ticket.received_at) : '—';
   const receivedDateMobile = ticket.received_at ? formatOrderDateMobile(ticket.received_at) : '—';
   
-  const updatedDateDesktop = ticket.updated_at ? formatOrderDateDesktop(ticket.updated_at) : '—';
-  const updatedDateTablet = ticket.updated_at ? formatOrderDateTablet(ticket.updated_at) : '—';
-  const updatedDateMobile = ticket.updated_at ? formatOrderDateMobile(ticket.updated_at) : '—';
+  // Use relative time format for updated dates
+  const updatedDateDesktop = ticket.updated_at ? formatRelativeTimeLabel(ticket.updated_at) : '—';
+  const updatedDateTablet = ticket.updated_at ? formatRelativeTimeLabel(ticket.updated_at) : '—';
+  const updatedDateMobile = ticket.updated_at ? formatRelativeTimeLabel(ticket.updated_at) : '—';
 
   return (
     <div className={`group ${layout.container}`}>
@@ -106,23 +105,10 @@ export const TicketItem: React.FC<TicketItemProps> = ({
         </div>
       </div>
 
-      {/* Row 2: Customer Name | Chat Button */}
+      {/* Row 2: Customer Name */}
       <div className={layout.structure.row2}>
         <div className={layout.leftSection}>
           <span className={layout.customerName}>{customerName}</span>
-        </div>
-        
-        <div className="flex items-center gap-2 sm:gap-3 md:gap-4 shrink-0">
-          <Button
-            variant="secondary"
-            size="sm"
-            threeD
-            aria-label={`Ask about ${displayId}`}
-            onClick={() => onViewInChat(ticket.inquiry_id)}
-            className={layout.chatButton}
-          >
-            <MessageSquare className={layout.chatIcon} />
-          </Button>
         </div>
       </div>
 
