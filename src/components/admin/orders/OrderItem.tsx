@@ -4,8 +4,6 @@ import { getOrderStatusBadgeVariant } from '../../../utils/admin/statusColors';
 import { formatOrderStatus } from '../../../utils/shared/statusFormatter';
 import { MessageSquare } from 'lucide-react';
 import { cn } from '../../../lib/utils';
-import { useIsMobile } from '../../../hooks/ui/useIsMobile';
-import { MobileCardMenu } from '../mobile';
 import type { AdminOrderRow } from '../../../hooks/admin/useAdminOrders';
 
 // Use AdminOrderRow type instead of local Order interface
@@ -16,11 +14,9 @@ interface OrderItemProps {
   isSelected: boolean;
   isHovered: boolean;
   showCheckbox: boolean;
-  openMenuId: string | null;
   onHover: (orderId: string | null) => void;
   onToggleSelection: (orderId: string) => void;
   onViewInChat: (orderId: string) => void;
-  onToggleMenu: (orderId: string | null) => void;
 }
 
 export const OrderItem: React.FC<OrderItemProps> = ({
@@ -28,13 +24,10 @@ export const OrderItem: React.FC<OrderItemProps> = ({
   isSelected,
   isHovered,
   showCheckbox,
-  openMenuId,
   onHover,
   onToggleSelection,
   onViewInChat,
-  onToggleMenu,
 }) => {
-  const isMobile = useIsMobile();
 
   return (
     <div
@@ -119,36 +112,17 @@ export const OrderItem: React.FC<OrderItemProps> = ({
             </div>
           </div>
 
-          {/* Desktop: Button, Mobile: Menu */}
-          {isMobile ? (
-            <MobileCardMenu
-              isOpen={openMenuId === order.id}
-              onToggle={() =>
-                onToggleMenu(openMenuId === order.id ? null : order.id)
-              }
-              actions={[
-                {
-                  label: 'View in Chat',
-                  onClick: () => onViewInChat(order.id),
-                },
-                {
-                  label: isSelected ? 'Unselect' : 'Select',
-                  onClick: () => onToggleSelection(order.id),
-                },
-              ]}
-            />
-          ) : (
-            <Button
-              variant="secondary"
-              size="sm"
-              threeD
-              aria-label={`Ask about ${order.id}`}
-              onClick={() => onViewInChat(order.id)}
-              className="shrink-0"
-            >
-              <MessageSquare className="w-4 h-4" />
-            </Button>
-          )}
+          {/* Action Button */}
+          <Button
+            variant="secondary"
+            size="sm"
+            threeD
+            aria-label={`Ask about ${order.id}`}
+            onClick={() => onViewInChat(order.id)}
+            className="shrink-0"
+          >
+            <MessageSquare className="w-4 h-4" />
+          </Button>
         </div>
       </div>
     </div>

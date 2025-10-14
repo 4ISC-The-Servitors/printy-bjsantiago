@@ -1,9 +1,8 @@
 import React from 'react';
-import { Card, Badge, Button, Text } from '../../shared';
+import { Card, Badge, Button } from '../../shared';
 import { useTicketsCard } from '../../../hooks/admin/useTicketsCard';
 import { TicketItem } from './TicketItem';
 import { TicketsSkeleton } from './TicketsSkeleton';
-import { AddToChatButton } from '../orders/AddToChatButton';
 
 const TicketsCard: React.FC = () => {
   const {
@@ -15,12 +14,9 @@ const TicketsCard: React.FC = () => {
     hasMore,
     hoveredTicketId,
     setHoveredTicketId,
-    openMenuId,
-    setOpenMenuId,
     isSelected,
     selectionCount,
     toggleTicketSelection,
-    addSelectedToChat,
     viewInChat,
   } = useTicketsCard();
 
@@ -55,18 +51,14 @@ const TicketsCard: React.FC = () => {
                 isSelected={isSelected(ticket.inquiry_id)}
                 isHovered={hoveredTicketId === ticket.inquiry_id}
                 showCheckbox={selectionCount > 0}
-                openMenuId={openMenuId}
                 onHover={setHoveredTicketId}
                 onToggleSelection={toggleTicketSelection}
                 onViewInChat={viewInChat}
-                onToggleMenu={setOpenMenuId}
               />
             ))}
         </div>
       </Card>
 
-      {/* Floating Add to Chat button */}
-      <AddToChatButton count={selectionCount} onClick={addSelectedToChat} />
 
       {/* Pagination controls */}
       <div className="mt-3 flex items-center justify-center gap-3">

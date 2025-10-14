@@ -1,6 +1,6 @@
 import React from 'react';
 import { Badge, Button, Text } from '../../shared';
-import { MoreVertical, MessageSquare } from 'lucide-react';
+import { MessageSquare } from 'lucide-react';
 import type { ConversationData } from '../../../features/api/quoteApi';
 import { formatLongDate } from '../../../utils/shared/dateFormatter';
 import { formatQuoteStatus } from '../../../utils/shared/statusFormatter';
@@ -11,11 +11,9 @@ interface QuoteItemProps {
   isSelected: boolean;
   isHovered: boolean;
   showCheckbox: boolean;
-  openMenuId: string | null;
   onHover: (id: string | null) => void;
   onToggleSelection: (id: string) => void;
   onViewInChat: (id: string) => void;
-  onToggleMenu: (id: string | null) => void;
 }
 
 const QuoteItem: React.FC<QuoteItemProps> = ({
@@ -23,11 +21,9 @@ const QuoteItem: React.FC<QuoteItemProps> = ({
   isSelected,
   isHovered,
   showCheckbox,
-  openMenuId,
   onHover,
   onToggleSelection,
   onViewInChat,
-  onToggleMenu,
 }) => {
   // Using centralized status badge variant and formatter utilities
 
@@ -71,15 +67,6 @@ const QuoteItem: React.FC<QuoteItemProps> = ({
             <MessageSquare className="w-4 h-4" />
           </Button>
           
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onToggleMenu(
-              openMenuId === quote.conversation_id ? null : quote.conversation_id
-            )}
-          >
-            <MoreVertical className="w-4 h-4" />
-          </Button>
         </div>
       </div>
 

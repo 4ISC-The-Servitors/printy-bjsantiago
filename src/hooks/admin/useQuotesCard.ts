@@ -15,7 +15,6 @@ export function useQuotesCard() {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [hoveredQuoteId, setHoveredQuoteId] = useState<string | null>(null);
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [selectedQuotes, setSelectedQuotes] = useState<Set<string>>(new Set());
 
   // Load quotes
@@ -106,8 +105,6 @@ export function useQuotesCard() {
     hasMore,
     hoveredQuoteId,
     setHoveredQuoteId,
-    openMenuId,
-    setOpenMenuId,
     isSelected,
     selectionCount: selectedQuotes.size,
     toggleQuoteSelection,

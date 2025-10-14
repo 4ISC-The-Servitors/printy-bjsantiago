@@ -4,8 +4,6 @@ import { getTicketStatusBadgeVariant } from '../../../utils/admin/statusColors';
 import { formatTicketStatus } from '../../../utils/shared/statusFormatter';
 import { MessageSquare } from 'lucide-react';
 import { cn } from '../../../lib/utils';
-import { useIsMobile } from '../../../hooks/ui/useIsMobile';
-import { MobileCardMenu } from '../mobile';
 
 interface Ticket {
   inquiry_id: string;
@@ -19,11 +17,9 @@ interface TicketItemProps {
   isSelected: boolean;
   isHovered: boolean;
   showCheckbox: boolean;
-  openMenuId: string | null;
   onHover: (ticketId: string | null) => void;
   onToggleSelection: (ticketId: string) => void;
   onViewInChat: (ticketId: string) => void;
-  onToggleMenu: (ticketId: string | null) => void;
 }
 
 export const TicketItem: React.FC<TicketItemProps> = ({
@@ -31,13 +27,10 @@ export const TicketItem: React.FC<TicketItemProps> = ({
   isSelected,
   isHovered,
   showCheckbox,
-  openMenuId,
   onHover,
   onToggleSelection,
   onViewInChat,
-  onToggleMenu,
 }) => {
-  const isMobile = useIsMobile();
 
   return (
     <div
@@ -88,38 +81,17 @@ export const TicketItem: React.FC<TicketItemProps> = ({
             </div>
           </div>
 
-          {/* Desktop: Button, Mobile: Menu */}
-          {isMobile ? (
-            <MobileCardMenu
-              isOpen={openMenuId === ticket.inquiry_id}
-              onToggle={() =>
-                onToggleMenu(
-                  openMenuId === ticket.inquiry_id ? null : ticket.inquiry_id
-                )
-              }
-              actions={[
-                {
-                  label: 'View in Chat',
-                  onClick: () => onViewInChat(ticket.inquiry_id),
-                },
-                {
-                  label: isSelected ? 'Unselect' : 'Select',
-                  onClick: () => onToggleSelection(ticket.inquiry_id),
-                },
-              ]}
-            />
-          ) : (
-            <Button
-              variant="secondary"
-              size="sm"
-              threeD
-              aria-label={`Ask about ${ticket.inquiry_id}`}
-              onClick={() => onViewInChat(ticket.inquiry_id)}
-              className="shrink-0 min-h-[40px] min-w-[40px]"
-            >
-              <MessageSquare className="w-4 h-4" />
-            </Button>
-          )}
+          {/* Action Button */}
+          <Button
+            variant="secondary"
+            size="sm"
+            threeD
+            aria-label={`Ask about ${ticket.inquiry_id}`}
+            onClick={() => onViewInChat(ticket.inquiry_id)}
+            className="shrink-0 min-h-[40px] min-w-[40px]"
+          >
+            <MessageSquare className="w-4 h-4" />
+          </Button>
         </div>
       </div>
     </div>

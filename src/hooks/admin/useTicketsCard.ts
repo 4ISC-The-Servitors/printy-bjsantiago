@@ -19,7 +19,6 @@ export const useTicketsCard = () => {
   const [selectedTickets, setSelectedTickets] = useState<Set<string>>(
     new Set()
   );
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [page, setPage] = useState<number>(1);
   const pageSize = 10;
 
@@ -37,14 +36,6 @@ export const useTicketsCard = () => {
 
   const displayInquiries = tickets as unknown as InquiryRecord[];
 
-  const mappedTickets = displayInquiries.map(i => ({
-    id: i.inquiry_id,
-    subject: i.inquiry_type || '—',
-    status: i.inquiry_status || 'open',
-    description: i.inquiry_message || '',
-    requester: i.customer_full_name || 'Customer',
-    lastMessage: i.inquiry_message || '',
-  }));
 
   const toggleTicketSelection = (ticketId: string) => {
     setSelectedTickets(prev => {
@@ -65,22 +56,6 @@ export const useTicketsCard = () => {
     }
   };
 
-  const addSelectedToChat = () => {
-    if (selectedTickets.size === 0) return;
-    if (openChatWithTopic) {
-      openChatWithTopic(
-        'multiple-tickets',
-        undefined,
-        undefined,
-        mappedTickets,
-        undefined,
-        Array.from(selectedTickets)
-      );
-    } else {
-      openChat();
-    }
-    setSelectedTickets(new Set());
-  };
 
   return {
     isLoading,
@@ -91,12 +66,9 @@ export const useTicketsCard = () => {
     hasMore,
     hoveredTicketId,
     setHoveredTicketId,
-    openMenuId,
-    setOpenMenuId,
     isSelected: (id: string) => selectedTickets.has(id),
     selectionCount: selectedTickets.size,
     toggleTicketSelection,
-    addSelectedToChat,
     viewInChat,
   };
 };

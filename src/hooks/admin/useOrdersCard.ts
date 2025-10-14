@@ -4,14 +4,12 @@ import { createOrderSelectionItems } from '../../utils/admin/selectionUtils';
 import { useAdmin } from './AdminContext';
 import { useOrders } from './OrdersContext';
 import useResponsivePageSize from '../ui/useResponsivePageSize';
-import type { AdminOrderRow } from './useAdminOrders';
 
 export const useOrdersCard = () => {
   const orderSelection = useOrderSelection();
   const { openChatWithTopic, openChat, addSelected } = useAdmin();
-  const { orders, updateOrder, refreshOrders, loading: ordersLoading, error } = useOrders();
+  const { orders, updateOrder, refreshOrders, loading: ordersLoading } = useOrders();
   const [hoveredOrderId, setHoveredOrderId] = useState<string | null>(null);
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   // Use the loading state from the orders context
   const isLoading = ordersLoading;
@@ -55,29 +53,6 @@ export const useOrdersCard = () => {
     }
   };
 
-  const addSelectedToChat = () => {
-    const selectedIds = orderSelection.selectedIds;
-    if (selectedIds.length === 0) return;
-
-    selectedIds.forEach(id => {
-      addSelected({ id, label: id, type: 'order' });
-    });
-
-    (openChatWithTopic as any)?.(
-      'multiple-orders',
-      undefined,
-      updateOrder,
-      orders,
-      refreshOrders,
-      selectedIds
-    );
-
-    if (!openChatWithTopic) {
-      openChat();
-    }
-
-    orderSelection.clear();
-  };
 
   const viewInChat = (orderId: string) => {
     addSelected({ id: orderId, label: orderId, type: 'order' });
@@ -100,12 +75,9 @@ export const useOrdersCard = () => {
     totalOrders: orders.length,
     hoveredOrderId,
     setHoveredOrderId,
-    openMenuId,
-    setOpenMenuId,
     isSelected: orderSelection.isSelected,
     selectionCount: orderSelection.selectionCount,
     toggleOrderSelection,
-    addSelectedToChat,
     viewInChat,
   };
 };

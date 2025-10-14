@@ -3,7 +3,6 @@ import { Card, Pagination } from '../../shared';
 import { useOrdersCard } from '../../../hooks/admin/useOrdersCard';
 import { OrderItem } from './OrderItem';
 import { OrdersSkeleton } from './OrdersSkeleton';
-import { AddToChatButton } from './AddToChatButton';
 
 const OrdersCard: React.FC = () => {
   const {
@@ -15,12 +14,9 @@ const OrdersCard: React.FC = () => {
     totalOrders,
     hoveredOrderId,
     setHoveredOrderId,
-    openMenuId,
-    setOpenMenuId,
     isSelected,
     selectionCount,
     toggleOrderSelection,
-    addSelectedToChat,
     viewInChat,
   } = useOrdersCard();
 
@@ -43,11 +39,9 @@ const OrdersCard: React.FC = () => {
               isSelected={isSelected(order.id)}
               isHovered={hoveredOrderId === order.id}
               showCheckbox={selectionCount > 0}
-              openMenuId={openMenuId}
               onHover={setHoveredOrderId}
               onToggleSelection={toggleOrderSelection}
               onViewInChat={viewInChat}
-              onToggleMenu={setOpenMenuId}
             />
           ))}
         </div>
@@ -63,8 +57,6 @@ const OrdersCard: React.FC = () => {
         />
       </div>
 
-      {/* Floating Add to Chat button */}
-      <AddToChatButton count={selectionCount} onClick={addSelectedToChat} />
     </div>
   );
 };

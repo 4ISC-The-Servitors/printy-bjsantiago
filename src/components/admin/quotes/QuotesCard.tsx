@@ -14,7 +14,6 @@ const QuotesCard: React.FC = () => {
   // Local state for pagination and UI interactions
   const [page, setPage] = useState(1);
   const [hoveredQuoteId, setHoveredQuoteId] = useState<string | null>(null);
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [selectedQuotes, setSelectedQuotes] = useState<Set<string>>(new Set());
 
   // Pagination logic
@@ -80,11 +79,9 @@ const QuotesCard: React.FC = () => {
                 isSelected={isSelected(quote.conversation_id)}
                 isHovered={hoveredQuoteId === quote.conversation_id}
                 showCheckbox={selectedQuotes.size > 0}
-                openMenuId={openMenuId}
                 onHover={setHoveredQuoteId}
                 onToggleSelection={toggleQuoteSelection}
                 onViewInChat={viewInChat}
-                onToggleMenu={setOpenMenuId}
               />
             ))}
         </div>
