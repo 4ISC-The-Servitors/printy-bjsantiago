@@ -29,18 +29,8 @@ const NODES: Record<string, Node> = {
     id: 'issue_ticket_start',
     message:
       "I'll help you create a support ticket. What's your order number?",
-      options: [
-        { label: 'Back to Start', next: 'issue_ticket_start' },
-        { label: 'End Chat', next: 'end' },
-      ],
-  },
-
-  ticket_status_start: {
-    id: 'ticket_status_start',
-    question: 'Ticket Status Inquiry',
-    answer: 'Please enter your ticket number to check its status.',
     options: [
-      { label: 'Back to Start', next: 'issue_ticket_start' },
+      { label: 'Back', next: 'issue_ticket_intro' },
       { label: 'End Chat', next: 'end' },
     ],
   },
@@ -148,12 +138,11 @@ function nodeToMessages(node: Node): BotMessage[] {
   return [];
 }
 
+// ====================
+// Fixed quick replies generator to always respect node options
 function nodeQuickReplies(node: Node): string[] {
   const labels = node.options.map(o => o.label);
-  if (
-    node.id !== 'end' &&
-    !labels.some(l => l.trim().toLowerCase() === 'end chat')
-  ) {
+  if (!labels.some(l => l.trim().toLowerCase() === 'end chat')) {
     labels.push('End Chat');
   }
   return labels;
@@ -171,6 +160,26 @@ export const issueTicketFlow: ChatFlow = {
   quickReplies: () => nodeQuickReplies(NODES[currentNodeId]),
   respond: async (_ctx, input) => {
     const current = NODES[currentNodeId];
+
+    // ====================
+    // Fix for "Yes, I have it" button
+    if (
+      currentNodeId === 'issue_ticket_intro' &&
+      input.trim().toLowerCase() === 'yes, i have it'
+    ) {
+      // Jump to issue_ticket_start node
+      currentNodeId = 'issue_ticket_start';
+      collectedIssueDetails = '';
+      currentInquiryType = null;
+    
+      // Let nodeToMessages handle the message text
+      return {
+        messages: nodeToMessages(NODES[currentNodeId]),
+        quickReplies: nodeQuickReplies(NODES[currentNodeId]),
+      };
+    }
+    
+    
 
     // ====================
     // Blacklisted words filter
@@ -214,13 +223,13 @@ export const issueTicketFlow: ChatFlow = {
       };
     }
 
-    if (/^back to start/i.test(input.trim())) {
+    if (/^back$/i.test(input.trim())) {
       currentNodeId = 'issue_ticket_start';
       collectedIssueDetails = '';
       currentInquiryType = null;
       return {
-        messages: nodeToMessages(NODES.issue_ticket_start),
-        quickReplies: nodeQuickReplies(NODES.issue_ticket_start),
+        messages: nodeToMessages(NODES.issue_ticket_intro),
+        quickReplies: nodeQuickReplies(NODES.issue_ticket_intro),
       };
     }
 
@@ -231,54 +240,6 @@ export const issueTicketFlow: ChatFlow = {
       return {
         messages: nodeToMessages(NODES.order_issue_menu),
         quickReplies: nodeQuickReplies(NODES.order_issue_menu),
-      };
-    }
-
-    // ====================
-    // Ticket Status Inquiry
-    if (!selection && currentNodeId === 'ticket_status_start') {
-      const displayId = input.trim().replace(/[^a-zA-Z0-9-]/g, '');
-      if (!displayId) {
-        return {
-          messages: [{ role: 'printy', text: 'Please enter a valid ticket number.' }],
-          quickReplies: nodeQuickReplies(NODES.ticket_status_start),
-        };
-      }
-
-      // Fetch by display_id but scoped to current user
-      const { data: userData } = await supabase.auth.getUser();
-      const customerId = userData?.user?.id;
-      const { data, error } = await supabase
-        .from('inquiries')
-        .select('*')
-        .eq('customer_id', customerId)
-        .eq('display_id', displayId)
-        .maybeSingle();
-      const inquiry = data;
-
-      if (error || !inquiry) {
-        return {
-          messages: [
-            { role: 'printy', text: `No ticket found with number "${displayId}".` },
-          ],
-          quickReplies: nodeQuickReplies(NODES.ticket_status_start),
-        };
-      }
-
-      const lines = [
-        `Ticket Number: ${inquiry.display_id}`,
-        `Issue submitted: ${inquiry.inquiry_message || '(no message provided)'}`,
-        `Issue type: ${inquiry.inquiry_type || '(not specified)'}`,
-        `Received: ${new Date(inquiry.received_at).toLocaleString()}`,
-        `Status: ${inquiry.inquiry_status}`,
-        inquiry.resolution_comments
-          ? `Resolution: ${inquiry.resolution_comments}`
-          : 'Resolution: (not yet provided)',
-      ];
-
-      return {
-        messages: lines.map(line => ({ role: 'printy', text: line })),
-        quickReplies: nodeQuickReplies(NODES.ticket_status_start),
       };
     }
 
@@ -409,6 +370,8 @@ export const issueTicketFlow: ChatFlow = {
     };
   },
 };
+
+
 
 
 

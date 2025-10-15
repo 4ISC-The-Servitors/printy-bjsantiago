@@ -1,12 +1,20 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react'; 
 import { Outlet } from 'react-router-dom';
 import AdminLayout from '@components/admin/layouts/AdminLayout';
 import SelectionProvider from '@hooks/admin/SelectionContext';
 import { AdminProvider, type SelectedItem } from '@hooks/admin/AdminContext';
 import { AdminConversationsProvider } from '@hooks/admin/useAdminConversations';
+import { useToast } from '../../lib/useToast';
+import { startAdminNotifications } from '../../features/notifications/notificationService';
 
 const AdminRoot: React.FC = () => {
   const [selected, setSelected] = useState<SelectedItem[]>([]);
+  const [_, toast] = useToast({ duration: 5000 });
+
+  useEffect(() => {
+    const stop = startAdminNotifications(toast);
+    return () => stop && stop();
+  }, [toast]);
 
   const adminContextValue = useMemo(
     () => ({
