@@ -75,6 +75,58 @@ async function uploadCsv(
   if (error) throw error;
 }
 
+function rowsToCsvLinesUsingHeaders(headers: string[], rows: Row[]): string {
+  if (!rows.length) return '';
+  const esc = (v: unknown) => {
+    if (v === null || v === undefined) return '';
+    const str = typeof v === 'object' ? JSON.stringify(v) : String(v);
+    if (/[",\n\r]/.test(str)) return '"' + str.replace(/"/g, '""') + '"';
+    return str;
+  };
+  return rows.map((row) => headers.map((h) => esc((row as any)[h])).join(',')).join('\n');
+}
+
+async function appendCsv(
+  admin: AdminClient,
+  bucket: string,
+  objectPath: string,
+  rows: Row[]
+): Promise<void> {
+  if (!rows.length) return;
+  // Try to download existing CSV; if it doesn't exist, create new
+  const dl = await admin.storage.from(bucket).download(objectPath);
+  if (dl.error || !dl.data) {
+    await uploadCsv(admin, bucket, objectPath, rows);
+    return;
+  }
+  // Read existing text
+  const blob: any = dl.data as any;
+  let existing = '';
+  if (typeof blob.text === 'function') {
+    existing = await blob.text();
+  } else if (typeof blob.arrayBuffer === 'function') {
+    const ab = await blob.arrayBuffer();
+    existing = Buffer.from(ab).toString('utf8');
+  } else {
+    // Fallback: re-upload as new
+    await uploadCsv(admin, bucket, objectPath, rows);
+    return;
+  }
+  // Extract header from first line
+  const firstNl = existing.indexOf('\n');
+  const headerLine = firstNl === -1 ? existing : existing.slice(0, firstNl);
+  const headers = headerLine.split(',');
+  const extra = rowsToCsvLinesUsingHeaders(headers, rows);
+  const needsNl = existing.length > 0 && !existing.endsWith('\n');
+  const combined = existing + (extra ? (needsNl ? '\n' : '') + extra + '\n' : '');
+  const bytes = Buffer.from(combined, 'utf8');
+  const { error } = await admin.storage.from(bucket).upload(objectPath, bytes, {
+    upsert: true,
+    contentType: 'text/csv',
+  });
+  if (error) throw error;
+}
+
 async function run(): Promise<void> {
   const admin = getAdminClient();
   const bucket = process.env.ARCHIVES_BUCKET || 'archives';
@@ -113,7 +165,7 @@ async function run(): Promise<void> {
     const rows = await fetchAll(table, timeCol);
     if (rows.length) {
       const objectPath = `${prefix}/${table}-${year}.csv`;
-      await uploadCsv(admin, bucket, objectPath, rows);
+      await appendCsv(admin, bucket, objectPath, rows);
       if (!dryRun) await deleteRange(table, timeCol);
       console.log(`[archive] ${table}: exported ${rows.length}${dryRun ? ' (dry-run)' : ''}`);
     } else {
@@ -129,7 +181,7 @@ async function run(): Promise<void> {
     const rows = await fetchAll(view, timeCol);
     if (rows.length) {
       const objectPath = `${prefix}/${table}-${year}.csv`;
-      await uploadCsv(admin, bucket, objectPath, rows);
+      await appendCsv(admin, bucket, objectPath, rows);
       if (!dryRun) await deleteRange(table, timeCol);
       console.log(`[archive] ${table}: exported ${rows.length}${dryRun ? ' (dry-run)' : ''}`);
     } else {
@@ -144,7 +196,7 @@ async function run(): Promise<void> {
     const rows = await fetchAll(table, timeCol);
     if (rows.length) {
       const objectPath = `${prefix}/${table}-${year}.csv`;
-      await uploadCsv(admin, bucket, objectPath, rows);
+      await appendCsv(admin, bucket, objectPath, rows);
       if (!dryRun) await deleteRange(table, timeCol);
       console.log(`[archive] ${table}: exported ${rows.length}${dryRun ? ' (dry-run)' : ''}`);
     } else {
@@ -181,7 +233,7 @@ async function run(): Promise<void> {
         const rows = data || [];
         if (rows.length) {
           const objectPath = `${prefix}/${t.name}-${year}.csv`;
-          await uploadCsv(admin, bucket, objectPath, rows);
+          await appendCsv(admin, bucket, objectPath, rows);
         }
       }
 

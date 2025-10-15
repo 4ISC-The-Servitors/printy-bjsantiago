@@ -5,6 +5,8 @@ on:
   schedule:
     # Run Jan 1 at 12:00 UTC (08:00 PHT alignment similar to db-backup)
     - cron: '0 12 1 1 *'
+    # Auto-catch late entries: run daily at 12:00 UTC
+    - cron: '0 12 * * *'
 
 jobs:
   archive:
