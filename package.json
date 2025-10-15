@@ -15,7 +15,8 @@
     "format:check": "prettier --check .",
     "backup:run": "node --env-file=.env.backup --experimental-strip-types scripts/backup/backup.ts",
     "backup:restore": "node --env-file=.env.backup --experimental-strip-types scripts/backup/restore.ts",
-    "backup:schedule": "node --env-file=.env.backup --experimental-strip-types scripts/backup/scheduler.ts"
+    "backup:schedule": "node --env-file=.env.backup --experimental-strip-types scripts/backup/scheduler.ts",
+    "archive:yearly": "node --env-file=.env.backup --experimental-strip-types scripts/archive/yearlyArchive.ts"
   },
   "dependencies": {
     "@supabase/auth-ui-react": "^0.4.7",
