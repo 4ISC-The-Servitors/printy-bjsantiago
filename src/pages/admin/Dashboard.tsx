@@ -1,9 +1,12 @@
 import React from 'react';
-import { Text, Card } from '../../components/shared';
+import { Text, Card, Notification } from '../../components/shared';
 
 const AdminDashboard: React.FC = () => {
   return (
     <div>
+      {/* Notification Bell - Fixed Position */}
+      <Notification />
+      
       <div className="mb-6">
         <Text
           variant="h1"
