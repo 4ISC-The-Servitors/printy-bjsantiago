@@ -1,0 +1,61 @@
+name: DB Restore from Supabase Storage
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: Type RESTORE to proceed (destructive)
+        required: true
+        type: string
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    environment: supabase
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Guard confirmation
+        run: |
+          if [ "${{ github.event.inputs.confirm }}" != "RESTORE" ]; then
+            echo "Confirmation mismatch. Type RESTORE to proceed." >&2
+            exit 1
+          fi
+
+      - name: Add PGDG repo and install PostgreSQL client 17
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y curl ca-certificates gnupg
+          sudo install -d -m 0755 /etc/apt/keyrings
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /etc/apt/keyrings/postgresql.gpg
+          echo "deb [signed-by=/etc/apt/keyrings/postgresql.gpg] http://apt.postgresql.org/pub/repos/apt noble-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-17
+
+      - name: Verify psql version
+        run: /usr/lib/postgresql/17/bin/psql --version
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Run restore script
+        env:
+          # Use your environment-scoped secrets
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.VITE_SUPABASE_SERVICE_ROLE_KEY }}
+          VITE_DATABASE_URL: ${{ secrets.VITE_DATABASE_URL }}
+          # Mirror to non-VITE names consumed by scripts
+          SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.VITE_SUPABASE_SERVICE_ROLE_KEY }}
+          DATABASE_URL: ${{ secrets.VITE_DATABASE_URL }}
+          PG_BIN: /usr/lib/postgresql/17/bin
+          BACKUP_BUCKET: backup
+          BACKUP_OBJECT: db/backup.sql
+          CRON_TZ: Asia/Manila
+        run: node --experimental-strip-types scripts/backup/restore.ts
