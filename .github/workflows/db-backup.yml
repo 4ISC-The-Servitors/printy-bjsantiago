@@ -9,30 +9,28 @@ on:
 jobs:
   backup:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
+    environment: supabase
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
+        with: { node-version: 22 }
       - name: Install PostgreSQL client tools
         run: sudo apt-get update && sudo apt-get install -y postgresql-client
-
       - name: Install dependencies
         run: npm install --no-audit --no-fund
-
-      - name: Run backup script
+      - name: Verify env present
         env:
-          # Use your VITE_* secrets
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.VITE_SUPABASE_SERVICE_ROLE_KEY }}
           VITE_DATABASE_URL: ${{ secrets.VITE_DATABASE_URL }}
-          # Mirror to non-VITE names for the script
+        run: node -e "console.log({url:!!process.env.VITE_SUPABASE_URL,key:!!process.env.VITE_SUPABASE_SERVICE_ROLE_KEY,db:!!process.env.VITE_DATABASE_URL})"
+      - name: Run backup script
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.VITE_SUPABASE_SERVICE_ROLE_KEY }}
+          VITE_DATABASE_URL: ${{ secrets.VITE_DATABASE_URL }}
           SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.VITE_SUPABASE_SERVICE_ROLE_KEY }}
           DATABASE_URL: ${{ secrets.VITE_DATABASE_URL }}
