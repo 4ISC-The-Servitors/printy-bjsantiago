@@ -7,7 +7,6 @@ import { servicesOfferedFlow } from './flows/ServicesOffered';
 import { trackQuoteFlow } from './flows/TrackQuote';
 import { paymentFlow } from './flows/Payment';
 import { askQuoteFlow } from './flows/AskQuote';
-import { loadJsonFlow, isJsonFlow } from './jsonFlowLoader';
 
 
 // Note: 'about' is handled by the database-backed flow; exclude from scripted map
@@ -21,17 +20,6 @@ export const customerFlows: Record<string, ChatFlow> = {
   payment: paymentFlow,
 };
 
-// Load JSON flows
-const jsonTrackTicket = loadJsonFlow('track-ticket');
-const jsonIssueTicket = loadJsonFlow('issue-ticket');
-
-if (jsonTrackTicket) {
-  customerFlows['track-ticket'] = jsonTrackTicket;
-}
-
-if (jsonIssueTicket) {
-  customerFlows['issue-ticket'] = jsonIssueTicket;
-}
 
 export function resolveCustomerFlow(
   topic: string | null | undefined
