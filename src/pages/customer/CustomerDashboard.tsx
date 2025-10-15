@@ -14,7 +14,7 @@ import RecentOrder from '../../components/customer/dashboard/recentOrders/Recent
 import RecentTickets from '../../components/customer/dashboard/recentTickets/RecentTickets';
 import RecentQuotes from '../../components/customer/dashboard/recentQuotes/RecentQuotes';
 // Shared UI components
-import { ToastContainer, Text, PageLoading } from '../../components/shared';
+import { ToastContainer, Text, PageLoading, Notification } from '../../components/shared';
 import { useLogoutWithToast } from '../../hooks/auth/useLogoutWithToast';
 import { useRecentOrder } from '../../hooks/customer/useRecentOrder';
 import { useRecentTicket } from '../../hooks/customer/useRecentTicket';
@@ -378,6 +378,9 @@ const CustomerDashboard: React.FC = () => {
 
   return (
     <>
+      {/* Notification Bell - Fixed Position */}
+      <Notification />
+      
       {/* Desktop Layout */}
       <div className="hidden lg:block">
         <div className="h-screen bg-gradient-to-br from-neutral-50 to-brand-primary-50 flex">
