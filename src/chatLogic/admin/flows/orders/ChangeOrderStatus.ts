@@ -65,7 +65,7 @@ export function createStatusChangeNode({
       return {
         nextNodeId,
         messages: [
-          { role: 'printy', text: `✅ ${order.id}: ${prev} → ${next}` },
+          { role: 'printy', text: `${order.id}: ${prev} → ${next}` },
         ],
       };
     },

@@ -62,6 +62,7 @@ export async function startConversation({
     return { driver, sessionId, messages: safeMessages, quickReplies } as const;
   }
 
+
   // Scripted path
   const flow = scriptedFlowRegistry?.[flowId];
   if (!flow) throw new Error(`Flow not found: ${flowId}`);
@@ -73,9 +74,8 @@ export async function startConversation({
     text: m.text,
     ts: Date.now(),
   }));
-  const quickReplies = flow
-    .quickReplies()
-    .map((l: string, i: number) => ({ id: `qr-${i}`, label: l, value: l }));
+  const quickRepliesResult = await Promise.resolve(flow.quickReplies(ctx));
+  const quickReplies = quickRepliesResult.map((l: string, i: number) => ({ id: `qr-${i}`, label: l, value: l }));
   return {
     driver,
     sessionId: null as string | null,

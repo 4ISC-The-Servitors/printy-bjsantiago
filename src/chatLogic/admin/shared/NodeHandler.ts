@@ -12,11 +12,11 @@ export interface NodeHandlerResult {
 }
 
 export interface NodeHandler {
-  messages: (state: FlowState, context: FlowContext) => BotMessage[];
+  messages: (state: FlowState, context: FlowContext) => BotMessage[] | Promise<BotMessage[]>;
   quickReplies: (state: FlowState, context: FlowContext) => string[];
   handleInput?: (
     input: string,
     state: FlowState,
     context: FlowContext
-  ) => NodeHandlerResult | null;
+  ) => NodeHandlerResult | null | Promise<NodeHandlerResult | null>;
 }

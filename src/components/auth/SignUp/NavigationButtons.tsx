@@ -1,5 +1,6 @@
 import React from 'react';
 import { Button } from '../../shared';
+import Turnstile from '../../shared/Turnstile';
 
 interface Props {
   currentStep: number;
@@ -45,17 +46,23 @@ const NavigationButtons: React.FC<Props> = ({
           Proceed
         </Button>
       ) : (
-        <Button
-          type="submit"
-          variant="primary"
-          size="lg"
-          threeD
-          loading={loading}
-          disabled={!isStepValid(currentStep) || loading}
-          className="flex-1 btn-responsive-primary"
-        >
-          {loading ? 'Creating Account...' : 'Create Account'}
-        </Button>
+        <div className="flex-1">
+          {/* Visible Cloudflare Turnstile above the final submit button */}
+          <div className="mb-3">
+            <Turnstile action="signup" appearance="interaction-only" />
+          </div>
+          <Button
+            type="submit"
+            variant="primary"
+            size="lg"
+            threeD
+            loading={loading}
+            disabled={!isStepValid(currentStep) || loading}
+            className="w-full btn-responsive-primary"
+          >
+            {loading ? 'Creating Account...' : 'Create Account'}
+          </Button>
+        </div>
       )}
     </div>
   );

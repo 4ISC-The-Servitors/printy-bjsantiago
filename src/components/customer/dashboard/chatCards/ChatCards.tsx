@@ -2,6 +2,7 @@ import React from 'react';
 import ServicesOffered from './ServicesOffered';
 import PlaceAnOrder from './PlaceAnOrder';
 import AskAssistance from './AskAssistance';
+import AskQuote from './AskQuote';
 import TrackATicket from './TrackATicket';
 import AboutUs from './AboutUs';
 import FAQs from './FAQs';
@@ -15,6 +16,7 @@ const ChatCards: React.FC<ChatCardsProps> = ({ onSelect }) => {
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
       <ServicesOffered onClick={() => onSelect('servicesOffered')} />
       <PlaceAnOrder onClick={() => onSelect('placeOrder')} />
+      <AskQuote onClick={() => onSelect('askQuote')} />
       <AskAssistance onClick={() => onSelect('issueTicket')} />
       <TrackATicket onClick={() => onSelect('trackTicket')} />
       <AboutUs onClick={() => onSelect('aboutUs')} />
@@ -24,5 +26,3 @@ const ChatCards: React.FC<ChatCardsProps> = ({ onSelect }) => {
 };
 
 export default ChatCards;
-
-

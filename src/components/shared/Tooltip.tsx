@@ -23,7 +23,7 @@ const Tooltip: React.FC<TooltipProps> = ({
       {children}
       <div
         role="tooltip"
-        className={`pointer-events-none absolute whitespace-nowrap rounded-md bg-neutral-900 text-white text-xs px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-md ${positionClasses[position]}`}
+        className={`pointer-events-none absolute whitespace-nowrap rounded-md bg-neutral-900 text-white text-xs px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-md z-[9999] ${positionClasses[position]}`}
       >
         {label}
       </div>

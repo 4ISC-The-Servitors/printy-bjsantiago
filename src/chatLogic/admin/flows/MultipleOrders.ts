@@ -1,14 +1,12 @@
 // Refactored MultipleOrders Flow using shared utilities and base framework
 
 import type { BotMessage } from '../../../types/chatFlow';
-// BACKEND_TODO: Remove mockOrders import; rely solely on context-provided orders from Supabase.
-import { mockOrders } from '../../../data/orders'; // DELETE when backend is wired
 import { FlowBase, ORDER_STATUS_OPTIONS, createSelectionListMessage } from '../shared';
 import { normalizeOrderStatus } from '../shared/utils/StatusNormalizers';
 import type { FlowState, FlowContext, NodeHandler } from '../shared';
 import { extractOrderIds } from '../shared/utils/IdExtractors';
 import { createStatusChangeNode as createStatusChangeNodeFactory } from './orders/ChangeOrderStatus';
-import { createQuotePriceNode as createQuotePriceNodeFactory } from './orders/Qouting';
+import { supabase } from '../../../lib/supabase';
 
 type MultipleOrdersNodeId =
   | 'multi_start'
@@ -16,8 +14,6 @@ type MultipleOrdersNodeId =
   | 'choose_id'
   | 'choose_status'
   | 'choose_bulk_status'
-  | 'choose_quote_target'
-  | 'ask_quote_price'
   | 'verify_payment_pick'
   | 'verify_payment_proof'
   | 'done';
@@ -28,7 +24,6 @@ interface MultipleOrdersState extends FlowState {
   ordersRef: any[];
   currentTargetId: string | null;
   changedIds: Set<string>;
-  quotedIds: Set<string>;
 }
 
 class MultipleOrdersFlow extends FlowBase {
@@ -42,7 +37,6 @@ class MultipleOrdersFlow extends FlowBase {
       ordersRef: [],
       currentTargetId: null,
       changedIds: new Set(),
-      quotedIds: new Set(),
     });
     this.registerNodes();
   }
@@ -51,9 +45,8 @@ class MultipleOrdersFlow extends FlowBase {
     this.state.selectedIds = Array.isArray(context?.orderIds)
       ? (context?.orderIds as string[]).map(x => x.toUpperCase())
       : [];
-    this.state.ordersRef = (context?.orders as any[]) || mockOrders;
+    this.state.ordersRef = (context?.orders as any[]) || [];
     this.state.changedIds = new Set<string>();
-    this.state.quotedIds = new Set<string>();
     this.state.currentTargetId = null;
     this.state.currentNodeId =
       this.state.selectedIds.length > 1 ? 'multi_start' : 'action';
@@ -90,27 +83,6 @@ class MultipleOrdersFlow extends FlowBase {
     // Bulk status change node
     this.registerNode('choose_bulk_status', this.createBulkStatusChangeNode());
 
-    // Choose quote target node
-    this.registerNode(
-      'choose_quote_target',
-      this.createChooseQuoteTargetNode()
-    );
-
-    // Quote price node (shared)
-    this.registerNode(
-      'ask_quote_price',
-      createQuotePriceNodeFactory({
-        getCurrentOrder: () =>
-          this.getCurrentOrder(this.state as MultipleOrdersState),
-        updateOrder: (
-          id: string,
-          updates: Partial<any>,
-          _s: FlowState,
-          _c: FlowContext
-        ) => this.updateOrder(id, updates, this.state as MultipleOrdersState),
-        nextNodeId: 'choose_quote_target',
-      })
-    );
 
     // Verify payment nodes (multi)
     this.registerNode('verify_payment_pick', this.createVerifyPickNode());
@@ -143,8 +115,8 @@ class MultipleOrdersFlow extends FlowBase {
         const s = state as MultipleOrdersState;
         const hasVerifying = this.getVerifyingSelectedOrders(s).length > 0;
         return hasVerifying
-          ? ['Change Status', 'Create Quote', 'Verify Payment', 'End Chat']
-          : ['Change Status', 'Create Quote', 'End Chat'];
+          ? ['Change Status', 'Verify Payment', 'End Chat']
+          : ['Change Status', 'End Chat'];
       },
       handleInput: (input: string) => {
         const lower = input.toLowerCase();
@@ -153,13 +125,6 @@ class MultipleOrdersFlow extends FlowBase {
           return { nextNodeId: 'choose_id' };
         }
 
-        if (
-          lower.includes('create quote') ||
-          lower === 'create quote' ||
-          lower === 'quote'
-        ) {
-          return { nextNodeId: 'choose_quote_target' };
-        }
 
         if (lower.includes('verify') && lower.includes('payment')) {
           return { nextNodeId: 'verify_payment_pick' };
@@ -185,8 +150,8 @@ class MultipleOrdersFlow extends FlowBase {
         const s = state as MultipleOrdersState;
         const hasVerifying = this.getVerifyingSelectedOrders(s).length > 0;
         return hasVerifying
-          ? ['Change Status', 'Create Quote', 'Verify Payment', 'End Chat']
-          : ['Change Status', 'Create Quote', 'End Chat'];
+          ? ['Change Status', 'Verify Payment', 'End Chat']
+          : ['Change Status', 'End Chat'];
       },
       handleInput: (input: string) => {
         const lower = input.toLowerCase();
@@ -195,13 +160,6 @@ class MultipleOrdersFlow extends FlowBase {
           return { nextNodeId: 'choose_id' };
         }
 
-        if (
-          lower.includes('create quote') ||
-          lower === 'create quote' ||
-          lower === 'quote'
-        ) {
-          return { nextNodeId: 'choose_quote_target' };
-        }
 
         if (lower.includes('verify') && lower.includes('payment')) {
           return { nextNodeId: 'verify_payment_pick' };
@@ -280,7 +238,7 @@ class MultipleOrdersFlow extends FlowBase {
         ];
       },
       quickReplies: () => [...ORDER_STATUS_OPTIONS, 'End Chat'],
-      handleInput: (input: string, state: FlowState) => {
+      handleInput: async (input: string, state: FlowState) => {
         const orderState = state as MultipleOrdersState;
         const next = normalizeOrderStatus(input);
 
@@ -301,11 +259,16 @@ class MultipleOrdersFlow extends FlowBase {
           },
         ];
 
-        selected.forEach(order => {
+        // Update all selected orders
+        for (const order of selected) {
           const prev = order.status;
-          this.updateOrder(order.id, { status: next }, orderState);
-          msgs.push({ role: 'printy', text: `${order.id}: ${prev} → ${next}` });
-        });
+          try {
+            await this.updateOrder(order.id, { status: next }, orderState);
+            msgs.push({ role: 'printy', text: `${order.id}: ${prev} → ${next}` });
+          } catch (error) {
+            msgs.push({ role: 'printy', text: `${order.id}: Error updating status` });
+          }
+        }
 
         return {
           nextNodeId: 'done',
@@ -316,50 +279,6 @@ class MultipleOrdersFlow extends FlowBase {
     };
   }
 
-  private createChooseQuoteTargetNode(): NodeHandler {
-    return {
-      messages: () => {
-        // const orderState = state as MultipleOrdersState;
-        // const remaining = this.getRemainingQuoteOrders(orderState);
-        return [
-          {
-            role: 'printy',
-            text: 'Which order ID would you like to create a quote for?',
-          },
-        ];
-      },
-      quickReplies: (state: FlowState) => {
-        const orderState = state as MultipleOrdersState;
-        const remaining = this.getRemainingQuoteOrders(orderState);
-        return [...remaining.map(o => o.id), 'End Chat'];
-      },
-      handleInput: (input: string, state: FlowState) => {
-        const orderState = state as MultipleOrdersState;
-        const remaining = this.getRemainingQuoteOrders(orderState);
-        const ids = extractOrderIds(input);
-        const pick =
-          ids[0] ||
-          remaining.find(o => o.id.toLowerCase() === input.toLowerCase())?.id;
-
-        if (!pick || !remaining.find(o => o.id === pick)) {
-          return {
-            messages: [
-              {
-                role: 'printy',
-                text: 'Please pick one of the selected order IDs.',
-              },
-            ],
-            quickReplies: [...remaining.map(o => o.id), 'End Chat'],
-          };
-        }
-
-        return {
-          nextNodeId: 'ask_quote_price',
-          stateUpdates: { currentTargetId: pick },
-        };
-      },
-    };
-  }
 
   
 
@@ -474,12 +393,6 @@ class MultipleOrdersFlow extends FlowBase {
       .filter(Boolean);
   }
 
-  private getRemainingQuoteOrders(state: MultipleOrdersState): any[] {
-    return state.selectedIds
-      .filter(id => !state.quotedIds.has(id))
-      .map(id => this.findOrder(id, state))
-      .filter(Boolean);
-  }
 
   private getCurrentOrder(state: MultipleOrdersState): any {
     if (!state.currentTargetId) return null;
@@ -488,36 +401,47 @@ class MultipleOrdersFlow extends FlowBase {
 
   private findOrder(id: string, state: MultipleOrdersState): any {
     const up = id.toUpperCase();
-    return (
-      state.ordersRef.find(o => (o.id || '').toUpperCase() === up) ||
-      mockOrders.find(o => (o.id || '').toUpperCase() === up)
-    );
+    return state.ordersRef.find(o => (o.id || '').toUpperCase() === up);
   }
 
-  private updateOrder(
+  private async updateOrder(
     orderId: string,
     updates: Partial<any>,
     state: MultipleOrdersState
-  ): void {
-    // Update via context if available
-    if (this.context.updateOrder) {
-      this.context.updateOrder(orderId, updates);
-    }
+  ): Promise<void> {
+    try {
+      console.log('Updating order in database (MultipleOrders):', { orderId, updates });
+      
+      // Update the database
+      const { error } = await supabase
+        .from('orders_duplicate')
+        .update(updates)
+        .eq('display_id', orderId);
 
-    // Update mock data
-    const mi = mockOrders.findIndex(o => o.id === orderId);
-    if (mi !== -1) {
-      mockOrders[mi] = { ...mockOrders[mi], ...updates };
-    }
+      if (error) {
+        console.error('Error updating order in database (MultipleOrders):', error);
+        throw new Error(`Failed to update order: ${error.message}`);
+      }
 
-    // Update local state
-    state.ordersRef = state.ordersRef.map(o =>
-      o.id === orderId ? { ...o, ...updates } : o
-    );
+      console.log('Order updated successfully in database (MultipleOrders)');
 
-    // Refresh if available
-    if (this.context.refreshOrders) {
-      this.context.refreshOrders();
+      // Update local state
+      state.ordersRef = state.ordersRef.map(o =>
+        o.id === orderId ? { ...o, ...updates } : o
+      );
+
+      // Update via context if available
+      if (this.context.updateOrder) {
+        this.context.updateOrder(orderId, updates);
+      }
+
+      // Refresh if available
+      if (this.context.refreshOrders) {
+        this.context.refreshOrders();
+      }
+    } catch (error) {
+      console.error('Error in updateOrder (MultipleOrders):', error);
+      throw error;
     }
   }
 }

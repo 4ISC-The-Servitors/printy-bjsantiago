@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Outlet } from 'react-router-dom';
-import AdminLayout from '@components/admin/layouts/AdminLayout';
+import { AdminLayout } from '@components/admin/shared/layouts';
 import SelectionProvider from '@hooks/admin/SelectionContext';
 import { AdminProvider, type SelectedItem } from '@hooks/admin/AdminContext';
 import { AdminConversationsProvider } from '@hooks/admin/useAdminConversations';

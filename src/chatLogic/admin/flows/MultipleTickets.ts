@@ -1,8 +1,4 @@
-// Refactored MultipleTickets Flow using shared utilities and base framework
-
 import type { BotMessage } from '../../../types/chatFlow';
-// BACKEND_TODO: Remove mockTickets import; rely solely on context-provided tickets from Supabase.
-import { mockTickets } from '../../../data/tickets'; // DELETE when backend is wired
 import {
   FlowBase,
   TICKET_STATUS_OPTIONS,
@@ -12,6 +8,7 @@ import {
 import { normalizeTicketStatus } from '../shared/utils/StatusNormalizers';
 import type { FlowState, FlowContext, NodeHandler } from '../shared';
 import { extractTicketIds } from '../shared/utils/IdExtractors';
+import { supabase } from '../../../lib/supabase';
 
 type MultipleTicketsNodeId =
   | 'multi_start'
@@ -52,7 +49,7 @@ class MultipleTicketsFlow extends FlowBase {
     this.state.selectedIds = Array.isArray(context?.ticketIds)
       ? (context?.ticketIds as string[]).map(x => x.toUpperCase())
       : [];
-    this.state.ticketsRef = (context?.tickets as any[]) || mockTickets;
+    this.state.ticketsRef = (context?.tickets as any[]) || [];
     this.state.changedIds = new Set<string>();
     this.state.repliedIds = new Set<string>();
     this.state.currentTargetId = null;
@@ -177,7 +174,7 @@ class MultipleTicketsFlow extends FlowBase {
           'End Chat',
         ];
       },
-      handleInput: (input: string, state: FlowState, _context: FlowContext) => {
+      handleInput: async (input: string, state: FlowState, _context: FlowContext) => {
         const ticketState = state as MultipleTicketsState;
         const lower = input.toLowerCase();
 
@@ -228,7 +225,7 @@ class MultipleTicketsFlow extends FlowBase {
         ];
       },
       quickReplies: () => ['Back', ...TICKET_STATUS_OPTIONS, 'End Chat'],
-      handleInput: (input: string, state: FlowState, _context: FlowContext) => {
+      handleInput: async (input: string, state: FlowState, _context: FlowContext) => {
         const ticketState = state as MultipleTicketsState;
         const ticket = this.getCurrentTicket(ticketState);
         if (!ticket) {
@@ -257,7 +254,14 @@ class MultipleTicketsFlow extends FlowBase {
         }
 
         const prev = ticket.status;
-        this.updateTicket(ticket.id, { status: next }, ticketState);
+        try {
+          await this.updateTicket(ticket.id, { status: next }, ticketState);
+        } catch (error) {
+          return {
+            messages: [{ role: 'printy', text: 'Error updating ticket status. Please try again.' }],
+            quickReplies: ['Back', ...TICKET_STATUS_OPTIONS, 'End Chat'],
+          };
+        }
 
         const changedIds = new Set(ticketState.changedIds);
         changedIds.add(ticket.id);
@@ -309,7 +313,7 @@ class MultipleTicketsFlow extends FlowBase {
         ];
       },
       quickReplies: () => ['Back', ...TICKET_STATUS_OPTIONS, 'End Chat'],
-      handleInput: (input: string, state: FlowState, _context: FlowContext) => {
+      handleInput: async (input: string, state: FlowState, _context: FlowContext) => {
         const ticketState = state as MultipleTicketsState;
         const next = normalizeTicketStatus(input);
 
@@ -334,14 +338,22 @@ class MultipleTicketsFlow extends FlowBase {
           },
         ];
 
-        selected.forEach(ticket => {
+        // Update all selected tickets
+        for (const ticket of selected) {
           const prev = ticket.status;
-          this.updateTicket(ticket.id, { status: next }, ticketState);
-          msgs.push({
-            role: 'printy',
-            text: `${ticket.id}: ${prev} → ${next}`,
-          });
-        });
+          try {
+            await this.updateTicket(ticket.id, { status: next }, ticketState);
+            msgs.push({
+              role: 'printy',
+              text: `${ticket.id}: ${prev} → ${next}`,
+            });
+          } catch (error) {
+            msgs.push({
+              role: 'printy',
+              text: `${ticket.id}: Error updating status`,
+            });
+          }
+        }
 
         return {
           nextNodeId: 'done',
@@ -367,7 +379,7 @@ class MultipleTicketsFlow extends FlowBase {
         const remaining = this.getRemainingReplyTickets(ticketState);
         return [...remaining.map(t => t.id), 'End Chat'];
       },
-      handleInput: (input: string, state: FlowState, _context: FlowContext) => {
+      handleInput: async (input: string, state: FlowState, _context: FlowContext) => {
         const ticketState = state as MultipleTicketsState;
         const remaining = this.getRemainingReplyTickets(ticketState);
         const ids = extractTicketIds(input);
@@ -404,16 +416,12 @@ class MultipleTicketsFlow extends FlowBase {
         return [
           {
             role: 'printy',
-            text: `Replying to ${ticket.id} - ${ticket.subject}.`,
-          },
-          {
-            role: 'printy',
-            text: 'Type your reply message to send to the user.',
+            text: `Replying to ${ticket.id} - ${ticket.subject}.\n\nType your reply message to send to the user.`,
           },
         ];
       },
       quickReplies: () => ['End Chat'],
-      handleInput: (input: string, state: FlowState, _context: FlowContext) => {
+      handleInput: async (input: string, state: FlowState, _context: FlowContext) => {
         const ticketState = state as MultipleTicketsState;
         const ticket = this.getCurrentTicket(ticketState);
         if (!ticket) {
@@ -433,7 +441,14 @@ class MultipleTicketsFlow extends FlowBase {
           };
         }
 
-        this.updateTicket(ticket.id, { lastMessage: body }, ticketState);
+        try {
+          await this.updateTicket(ticket.id, { lastMessage: body }, ticketState);
+        } catch (error) {
+          return {
+            messages: [{ role: 'printy', text: 'Error updating ticket. Please try again.' }],
+            quickReplies: ['End Chat'],
+          };
+        }
 
         const repliedIds = new Set(ticketState.repliedIds);
         repliedIds.add(ticket.id);
@@ -515,34 +530,67 @@ class MultipleTicketsFlow extends FlowBase {
     const up = id.toUpperCase();
     return (
       state.ticketsRef.find(t => (t.id || '').toUpperCase() === up) ||
-      mockTickets.find(t => (t.id || '').toUpperCase() === up)
+      state.ticketsRef.find(t => (t.id || '').toUpperCase() === up)
     );
   }
 
-  private updateTicket(
+  private async updateTicket(
     ticketId: string,
     updates: Partial<any>,
     state: MultipleTicketsState
-  ): void {
-    // Update via context if available
-    if (this.context.updateTicket) {
-      this.context.updateTicket(ticketId, updates);
-    }
+  ): Promise<void> {
+    try {
+      console.log('Updating ticket in database (MultipleTickets):', { ticketId, updates });
+      
+      // Update the database - map status values for inquiries table
+      let dbUpdates = { ...updates };
+      if (updates.status) {
+        // Map ticket status to inquiry status
+        const statusMap: Record<string, string> = {
+          'Open': 'open',
+          'In Progress': 'in_progress', 
+          'Pending': 'pending',
+          'Resolved': 'resolved',
+          'Closed': 'closed',
+        };
+        dbUpdates.status = statusMap[updates.status] || updates.status;
+      }
 
-    // Update mock data
-    const mi = mockTickets.findIndex(t => t.id === ticketId);
-    if (mi !== -1) {
-      mockTickets[mi] = { ...mockTickets[mi], ...updates };
-    }
+      const { error } = await supabase
+        .from('inquiries')
+        .update(dbUpdates)
+        .eq('inquiry_id', ticketId);
 
-    // Update local state
-    state.ticketsRef = state.ticketsRef.map(t =>
-      t.id === ticketId ? { ...t, ...updates } : t
-    );
+      if (error) {
+        console.error('Error updating ticket in database (MultipleTickets):', error);
+        throw new Error(`Failed to update ticket: ${error.message}`);
+      }
 
-    // Refresh if available
-    if (this.context.refreshTickets) {
-      this.context.refreshTickets();
+      console.log('Ticket updated successfully in database (MultipleTickets)');
+
+      // Update mock data
+      const mi = state.ticketsRef.findIndex(t => t.id === ticketId);
+      if (mi !== -1) {
+        state.ticketsRef[mi] = { ...state.ticketsRef[mi], ...updates };
+      }
+
+      // Update local state
+      state.ticketsRef = state.ticketsRef.map(t =>
+        t.id === ticketId ? { ...t, ...updates } : t
+      );
+
+      // Update via context if available
+      if (this.context.updateTicket) {
+        this.context.updateTicket(ticketId, updates);
+      }
+
+      // Refresh if available
+      if (this.context.refreshTickets) {
+        this.context.refreshTickets();
+      }
+    } catch (error) {
+      console.error('Error in updateTicket (MultipleTickets):', error);
+      throw error;
     }
   }
 }

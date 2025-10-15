@@ -61,8 +61,14 @@ export { default as SelectedChipsBar } from './SelectedChipsBar';
 export { default as Tooltip } from './Tooltip';
 export { default as Pagination } from './Pagination';
 export type { TooltipProps } from './Tooltip';
-export { default as ChatDock } from './ChatDock';
+
+// Search & Filter
+export { default as Search } from './Search';
+export { default as Filter } from './Filter';
 
 // Checkbox Component
 export { default as Checkbox } from './Checkbox';
 export type { CheckboxProps } from './Checkbox';
+
+// Cloudflare Turnstile Component
+export { default as Turnstile } from './Turnstile';

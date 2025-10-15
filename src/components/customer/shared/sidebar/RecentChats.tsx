@@ -1,10 +1,10 @@
 import React, { useMemo } from 'react';
-import type { ChatMessage } from '../../../chat/_shared/types';
+import type { ChatMessage } from '../../../chat/types';
 import { Bot } from 'lucide-react';
 import { Badge } from '../../../shared';
 import { formatLongDate } from '../../../../utils/shared/dateFormatter';
 import { formatShortTime } from '../../../../utils/shared/timeFormatter';
-import useResponsiveListItems from '../../../../hooks/shared/useResponsiveListItems';
+import useResponsiveListItems from '../../../../hooks/ui/useResponsiveListItems';
 
 interface Conversation {
   id: string;

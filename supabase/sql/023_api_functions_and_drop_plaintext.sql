@@ -98,6 +98,7 @@ grant execute on function priv.is_admin() to authenticated, service_role;
 create or replace function api_inquiries_for_user(p_limit int default 10, p_offset int default 0)
 returns table (
   inquiry_id uuid,
+  display_id text,
   customer_id uuid,
   inquiry_type text,
   inquiry_status text,
@@ -111,6 +112,7 @@ set search_path = public
 as $$
   select
     i.inquiry_id,
+    i.display_id,
     i.customer_id,
     i.inquiry_type,
     i.inquiry_status,

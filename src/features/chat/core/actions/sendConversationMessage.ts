@@ -4,6 +4,7 @@
  */
 import { ChatDatabaseService } from '../services/ChatDatabaseService';
 import type { DbFlowNode } from '../../../api/chatFlowApi';
+import { supabase } from '../../../../lib/supabase';
 import type { FlowDriver } from '../adapters/FlowDriver';
 
 type Params = {
@@ -427,8 +428,25 @@ export async function sendConversationMessage({
     } as const;
   }
 
-  // Scripted path
-  const resp = await driver.respond({}, input);
+  // Scripted path (including QuoteFlowDriver)
+  // Get customer context for quote flows
+  let ctx = {};
+  if (driver.id === 'ask-quote') {
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const customerId = sessionData?.session?.user?.id;
+      if (customerId) {
+        ctx = {
+          customerId,
+          sessionId: sessionId || crypto.randomUUID(), // Generate session ID for quote flows
+        };
+      }
+    } catch (e) {
+      console.warn('Could not get customer context for quote flow:', e);
+    }
+  }
+
+  const resp = await driver.respond(ctx, input);
   const botMessages = (resp.messages || []).map(m => ({
     id: crypto.randomUUID(),
     role: 'printy' as const,
