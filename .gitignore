@@ -76,3 +76,4 @@ temp/
 forContext/
 .cursor/
 docs/
+.claude/

@@ -47,11 +47,9 @@ export function useCustomerConversations() {
       setIsTyping(true);
       try {
         // Ensure DB-backed flows receive the authenticated customerId
+        // Note: 'issue-ticket' is now JSON-based, only 'about' uses DB
         let enrichedCtx = ctx || {};
-        if (
-          (flowId === 'about' || flowId === 'issue-ticket') &&
-          !enrichedCtx.customerId
-        ) {
+        if (flowId === 'about' && !enrichedCtx.customerId) {
           try {
             const { data: userData } = await auth.getUser();
             const customerId = userData?.user?.id;

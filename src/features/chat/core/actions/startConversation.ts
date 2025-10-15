@@ -18,7 +18,9 @@ export async function startConversation({
   scriptedFlowRegistry,
   ctx,
 }: Params) {
-  if (flowId === 'about' || flowId === 'issue-ticket') {
+  // Only 'about' uses database-backed flows now
+  // 'issue-ticket' and 'track-ticket' are now JSON-based (in scriptedFlowRegistry)
+  if (flowId === 'about') {
     // DB-backed path
     const driver = new DatabaseFlowDriver(flowId);
     const sessionId = await ChatDatabaseService.createSession(
