@@ -16,9 +16,7 @@ create index IF not exists idx_chat_flow_options_from on public.chat_flow_option
 create index IF not exists idx_chat_flow_options_flow on public.chat_flow_options using btree (flow_id) TABLESPACE pg_default;
 
 -- sample table data:
-insert into public.chat_flow_options (
-  option_id, flow_id, from_node_id, label, to_node_id, sort_order
-) values
+-- inserts moved to inserts/001_ask_assistance_flow.sql
   ('02fe0374-56c5-4ac9-99fe-ca4cbf271e1d', 'issue-ticket', 'issue_ticket_intro', 'End Chat', 'end', 2),
   ('03eddd7b-7fb5-4ddb-9fcf-ee3fe6789d3f', 'issue-ticket', 'order_issue_menu', 'Other concern', 'other_issue', 3),
   ('0cea1f73-e9c3-4b10-9735-d7cd0d346e03', 'issue-ticket', 'order_issue_menu', 'End Chat', 'end', 4),

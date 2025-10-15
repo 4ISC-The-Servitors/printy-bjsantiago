@@ -92,6 +92,7 @@ export function useDashboardChatEvents(
       // Use track-quote flow with conversation context
       const title = `Quote: ${subject}`;
       initializeFlow('track-quote', title, {
+        conversation_id: conversationId,
         conversationId,
         subject
       });

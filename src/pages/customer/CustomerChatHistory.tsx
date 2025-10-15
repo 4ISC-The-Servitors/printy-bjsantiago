@@ -8,7 +8,7 @@ import Filters from '../../components/customer/chatHistory/Filters';
 import ConversationList from '../../components/customer/chatHistory/ConversationList';
 import { Text } from '../../components/shared';
 import type { ChatMessage } from '../../components/chat/types';
-import { fetchUserSessions } from '../../features/api/chatFlowApi';
+import { getUserSessionsV2 } from '../../features/api/jsonbChatFlowApi';
 
 interface Conversation {
   id: string;
@@ -76,14 +76,24 @@ const ChatHistory: React.FC = () => {
     navigate('/auth/signin');
   };
 
-  // Load conversations from DB
+  // Flow ID to title mapping
+  const FLOW_TITLES: Record<string, string> = {
+    'ask-quote': 'Request a Quote',
+    'ask-assistance': 'Get Help',
+    'customer-track-ticket': 'Track Support Ticket',
+    'upload-payment': 'Upload Payment',
+    'track-order': 'Track Order',
+    'about': 'About B.J. Santiago',
+  };
+
+  // Load conversations from DB (using chat_sessions_v2)
   useEffect(() => {
     (async () => {
       try {
-        const list = await fetchUserSessions();
+        const list = await getUserSessionsV2();
         const convs: Conversation[] = list.map(s => ({
           id: s.sessionId,
-          title: s.title,
+          title: FLOW_TITLES[s.flowId] || s.flowId || 'Chat',
           createdAt: s.createdAt,
           messages: [],
           status: (s.status === 'ended' ? 'ended' : 'active') as

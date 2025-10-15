@@ -72,3 +72,7 @@ export type { CheckboxProps } from './Checkbox';
 
 // Cloudflare Turnstile Component
 export { default as Turnstile } from './Turnstile';
+
+// Notification Component
+export { default as Notification } from './Notification';
+export type { NotificationProps } from './Notification';

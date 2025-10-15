@@ -41,10 +41,40 @@ create table public.chat_flow_nodes (
 
 create index IF not exists idx_chat_flow_nodes_flow on public.chat_flow_nodes using btree (flow_id) TABLESPACE pg_default;
 
+-- Add new actions to existing constraint
+  ALTER TABLE chat_flow_nodes
+  DROP CONSTRAINT IF EXISTS chat_flow_nodes_node_action_check;
+
+  ALTER TABLE chat_flow_nodes
+  ADD CONSTRAINT chat_flow_nodes_node_action_check
+  CHECK (
+    node_action = ANY (ARRAY[
+      -- Existing actions
+      'none'::text,
+      'expects_input'::text,
+      'set_context'::text,
+      'lookup_order'::text,
+      'list_recent_orders'::text,
+      'create_inquiry'::text,
+      'ticket_status_query'::text,
+      'fetch_customer_tickets'::text,
+      'select_ticket'::text,
+      'load_conversation_history'::text,
+      'send_ticket_reply'::text,
+      'reset_context'::text,
+      'update_inquiry_status'::text,
+      'collect_feedback'::text,
+
+      -- New actions for ticket flows
+      'update_ticket_status'::text,
+      'send_admin_reply'::text,
+      'validate_ticket_id'::text,
+      'display_ticket_details'::text
+    ])
+  );
+
 -- sample table data:
-insert into public.chat_flow_nodes (
-  node_id, flow_id, node_type, text, is_initial, node_action, action_config
-) values
+-- inserts moved to inserts/001_ask_assistance_flow.sql
   (
     'billing_issue',
     'issue-ticket',

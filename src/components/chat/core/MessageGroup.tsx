@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import MessageBubble from './MessageBubble';
 import { QuickReplyGrid } from './QuickReply';
 import TypingIndicator from './TypingIndicator';
-import ReadOnlyOverlay from './ReadOnlyOverlay';
 import type { ChatMessage, QuickReply } from '../types';
 import {
   formatShortTime,
@@ -14,7 +13,7 @@ interface MessageGroupProps {
   quickReplies?: QuickReply[];
   onQuickReply?: (value: string) => void;
   onEndChat?: () => void;
-  readOnly?: boolean;
+  readOnly?: boolean; // Indicates if conversation has ended - no animation
 }
 
 /**
@@ -38,8 +37,8 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({
   const isBot = messages[0]?.role === 'printy';
   const mostRecentTs = messages[messages.length - 1]?.ts ?? 0;
 
-  // Determine if we should animate (only for new messages, not on refresh)
-  const shouldAnimate = isBot && !hasAnimated;
+  // Determine if we should animate (only for new messages in active conversations)
+  const shouldAnimate = isBot && !hasAnimated && !readOnly;
 
   // Animate bot messages appearing one by one with typing indicator
   useEffect(() => {
@@ -63,8 +62,8 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({
 
   // Initialize visible count
   useEffect(() => {
-    if (!isBot) {
-      // User messages appear instantly
+    if (!isBot || readOnly) {
+      // User messages or ended conversations - appear instantly
       setVisibleCount(messages.length);
       setHasAnimated(true);
     } else if (messages.length === initialMessageCount) {
@@ -76,7 +75,7 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({
       setVisibleCount(messages.length);
       setHasAnimated(true);
     }
-  }, [messages.length, isBot, initialMessageCount]);
+  }, [messages.length, isBot, initialMessageCount, readOnly]);
 
   const formatRelativeTime = (ts: number, isMostRecent: boolean): string => {
     if (isMostRecent) return formatRelativeTimeLabel(ts);
@@ -138,11 +137,6 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({
           onQuickReply={onQuickReply}
           onEndChat={onEndChat}
         />
-      )}
-
-      {/* Read-only overlay - contained within message group */}
-      {readOnly && (
-        <ReadOnlyOverlay className="mt-4" />
       )}
     </div>
   );

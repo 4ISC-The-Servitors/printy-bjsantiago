@@ -215,7 +215,7 @@ revoke all on function api_create_inquiry(text, text) from public;
 grant execute on function api_create_inquiry(text, text) to authenticated, service_role;
 
 -- Insert chat message (encrypts server-side) and meta
-create or replace function api_insert_chat_message(p_session_id uuid, p_text text, p_role text default 'user', p_node_id text default null)
+create or replace function api_insert_chat_message(p_session_id uuid, p_text text, p_role text default 'customer', p_node_id text default null)
 returns table ( message_id uuid )
 language plpgsql
 security definer
@@ -237,7 +237,7 @@ begin
   returning chat_messages.message_id into mid;
 
   insert into public.chat_message_meta (message_id, sender_role, node_id)
-  values (mid, coalesce(p_role, 'user'), p_node_id);
+  values (mid, coalesce(p_role, 'customer'), p_node_id);
 
   return query select mid;
 end $$;
@@ -294,4 +294,27 @@ end $$;
 
 revoke all on function api_update_inquiry_resolution(uuid, text) from public;
 grant execute on function api_update_inquiry_resolution(uuid, text) to authenticated, service_role;
+
+-- Create chat session (security definer to bypass RLS)
+create or replace function api_create_chat_session(p_customer_id uuid)
+returns table ( session_id uuid )
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  new_session_id uuid;
+begin
+  -- Generate new session ID
+  new_session_id := gen_random_uuid();
+  
+  -- Insert session
+  insert into public.chat_sessions (session_id, customer_id, status)
+  values (new_session_id, p_customer_id, 'active');
+  
+  return query select new_session_id;
+end $$;
+
+revoke all on function api_create_chat_session(uuid) from public;
+grant execute on function api_create_chat_session(uuid) to authenticated, service_role;
 

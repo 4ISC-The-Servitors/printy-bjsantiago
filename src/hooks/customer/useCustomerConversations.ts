@@ -2,14 +2,24 @@
  * useCustomerConversations (composer)
  * Small hook that composes core state + controller + switcher for customer-side chat.
  * Keeps page code thin and migration-friendly.
+ * 
+ * NOTE: Migrated to JSONB-based flows only. Old scripted flows are commented out.
  */
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { useConversationState } from '../core/useConversationState';
-import { useConversationController } from '../core/useConversationController';
-import { fetchSessionMessages } from '../../features/api/chatFlowApi';
-import { useConversationSwitcher } from '../core/useConversationSwitcher';
-import { customerFlows as scriptedRegistry } from '../../chatLogic/customer';
+// import { useConversationController } from '../core/useConversationController';
+// import { fetchSessionMessages } from '../../features/api/chatFlowApi';
+// import { useConversationSwitcher } from '../core/useConversationSwitcher';
+// import { customerFlows as scriptedRegistry } from '../../chatLogic/customer';
 import { auth } from '../../lib/supabase';
+import { JsonbFlowProcessor } from '../../features/chat/core/services/JsonbFlowProcessor';
+import { getFlowDefinition, fetchSessionMessagesV2 } from '../../features/api/jsonbChatFlowApi';
+import type { ChatMessage, ChatRole } from '../../components/chat/types';
+
+// Helper to map JSONB roles to ChatRole
+function mapRole(role: 'customer' | 'admin' | 'printy'): ChatRole {
+  return role === 'customer' ? 'user' : 'printy';
+}
 
 export function useCustomerConversations() {
   const {
@@ -27,17 +37,19 @@ export function useCustomerConversations() {
     setInputPlaceholder,
   } = useConversationState();
 
-  const { start, send, end, sessionId, setControllerSession } =
-    useConversationController();
-  const { switchConversation } = useConversationSwitcher();
+  // JSONB flow state
+  const [sessionId, setSessionIdState] = useState<string | null>(null);
+  const [_currentNodeId, setCurrentNodeIdState] = useState<string | null>(null);
+
+  // Old scripted flow controller - COMMENTED OUT
+  // const { start, send, end, sessionId, setControllerSession } =
+  //   useConversationController();
+  // const { switchConversation } = useConversationSwitcher();
 
   const updateInputPlaceholder = useCallback(
-    (flowId: string, replies: any[]) => {
-      if (flowId === 'issue-ticket' && replies.length === 0) {
-        setInputPlaceholder('Enter your Order ID (e.g., ORD-123456)');
-      } else {
-        setInputPlaceholder('Type a message...');
-      }
+    () => {
+      // Use a generic placeholder for DB-backed flows
+      setInputPlaceholder('Type a message...');
     },
     [setInputPlaceholder]
   );
@@ -46,42 +58,71 @@ export function useCustomerConversations() {
     async (flowId: string, title: string, ctx?: any) => {
       setIsTyping(true);
       try {
-        // Ensure DB-backed flows receive the authenticated customerId
-        // Note: 'issue-ticket' is now JSON-based, only 'about' uses DB
-        let enrichedCtx = ctx || {};
-        if (flowId === 'about' && !enrichedCtx.customerId) {
-          try {
-            const { data: userData } = await auth.getUser();
-            const customerId = userData?.user?.id;
-            if (customerId) enrichedCtx = { ...enrichedCtx, customerId };
-          } catch {}
+        // Normalize legacy IDs to JSONB flow IDs
+        const resolvedFlowId =
+          flowId === 'track-ticket'
+            ? 'customer-track-ticket'
+            : flowId === 'track-quote'
+            ? 'track-quote'
+            : flowId;
+
+        // Get customer ID
+        const { data: userData } = await auth.getUser();
+        const customerId = userData?.user?.id;
+
+        if (!customerId) {
+          throw new Error('User not authenticated');
         }
-        // Start conversation via driver selection
-        const result = await start(flowId, scriptedRegistry, enrichedCtx);
+
+        // Fetch flow definition from database
+        const flowDefinition = await getFlowDefinition(resolvedFlowId);
+        if (!flowDefinition) {
+          throw new Error(`Flow ${resolvedFlowId} not found in database`);
+        }
+
+        // Start the JSONB flow, pass initial context when present (e.g., order_id/display_id)
+        const result = await JsonbFlowProcessor.startFlow({
+          flowId: resolvedFlowId,
+          customerId,
+          flowDefinition,
+          initialContext: ctx || {},
+        });
+
+        // Map messages to ChatMessage format
+        const mappedMessages: ChatMessage[] = result.messages.map(m => ({
+          id: m.id,
+          role: mapRole(m.role),
+          text: m.text,
+          ts: m.ts,
+        }));
+
         // Create UI conversation wrapper
         const conv = {
-          id: (result.sessionId || crypto.randomUUID()) as string,
+          id: result.sessionId,
           title,
           createdAt: Date.now(),
-          messages: result.messages,
-          flowId,
+          messages: mappedMessages,
+          flowId: resolvedFlowId,
           status: 'active' as const,
           icon: undefined,
-          context: enrichedCtx
+          context: ctx || {},
         };
+
         setConversations(prev => [conv, ...prev]);
-        if (result.sessionId) setControllerSession(result.sessionId);
-        setActiveId(conv.id);
-        setMessages(result.messages);
+        setSessionIdState(result.sessionId);
+        setCurrentNodeIdState(result.currentNodeId);
+        setActiveId(result.sessionId);
+        setMessages(mappedMessages);
         setQuickReplies(result.quickReplies);
-        updateInputPlaceholder(flowId, result.quickReplies);
+        updateInputPlaceholder();
+      } catch (error) {
+        console.error('Failed to initialize flow:', error);
       } finally {
         setIsTyping(false);
       }
     },
     [
       setIsTyping,
-      start,
       setConversations,
       setActiveId,
       setMessages,
@@ -92,132 +133,138 @@ export function useCustomerConversations() {
 
   const handleSend = useCallback(
     async (text: string) => {
-      if (!activeId) return;
-      const user = {
+      if (!activeId || !sessionId) return;
+
+      const userMessage: ChatMessage = {
         id: crypto.randomUUID(),
-        role: 'user' as const,
+        role: 'user',
         text,
         ts: Date.now(),
       };
-      setMessages(prev => [...prev, user]);
+
+      // Add user message to UI
+      setMessages(prev => [...prev, userMessage]);
       setConversations(prev =>
         prev.map(c =>
-          c.id === activeId ? { ...c, messages: [...c.messages, user] } : c
+          c.id === activeId ? { ...c, messages: [...c.messages, userMessage] } : c
         )
       );
+
       setIsTyping(true);
       setQuickReplies([]);
+
       try {
-        const res = await send(text);
-        if (sessionId) {
-          const list = (res.messages as any[]).map(m => ({
-            id: m.id,
-            role: m.role as any,
-            text: m.text,
-            ts: m.ts,
-          }));
-          // Append mode when server had no messages (DB insert 404/blocked); otherwise replace
-          if ((res as any).mergeMode === 'append') {
-            setMessages(prev => [...prev, ...list]);
-            setConversations(prev =>
-              prev.map(c =>
-                c.id === activeId
-                  ? { ...c, messages: [...c.messages, ...list] }
-                  : c
-              )
-            );
-          } else {
-            setMessages(list as any);
-            setConversations(prev =>
-              prev.map(c =>
-                c.id === activeId ? { ...c, messages: list as any } : c
-              )
-            );
-          }
-        } else {
-          const bot = res.messages as any[];
-          setMessages(prev => [...prev, ...bot]);
+        // Get flow definition
+        const conv = conversations.find(c => c.id === activeId);
+        if (!conv) return;
+
+        const flowDefinition = await getFlowDefinition(conv.flowId);
+        if (!flowDefinition) return;
+
+        // Process input through JSONB flow
+        const result = await JsonbFlowProcessor.processInput({
+          sessionId,
+          userInput: text,
+          flowDefinition,
+        });
+
+        // Map bot responses to ChatMessage format
+        const mappedResponses: ChatMessage[] = result.messages.map(m => ({
+          id: m.id,
+          role: mapRole(m.role),
+          text: m.text,
+          ts: m.ts,
+        }));
+
+        // Update UI with bot responses
+        setMessages(prev => [...prev, ...mappedResponses]);
+        setConversations(prev =>
+          prev.map(c =>
+            c.id === activeId
+              ? { ...c, messages: [...c.messages, ...mappedResponses] }
+              : c
+          )
+        );
+
+        setQuickReplies(result.quickReplies);
+        setCurrentNodeIdState(result.currentNodeId);
+
+        // Check if conversation ended
+        const updatedNode = flowDefinition.nodes[result.currentNodeId];
+        if (updatedNode && updatedNode.type === 'end') {
           setConversations(prev =>
             prev.map(c =>
-              c.id === activeId
-                ? { ...c, messages: [...c.messages, ...bot] }
-                : c
+              c.id === activeId ? { ...c, status: 'ended' as const } : c
             )
           );
         }
-        setQuickReplies(res.quickReplies);
-        // For scripted, we have flowId in conversation; for DB 'about', use literal
-        const flowId =
-          conversations.find(c => c.id === activeId)?.flowId || 'about';
-        updateInputPlaceholder(flowId, res.quickReplies);
+
+        updateInputPlaceholder();
+      } catch (error) {
+        console.error('Failed to send message:', error);
       } finally {
         setIsTyping(false);
       }
     },
     [
       activeId,
+      sessionId,
+      conversations,
       setMessages,
       setConversations,
       setIsTyping,
       setQuickReplies,
-      send,
-      conversations,
       updateInputPlaceholder,
-      sessionId,
     ]
   );
 
   const endChatWithSequence = useCallback(async () => {
-    if (!activeId) return;
-    
+    if (!activeId || !sessionId) return;
+
     // Step 1: Add goodbye message
-    const goodbyeMessage = {
+    const goodbyeMessage: ChatMessage = {
       id: `goodbye-${Date.now()}`,
-      role: 'printy' as const,
-      text: "Thank you for chatting with Printy! Have a great day.",
+      role: 'printy',
+      text: 'Thank you for chatting with Printy! Have a great day.',
       ts: Date.now(),
     };
-    
+
     // Add the goodbye message to current messages
     setMessages(prev => [...prev, goodbyeMessage]);
-    
+
     // Step 2: Mark conversation as ended (this will show ReadOnlyOverlay)
-    setConversations(prev => prev.map(conv => 
-      conv.id === activeId 
-        ? { ...conv, status: 'ended' as const }
-        : conv
-    ));
-    
+    setConversations(prev =>
+      prev.map(conv =>
+        conv.id === activeId ? { ...conv, status: 'ended' as const } : conv
+      )
+    );
+
     // Step 3: Clear quick replies
     setQuickReplies([]);
-    
-    // Step 4: After delay, actually end the conversation
+
+    // Step 4: After delay, actually end the conversation in DB
     setTimeout(async () => {
-      const flowId = conversations.find(c => c.id === activeId)?.flowId;
-      await end(flowId);
-      // Refresh messages so closing line appears
-      const sid = sessionId || activeId;
       try {
-        const fetched = await fetchSessionMessages(sid);
-        setMessages(
-          fetched.map(m => ({
-            id: m.id,
-            role: m.role as any,
-            text: m.text,
-            ts: m.ts,
-          })) as any
+        // End the session in the database (using JSONB flow API)
+        await import('../../features/api/jsonbChatFlowApi').then(api => 
+          api.endSessionV2(sessionId)
         );
+        
+        // Refresh messages from database
+        const fetched = await fetchSessionMessagesV2(sessionId);
+        const mappedFetched: ChatMessage[] = fetched.map(m => ({
+          id: m.id,
+          role: mapRole(m.role as any),
+          text: m.text,
+          ts: m.ts,
+        }));
+        setMessages(mappedFetched);
         setConversations(prev =>
           prev.map(c =>
             c.id === activeId
               ? {
                   ...c,
-                  messages: fetched.map(m => ({
-                    id: m.id,
-                    role: m.role as any,
-                    text: m.text,
-                    ts: m.ts,
-                  })),
+                  messages: mappedFetched,
                   status: 'ended' as const,
                 }
               : c
@@ -227,7 +274,13 @@ export function useCustomerConversations() {
         console.error('Failed to refresh messages after ending chat:', error);
       }
     }, 3000); // 3 second delay
-  }, [activeId, conversations, end, sessionId, setMessages, setConversations, setQuickReplies]);
+  }, [
+    activeId,
+    sessionId,
+    setMessages,
+    setConversations,
+    setQuickReplies,
+  ]);
 
   const handleQuickReply = useCallback(
     (value: string) => {
@@ -242,39 +295,40 @@ export function useCustomerConversations() {
   );
 
   const endChat = useCallback(async () => {
-    if (!activeId) return;
-    const flowId = conversations.find(c => c.id === activeId)?.flowId;
-    await end(flowId);
-    // Refresh messages so closing line appears
-    const sid = sessionId || activeId;
+    if (!activeId || !sessionId) return;
+
     try {
-      const fetched = await fetchSessionMessages(sid);
-      setMessages(
-        fetched.map(m => ({
-          id: m.id,
-          role: m.role as any,
-          text: m.text,
-          ts: m.ts,
-        })) as any
+      // End the session in the database
+      await import('../../features/api/jsonbChatFlowApi').then(api =>
+        api.endSessionV2(sessionId)
       );
+
+      // Refresh messages from database
+      const fetched = await fetchSessionMessagesV2(sessionId);
+      const mappedFetched: ChatMessage[] = fetched.map(m => ({
+        id: m.id,
+        role: mapRole(m.role as any),
+        text: m.text,
+        ts: m.ts,
+      }));
+      setMessages(mappedFetched);
       setConversations(prev =>
         prev.map(c =>
           c.id === activeId
             ? {
                 ...c,
-                messages: fetched.map(m => ({
-                  id: m.id,
-                  role: m.role as any,
-                  text: m.text,
-                  ts: m.ts,
-                })),
+                messages: mappedFetched,
                 status: 'ended' as const,
               }
             : c
         )
       );
-    } catch {}
+    } catch (error) {
+      console.error('Failed to end chat:', error);
+    }
+
     setQuickReplies([]);
+
     // Keep chat open briefly so user sees closing message, then return to dashboard
     window.setTimeout(() => {
       setActiveId(null);
@@ -282,13 +336,58 @@ export function useCustomerConversations() {
     }, 1500);
   }, [
     activeId,
-    conversations,
-    end,
+    sessionId,
     setConversations,
     setMessages,
     setQuickReplies,
-    sessionId,
+    setActiveId,
   ]);
+
+  const handleSwitchConversation = useCallback(
+    async (id: string) => {
+      const conv = conversations.find(c => c.id === id);
+      if (!conv) return;
+
+      setActiveId(id);
+      setSessionIdState(id);
+      setIsTyping(true);
+
+      try {
+        // Fetch messages from database
+        const fetched = await fetchSessionMessagesV2(id);
+        const mappedMessages: ChatMessage[] = fetched.map(m => ({
+          id: m.id,
+          role: mapRole(m.role as any),
+          text: m.text,
+          ts: m.ts,
+        }));
+
+        setMessages(mappedMessages);
+
+        // Update conversation with fetched messages
+        setConversations(prev =>
+          prev.map(c =>
+            c.id === id ? { ...c, messages: mappedMessages } : c
+          )
+        );
+
+        // Set quick replies based on conversation status
+        if (conv.status === 'active') {
+          setQuickReplies([{ id: 'qr-end', label: 'End Chat', value: 'End Chat' }]);
+        } else {
+          setQuickReplies([]);
+        }
+
+        updateInputPlaceholder();
+      } catch (error) {
+        console.error('Failed to load conversation messages:', error);
+        setMessages([]);
+      } finally {
+        setIsTyping(false);
+      }
+    },
+    [conversations, setActiveId, setMessages, setQuickReplies, updateInputPlaceholder, setIsTyping, setConversations]
+  );
 
   return {
     // state
@@ -303,17 +402,7 @@ export function useCustomerConversations() {
     initializeFlow,
     handleSend,
     handleQuickReply,
-    switchConversation: (id: string) => {
-      setControllerSession(id);
-      return switchConversation(
-        id,
-        conversations,
-        setActiveId,
-        setMessages,
-        setQuickReplies,
-        updateInputPlaceholder
-      );
-    },
+    switchConversation: handleSwitchConversation,
     endChat,
     setActiveId,
     setConversations,

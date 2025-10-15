@@ -18,20 +18,33 @@ export async function startConversation({
   scriptedFlowRegistry,
   ctx,
 }: Params) {
-  // Only 'about' uses database-backed flows now
-  // 'issue-ticket' and 'track-ticket' are now JSON-based (in scriptedFlowRegistry)
-  if (flowId === 'about') {
+  // Normalize legacy flow ids to DB-backed equivalents
+  const normalizedFlowId =
+    flowId === 'issue-ticket'
+      ? 'ask-assistance'
+      : flowId === 'track-ticket'
+        ? 'customer-track-ticket'
+        : flowId;
+
+  // DB-backed flows
+  if (
+    normalizedFlowId === 'about' ||
+    normalizedFlowId === 'ask-assistance' ||
+    normalizedFlowId === 'customer-track-ticket' ||
+    normalizedFlowId === 'ask-quote'
+  ) {
     // DB-backed path
-    const driver = new DatabaseFlowDriver(flowId);
+    const driver = new DatabaseFlowDriver(normalizedFlowId);
     const sessionId = await ChatDatabaseService.createSession(
       (ctx as any)?.customerId
     );
     if (!sessionId) throw new Error('Failed to create session');
-    const initialNode = await ChatDatabaseService.fetchInitialNode(flowId);
+    const initialNode =
+      await ChatDatabaseService.fetchInitialNode(normalizedFlowId);
     if (!initialNode) throw new Error('No initial node');
     await ChatDatabaseService.attachSessionToFlow({
       sessionId,
-      flowId,
+      flowId: normalizedFlowId,
       nodeId: initialNode.node_id,
     });
     await ChatDatabaseService.insertMessage({
@@ -41,7 +54,9 @@ export async function startConversation({
       nodeId: initialNode.node_id,
     });
     const messages = await ChatDatabaseService.fetchSessionMessages(sessionId);
-    const hasAnyText = (messages || []).some(m => (m.text || '').trim().length > 0);
+    const hasAnyText = (messages || []).some(
+      m => (m.text || '').trim().length > 0
+    );
     const safeMessages = hasAnyText
       ? messages
       : [
@@ -64,7 +79,6 @@ export async function startConversation({
     return { driver, sessionId, messages: safeMessages, quickReplies } as const;
   }
 
-
   // Scripted path
   const flow = scriptedFlowRegistry?.[flowId];
   if (!flow) throw new Error(`Flow not found: ${flowId}`);
@@ -77,7 +91,11 @@ export async function startConversation({
     ts: Date.now(),
   }));
   const quickRepliesResult = await Promise.resolve(flow.quickReplies(ctx));
-  const quickReplies = quickRepliesResult.map((l: string, i: number) => ({ id: `qr-${i}`, label: l, value: l }));
+  const quickReplies = quickRepliesResult.map((l: string, i: number) => ({
+    id: `qr-${i}`,
+    label: l,
+    value: l,
+  }));
   return {
     driver,
     sessionId: null as string | null,

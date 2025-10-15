@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { ArrowLeft, X } from 'lucide-react';
 import { Button, Text } from '../../shared';
-import { MessageGroup, TypingIndicator, ChatInput } from '../core';
+import { MessageGroup, TypingIndicator, ChatInput, ReadOnlyOverlay } from '../core';
 import type { ChatMessage, QuickReply } from '../types';
 
 export interface CustomerChatPanelProps {
@@ -125,7 +125,7 @@ export const CustomerChatPanel: React.FC<CustomerChatPanelProps> = ({
       {/* Messages */}
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 relative"
+        className={`flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 relative ${readOnly ? 'pb-20' : ''}`}
       >
         {messageGroups.map((group, idx) => (
           <MessageGroup
@@ -138,6 +138,11 @@ export const CustomerChatPanel: React.FC<CustomerChatPanelProps> = ({
           />
         ))}
         {isTyping && <TypingIndicator />}
+        
+        {/* ReadOnlyOverlay - only once at the bottom */}
+        {readOnly && (
+          <ReadOnlyOverlay />
+        )}
       </div>
 
       {/* Input */}
