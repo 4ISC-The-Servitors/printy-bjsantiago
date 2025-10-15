@@ -1,9 +1,10 @@
 import 'dotenv/config';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
 
 type Row = Record<string, unknown>;
+type AdminClient = ReturnType<typeof createClient>;
 
-function getAdminClient(): SupabaseClient {
+function getAdminClient(): AdminClient {
   const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) throw new Error('Missing SUPABASE_URL and/or SUPABASE_SERVICE_ROLE_KEY');
@@ -50,7 +51,7 @@ function toCsv(rows: Row[]): string {
   return lines.join('\n');
 }
 
-async function ensureBucket(admin: SupabaseClient, bucket: string): Promise<void> {
+async function ensureBucket(admin: AdminClient, bucket: string): Promise<void> {
   try {
     const { data, error } = await admin.storage.getBucket(bucket);
     if (!error && data) return;
@@ -60,7 +61,7 @@ async function ensureBucket(admin: SupabaseClient, bucket: string): Promise<void
 }
 
 async function uploadCsv(
-  admin: SupabaseClient,
+  admin: AdminClient,
   bucket: string,
   objectPath: string,
   rows: Row[]
