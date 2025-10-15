@@ -204,6 +204,25 @@ async function run(): Promise<void> {
     }
   }
 
+  // Archive orders by created_at (if table exists)
+  {
+    const table = 'orders';
+    const timeCol = 'created_at';
+    try {
+      const rows = await fetchAll(table, timeCol);
+      if (rows.length) {
+        const objectPath = `${prefix}/${table}-${year}.csv`;
+        await appendCsv(admin, bucket, objectPath, rows);
+        if (!dryRun) await deleteRange(table, timeCol);
+        console.log(`[archive] ${table}: exported ${rows.length}${dryRun ? ' (dry-run)' : ''}`);
+      } else {
+        console.log(`[archive] ${table}: no rows in range`);
+      }
+    } catch (e) {
+      console.log(`[archive] ${table}: skipped (${(e as any)?.message || e})`);
+    }
+  }
+
   // Archive quote_* normalized tables using conversations in range
   {
     const convTable = 'quote_conversations';
