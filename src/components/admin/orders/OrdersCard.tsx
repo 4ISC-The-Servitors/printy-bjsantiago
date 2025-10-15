@@ -19,6 +19,7 @@ const OrdersCard: React.FC<OrdersCardProps> = ({ filteredOrders }) => {
     setPage,
     pageSize,
     setHoveredOrderId,
+    viewInChat,
   } = useOrdersCard();
 
   // Calculate paginated display orders from filtered orders
@@ -59,6 +60,7 @@ const OrdersCard: React.FC<OrdersCardProps> = ({ filteredOrders }) => {
                 key={order.id}
                 order={order}
                 onHover={setHoveredOrderId}
+                onViewInChat={viewInChat}
               />
             ))
           ) : (

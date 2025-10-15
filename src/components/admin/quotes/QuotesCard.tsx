@@ -19,6 +19,7 @@ const QuotesCard: React.FC<QuotesCardProps> = ({ filteredQuotes }) => {
     setPage,
     pageSize,
     setHoveredQuoteId,
+    viewInChat,
   } = useQuotesCard();
 
   // Calculate paginated display quotes from filtered quotes
@@ -59,6 +60,7 @@ const QuotesCard: React.FC<QuotesCardProps> = ({ filteredQuotes }) => {
                 key={quote.id}
                 quote={quote}
                 onHover={setHoveredQuoteId}
+                onViewInChat={viewInChat}
               />
             ))
           ) : (

@@ -1,9 +1,11 @@
 import { useState, useMemo } from 'react';
+import { useAdmin } from './AdminContext';
 import { useAdminQuotes } from './useAdminQuotes';
 import useResponsivePageSize from '../ui/useResponsivePageSize';
 
 export const useQuotesCard = (overridePageSize?: number) => {
-  const { loading: quotesLoading } = useAdminQuotes();
+  const { openChatWithTopic, openChat } = useAdmin();
+  const { quotes, loading: quotesLoading, refresh: refreshQuotes } = useAdminQuotes();
   const [hoveredQuoteId, setHoveredQuoteId] = useState<string | null>(null);
 
   // Use the loading state from the admin quotes hook
@@ -32,6 +34,18 @@ export const useQuotesCard = (overridePageSize?: number) => {
     return dynamicPageSize;
   }, [dynamicPageSize, overridePageSize]);
 
+  const viewInChat = (quoteId: string) => {
+    // Find the quote to get the conversation_id
+    const quote = quotes.find(q => q.id === quoteId);
+    const conversationId = quote?.conversation_id || quoteId;
+    
+    if (openChatWithTopic) {
+      openChatWithTopic('quotes', conversationId, undefined, quotes, refreshQuotes);
+    } else {
+      openChat();
+    }
+  };
+
   return {
     isLoading,
     page,
@@ -39,5 +53,6 @@ export const useQuotesCard = (overridePageSize?: number) => {
     pageSize,
     hoveredQuoteId,
     setHoveredQuoteId,
+    viewInChat,
   };
 };
