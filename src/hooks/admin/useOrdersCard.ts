@@ -1,9 +1,11 @@
 import { useState, useMemo } from 'react';
+import { useAdmin } from './AdminContext';
 import { useOrders } from './OrdersContext';
 import useResponsivePageSize from '../ui/useResponsivePageSize';
 
 export const useOrdersCard = (overridePageSize?: number) => {
-  const { loading: ordersLoading } = useOrders();
+  const { openChatWithTopic, openChat } = useAdmin();
+  const { orders, updateOrder, refreshOrders, loading: ordersLoading } = useOrders();
   const [hoveredOrderId, setHoveredOrderId] = useState<string | null>(null);
 
   // Use the loading state from the orders context
@@ -32,6 +34,14 @@ export const useOrdersCard = (overridePageSize?: number) => {
     return dynamicPageSize;
   }, [dynamicPageSize, overridePageSize]);
 
+  const viewInChat = (orderId: string) => {
+    if (openChatWithTopic) {
+      openChatWithTopic('orders', orderId, updateOrder, orders, refreshOrders);
+    } else {
+      openChat();
+    }
+  };
+
   return {
     isLoading,
     page,
@@ -39,5 +49,6 @@ export const useOrdersCard = (overridePageSize?: number) => {
     pageSize,
     hoveredOrderId,
     setHoveredOrderId,
+    viewInChat,
   };
 };

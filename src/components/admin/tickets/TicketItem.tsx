@@ -1,5 +1,5 @@
 import React from 'react';
-import { Badge } from '../../shared';
+import { Badge, Button } from '../../shared';
 import { getTicketStatusBadgeVariant } from '../../../utils/admin/statusColors';
 import { formatTicketStatus } from '../../../utils/shared/statusFormatter';
 import { 
@@ -8,6 +8,7 @@ import {
   formatOrderDateMobile 
 } from '../../../utils/shared/dateFormatter';
 import { formatRelativeTimeLabel } from '../../../utils/shared/timeFormatter';
+import { MessageSquare } from 'lucide-react';
 import { useResponsiveLayout } from '../../../hooks/ui';
 
 interface Ticket {
@@ -32,10 +33,12 @@ interface Ticket {
 
 interface TicketItemProps {
   ticket: Ticket;
+  onViewInChat: (ticketId: string) => void;
 }
 
 export const TicketItem: React.FC<TicketItemProps> = ({
   ticket,
+  onViewInChat,
 }) => {
   // Debug logging
   console.log('TicketItem received ticket:', {
@@ -105,10 +108,23 @@ export const TicketItem: React.FC<TicketItemProps> = ({
         </div>
       </div>
 
-      {/* Row 2: Customer Name */}
+      {/* Row 2: Customer Name | Chat Button */}
       <div className={layout.structure.row2}>
         <div className={layout.leftSection}>
           <span className={layout.customerName}>{customerName}</span>
+        </div>
+        
+        <div className="flex items-center gap-2 sm:gap-3 md:gap-4 shrink-0">
+          <Button
+            variant="secondary"
+            size="sm"
+            threeD
+            aria-label={`Ask about ${displayId}`}
+            onClick={() => onViewInChat(ticket.inquiry_id)}
+            className={layout.chatButton}
+          >
+            <MessageSquare className={layout.chatIcon} />
+          </Button>
         </div>
       </div>
 

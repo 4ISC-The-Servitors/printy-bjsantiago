@@ -18,6 +18,7 @@ const TicketsCard: React.FC<TicketsCardProps> = ({ filteredTickets }) => {
     page,
     setPage,
     pageSize,
+    viewInChat,
   } = useTicketsCard();
 
   // Calculate paginated display tickets from filtered tickets
@@ -57,6 +58,7 @@ const TicketsCard: React.FC<TicketsCardProps> = ({ filteredTickets }) => {
               <TicketItem
                 key={ticket.inquiry_id}
                 ticket={ticket}
+                onViewInChat={(ticketId) => viewInChat(ticketId, filteredTickets)}
               />
             ))
           ) : !error ? (
