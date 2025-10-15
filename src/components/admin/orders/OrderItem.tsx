@@ -1,5 +1,5 @@
 import React from 'react';
-import { Badge } from '../../shared';
+import { Badge, Button } from '../../shared';
 import { getOrderStatusBadgeVariant } from '../../../utils/admin/statusColors';
 import { formatOrderStatus } from '../../../utils/shared/statusFormatter';
 import { 
@@ -8,6 +8,7 @@ import {
   formatOrderDateMobile 
 } from '../../../utils/shared/dateFormatter';
 import { formatRelativeTimeLabel } from '../../../utils/shared/timeFormatter';
+import { MessageSquare } from 'lucide-react';
 import type { AdminOrderRow } from '../../../hooks/admin/useAdminOrders';
 import { useResponsiveLayout } from '../../../hooks/ui';
 
@@ -17,11 +18,13 @@ type Order = AdminOrderRow;
 interface OrderItemProps {
   order: Order;
   onHover: (orderId: string | null) => void;
+  onViewInChat: (orderId: string) => void;
 }
 
 export const OrderItem: React.FC<OrderItemProps> = ({
   order,
   onHover,
+  onViewInChat,
 }) => {
   // Get responsive layout classes
   const { getOrderCardLayout } = useResponsiveLayout();
@@ -101,7 +104,7 @@ export const OrderItem: React.FC<OrderItemProps> = ({
         </div>
       </div>
 
-      {/* Row 3: Dates */}
+      {/* Row 3: Chat Button and Dates */}
       <div className={layout.structure.row3}>
         <div className={layout.dates}>
           <span className="hidden lg:inline">
@@ -114,6 +117,17 @@ export const OrderItem: React.FC<OrderItemProps> = ({
             Ordered: {createdDateMobile} • {lastActionLabel}: {lastActionDateMobile}
           </span>
         </div>
+        
+        <Button
+          variant="secondary"
+          size="sm"
+          threeD
+          aria-label={`Ask about ${displayId}`}
+          onClick={() => onViewInChat(order.id)}
+          className={layout.chatButton}
+        >
+          <MessageSquare className={layout.chatIcon} />
+        </Button>
       </div>
     </div>
   );

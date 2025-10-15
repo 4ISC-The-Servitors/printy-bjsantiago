@@ -1,5 +1,5 @@
 import React from 'react';
-import { Badge } from '../../shared';
+import { Badge, Button } from '../../shared';
 import { getQuoteStatusBadgeVariant } from '../../../utils/admin/statusColors';
 import { formatQuoteStatus } from '../../../utils/shared/statusFormatter';
 import { 
@@ -8,6 +8,7 @@ import {
   formatOrderDateMobile 
 } from '../../../utils/shared/dateFormatter';
 import { formatRelativeTimeLabel } from '../../../utils/shared/timeFormatter';
+import { MessageSquare } from 'lucide-react';
 import type { AdminQuoteRow } from '../../../hooks/admin/useAdminQuotes';
 import { useResponsiveLayout } from '../../../hooks/ui';
 
@@ -17,11 +18,13 @@ type Quote = AdminQuoteRow;
 interface QuoteItemProps {
   quote: Quote;
   onHover: (quoteId: string | null) => void;
+  onViewInChat: (quoteId: string) => void;
 }
 
 export const QuoteItem: React.FC<QuoteItemProps> = ({
   quote,
   onHover,
+  onViewInChat,
 }) => {
   // Get responsive layout classes
   const { getQuoteCardLayout } = useResponsiveLayout();
@@ -88,7 +91,7 @@ export const QuoteItem: React.FC<QuoteItemProps> = ({
         </div>
       </div>
 
-      {/* Row 3: Dates */}
+      {/* Row 3: Chat Button and Dates */}
       <div className={layout.structure.row3}>
         <div className={layout.dates}>
           <span className="hidden lg:inline">
@@ -101,6 +104,17 @@ export const QuoteItem: React.FC<QuoteItemProps> = ({
             Created: {createdDateMobile} • {lastActionLabel}: {lastActionDateMobile}
           </span>
         </div>
+        
+        <Button
+          variant="secondary"
+          size="sm"
+          threeD
+          aria-label={`Ask about ${displayId}`}
+          onClick={() => onViewInChat(quote.id)}
+          className={layout.chatButton}
+        >
+          <MessageSquare className={layout.chatIcon} />
+        </Button>
       </div>
     </div>
   );
