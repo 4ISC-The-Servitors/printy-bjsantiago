@@ -6,12 +6,12 @@ import { createClient } from '@supabase/supabase-js';
 // the client build and ensures scripts work when run directly.
 dotenv.config({ path: process.env.ENV_FILE || '.env.backup' });
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL;
-const serviceKey = process.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl || !serviceKey) {
   throw new Error(
-    'Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY. Configure .env.backup.'
+    'Missing SUPABASE_URL (or VITE_SUPABASE_URL) or SUPABASE_SERVICE_ROLE_KEY (or VITE_SUPABASE_SERVICE_ROLE_KEY). Configure .env.backup.'
   );
 }
 

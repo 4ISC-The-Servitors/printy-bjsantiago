@@ -7,10 +7,10 @@ import { admin } from './supabaseAdmin.ts';
 
 const bucketName = process.env.BACKUP_BUCKET || 'backup';
 const objectPath = process.env.BACKUP_OBJECT || 'db/backup.sql';
-const databaseUrl = process.env.DATABASE_URL;
+const databaseUrl = process.env.DATABASE_URL || process.env.VITE_DATABASE_URL;
 
 if (!databaseUrl) {
-  throw new Error('Missing DATABASE_URL. Configure .env.backup');
+  throw new Error('Missing DATABASE_URL (or VITE_DATABASE_URL). Configure .env.backup');
 }
 
 const isWindows = process.platform === 'win32';
@@ -45,7 +45,8 @@ export async function runRestore(): Promise<void> {
 
   // Attempt to resolve IPv4 and pass as PGHOSTADDR to avoid AAAA-only environments
   let hostaddr: string | null = null;
-  const host = new URL(databaseUrl).hostname;
+  const dbUrl: string = databaseUrl as string;
+  const host = new URL(dbUrl).hostname;
   async function resolveIPv4(h: string): Promise<string | null> {
     try {
       const v4 = await dns.resolve4(h);
@@ -89,10 +90,14 @@ export async function runRestore(): Promise<void> {
     } else {
       console.log('[restore] Could not resolve IPv4 hostaddr; proceeding with default resolver');
     }
-    const proc = spawn(psqlBin, ['--dbname', databaseUrl, '-v', 'ON_ERROR_STOP=1', '-1', '-f', '-'], {
-      stdio: ['pipe', 'inherit', 'inherit'],
-      env,
-    });
+    const proc = spawn(
+      psqlBin,
+      ['--dbname', dbUrl, '-v', 'ON_ERROR_STOP=1', '-1', '-f', '-'],
+      {
+        stdio: ['pipe', 'inherit', 'inherit'] as const,
+        env,
+      }
+    );
     proc.stdin.write(Buffer.concat(chunks));
     proc.stdin.end();
     proc.on('error', reject);

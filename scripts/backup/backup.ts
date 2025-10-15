@@ -7,10 +7,10 @@ import { admin, ensureBackupBucket } from './supabaseAdmin.ts';
 
 const bucketName = process.env.BACKUP_BUCKET || 'backup';
 const objectPath = process.env.BACKUP_OBJECT || 'db/backup.sql';
-const databaseUrl = process.env.DATABASE_URL;
+const databaseUrl = process.env.DATABASE_URL || process.env.VITE_DATABASE_URL;
 
 if (!databaseUrl) {
-  throw new Error('Missing DATABASE_URL. Configure .env.backup');
+  throw new Error('Missing DATABASE_URL (or VITE_DATABASE_URL). Configure .env.backup');
 }
 
 const isWindows = process.platform === 'win32';
@@ -24,7 +24,8 @@ export async function runBackup(): Promise<void> {
 
   // Attempt to resolve an IPv4 address to avoid environments that only return AAAA
   let hostaddr: string | null = null;
-  const host = new URL(databaseUrl).hostname;
+  const dbUrl: string = databaseUrl as string;
+  const host = new URL(dbUrl).hostname;
   async function resolveIPv4(h: string): Promise<string | null> {
     try {
       const v4 = await dns.resolve4(h);
@@ -60,7 +61,7 @@ export async function runBackup(): Promise<void> {
   hostaddr = await resolveIPv4(host);
 
   return new Promise<void>((resolve, reject) => {
-    const args = ['--dbname', databaseUrl, '--no-owner', '--no-acl'];
+    const args: string[] = ['--dbname', dbUrl, '--no-owner', '--no-acl'];
     const env = { ...process.env } as NodeJS.ProcessEnv;
     if (hostaddr) {
       env.PGHOSTADDR = hostaddr;
@@ -69,7 +70,7 @@ export async function runBackup(): Promise<void> {
       console.log('[backup] Could not resolve IPv4 hostaddr; proceeding with default resolver');
     }
     console.log(`[backup] Using pg_dump at: ${pgDumpBin}`);
-    const proc = spawn(pgDumpBin, args, { stdio: ['ignore', 'pipe', 'pipe'], env });
+    const proc = spawn(pgDumpBin, args, { stdio: ['ignore', 'pipe', 'pipe'] as const, env });
 
     const chunks: Buffer[] = [];
     proc.stdout.on('data', d => chunks.push(Buffer.isBuffer(d) ? d : Buffer.from(d)));
