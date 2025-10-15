@@ -16,8 +16,13 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with: { node-version: 22 }
-      - name: Install PostgreSQL client tools
-        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Install PostgreSQL client 17
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-17
+
+      - name: Verify pg_dump version
+        run: /usr/lib/postgresql/17/bin/pg_dump --version
       - name: Install dependencies
         run: npm install --no-audit --no-fund
       - name: Verify env present
@@ -34,6 +39,7 @@ jobs:
           SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.VITE_SUPABASE_SERVICE_ROLE_KEY }}
           DATABASE_URL: ${{ secrets.VITE_DATABASE_URL }}
+          PG_BIN: /usr/lib/postgresql/17/bin
           BACKUP_BUCKET: backup
           BACKUP_OBJECT: db/backup.sql
           CRON_TZ: Asia/Manila
