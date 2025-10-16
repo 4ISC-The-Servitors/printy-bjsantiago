@@ -10,6 +10,8 @@ import CustomerRoot from './pages/customer/CustomerRoot';
 import AdminRoot from './pages/admin/AdminRoot';
 import { PageLoading } from './components/shared';
 import './index.css';
+import RequireAuth from './components/auth/guards/RequireAuth';
+import GuestOnly from './components/auth/guards/GuestOnly';
 
 // Lazy load heavy components
 const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'));
@@ -33,16 +35,18 @@ function App() {
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
-      <Route path="/auth/signin" element={<SignIn />} />
-      <Route path="/auth/signup" element={<SignUp />} />
+      <Route path="/auth/signin" element={<GuestOnly><SignIn /></GuestOnly>} />
+      <Route path="/auth/signup" element={<GuestOnly><SignUp /></GuestOnly>} />
       <Route path="/auth/forgot-password" element={<ForgotPassword />} />
       <Route path="/auth/reset-password/confirm" element={<ResetPassword />} />
       <Route
         path="/customer"
         element={
-          <Suspense fallback={<PageLoading variant="dashboard" />}>
-            <CustomerRoot />
-          </Suspense>
+          <RequireAuth allowed={['regular','valued']}>
+            <Suspense fallback={<PageLoading variant="dashboard" />}>
+              <CustomerRoot />
+            </Suspense>
+          </RequireAuth>
         }
       >
         <Route
@@ -90,17 +94,21 @@ function App() {
       <Route
         path="/valued"
         element={
-          <Suspense fallback={<PageLoading variant="dashboard" />}>
-            <CustomerDashboard />
-          </Suspense>
+          <RequireAuth allowed={['valued']}>
+            <Suspense fallback={<PageLoading variant="dashboard" />}>
+              <CustomerDashboard />
+            </Suspense>
+          </RequireAuth>
         }
       />
       <Route
         path="/admin"
         element={
-          <Suspense fallback={<PageLoading variant="dashboard" />}>
-            <AdminRoot />
-          </Suspense>
+          <RequireAuth allowed={['admin']}>
+            <Suspense fallback={<PageLoading variant="dashboard" />}>
+              <AdminRoot />
+            </Suspense>
+          </RequireAuth>
         }
       >
         <Route
@@ -163,9 +171,11 @@ function App() {
       <Route
         path="/superadmin"
         element={
-          <Suspense fallback={<PageLoading variant="dashboard" />}>
-            <SuperAdminDashboard />
-          </Suspense>
+          <RequireAuth allowed={['superadmin']}>
+            <Suspense fallback={<PageLoading variant="dashboard" />}>
+              <SuperAdminDashboard />
+            </Suspense>
+          </RequireAuth>
         }
       />
       <Route
