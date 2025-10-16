@@ -1,7 +1,54 @@
 /**
  * Action handler: ai_summarize_specs
- * Loads customer messages for the quote conversation, runs AI summarization,
- * and opens the Spec Editor modal prefilled with the AI-generated spec.
+ *
+ * Uses AI to analyze customer quote request messages and generate structured
+ * specifications, then opens the Spec Editor modal pre-filled with the AI-generated data.
+ *
+ * @description
+ * - Fetches all messages from the customer's quote session (chat_messages_v2)
+ * - Constructs a prompt with conversation history
+ * - Calls Cohere AI API to generate structured specifications
+ * - Opens Spec Editor modal with AI-generated spec (excluding price)
+ * - Admin can review, edit, and add pricing before sending proposal
+ *
+ * AI analyzes and extracts:
+ * - Product name and category
+ * - Description and requirements
+ * - Size/dimensions
+ * - Materials needed
+ * - Color preferences
+ * - Finishing options
+ * - Quantity
+ * - Deadline
+ * - Additional notes
+ *
+ * @param params.actionNode - The action node from the flow definition
+ * @param params.context - Current session context containing conversation_id/session_id
+ * @param params.sessionId - Current admin chat session ID
+ * @param params.customerId - Customer ID (not used in this action)
+ *
+ * @returns ActionExecutionResult with empty messages (UI interaction only)
+ *
+ * @example
+ * ```json
+ * // Flow definition usage
+ * {
+ *   "id": "ai_summarize",
+ *   "type": "action",
+ *   "action": "ai_summarize_specs",
+ *   "action_config": {
+ *     "conversation_id_key": "session_id"
+ *   },
+ *   "next": "await_editor_close"
+ * }
+ * ```
+ *
+ * @remarks
+ * - Uses Cohere's command-nightly model for AI generation
+ * - Quoted price is intentionally left undefined for admin to fill
+ * - Opens modal via specEditorEvents system
+ * - No messages returned to avoid duplication (action node message already displayed)
+ * - Requires api_fetch_chat_messages_v2 RPC function for encrypted message access
  */
 
 import { supabase } from '../../../../../../lib/supabase';

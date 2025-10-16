@@ -1,9 +1,49 @@
 /**
  * Action handler: display_quote_details_admin
- * Admin-facing version of quote details display.
- * - Pulls original customer request from messages (session_id)
- * - Summarizes any latest proposal (if exists)
- * - Formats messaging for admin audience (no customer-facing wording)
+ *
+ * Admin-facing version of quote details display. Shows customer's original request
+ * and any existing proposals with specifications and pricing for admin review.
+ *
+ * @description
+ * - Fetches original customer quote request messages from chat history
+ * - Retrieves latest proposal (if any) from quote_proposals table
+ * - Formats information for admin audience (technical, internal wording)
+ * - Persists formatted details to admin's chat session
+ * - Stores source_session_id in context for subsequent actions
+ *
+ * Information displayed:
+ * - Original customer request (all customer messages)
+ * - Latest proposal specifications (product, category, description, size, materials, color, finishing, quantity, deadline)
+ * - Admin notes
+ * - Quoted price
+ * - Proposal status
+ *
+ * @param params.actionNode - The action node from the flow definition
+ * @param params.context - Current session context containing session_id/conversation_id
+ * @param params.sessionId - Current admin chat session ID
+ * @param params.customerId - Customer ID (not used in this action)
+ *
+ * @returns ActionExecutionResult with formatted quote details for admin
+ *
+ * @example
+ * ```json
+ * // Flow definition usage
+ * {
+ *   "id": "show_admin_details",
+ *   "type": "action",
+ *   "action": "display_quote_details_admin",
+ *   "action_config": {
+ *     "conversation_id_key": "session_id"
+ *   },
+ *   "next": "ask_admin_action"
+ * }
+ * ```
+ *
+ * @remarks
+ * - Uses RPC function api_fetch_chat_messages_v2 for secure encrypted message access
+ * - Supports both session_id and legacy conversation_id in quote_proposals lookup
+ * - Tailored for admin workflow (different wording than customer version)
+ * - Stores source_session_id for tracking which quote is being worked on
  */
 
 import { supabase } from '../../../../../../lib/supabase';

@@ -1,6 +1,40 @@
 /**
  * Action handler: verify_order
- * Verifies that an order exists and belongs to the customer
+ *
+ * Verifies that an order exists in the system and belongs to the requesting customer.
+ * Supports lookup by both human-friendly display ID (e.g., ORD-12345) and UUID.
+ *
+ * @description
+ * - Accepts order ID from user input (display_id or UUID)
+ * - Queries orders_duplicate table with customer_id verification
+ * - Tries display_id match first, then falls back to UUID match
+ * - Stores verified_order_id in session metadata for subsequent actions
+ * - Returns success or error message based on verification result
+ *
+ * @param params.actionNode - The action node from the flow definition
+ * @param params.context - Current session context containing order_id
+ * @param params.customerId - Customer attempting to verify the order
+ * @param params.sessionId - Current chat session ID
+ *
+ * @returns ActionExecutionResult with verification status message
+ *
+ * @example
+ * ```json
+ * // Flow definition usage
+ * {
+ *   "id": "verify_order_node",
+ *   "type": "action",
+ *   "action": "verify_order",
+ *   "action_config": {
+ *     "order_id_key": "order_id"
+ *   },
+ *   "next": "upload_proof_node"
+ * }
+ * ```
+ *
+ * @remarks
+ * - Ensures customer can only access their own orders
+ * - Verified order_id is stored in metadata for use by subsequent actions (e.g., upload_payment_proof)
  */
 
 import { supabase } from '../../../../../../lib/supabase';

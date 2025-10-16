@@ -1,76 +1,21 @@
-// Button Component
-export { default as Button } from './Button';
-export type { ButtonProps } from './Button';
+/**
+ * @deprecated This file is deprecated. Import from @shared/components instead.
+ *
+ * Legacy re-exports for backward compatibility during migration.
+ * All components have been moved to src/shared/components/
+ *
+ * Migration guide:
+ * - Old: import { Button } from '../components/shared'
+ * - New: import { Button } from '@shared/components/ui'
+ * - Or:  import { Button } from '@shared/components'
+ */
 
-// Input Component
-export { default as Input } from './Input';
-export type { InputProps } from './Input';
+// Re-export all components from new locations
+export * from '../../shared/components';
 
-// Card Component
-export { default as Card } from './Card';
-export type { CardProps } from './Card';
-
-// Text Component
-export { default as Text } from './Text';
-export type { TextProps } from './Text';
-
-// Badge Component
-export { default as Badge } from './Badge';
-export type { BadgeProps } from './Badge';
-
-// Skeleton Component
-export { default as Skeleton } from './Skeleton';
-export type { SkeletonProps } from './Skeleton';
-
-// PageLoading Component
-export { default as PageLoading } from './PageLoading';
-
-// Switch Component
-export { default as Switch } from './Switch';
-export type { SwitchProps } from './Switch';
-
-// Container Component
-export { default as Container } from './Container';
-export type { ContainerProps } from './Container';
-
-// Toast Components
-export { default as Toast } from './Toast';
-export type { ToastProps } from './Toast';
-export { default as ToastContainer } from './ToastContainer';
-export type { ToastContainerProps } from './ToastContainer';
-
-// Modal Component
-export { default as Modal } from './Modal';
-export type {
-  ModalProps,
-  ModalHeaderProps,
-  ModalBodyProps,
-  ModalFooterProps,
-} from './Modal';
-
-// Toast Hook and Types (from lib)
+// Re-export toast hook
 export { useToast } from '../../lib/useToast';
 export type { ToastOptions, ToastMethods, ToastData } from '../../lib/useToast';
 
-// Showcase Components
+// Re-export showcase (if still needed - to be deprecated)
 export { default as ComponentShowcase } from './showcase/ComponentShowcase';
-
-// Tooltip
-export { default as Tooltip } from './Tooltip';
-export { default as Pagination } from './Pagination';
-export type { TooltipProps } from './Tooltip';
-
-// Search & Filter
-export { default as Search } from './Search';
-export { default as Filter } from './Filter';
-
-// Checkbox Component
-export { default as Checkbox } from './Checkbox';
-export type { CheckboxProps } from './Checkbox';
-
-// Cloudflare Turnstile Component
-export { default as Turnstile } from './Turnstile';
-
-// Notification Component
-export { default as Notification } from './Notification';
-export type { NotificationProps } from './Notification';

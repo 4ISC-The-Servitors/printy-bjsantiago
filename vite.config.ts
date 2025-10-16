@@ -71,24 +71,46 @@ export default defineConfig({
             return 'vendor';
           }
 
-          // Feature chunks
+          // Feature chunks - updated for new architecture
+          if (id.includes('/src/admin/')) {
+            return 'admin';
+          }
+          if (id.includes('/src/customer/')) {
+            return 'customer';
+          }
+          if (id.includes('/src/guest/')) {
+            return 'guest';
+          }
+          if (id.includes('/src/auth/')) {
+            return 'auth';
+          }
+          if (id.includes('/src/shared/')) {
+            return 'shared';
+          }
+          if (id.includes('/src/features/chat/')) {
+            return 'chat';
+          }
+          if (id.includes('/src/features/quotes/')) {
+            return 'quotes';
+          }
+          // Legacy paths (to be removed after migration)
           if (
             id.includes('/src/components/admin/') ||
             id.includes('/src/pages/admin/')
           ) {
-            return 'admin-components';
+            return 'admin-legacy';
           }
           if (
             id.includes('/src/components/customer/') ||
             id.includes('/src/pages/customer/')
           ) {
-            return 'customer-components';
+            return 'customer-legacy';
           }
           if (id.includes('/src/components/shared/')) {
-            return 'shared-components';
+            return 'shared-legacy';
           }
           if (id.includes('/src/chatLogic/')) {
-            return 'chat-logic';
+            return 'chat-legacy';
           }
         },
       },

@@ -1,6 +1,56 @@
 /**
  * Action handler: send_quote_proposal
- * Sends the latest saved spec as a proposal to the customer and updates status.
+ *
+ * Sends the latest saved specification as a formal proposal to the customer.
+ * Creates a proposal record and updates quote status to indicate proposal sent.
+ *
+ * @description
+ * - Retrieves latest saved specification from quote_specs table
+ * - Validates that quoted_price is present in the spec
+ * - Creates a new proposal record in quote_proposals table
+ * - Updates quote status to 'spec_proposed'
+ * - Returns success message with proposal ID
+ *
+ * Process flow:
+ * 1. Fetch latest spec by session_id (customer's quote session)
+ * 2. Verify spec has quoted_price (required)
+ * 3. Create quote_proposals record with:
+ *    - session_id (customer's quote session)
+ *    - spec_id (reference to saved spec)
+ *    - spec_final (complete specification data)
+ *    - quoted_price
+ *    - status: 'sent'
+ *    - sent_at timestamp
+ * 4. Update quotes table status to 'spec_proposed'
+ * 5. Notify admin of success
+ *
+ * @param params.actionNode - The action node from the flow definition
+ * @param params.context - Current session context containing conversation_id/session_id
+ * @param params.sessionId - Current admin chat session ID (not used for query)
+ * @param params.customerId - Customer ID (not used in this action)
+ *
+ * @returns ActionExecutionResult with success message containing proposal ID
+ *
+ * @example
+ * ```json
+ * // Flow definition usage
+ * {
+ *   "id": "send_proposal",
+ *   "type": "action",
+ *   "action": "send_quote_proposal",
+ *   "action_config": {
+ *     "conversation_id_key": "session_id"
+ *   },
+ *   "next": "confirmation_message"
+ * }
+ * ```
+ *
+ * @remarks
+ * - Requires admin to have saved specs via Spec Editor first
+ * - conversation_id refers to CUSTOMER's quote session, not admin's chat session
+ * - Quoted price validation prevents sending incomplete proposals
+ * - Proposal ID is truncated in message for brevity (first 8 chars)
+ * - Customer can view proposal in their quote details flow
  */
 
 import { supabase } from '../../../../../../lib/supabase';

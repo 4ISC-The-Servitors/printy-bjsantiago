@@ -1,8 +1,37 @@
 /**
  * Action handler: accept_quote_proposal
- * Queues a quote proposal acceptance (actual update happens after acknowledgement)
+ *
+ * Queues a quote proposal acceptance for processing after user acknowledgement.
+ * This action stores the acceptance intent in session metadata as a pending action,
+ * which will be processed when the conversation ends.
+ *
+ * @description
+ * - Retrieves the conversation ID from session context
+ * - Stores 'pending_quote_action: accept' in session metadata
+ * - Actual database update happens after user acknowledges the acceptance
+ * - Updates both quote_proposals and quotes tables
+ *
+ * @param params.actionNode - The action node from the flow definition
+ * @param params.context - Current session context containing conversation_id
+ * @param params.sessionId - Current chat session ID
+ * @param params.customerId - Customer performing the action
+ *
+ * @returns ActionExecutionResult with error message if conversation not found, empty messages otherwise
+ *
+ * @example
+ * ```json
+ * // Flow definition usage
+ * {
+ *   "id": "accept_node",
+ *   "type": "action",
+ *   "action": "accept_quote_proposal",
+ *   "action_config": {
+ *     "conversation_id_key": "conversation_id"
+ *   },
+ *   "next": "confirmation_node"
+ * }
+ * ```
  */
-
 import { supabase } from '../../../../../../lib/supabase';
 import { updateSessionMetadata } from '../../helpers/flowHelpers';
 import type { ActionExecutionParams, ActionExecutionResult } from '../../types';

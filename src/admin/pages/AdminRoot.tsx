@@ -1,0 +1,59 @@
+import React, { useMemo, useState } from 'react';
+import { Outlet } from 'react-router-dom';
+import { AdminLayout } from '@admin/components/shared/layouts';
+import { AdminProvider, type SelectedItem } from '@admin/hooks/AdminContext';
+import { AdminConversationsProvider } from '@admin/hooks/useAdminConversations';
+
+const AdminRoot: React.FC = () => {
+  const [selected, setSelected] = useState<SelectedItem[]>([]);
+
+  const adminContextValue = useMemo(
+    () => ({
+      selected,
+      addSelected: (item: SelectedItem) =>
+        setSelected(prev =>
+          prev.find(i => i.id === item.id) ? prev : [...prev, item]
+        ),
+      removeSelected: (id: string) =>
+        setSelected(prev => prev.filter(i => i.id !== id)),
+      clearSelected: () => setSelected([]),
+      openChat: () => {
+        window.dispatchEvent(new CustomEvent('admin-chat-open'));
+      },
+      openChatWithTopic: (
+        topic: string,
+        orderId?: string,
+        updateOrder?: (orderId: string, updates: any) => void,
+        orders?: any[],
+        refreshOrders?: () => void,
+        orderIds?: string[]
+      ) => {
+        window.dispatchEvent(
+          new CustomEvent('admin-chat-open', {
+            detail: {
+              topic,
+              orderId,
+              updateOrder,
+              orders,
+              refreshOrders,
+              orderIds,
+            },
+          })
+        );
+      },
+    }),
+    [selected]
+  );
+
+  return (
+    <AdminConversationsProvider>
+      <AdminProvider value={adminContextValue}>
+        <AdminLayout>
+          <Outlet />
+        </AdminLayout>
+      </AdminProvider>
+    </AdminConversationsProvider>
+  );
+};
+
+export default AdminRoot;

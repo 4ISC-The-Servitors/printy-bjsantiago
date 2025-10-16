@@ -1,6 +1,48 @@
 /**
  * Action handler: upload_payment_proof
- * Handles uploading payment proof for an order
+ *
+ * Handles the submission of payment proof for an order. Expects the file to be
+ * pre-uploaded to Supabase Storage, with only the storage URL/reference provided.
+ *
+ * @description
+ * - Validates that a valid payment proof file reference is provided
+ * - Accepts URLs in formats:
+ *   - Supabase signed URLs: https://<project>.supabase.co/storage/.../payment-proofs/...
+ *   - Custom protocol: supabase://payment-proofs/<customerId>/<filename>
+ *   - Direct image URLs: https://.../(jpg|jpeg|png|gif|webp|pdf)
+ * - Resolves order_id from either verified_order_id (from previous verify_order action)
+ *   or from provided order_id input (display_id or UUID)
+ * - Updates order record with payment proof reference
+ * - Sets order status to 'verifying_payment'
+ * - Returns success or error message
+ *
+ * @param params.actionNode - The action node from the flow definition
+ * @param params.context - Current session context containing payment_proof_file and optionally verified_order_id
+ * @param params.customerId - Customer uploading the payment proof
+ * @param params.sessionId - Current chat session ID
+ *
+ * @returns ActionExecutionResult with upload status message
+ *
+ * @example
+ * ```json
+ * // Flow definition usage
+ * {
+ *   "id": "upload_proof_node",
+ *   "type": "action",
+ *   "action": "upload_payment_proof",
+ *   "action_config": {
+ *     "order_id_key": "order_id",
+ *     "file_key": "payment_proof_file"
+ *   },
+ *   "next": "confirmation_node"
+ * }
+ * ```
+ *
+ * @remarks
+ * - File upload to storage must happen in the UI before calling this action
+ * - Only the storage URL/reference is passed to this action
+ * - Ensures customer can only update their own orders
+ * - Payment proof is recorded with timestamp for admin review
  */
 
 import { supabase } from '../../../../../../lib/supabase';

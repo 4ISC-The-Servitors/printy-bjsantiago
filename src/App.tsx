@@ -1,33 +1,30 @@
 import { Routes, Route } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
-import LandingPage from './pages/LandingPage';
-import SignIn from './pages/auth/SignIn';
-import SignUp from './pages/auth/SignUp';
-import ForgotPassword from './pages/auth/ForgotPassword';
-import ResetPassword from './pages/auth/ResetPassword';
-import CustomerAccountSettings from './pages/customer/CustomerAccountSettings';
-import CustomerRoot from './pages/customer/CustomerRoot';
-import AdminRoot from './pages/admin/AdminRoot';
-import { PageLoading } from './components/shared';
+import { LandingPage } from '@guest/pages';
+import { SignIn, SignUp, ForgotPassword, ResetPassword } from '@auth/pages';
+import CustomerAccountSettings from '@customer/pages/CustomerAccountSettings';
+import CustomerRoot from '@customer/pages/CustomerRoot';
+import AdminRoot from '@admin/pages/AdminRoot';
+import { PageLoading } from '@shared/components';
 import './index.css';
 
 // Lazy load heavy components
-const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'));
-const AdminOrders = lazy(() => import('./pages/admin/Orders'));
-const AdminTickets = lazy(() => import('./pages/admin/Tickets'));
-const AdminQuotes = lazy(() => import('./pages/admin/Quotes'));
-const AdminSettingsPage = lazy(() => import('./pages/admin/AdminSettings'));
-const AdminPortfolio = lazy(() => import('./pages/admin/Portfolio'));
-const AdminChats = lazy(() => import('./pages/admin/Chats'));
-const SuperAdminDashboard = lazy(() => import('./pages/superadmin/Dashboard'));
+const AdminDashboard = lazy(() => import('@admin/pages/Dashboard'));
+const AdminOrders = lazy(() => import('@admin/pages/Orders'));
+const AdminTickets = lazy(() => import('@admin/pages/Tickets'));
+const AdminQuotes = lazy(() => import('@admin/pages/Quotes'));
+const AdminSettingsPage = lazy(() => import('@admin/pages/AdminSettings'));
+const AdminPortfolio = lazy(() => import('@admin/pages/Portfolio'));
+const AdminChats = lazy(() => import('@admin/pages/Chats'));
+const SuperAdminDashboard = lazy(() => import('./superadmin/pages/Dashboard'));
 const ComponentShowcase = lazy(
   () => import('./components/shared/showcase/ComponentShowcase')
 );
-const CustomerDashboard = lazy(() => import('./pages/customer/CustomerDashboard'));
-const CustomerChatHistory = lazy(() => import('./pages/customer/CustomerChatHistory'));
-const CustomerOrderHistory = lazy(() => import('./pages/customer/CustomerOrderHistory'));
-const CustomerTicketHistory = lazy(() => import('./pages/customer/CustomerTicketHistory'));
-const CustomerQuoteHistory = lazy(() => import('./pages/customer/CustomerQuoteHistory'));
+const CustomerDashboard = lazy(() => import('@customer/pages/CustomerDashboard'));
+const CustomerChatHistory = lazy(() => import('@customer/pages/CustomerChatHistory'));
+const CustomerOrderHistory = lazy(() => import('@customer/pages/CustomerOrderHistory'));
+const CustomerTicketHistory = lazy(() => import('@customer/pages/CustomerTicketHistory'));
+const CustomerQuoteHistory = lazy(() => import('@customer/pages/CustomerQuoteHistory'));
 
 function App() {
   return (

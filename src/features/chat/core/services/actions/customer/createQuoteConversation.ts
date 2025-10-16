@@ -1,8 +1,42 @@
 /**
  * Action handler: create_quote_conversation
- * Creates a new quote conversation and adds the initial message
+ *
+ * Creates a new quote request with a unique display ID and stores it in the database.
+ * This action is typically called after collecting quote details from the customer.
+ *
+ * @description
+ * - Generates a unique quote display ID (format: QOT-XXXXXX)
+ * - Updates current session metadata with quote information
+ * - Creates a quote record in the quotes table for admin tracking
+ * - Returns a success message with the quote ID
+ * - User's quote details are already inserted by JsonbFlowProcessor before this action
+ *
+ * @param params.actionNode - The action node from the flow definition
+ * @param params.context - Current session context containing quote_details
+ * @param params.customerId - Customer creating the quote
+ * @param params.sessionId - Current chat session ID
+ *
+ * @returns ActionExecutionResult with success message containing quote display ID
+ *
+ * @example
+ * ```json
+ * // Flow definition usage
+ * {
+ *   "id": "create_quote",
+ *   "type": "action",
+ *   "action": "create_quote_conversation",
+ *   "action_config": {
+ *     "details_key": "quote_details"
+ *   },
+ *   "next": "success_message"
+ * }
+ * ```
+ *
+ * @remarks
+ * The user's quote details message is already inserted by JsonbFlowProcessor.processInput()
+ * before this action executes (at line 180 of JsonbFlowProcessor), so we don't duplicate
+ * the message insertion here.
  */
-
 import { supabase } from '../../../../../../lib/supabase';
 import { insertMessage } from '../../helpers/flowHelpers';
 import type { ActionExecutionParams, ActionExecutionResult } from '../../types';
