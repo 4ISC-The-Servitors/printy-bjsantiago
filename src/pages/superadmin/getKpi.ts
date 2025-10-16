@@ -2,15 +2,26 @@ import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+// --- DEBUG INITIALIZATION ---
+console.log('--- Supabase Client Initialization ---');
+console.log(`URL Check: ${supabaseUrl ? 'OK' : 'MISSING'}`);
+console.log(`Key Check: ${supabaseAnonKey ? 'OK' : 'MISSING'}`);
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('CRITICAL: VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY environment variables are missing. Connection will likely fail.');
+}
 // FIX: Corrected initialization to use supabaseUrl instead of passing the uninitialized 'supabase' object.
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
+console.log('Supabase client initialized.');
+// ----------------------------
+
 
 /**
  * ASSUMPTION: This constant must match the specific flow_id used in the
  * 'chat_session_flow' table that corresponds to the customer initiating an
  * order or ticket status check (e.g., "Track Order" or "Check Ticket Status").
  */
-const ORDER_STATUS_FLOW_ID = 'order_status_inquiry_flow'; 
+const ORDER_STATUS_FLOW_ID = 'issue-ticket'; 
 
 /**
  * Interface for standard date range filtering.
@@ -24,12 +35,42 @@ export interface DateRange {
 // --- KPI Functions ordered 1-10 ---
 
 /**
+ * Helper function to parse a PostgreSQL timestamp string (which includes up to 6 digits for microseconds)
+ * into a floating-point number representing milliseconds since the Unix epoch.
+ * This is necessary because JS Date objects often truncate or round microsecond data.
+ */
+function parseTimestampToMilliseconds(timestamp: string): number {
+    // 1. Get the standard millisecond value from the date object.
+    const date = new Date(timestamp);
+    let ms = date.getTime();
+
+    // 2. Extract the microsecond part manually.
+    const microsecondMatch = timestamp.match(/\.(\d{3})(\d{3})/); // Matches .XXX,XXX where X are digits
+
+    if (microsecondMatch) {
+        // The first 3 digits (e.g., 075 in .075487) are generally handled by new Date() as milliseconds.
+        // We focus on the second 3 digits (e.g., 487 in .075487) which represent the microsecond remainder.
+        const microsecondRemainder = parseInt(microsecondMatch[2], 10);
+        
+        // Convert the microsecond remainder (1 microsecond = 0.001 milliseconds) to a millisecond fraction.
+        const msFraction = microsecondRemainder / 1000;
+        
+        // Add the fraction to the total milliseconds for higher precision.
+        ms += msFraction;
+    }
+    return ms;
+}
+
+
+/**
  * 1. Chatbot First-Contact Resolution Rate (FCR) KPI
  * Percentage of sessions where the chatbot resolved the user's inquiry without
  * requiring transfer to a human agent, and the session was marked as 'ended'.
  * Formula: (Total Resolved Sessions by PRINTY / Total Sessions) * 100
  */
 export async function getFirstContactResolutionRate(range: DateRange): Promise<number | null> {
+  console.log(`[KPI 1] Fetching FCR Rate for range: ${range.startDate} to ${range.endDate}`);
+  
   // 1. Get the total number of sessions in the specified range (the denominator).
   const { count: totalSessions, error: countError } = await supabase
     .from('chat_sessions')
@@ -37,12 +78,14 @@ export async function getFirstContactResolutionRate(range: DateRange): Promise<n
     .gte('created_at', range.startDate)
     .lte('created_at', range.endDate);
 
-  if (countError || totalSessions === null) return null;
+  if (countError || totalSessions === null) {
+    console.error('[KPI 1 ERROR] Failed to fetch total sessions (Denominator). Check RLS on chat_sessions.');
+    console.error(countError);
+    return null;
+  }
   if (totalSessions === 0) return 0;
 
   // 2. Get the number of sessions that meet the criteria for FCR within the range:
-  //    a) Does not reference an inquiry_id (i.e., was not escalated).
-  //    b) Has a status of 'ended' (i.e., was successfully completed).
   const { count: resolvedSessions, error: resolvedError } = await supabase
     .from('chat_sessions')
     .select('session_id', { count: 'exact', head: true })
@@ -51,12 +94,15 @@ export async function getFirstContactResolutionRate(range: DateRange): Promise<n
     .gte('created_at', range.startDate)
     .lte('created_at', range.endDate);
 
-  if (resolvedError || resolvedSessions === null) return null;
+  if (resolvedError || resolvedSessions === null) {
+    console.error('[KPI 1 ERROR] Failed to fetch resolved sessions (Numerator). Check RLS on chat_sessions.');
+    console.error(resolvedError);
+    return null;
+  }
 
   const totalResolvedByPrinty = resolvedSessions;
 
   // 3. Calculate the First Contact Resolution Rate
-  // FCR = (Total Resolved by PRINTY / Total Sessions) * 100
   return (totalResolvedByPrinty / totalSessions) * 100;
 }
 
@@ -67,61 +113,99 @@ export async function getFirstContactResolutionRate(range: DateRange): Promise<n
  * only for sessions within the specified date range.
  */
 export async function getAverageInitialResponseTime(range: DateRange): Promise<number | null> {
-  // 1. Get all chat sessions in the specified date range
+  console.log(`[KPI 2] Fetching Avg Initial Response Time for range: ${range.startDate} to ${range.endDate}`);
+  
+  // 1. Get all session_ids in range
   const { data: sessions, error: sessionError } = await supabase
     .from('chat_sessions')
     .select('session_id')
     .gte('created_at', range.startDate)
     .lte('created_at', range.endDate);
 
-  if (sessionError || !sessions) return null;
+  if (sessionError || !sessions || sessions.length === 0) {
+      console.warn('[KPI 2 WARNING] No sessions found in the date range.');
+      return null;
+  }
+
+  const sessionIds = sessions.map(s => s.session_id);
+
+  // 2. Fetch all messages and metas and combine them for efficient in-memory processing.
+  const { data: messages, error: msgError } = await supabase
+    .from('chat_messages')
+    .select('message_id, session_id, sent_at')
+    .in('session_id', sessionIds)
+    .order('sent_at', { ascending: true }); // Ensure messages are chronologically ordered
+
+  if (msgError || !messages || messages.length === 0) return null;
+
+  const messageIds = messages.map(m => m.message_id);
+  const { data: metas, error: metaError } = await supabase
+    .from('chat_message_meta')
+    .select('message_id, sender_role')
+    .in('message_id', messageIds);
+
+  if (metaError || !metas || metas.length === 0) return null;
+
+  // Create a map for quick lookup of sender_role by message_id
+  const metaMap = new Map(metas.map(meta => [meta.message_id, meta.sender_role]));
+
+  // Combine messages with roles and group by session_id
+  const groupedMessages = messages.reduce((acc, msg) => {
+    const sender_role = metaMap.get(msg.message_id);
+    if (!sender_role) return acc; // Skip messages without a role
+
+    const messageWithRole = {
+      session_id: msg.session_id,
+      sent_at: msg.sent_at,
+      sender_role: sender_role,
+    };
+
+    if (!acc.has(msg.session_id)) {
+      acc.set(msg.session_id, []);
+    }
+    // The messages array is globally ordered, which maintains chronological order within each session group
+    acc.get(msg.session_id)?.push(messageWithRole);
+    return acc;
+  }, new Map<string, Array<{ session_id: string, sent_at: string, sender_role: string }>>());
 
   let totalResponseTime = 0;
   let count = 0;
 
-  for (const session of sessions) {
-    // 2. Get all messages for this session, ordered by sent_at
-    const { data: messages, error: msgError } = await supabase
-      .from('chat_messages')
-      .select('message_id, sent_at')
-      .eq('session_id', session.session_id)
-      .order('sent_at', { ascending: true });
+  // 3. Calculate the response time for each session
+  for (const sessionMessages of groupedMessages.values()) {
+    let customerMsgTime: number | null = null;
+    let printyMsgTime: number | null = null;
 
-    if (msgError || !messages || messages.length < 2) continue;
-
-    // 3. Get sender_role for each message
-    const { data: metas, error: metaError } = await supabase
-      .from('chat_message_meta')
-      .select('message_id, sender_role')
-      .in('message_id', messages.map(m => m.message_id));
-
-    if (metaError || !metas) continue;
-
-    // 4. Find first customer message and first printy reply after it
-    let customerMsg = null;
-    let printyMsg = null;
-    for (const msg of messages) {
-      const meta = metas.find(m => m.message_id === msg.message_id);
-      if (!meta) continue;
-      if (!customerMsg && meta.sender_role === 'customer') {
-        customerMsg = msg;
-      }
-      if (customerMsg && meta.sender_role === 'printy') {
-        printyMsg = msg;
-        break;
-      }
+    for (const msg of sessionMessages) {
+        // 3a. Find the first customer message (the start time)
+        if (msg.sender_role === 'customer' && customerMsgTime === null) {
+            // Use the microsecond-aware parser
+            customerMsgTime = parseTimestampToMilliseconds(msg.sent_at);
+        } 
+        
+        // 3b. Find the first Printy reply after the customer message (the end time)
+        else if (msg.sender_role === 'printy' && customerMsgTime !== null) {
+            // Use the microsecond-aware parser
+            printyMsgTime = parseTimestampToMilliseconds(msg.sent_at);
+            break; // Found the response, move to the next session
+        }
     }
 
-    if (customerMsg && printyMsg) {
-      const start = new Date(customerMsg.sent_at).getTime();
-      const end = new Date(printyMsg.sent_at).getTime();
-      const diffSeconds = (end - start) / 1000;
-      totalResponseTime += diffSeconds;
-      count++;
+    // 4. Aggregate the time difference
+    if (customerMsgTime !== null && printyMsgTime !== null) {
+        // timeDifferenceMs is in milliseconds (now with microsecond precision)
+        const timeDifferenceMs = printyMsgTime - customerMsgTime;
+        
+        // Convert to seconds and add to total.
+        totalResponseTime += timeDifferenceMs / 1000; 
+        count++;
     }
   }
 
-  if (count === 0) return null;
+  if (count === 0) {
+      console.warn('[KPI 2 WARNING] Could not calculate response time for any session (e.g., no customer message followed by printy reply).');
+      return null;
+  }
   return totalResponseTime / count;
 }
 
@@ -132,32 +216,39 @@ export async function getAverageInitialResponseTime(range: DateRange): Promise<n
  * Formula: Average(feedback_rating) on filtered chat_sessions.
  */
 export async function getAverageCustomerSatisfactionScore(range: DateRange): Promise<number | null> {
-  // 1. Use the Supabase aggregate function 'avg' to compute the average rating
-  const { data: avgData, error: avgError } = await supabase
+  console.log(`[KPI 3] Fetching Avg CSAT for range: ${range.startDate} to ${range.endDate}`);
+  
+  // 1. Use the PostgREST aggregate function string directly in the select statement
+  const { data, error } = await supabase
     .from('chat_sessions')
-    .select(`
-        avg(feedback_rating)
-    `)
+    .select('avg(feedback_rating)') 
     // Filter to only include sessions within the specified date range
     .gte('created_at', range.startDate)
     .lte('created_at', range.endDate)
     // Exclude sessions where the feedback_rating is null (unrated sessions)
     .not('feedback_rating', 'is', null)
-    .limit(1); // Limit to 1 row since we are only getting one aggregate result
+    .single(); // Use .single() to fetch the one expected row of aggregation data
 
-  if (avgError || !avgData || avgData.length === 0) {
-    console.error('Error fetching average CSAT:', avgError);
+  if (error || !data) {
+    console.error('[KPI 3 ERROR] Failed to fetch average CSAT. Check RLS on chat_sessions.');
+    console.error(error); // Log the detailed Supabase error object
     return null;
   }
 
-  const averageRating = avgData[0].avg;
-
-  // Check if the average is valid (could be null if no records matched the filters)
-  if (averageRating === null) return null;
-
-  // Supabase returns the avg as a string in some environments; parse it to a float.
-  // Cast to 'unknown' first to satisfy strict TypeScript conversion rules.
-  return parseFloat(averageRating as unknown as string);
+  // --- FIX FOR TYPESCRIPT ERROR ---
+  // The data structure from 'avg(column)' is always a single object like { "avg": "value" }.
+  // We first cast the result to 'unknown' and then assert its correct type to satisfy TS.
+  const averageRatingResult = (data as unknown as { avg: string | null }).avg;
+  // --- END FIX ---
+  
+  // Check if the aggregation result is null, which happens if NO sessions were rated
+  if (averageRatingResult === null || averageRatingResult === undefined) {
+    console.warn('[KPI 3 WARNING] No rated sessions found for the given range, returning null.');
+    return null; 
+  }
+  
+  // Supabase returns the avg as a string; parse it to a float.
+  return parseFloat(averageRatingResult);
 }
 
 
@@ -168,7 +259,6 @@ export async function getAverageCustomerSatisfactionScore(range: DateRange): Pro
  * Formula: (total inquiries transferred to admin / total inquiries handled by PRINTY) * 100
  */
 export async function getEscalationRate(range: DateRange): Promise<number | null> {
-  // 1. Get all unique session_ids handled by PRINTY in the specified date range
   const { data: sessions, error: sessionError } = await supabase
     .from('chat_sessions')
     .select('session_id, inquiry_id')
@@ -178,18 +268,12 @@ export async function getEscalationRate(range: DateRange): Promise<number | null
   if (sessionError || !sessions) return null;
 
   const totalHandled = sessions.length;
-
-  // 2. Count sessions that have a linked inquiry_id in the inquiries table (i.e., transferred to admin)
-  const inquiryIds = sessions
-    .map(s => s.inquiry_id)
-    .filter(id => !!id);
+  const inquiryIds = sessions.map(s => s.inquiry_id).filter(Boolean);
 
   if (totalHandled === 0) return 0;
   if (inquiryIds.length === 0) return 0;
 
-  // Note: We still need to count how many of the filtered sessions actually created an inquiry record.
-  // The 'inquiries' table is not filtered by date, but since 'inquiry_id' is only present
-  // if created by a 'chat_session' within the date range, the result is implicitly filtered.
+  // Batch fetch inquiries
   const { data: inquiries, error: inquiryError } = await supabase
     .from('inquiries')
     .select('inquiry_id')
@@ -198,8 +282,6 @@ export async function getEscalationRate(range: DateRange): Promise<number | null
   if (inquiryError || !inquiries) return null;
 
   const totalTransferred = inquiries.length;
-
-  // 3. Calculate escalation rate
   return (totalTransferred / totalHandled) * 100;
 }
 
@@ -210,62 +292,56 @@ export async function getEscalationRate(range: DateRange): Promise<number | null
  * to the moment the corresponding job order is created in the 'orders' table.
  */
 export async function getAverageServiceRequestThroughputTime(range: DateRange): Promise<number | null> {
-  // 1. Get all relevant orders within the specified date range.
   const { data: orders, error: orderError } = await supabase
     .from('orders')
     .select('order_id, customer_id, order_datetime')
     .gte('order_datetime', range.startDate)
     .lte('order_datetime', range.endDate);
 
-  if (orderError || !orders || orders.length === 0) {
-    console.error('Error fetching orders for SRTT:', orderError);
-    return null; // Return null if there are no orders in the range or an error occurred.
-  }
+  if (orderError || !orders || orders.length === 0) return null;
+
+  const customerIds = Array.from(new Set(orders.map(o => o.customer_id)));
+  const { data: sessions, error: sessionError } = await supabase
+    .from('chat_sessions')
+    .select('session_id, customer_id, created_at')
+    .in('customer_id', customerIds);
+
+  if (sessionError || !sessions) return null;
+
+  const sessionIds = sessions.map(s => s.session_id);
+  const { data: messages, error: messageError } = await supabase
+    .from('chat_messages')
+    .select('session_id, sent_at')
+    .in('session_id', sessionIds);
+
+  if (messageError || !messages) return null;
 
   let totalThroughputTime = 0;
   let calculatedOrdersCount = 0;
 
-  // We iterate through each order to find the corresponding pre-order message time.
   for (const order of orders) {
-    // 2. Get all chat session IDs for this customer that occurred BEFORE the order was placed.
-    const { data: sessions, error: sessionError } = await supabase
-      .from('chat_sessions')
-      .select('session_id')
-      .eq('customer_id', order.customer_id)
-      // Filter sessions that started before the order was placed (optimization)
-      .lte('created_at', order.order_datetime);
+    // Find sessions for this customer before order
+    const relevantSessions = sessions.filter(
+      s => s.customer_id === order.customer_id && s.created_at <= order.order_datetime
+    );
+    if (relevantSessions.length === 0) continue;
+    const relevantSessionIds = relevantSessions.map(s => s.session_id);
 
-    if (sessionError || !sessions || sessions.length === 0) {
-      continue; // Skip if no prior chat sessions found for this customer before the order.
-    }
+    // Find latest message before order
+    const relevantMessages = messages.filter(
+      m => relevantSessionIds.includes(m.session_id) && m.sent_at < order.order_datetime
+    );
+    if (relevantMessages.length === 0) continue;
+    const latestMessage = relevantMessages.reduce((latest, msg) =>
+      new Date(msg.sent_at) > new Date(latest.sent_at) ? msg : latest
+    );
 
-    const sessionIds = sessions.map(s => s.session_id);
-
-    // 3. Find the latest message timestamp from the customer BEFORE the order_datetime.
-    const { data: latestMessage, error: messageError } = await supabase
-      .from('chat_messages')
-      .select('sent_at')
-      .in('session_id', sessionIds)
-      .lt('sent_at', order.order_datetime) // Crucial: Message must be BEFORE order_datetime
-      .order('sent_at', { ascending: false })
-      .limit(1); // We only need the single latest message
-
-    if (messageError || !latestMessage || latestMessage.length === 0) {
-      continue; // Skip if no relevant pre-order message was found.
-    }
-
-    // 4. Calculate the throughput time for this single order (in seconds).
-    const messageTime = new Date(latestMessage[0].sent_at).getTime();
+    const messageTime = new Date(latestMessage.sent_at).getTime();
     const orderTime = new Date(order.order_datetime).getTime();
-
-    // The subtraction is robust against timestamp vs timestamptz because JS Date objects handle ISO strings (which Supabase returns) correctly.
-    const diffSeconds = (orderTime - messageTime) / 1000;
-
-    totalThroughputTime += diffSeconds;
+    totalThroughputTime += (orderTime - messageTime) / 1000;
     calculatedOrdersCount++;
   }
 
-  // 5. Calculate the average SRTT.
   if (calculatedOrdersCount === 0) return null;
   return totalThroughputTime / calculatedOrdersCount;
 }
@@ -278,6 +354,8 @@ export async function getAverageServiceRequestThroughputTime(range: DateRange): 
  * Formula: (Total Requests via PRINTY / (Total Requests via PRINTY + Total Requests via Other Channels)) * 100
  */
 export async function getOrdersSourcedFromChatRate(range: DateRange, ordersFromOtherChannels: number): Promise<number | null> {
+  console.log(`[KPI 6] Fetching Chat Sourced Orders Rate for range: ${range.startDate} to ${range.endDate}`);
+  
   // 1. Get the distinct customer IDs from chat sessions in the date range.
   const { data: sessions, error: sessionError } = await supabase
     .from('chat_sessions')
@@ -285,12 +363,16 @@ export async function getOrdersSourcedFromChatRate(range: DateRange, ordersFromO
     .gte('created_at', range.startDate)
     .lte('created_at', range.endDate);
 
-  if (sessionError || !sessions) return null;
+  if (sessionError || !sessions) {
+    console.error('[KPI 6 ERROR] Failed to fetch sessions for customer IDs. Check RLS on chat_sessions.');
+    console.error(sessionError);
+    return null;
+  }
 
   const chattedCustomerIds = new Set(sessions.map(s => s.customer_id).filter(id => id !== null));
   if (chattedCustomerIds.size === 0) {
-      if (ordersFromOtherChannels === 0) return 0;
-      return 0; // If no chat orders, rate is 0%.
+    if (ordersFromOtherChannels === 0) return 0;
+    return 0; // If no chat orders, rate is 0%.
   }
 
   // 2. Count orders placed by these chatted customers in the date range (Total Requests via PRINTY).
@@ -301,7 +383,11 @@ export async function getOrdersSourcedFromChatRate(range: DateRange, ordersFromO
     .gte('order_datetime', range.startDate)
     .lte('order_datetime', range.endDate);
 
-  if (orderError || totalOrdersViaPrinty === null) return null;
+  if (orderError || totalOrdersViaPrinty === null) {
+    console.error('[KPI 6 ERROR] Failed to fetch orders via PRINTY. Check RLS on orders.');
+    console.error(orderError);
+    return null;
+  }
 
   // 3. Calculate the total requests from all channels (Denominator).
   const totalAllRequests = totalOrdersViaPrinty + ordersFromOtherChannels;
@@ -320,6 +406,8 @@ export async function getOrdersSourcedFromChatRate(range: DateRange, ordersFromO
  * Formula (Implementation Proxy): (Total Non-Cancelled Orders / Total Orders Created) * 100
  */
 export async function getJobOrderAccuracyRate(range: DateRange): Promise<number | null> {
+  console.log(`[KPI 7] Fetching JOAR for range: ${range.startDate} to ${range.endDate}`);
+  
   // 1. Get the total number of orders created within the specified date range (Denominator).
   const { count: totalOrders, error: totalOrdersError } = await supabase
     .from('orders')
@@ -328,14 +416,14 @@ export async function getJobOrderAccuracyRate(range: DateRange): Promise<number 
     .lte('order_datetime', range.endDate);
 
   if (totalOrdersError || totalOrders === null) {
-    console.error('Error fetching total orders for JOAR:', totalOrdersError);
+    console.error('[KPI 7 ERROR] Failed to fetch total orders (Denominator). Check RLS on orders.');
+    console.error(totalOrdersError);
     return null;
   }
 
   if (totalOrders === 0) return 0;
 
   // 2. Get the number of orders that were *not* cancelled (Numerator).
-  // This counts all orders that are either completed, ongoing, or have any status other than 'cancelled'.
   const { count: accurateOrders, error: accurateOrdersError } = await supabase
     .from('orders')
     .select('order_id', { count: 'exact', head: true })
@@ -344,14 +432,14 @@ export async function getJobOrderAccuracyRate(range: DateRange): Promise<number 
     .neq('order_status', 'cancelled'); // Filter to exclude cancelled orders
 
   if (accurateOrdersError || accurateOrders === null) {
-    console.error('Error fetching non-cancelled orders for JOAR:', accurateOrdersError);
+    console.error('[KPI 7 ERROR] Failed to fetch non-cancelled orders (Numerator). Check RLS on orders.');
+    console.error(accurateOrdersError);
     return null;
   }
 
   const totalNonCancelledOrders = accurateOrders;
 
   // 3. Calculate the Job Order Accuracy Rate
-  // JOAR = (Total Non-Cancelled Orders / Total Orders) * 100
   return (totalNonCancelledOrders / totalOrders) * 100;
 }
 
@@ -360,6 +448,8 @@ export async function getJobOrderAccuracyRate(range: DateRange): Promise<number 
  * Helper function to get the raw count of order status inquiry flows.
  */
 async function getRawOrderStatusInquiryTriggers(range: DateRange): Promise<number | null> {
+  console.log(`[KPI 8 Helper] Counting Inquiry Triggers for range: ${range.startDate} to ${range.endDate}`);
+  
   // Count entries in chat_session_flow that match the dedicated status inquiry flow
   const { count: inquiryCount, error: countError } = await supabase
     .from('chat_session_flow')
@@ -369,7 +459,8 @@ async function getRawOrderStatusInquiryTriggers(range: DateRange): Promise<numbe
     .lte('started_at', range.endDate);
 
   if (countError || inquiryCount === null) {
-    console.error('Error counting order status inquiry triggers:', countError);
+    console.error('[KPI 8 ERROR] Failed to count order status inquiry triggers. Check RLS on chat_session_flow.');
+    console.error(countError);
     return null;
   }
   return inquiryCount;
@@ -385,6 +476,7 @@ export async function getOrderStatusInquiryRate(range: DateRange): Promise<numbe
   // 1. Get the raw count of status inquiries (Numerator)
   const totalInquiries = await getRawOrderStatusInquiryTriggers(range);
   if (totalInquiries === null) return null;
+  console.log(`[KPI 8] Total Inquiries Counted: ${totalInquiries}`);
 
   // 2. Get the total number of orders created (Denominator).
   const { count: totalOrders, error: orderError } = await supabase
@@ -394,7 +486,8 @@ export async function getOrderStatusInquiryRate(range: DateRange): Promise<numbe
     .lte('order_datetime', range.endDate);
 
   if (orderError || totalOrders === null) {
-    console.error('Error fetching total orders for Inquiry Rate:', orderError);
+    console.error('[KPI 8 ERROR] Failed to fetch total orders (Denominator). Check RLS on orders.');
+    console.error(orderError);
     return null;
   }
 
@@ -416,12 +509,18 @@ export async function getOrderStatusInquiryRate(range: DateRange): Promise<numbe
  * ASSUMPTION: Requires a 'service_portfolio' table with a 'last_updated_at' column.
  */
 export async function getUpToDateServicePortfolioRate(range: DateRange): Promise<number | null> {
+  console.log(`[KPI 9] Fetching Portfolio Rate for range: ${range.startDate} to ${range.endDate}`);
+  
   // 1. Get the total number of services in the portfolio (Denominator).
   const { count: totalServices, error: totalError } = await supabase
     .from('service_portfolio')
     .select('service_id', { count: 'exact', head: true }); 
 
-  if (totalError || totalServices === null || totalServices === 0) return 0;
+  if (totalError || totalServices === null || totalServices === 0) {
+    console.error('[KPI 9 ERROR] Failed to fetch total services (Denominator). Check RLS on service_portfolio.');
+    console.error(totalError);
+    return 0;
+  }
 
   // 2. Get the count of services that were updated within the defined range (Numerator).
   const { count: updatedServices, error: updatedError } = await supabase
@@ -430,7 +529,11 @@ export async function getUpToDateServicePortfolioRate(range: DateRange): Promise
     .gte('last_updated_at', range.startDate)
     .lte('last_updated_at', range.endDate);
 
-  if (updatedError || updatedServices === null) return 0;
+  if (updatedError || updatedServices === null) {
+    console.error('[KPI 9 ERROR] Failed to fetch updated services (Numerator). Check RLS on service_portfolio.');
+    console.error(updatedError);
+    return 0;
+  }
 
   // 3. Calculate the Rate: (Updated Services / Total Services) * 100
   return (updatedServices / totalServices) * 100;
@@ -444,6 +547,8 @@ export async function getUpToDateServicePortfolioRate(range: DateRange): Promise
  * Formula: (Total Job Orders Created / Total Chat Sessions Started) * 100
  */
 export async function getServicePortfolioUtilizationRate(range: DateRange): Promise<number | null> {
+  console.log(`[KPI 10] Fetching SPUR for range: ${range.startDate} to ${range.endDate}`);
+  
   // 1. Get the total number of chat sessions started (Denominator).
   const { count: totalSessions, error: sessionError } = await supabase
     .from('chat_sessions')
@@ -452,7 +557,8 @@ export async function getServicePortfolioUtilizationRate(range: DateRange): Prom
     .lte('created_at', range.endDate);
 
   if (sessionError || totalSessions === null) {
-    console.error('Error fetching total sessions for SPUR:', sessionError);
+    console.error('[KPI 10 ERROR] Failed to fetch total sessions (Denominator). Check RLS on chat_sessions.');
+    console.error(sessionError);
     return null;
   }
 
@@ -466,13 +572,13 @@ export async function getServicePortfolioUtilizationRate(range: DateRange): Prom
     .lte('order_datetime', range.endDate);
 
   if (orderError || totalOrders === null) {
-    console.error('Error fetching total orders for SPUR:', orderError);
+    console.error('[KPI 10 ERROR] Failed to fetch total orders (Numerator). Check RLS on orders.');
+    console.error(orderError);
     return null;
   }
 
   const totalOrdersCreated = totalOrders;
 
   // 3. Calculate the Service Portfolio Utilization Rate
-  // SPUR = (Total Orders Created / Total Sessions Started) * 100
   return (totalOrdersCreated / totalSessions) * 100;
 }
