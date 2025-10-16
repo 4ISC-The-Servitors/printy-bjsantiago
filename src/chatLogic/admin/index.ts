@@ -6,7 +6,9 @@ import { multipleTicketsFlow } from './flows/MultipleTickets';
 import { portfolioFlow } from './flows/Portfolio';
 import { multiplePortfolioFlow } from './flows/MultiplePortfolio';
 import { addServiceFlow } from './flows/AddService';
-import { quotesFlow } from './flows/Quotes';
+import { JsonbFlowProcessor } from '../../features/chat/core/services/JsonbFlowProcessor';
+import { getFlowDefinition } from '../../features/api/jsonbChatFlowApi';
+import { supabase } from '../../lib/supabase';
 
 const introFlow: ChatFlow = {
   id: 'admin-intro',
@@ -83,11 +85,47 @@ export const adminFlows: Record<string, ChatFlow> = {
   portfolio: portfolioFlow,
   multiplePortfolio: multiplePortfolioFlow,
   addService: addServiceFlow,
-  quotes: quotesFlow,
 };
 
 export function resolveAdminFlow(topic?: string | null): ChatFlow | null {
   const t = (topic || 'intro').toLowerCase();
+  // Route admin quote session to the JSONB flow when a conversation is being handled
+  if (t.includes('quotes') || t.includes('quote')) {
+    // Adapter ChatFlow that proxies to JSONB processor using admin-quote-propose
+    const jsonbAdapter: ChatFlow = {
+      id: 'admin-quote-propose-adapter',
+      title: 'Admin Quote Propose',
+      initial: async (ctx: any) => {
+        const sessionRef = ctx?.session_id || ctx?.conversationId;
+        // Use the current authenticated user as the session owner to satisfy RLS
+        const { data: userData } = await supabase.auth.getUser();
+        const customerId = userData?.user?.id || ctx?.customerId || ctx?.quotes?.[0]?.customer_id;
+        const flowDef = await getFlowDefinition('admin-quote-propose');
+        if (!flowDef) return [{ role: 'printy', text: 'Flow not available.' }];
+        const start = await JsonbFlowProcessor.startFlow({
+          flowId: 'admin-quote-propose',
+          customerId,
+          flowDefinition: flowDef,
+          initialContext: { session_id: sessionRef },
+        });
+        // Stash sessionId if needed by outer orchestrator – ignored here
+        return start.messages;
+      },
+      quickReplies: async (_ctx: any) => ['Summarize Order Specs', 'Manual Order Specs', 'Send Specs to Customer', 'End Chat'],
+      respond: async (_ctx: any, _input: string) => {
+        const flowDef = await getFlowDefinition('admin-quote-propose');
+        if (!flowDef) return { messages: [{ role: 'printy', text: 'Flow not available.' }] } as any;
+        // We need the last created session for this adapter; in this simplified adapter,
+        // rely on JsonbFlowProcessor to track current node via session metadata and let UI pass sessionId if needed.
+        // For now, just echo a guidance message since legacy admin panel doesn’t pass sessionId through.
+        return {
+          messages: [{ role: 'printy', text: 'Please use the options above in the panel to proceed.' }],
+          quickReplies: ['Summarize Order Specs', 'Manual Order Specs', 'Send Specs to Customer', 'End Chat'],
+        } as any;
+      },
+    };
+    return jsonbAdapter;
+  }
   if (t.includes('add-service') || t.includes('add service'))
     return addServiceFlow;
   if (t.includes('multiple-portfolio') || t.includes('multi-portfolio'))
@@ -100,7 +138,7 @@ export function resolveAdminFlow(topic?: string | null): ChatFlow | null {
     t.includes('bulk')
   )
     return multipleOrdersFlow;
-  if (t.includes('quote')) return quotesFlow;
+  // Fallbacks
   if (t.includes('order')) return ordersFlow;
   if (t.includes('ticket')) return ticketsFlow;
   if (t.includes('portfolio') || t.includes('service')) return portfolioFlow;

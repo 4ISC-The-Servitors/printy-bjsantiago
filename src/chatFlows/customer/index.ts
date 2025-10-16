@@ -3,12 +3,12 @@
  * JSONB-based flow definitions for customer-facing conversations
  */
 
-export { askQuoteFlow } from './askQuoteFlow';
+export { askQuoteFlow } from './askQuoteFlow.jsonb';
 export { issueTicketFlow } from './issueTicketFlow';
 export { trackOrderFlow } from './trackOrderFlow';
 export { uploadPaymentFlow } from './uploadPaymentFlow';
 
-import { askQuoteFlow } from './askQuoteFlow';
+import { askQuoteFlow } from './askQuoteFlow.jsonb';
 import { issueTicketFlow } from './issueTicketFlow';
 import { trackOrderFlow } from './trackOrderFlow';
 import { uploadPaymentFlow } from './uploadPaymentFlow';

@@ -1,0 +1,44 @@
+QUOTE TABLES MIGRATION - EXECUTION ORDER
+========================================
+
+This migration unifies quote_conversations and quote_messages into chat_sessions_v2 and chat_messages_v2.
+
+EXECUTION ORDER (run in Supabase SQL Editor):
+
+1. 001_phase1_add_quote_indexes.sql
+   - Adds indexes for quote metadata lookups
+   - Safe to run, no data changes
+
+2. 002_phase2_recreate_quote_rpcs.sql
+   - Recreates create_quote_conversation and add_quote_message to use v2 tables
+   - Creates new helper functions (get_quote_messages_v2, get_quote_session_by_display_id)
+   - IMPORTANT: After this, new quotes will go to chat_sessions_v2
+
+3. 003_phase3_alter_quote_tables_fks.sql
+   - Adds new columns (session_id) to quote_specs, quote_proposals, quote_orders
+   - Does NOT drop old columns yet
+   - Safe to run
+
+4. 004_phase4_data_migration.sql
+   - Migrates existing quote_conversations to chat_sessions_v2
+   - Migrates existing quote_messages to chat_messages_v2 (with encryption)
+   - Backfills foreign keys in quote tables
+   - REVIEW OUTPUT CAREFULLY - check migration counts match
+
+5. 005_phase5_enable_fks_and_cleanup.sql
+   - Adds foreign key constraints to new columns
+   - Drops old foreign key constraints
+   - Makes session_id NOT NULL
+   - UNCOMMENT drop column statements after verification
+
+6. 006_phase6_final_cleanup.sql (DESTRUCTIVE - OPTIONAL)
+   - Drops old tables (quote_conversations, quote_messages)
+   - ONLY run after weeks of production verification
+   - REQUIRES database backup
+
+NOTES:
+- Test each phase in staging first
+- Backup database before Phase 4
+- After Phase 2, update frontend code before Phase 6
+- Keep old tables for a grace period (recommend 2-4 weeks)
+

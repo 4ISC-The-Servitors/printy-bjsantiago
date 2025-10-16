@@ -35,12 +35,12 @@ export const useQuotesCard = (overridePageSize?: number) => {
   }, [dynamicPageSize, overridePageSize]);
 
   const viewInChat = (quoteId: string) => {
-    // Find the quote to get the conversation_id
+    // Find the quote to get the session_id for navigation
     const quote = quotes.find(q => q.id === quoteId);
-    const conversationId = quote?.conversation_id || quoteId;
-    
+    const sessionId = quote?.session_id || quoteId;
+
     if (openChatWithTopic) {
-      openChatWithTopic('quotes', conversationId, undefined, quotes, refreshQuotes);
+      openChatWithTopic('quotes', sessionId, undefined, quotes, refreshQuotes);
     } else {
       openChat();
     }

@@ -45,9 +45,10 @@ const QuoteHistory: React.FC = () => {
         if (!user) return;
 
         const { data, error } = await supabase
-          .from('quote_conversations')
+          .from('quotes')
           .select(`
-            conversation_id,
+            quote_id,
+            session_id,
             display_id,
             status,
             created_at,
@@ -69,11 +70,11 @@ const QuoteHistory: React.FC = () => {
             let subject = 'Quote Request';
             let description = undefined;
             
-            // Get spec data for subject and description
+            // Get spec data for subject and description (using session_id)
             const { data: spec } = await supabase
               .from('quote_specs')
               .select('spec_data')
-              .eq('conversation_id', quote.conversation_id)
+              .eq('session_id', quote.session_id)
               .single();
             
             if (spec?.spec_data) {
@@ -86,7 +87,7 @@ const QuoteHistory: React.FC = () => {
               const { data: proposal } = await supabase
                 .from('quote_proposals')
                 .select('quoted_price')
-                .eq('conversation_id', quote.conversation_id)
+                .eq('session_id', quote.session_id)
                 .eq('status', 'accepted')
                 .single();
               
@@ -94,12 +95,12 @@ const QuoteHistory: React.FC = () => {
             }
 
             return {
-              id: quote.conversation_id,
+              id: quote.quote_id,
               title: subject,
               createdAt: new Date(quote.created_at).getTime(),
               updatedAt: new Date(quote.updated_at).getTime(),
               status: quote.status,
-              displayId: quote.display_id || quote.conversation_id,
+              displayId: quote.display_id || quote.quote_id,
               subject: subject,
               description: description,
               quoted_price: quotedPrice,

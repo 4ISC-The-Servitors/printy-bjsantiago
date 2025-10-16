@@ -3,6 +3,7 @@ type SpecEditorOpenEvent = CustomEvent<{
   conversationId: string;
   specData: any;
   language: string;
+  sessionId?: string; // optional: for saving chat acknowledgement
 }>;
 
 export const SPEC_EDITOR_OPEN = 'spec-editor-open';
@@ -11,6 +12,7 @@ export function openSpecEditor(params: {
   conversationId: string;
   specData: any;
   language: string;
+  sessionId?: string;
 }) {
   const event = new CustomEvent(SPEC_EDITOR_OPEN, {
     detail: params

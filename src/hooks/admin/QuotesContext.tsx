@@ -1,4 +1,4 @@
-// Admin quotes context using real Supabase data from quote_conversations table
+// Admin quotes context using real Supabase data from quotes table
 import React, { createContext, useContext } from 'react';
 import type { AdminQuoteRow } from './useAdminQuotes';
 
@@ -21,8 +21,8 @@ export const QuotesProvider: React.FC<{ children: React.ReactNode }> = ({
   const loading = false;
   const error = null;
 
-  const updateQuote = (conversationId: string, updates: Partial<AdminQuoteRow>) => {
-    console.log('updateQuote called:', conversationId, updates);
+  const updateQuote = (quoteId: string, updates: Partial<AdminQuoteRow>) => {
+    console.log('updateQuote called:', quoteId, updates);
     // Implementation would go here if needed
   };
 

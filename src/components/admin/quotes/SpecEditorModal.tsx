@@ -13,6 +13,7 @@ export function SpecEditorModal() {
     conversationId: string;
     specData: SpecData;
     language: string;
+    sessionId?: string;
   } | null>(null);
 
   useEffect(() => {
@@ -21,6 +22,7 @@ export function SpecEditorModal() {
         conversationId: string;
         specData: SpecData;
         language: string;
+        sessionId?: string;
       }>;
       setModalData(customEvent.detail);
       setIsOpen(true);
@@ -245,6 +247,17 @@ export function SpecEditorModal() {
                 if (error) throw error;
                 
                 setSaveSuccess(true);
+                // Acknowledge in chat transcript if sessionId available
+                try {
+                  if (modalData.sessionId) {
+                    await supabase.rpc('api_insert_chat_message_v2', {
+                      p_session_id: modalData.sessionId,
+                      p_text: 'Draft saved successfully.',
+                      p_role: 'printy',
+                      p_node_id: 'wait_for_draft_save'
+                    });
+                  }
+                } catch {}
                 setTimeout(() => {
                   setIsOpen(false);
                   setSaveError(null);

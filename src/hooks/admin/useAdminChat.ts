@@ -61,6 +61,20 @@ export const useAdminChat = (): UseAdminChatReturn => {
   const { clearSelected } = useAdmin();
   const [dbSessionId, setDbSessionId] = useState<string | null>(null);
 
+  // Helper: append Printy messages gradually with typing indicator
+  const appendMessagesWithTyping = async (botTexts: { role: ChatRole; text: string }[]) => {
+    for (const m of botTexts) {
+      setIsTyping(true);
+      // Simple delay heuristic: base 350ms + 25ms per 20 chars
+      const delay = 350 + Math.min(1200, Math.floor((m.text?.length || 0) / 20) * 25);
+      await new Promise(r => setTimeout(r, delay));
+      const botMsg = { id: crypto.randomUUID(), role: m.role, text: m.text, ts: Date.now() } as const;
+      setMessages(prev => [...prev, botMsg]);
+      if (currentConversationId) addConvMessage('printy', m.text, currentConversationId);
+      setIsTyping(false);
+    }
+  };
+
   const buildConversationTitle = (topic: string, orderId?: string): string => {
     const t = (topic || '').toLowerCase();
     if (t.includes('orders') || t.includes('order')) {
@@ -141,15 +155,7 @@ export const useAdminChat = (): UseAdminChatReturn => {
       // Handle async initial() and quickReplies()
       void (async () => {
         const initial = await Promise.resolve(flow.initial({}));
-        setMessages(
-          initial.map(m => ({
-            id: crypto.randomUUID(),
-            role: m.role as ChatRole,
-            text: m.text,
-            ts: Date.now(),
-          }))
-        );
-        initial.forEach(m => addConvMessage('printy', m.text, convId));
+        await appendMessagesWithTyping(initial.map(m => ({ role: m.role as ChatRole, text: m.text })));
 
         const quickRepliesResult = await Promise.resolve(flow.quickReplies({}));
         setQuickReplies(
@@ -304,14 +310,7 @@ export const useAdminChat = (): UseAdminChatReturn => {
         const quickRepliesResult = await Promise.resolve(flow.quickReplies(context));
         console.log('⚡ Quick replies from flow:', quickRepliesResult);
 
-        setMessages(
-          initial.map(m => ({
-            id: crypto.randomUUID(),
-            role: m.role as ChatRole,
-            text: m.text,
-            ts: Date.now(),
-          }))
-        );
+        await appendMessagesWithTyping(initial.map(m => ({ role: m.role as ChatRole, text: m.text })));
 
         // Persist initial bot messages to DB if this is a ticket chat and a session was created
         if (nextTopic.includes('ticket')) {
@@ -339,18 +338,7 @@ export const useAdminChat = (): UseAdminChatReturn => {
         if (nextTopic === 'quotes' && orderId) {
           setIsTyping(true);
           const resp = await flow.respond(context, '');
-          const botMessages = resp.messages.map(m => ({
-            id: crypto.randomUUID(),
-            role: m.role as ChatRole,
-            text: m.text,
-            ts: Date.now(),
-          }));
-          setMessages(prev => [...prev, ...botMessages]);
-          if (convId) {
-            resp.messages.forEach(m =>
-              addConvMessage('printy', m.text, convId)
-            );
-          }
+          await appendMessagesWithTyping(resp.messages.map(m => ({ role: m.role as ChatRole, text: m.text })));
           const quickRepliesForResp = await Promise.resolve(flow.quickReplies(context));
           setQuickReplies(
             (resp.quickReplies || quickRepliesForResp).map((l, index) => ({
@@ -452,18 +440,7 @@ export const useAdminChat = (): UseAdminChatReturn => {
     const flow = resolveAdminFlow(currentFlow);
     if (flow) {
       void flow.respond(currentContext, text).then(resp => {
-        const botMessages = resp.messages.map(m => ({
-          id: crypto.randomUUID(),
-          role: m.role as ChatRole,
-          text: m.text,
-          ts: Date.now(),
-        }));
-        setMessages(prev => [...prev, ...botMessages]);
-        if (currentConversationId) {
-          resp.messages.forEach(m =>
-            addConvMessage('printy', m.text, currentConversationId)
-          );
-        }
+        void appendMessagesWithTyping(resp.messages.map(m => ({ role: m.role as ChatRole, text: m.text })));
         // Persist bot responses to DB for ticket chats (store as 'printy')
         if (dbSessionId && currentFlow.includes('ticket')) {
           void (async () => {
@@ -606,14 +583,8 @@ export const useAdminChat = (): UseAdminChatReturn => {
 
     const flow = resolveAdminFlow(currentFlow);
     if (!flow) return;
-    void flow.respond(currentContext, val).then(resp => {
-      const botMessages = resp.messages.map(m => ({
-        id: crypto.randomUUID(),
-        role: m.role as ChatRole,
-        text: m.text,
-        ts: Date.now(),
-      }));
-      setMessages(prev => [...prev, ...botMessages]);
+    void flow.respond(currentContext, val).then(async resp => {
+      await appendMessagesWithTyping(resp.messages.map(m => ({ role: m.role as ChatRole, text: m.text })));
       // Persist bot responses to DB for ticket chats (store as 'printy')
       if (dbSessionId && currentFlow.includes('ticket')) {
         void (async () => {

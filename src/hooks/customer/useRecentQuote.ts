@@ -19,9 +19,10 @@ export function useRecentQuote(customerId?: string) {
 
       try {
         const { data, error } = await supabase
-          .from('quote_conversations')
+          .from('quotes')
           .select(`
-            conversation_id,
+            quote_id,
+            session_id,
             display_id,
             status,
             created_at,
@@ -29,7 +30,7 @@ export function useRecentQuote(customerId?: string) {
             ended_at
           `)
           .eq('customer_id', customerId)
-          .order('updated_at', { ascending: false })
+          .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle();
 
@@ -37,9 +38,9 @@ export function useRecentQuote(customerId?: string) {
         
         if (data) {
           setRecentQuote({
-            id: data.conversation_id,
-            displayId: data.display_id || data.conversation_id.slice(0, 8).toUpperCase(),
-            subject: `Quote Request #${data.display_id || data.conversation_id.slice(0, 8).toUpperCase()}`,
+            id: data.quote_id,
+            displayId: data.display_id || data.quote_id.slice(0, 8).toUpperCase(),
+            subject: `Quote Request #${data.display_id || data.quote_id.slice(0, 8).toUpperCase()}`,
             status: data.status,
             createdAt: new Date(data.created_at).getTime(),
             updatedAt: new Date(data.updated_at).getTime(),

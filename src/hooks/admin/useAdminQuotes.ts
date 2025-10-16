@@ -7,7 +7,8 @@ import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 
 export interface AdminQuoteData {
-  conversation_id: string;
+  quote_id: string;
+  session_id: string;
   display_id?: string;
   customer_id: string;
   status: string;
@@ -30,8 +31,8 @@ export interface AdminQuoteData {
 
 export interface AdminQuoteRow {
   id: string;
-  conversation_id: string; // Add conversation_id for chat flow compatibility
-  customer_id: string; // Add customer_id for chat flow compatibility
+  session_id: string; // Chat session ID for navigation
+  customer_id: string;
   display_id?: string;
   customer_name: string;
   customer_email?: string;
@@ -66,13 +67,13 @@ export function useAdminQuotes(options: LoadQuotesOptions = {}) {
     try {
       const from = (page - 1) * pageSize;
       
-      // Fetch quotes with customer and proposal information
+      // Fetch quotes with customer information (no nested proposals; proposals are linked via session_id)
       const { data, error, count } = await supabase
-        .from('quote_conversations')
+        .from('quotes')
         .select(`
-          conversation_id,
-          customer_id,
           quote_id,
+          session_id,
+          customer_id,
           status,
           created_at,
           updated_at,
@@ -82,13 +83,6 @@ export function useAdminQuotes(options: LoadQuotesOptions = {}) {
             first_name,
             last_name,
             email_address
-          ),
-          proposals:quote_proposals(
-            proposal_id,
-            status,
-            quoted_price,
-            created_at,
-            updated_at
           )
         `, { count: 'exact' })
         .order('updated_at', { ascending: false })
@@ -102,6 +96,24 @@ export function useAdminQuotes(options: LoadQuotesOptions = {}) {
 
       console.debug('[useAdminQuotes] Fetched quotes:', data?.length || 0);
 
+      // Build a lookup of latest proposal by session_id
+      const sessionIds: string[] = (data || []).map((q: any) => q.session_id).filter(Boolean);
+      let latestBySessionId: Record<string, any> = {};
+      if (sessionIds.length > 0) {
+        const { data: proposalsData } = await supabase
+          .from('quote_proposals')
+          .select('session_id, proposal_id, status, quoted_price, created_at, updated_at')
+          .in('session_id', sessionIds);
+
+        if (Array.isArray(proposalsData)) {
+          for (const p of proposalsData) {
+            const existing = latestBySessionId[p.session_id];
+            const isNewer = !existing || new Date(p.created_at).getTime() > new Date(existing.created_at).getTime();
+            if (isNewer) latestBySessionId[p.session_id] = p;
+          }
+        }
+      }
+
       const normalized: AdminQuoteRow[] = (data || []).map((quote: any) => {
         // Handle customer data - it might be an array or object
         const customerData = Array.isArray(quote.customer) ? quote.customer[0] : quote.customer;
@@ -109,15 +121,13 @@ export function useAdminQuotes(options: LoadQuotesOptions = {}) {
           ? `${customerData.first_name} ${customerData.last_name}`
           : customerData?.first_name || customerData?.email_address || quote.customer_id;
 
-        // Get latest proposal for pricing info
-        const latestProposal = Array.isArray(quote.proposals) && quote.proposals.length > 0
-          ? quote.proposals.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
-          : null;
+        // Get latest proposal for pricing info via session_id
+        const latestProposal = latestBySessionId[quote.session_id] || null;
 
-        // Generate product name from quote_id or use generic name
+        // Generate product name from display_id or quote_id
         const productName = quote.display_id 
           ? `Quote ${quote.display_id}` 
-          : `Quote ${quote.conversation_id.slice(0, 8)}`;
+          : `Quote ${quote.quote_id.slice(0, 8)}`;
 
         // Format quoted amount - always use ₱ symbol
         const quotedAmount = latestProposal 
@@ -125,9 +135,9 @@ export function useAdminQuotes(options: LoadQuotesOptions = {}) {
           : 'Not quoted';
 
         return {
-          id: quote.display_id || quote.conversation_id,
-          conversation_id: quote.conversation_id, // Include conversation_id for chat flow
-          customer_id: quote.customer_id, // Include customer_id for chat flow
+          id: quote.display_id || quote.quote_id,
+          session_id: quote.session_id, // Session ID for chat flow navigation
+          customer_id: quote.customer_id,
           display_id: quote.display_id,
           customer_name: customerName,
           customer_email: customerData?.email_address,
@@ -169,7 +179,7 @@ export function useAdminQuotes(options: LoadQuotesOptions = {}) {
       .channel('quotes-changes')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'quote_conversations' },
+        { event: '*', schema: 'public', table: 'quotes' },
         () => {
           void loadQuotes();
         }
