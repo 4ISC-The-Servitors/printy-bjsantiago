@@ -4,11 +4,11 @@
  * and opens the Spec Editor modal prefilled with the AI-generated spec.
  */
 
-import { supabase } from '../../../../../lib/supabase';
-import { openSpecEditor } from '../../../../quote/specEditorEvents';
-import { buildConversationPrompt } from '../../../../quote/quoteAssistantPrompt';
-import { generateWithCohere } from '../../../../../features/api/llmClient';
-import type { ActionExecutionParams, ActionExecutionResult } from '../types';
+import { supabase } from '../../../../../../lib/supabase';
+import { openSpecEditor } from '../../../../../quote/specEditorEvents';
+import { buildConversationPrompt } from '../../../../../quote/quoteAssistantPrompt';
+import { generateWithCohere } from '../../../../../api/llmClient';
+import type { ActionExecutionParams, ActionExecutionResult } from '../../types';
 
 export async function aiSummarizeSpecs(params: ActionExecutionParams): Promise<ActionExecutionResult> {
   const { actionNode, context } = params;
@@ -23,12 +23,10 @@ export async function aiSummarizeSpecs(params: ActionExecutionParams): Promise<A
     return { messages };
   }
 
-  // Load customer messages
-  const { data, error } = await supabase
-    .from('quote_messages')
-    .select('sender_role, message_text')
-    .eq('conversation_id', conversationId)
-    .order('sent_at', { ascending: true });
+  // Load conversation messages via RPC from chat_messages_v2
+  const { data, error } = await supabase.rpc('api_fetch_chat_messages_v2', {
+    p_session_id: conversationId,
+  });
 
   if (error) {
     console.error('[aiSummarizeSpecs] Failed to load messages:', error);
@@ -36,7 +34,7 @@ export async function aiSummarizeSpecs(params: ActionExecutionParams): Promise<A
     return { messages };
   }
 
-  const history = (data || []).map(m => ({ role: m.sender_role, text: m.message_text }));
+  const history = (data as any[] || []).map((m: any) => ({ role: m.sender_role, text: m.message_text }));
   const prompt = buildConversationPrompt(history);
 
   const analysis = await generateWithCohere([{ role: 'user', content: prompt }], true, 'command-nightly');

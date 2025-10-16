@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Button, Input } from '../../shared';
+import { useResponsiveClasses, useResponsiveButton } from '../../../hooks/ui';
 
 export interface SpecFormData {
   product_name: string;
@@ -77,11 +78,14 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
     onSubmit(formData);
   };
 
+  const { textClasses } = useResponsiveClasses();
+  const { getChatButtonClasses } = useResponsiveButton();
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5 md:space-y-6">
       {/* Product Name */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}>
           Product Name *
         </label>
         <Input
@@ -93,9 +97,9 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
       </div>
 
       {/* Service Code & Category */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}>
             Service Code
           </label>
           <Input
@@ -105,7 +109,7 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}>
             Category
           </label>
           <Input
@@ -118,7 +122,7 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
 
       {/* Description */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}>
           Description
         </label>
         <textarea
@@ -131,9 +135,9 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
       </div>
 
       {/* Size & Quantity */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}>
             Size
           </label>
           <Input
@@ -143,7 +147,7 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}>
             Quantity
           </label>
           <Input
@@ -157,7 +161,7 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
 
       {/* Materials */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}>
           Materials
         </label>
         <div className="flex gap-2 mb-2">
@@ -185,7 +189,7 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
             Add
           </Button>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1.5 sm:gap-2">
           {formData.materials.map((material, index) => (
             <span
               key={index}
@@ -206,7 +210,7 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
 
       {/* Color */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}>
           Color
         </label>
         <Input
@@ -218,7 +222,7 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
 
       {/* Finishing */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}>
           Finishing
         </label>
         <div className="flex gap-2 mb-2">
@@ -246,7 +250,7 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
             Add
           </Button>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1.5 sm:gap-2">
           {formData.finishing.map((finish, index) => (
             <span
               key={index}
@@ -266,9 +270,9 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
       </div>
 
       {/* Artwork & Deadline */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}>
             Artwork
           </label>
           <Input
@@ -278,7 +282,7 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}>
             Deadline
           </label>
           <Input
@@ -291,7 +295,7 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
 
       {/* Others */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}>
           Additional Details
         </label>
         <div className="flex gap-2 mb-2">
@@ -319,7 +323,7 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
             Add
           </Button>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1.5 sm:gap-2">
           {formData.others.map((other, index) => (
             <span
               key={index}
@@ -340,7 +344,7 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
 
       {/* Quote Price */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}>
           Quote Price (PHP) *
         </label>
         <div className="relative">
@@ -362,7 +366,7 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
 
       {/* Admin Notes */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}>
           Admin Notes
         </label>
         <textarea
@@ -376,7 +380,7 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
 
       {/* Notes */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}>
           Customer Notes
         </label>
         <textarea
@@ -389,10 +393,11 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
       </div>
 
       {/* Actions */}
-      <div className="flex gap-3 pt-4">
+      <div className="flex gap-2 sm:gap-3 pt-3 sm:pt-4">
         <Button
           type="button"
           variant="secondary"
+          className={getChatButtonClasses('sm')}
           onClick={onCancel}
           disabled={loading}
         >
@@ -401,6 +406,7 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
         <Button
           type="submit"
           variant="primary"
+          className={getChatButtonClasses('sm')}
           loading={loading}
         >
           Save Quote

@@ -3,8 +3,8 @@
  * Verifies that an order exists and belongs to the customer
  */
 
-import { supabase } from '../../../../../lib/supabase';
-import type { ActionExecutionParams, ActionExecutionResult } from '../types';
+import { supabase } from '../../../../../../lib/supabase';
+import type { ActionExecutionParams, ActionExecutionResult } from '../../types';
 
 export async function verifyOrder(params: ActionExecutionParams): Promise<ActionExecutionResult> {
   const { actionNode, context, customerId, sessionId } = params;

@@ -1,14 +1,14 @@
 /**
- * Action handler: accept_quote_proposal
- * Queues a quote proposal acceptance (actual update happens after acknowledgement)
+ * Action handler: reject_quote_proposal
+ * Queues a quote proposal rejection (actual update happens after acknowledgement)
  */
 
-import { supabase } from '../../../../../lib/supabase';
-import { updateSessionMetadata } from '../helpers/flowHelpers';
-import type { ActionExecutionParams, ActionExecutionResult } from '../types';
-import type { SessionMetadata } from '../../../../../chatFlows/types';
+import { supabase } from '../../../../../../lib/supabase';
+import { updateSessionMetadata } from '../../helpers/flowHelpers';
+import type { ActionExecutionParams, ActionExecutionResult } from '../../types';
+import type { SessionMetadata } from '../../../../../../chatFlows/types';
 
-export async function acceptQuoteProposal(params: ActionExecutionParams): Promise<ActionExecutionResult> {
+export async function rejectQuoteProposal(params: ActionExecutionParams): Promise<ActionExecutionResult> {
   const { actionNode, context, sessionId } = params;
   const messages: Array<{ id: string; role: 'printy'; text: string; ts: number }> = [];
 
@@ -34,7 +34,7 @@ export async function acceptQuoteProposal(params: ActionExecutionParams): Promis
     .eq('session_id', sessionId)
     .single();
 
-  console.log('[AcceptQuote] Current session metadata before update:', currentSession?.metadata);
+  console.log('[RejectQuote] Current session metadata before update:', currentSession?.metadata);
 
   if (currentSession) {
     const currentMetadata = currentSession.metadata as SessionMetadata;
@@ -43,12 +43,12 @@ export async function acceptQuoteProposal(params: ActionExecutionParams): Promis
       context: {
         ...currentMetadata.context,
         ...context,
-        pending_quote_action: 'accept',
+        pending_quote_action: 'reject',
         pending_conversation_id: conversationId,
       },
     };
 
-    console.log('[AcceptQuote] Updated metadata to save:', updatedMetadata);
+    console.log('[RejectQuote] Updated metadata to save:', updatedMetadata);
 
     await updateSessionMetadata(sessionId, updatedMetadata);
 
@@ -58,10 +58,10 @@ export async function acceptQuoteProposal(params: ActionExecutionParams): Promis
       .select('metadata')
       .eq('session_id', sessionId)
       .single();
-    console.log('[AcceptQuote] Metadata after update:', verifySession?.metadata);
+    console.log('[RejectQuote] Metadata after update:', verifySession?.metadata);
   }
 
-  console.log('[AcceptQuote] Quote acceptance queued for conversation:', conversationId);
+  console.log('[RejectQuote] Quote rejection queued for conversation:', conversationId);
 
   return { messages };
 }

@@ -36,11 +36,9 @@ export async function sendConversationMessage({
       ts: Date.now(),
     });
 
-    // Check if this session is linked to a quote conversation for dual-write
-    const quoteConvIdForCustomer =
-      await ChatDatabaseService.getQuoteConversationIdFromSession(sid);
-    const customerIdForDualWrite =
-      await ChatDatabaseService.fetchSessionCustomerId(sid);
+    // REMOVED: No longer needed with dual-write removal
+    // const quoteConvIdForCustomer = await ChatDatabaseService.getQuoteConversationIdFromSession(sid);
+    // const customerIdForDualWrite = await ChatDatabaseService.fetchSessionCustomerId(sid);
 
     // Persist user's message with correct sender role and node context
     const current = activeNodeId
@@ -53,16 +51,8 @@ export async function sendConversationMessage({
       nodeId: (current as any)?.node_id || undefined,
     });
 
-    // Dual-write customer message to quote_messages if in quote flow
-    if (quoteConvIdForCustomer && customerIdForDualWrite) {
-      await ChatDatabaseService.insertQuoteMessage({
-        conversationId: quoteConvIdForCustomer,
-        senderId: customerIdForDualWrite,
-        senderRole: 'customer',
-        messageText: input,
-        messageType: 'chat',
-      });
-    }
+    // REMOVED: Dual-write to deprecated quote_messages table
+    // All messages now stored in chat_messages_v2 only
     // Resolve transition from current node with support for node_action
     const node = (await ChatDatabaseService.fetchCurrentNode(sid)) as
       | (DbFlowNode & { action_config?: any })
@@ -74,15 +64,14 @@ export async function sendConversationMessage({
     const normalized = input.trim();
 
     // Check if this session is linked to a quote conversation for dual-write
-    const quoteConvId =
-      await ChatDatabaseService.getQuoteConversationIdFromSession(sid);
-    const customerId = await ChatDatabaseService.fetchSessionCustomerId(sid);
+    // REMOVED: No longer needed with dual-write removal
+    // const quoteConvId = await ChatDatabaseService.getQuoteConversationIdFromSession(sid);
+    // const customerId = await ChatDatabaseService.fetchSessionCustomerId(sid);
 
-    // Helper: push a bot message (with dual-write to quote_messages if in quote flow)
+    // Helper: push a bot message
     const say = async (
       text: string,
-      nodeId?: string | null,
-      messageType: 'chat' | 'system' = 'chat'
+      nodeId?: string | null
     ) => {
       await ChatDatabaseService.insertMessage({
         sessionId: sid,
@@ -91,16 +80,8 @@ export async function sendConversationMessage({
         nodeId: nodeId ?? node?.node_id,
       });
 
-      // Dual-write to quote_messages if this session is linked to a quote conversation
-      if (quoteConvId && customerId) {
-        await ChatDatabaseService.insertQuoteMessage({
-          conversationId: quoteConvId,
-          senderId: customerId,
-          senderRole: 'printy',
-          messageText: text,
-          messageType,
-        });
-      }
+      // REMOVED: Dual-write to deprecated quote_messages table
+      // All messages now stored in chat_messages_v2 only
 
       ephemeral.push({
         id: crypto.randomUUID(),
@@ -212,30 +193,16 @@ export async function sendConversationMessage({
                   conversationId,
                 });
 
-                // Dual-write: Add customer's quote details to quote_messages table
-                await ChatDatabaseService.insertQuoteMessage({
-                  conversationId,
-                  senderId: customerId,
-                  senderRole: 'customer',
-                  messageText: quoteDetails,
-                  messageType: 'chat',
-                });
+                // REMOVED: Dual-write to deprecated quote_messages table
 
                 // Send success messages
                 const successText = displayId
                   ? `Thank you for providing those details! I've created your quote request.\n\nQuote Request: ${displayId}\n\nAdmin will review your request and get back to you with pricing and details.`
                   : "Thank you for providing those details! I've created your quote request.\n\nAdmin will review your request and get back to you with pricing and details.";
 
-                await say(successText, nextNode.node_id, 'system');
+                await say(successText, nextNode.node_id);
 
-                // Dual-write: Also add Printy's success message to quote_messages
-                await ChatDatabaseService.insertQuoteMessage({
-                  conversationId,
-                  senderId: customerId,
-                  senderRole: 'printy',
-                  messageText: successText,
-                  messageType: 'system',
-                });
+                // REMOVED: Dual-write to deprecated quote_messages table
 
                 // Reset context after submission
                 if (flowData) {
@@ -588,14 +555,7 @@ export async function sendConversationMessage({
             conversationId,
           });
 
-          // Dual-write: Add customer's quote details to quote_messages table
-          await ChatDatabaseService.insertQuoteMessage({
-            conversationId,
-            senderId: customerId,
-            senderRole: 'customer',
-            messageText: quoteDetails,
-            messageType: 'chat',
-          });
+          // REMOVED: Dual-write to deprecated quote_messages table
 
           // Send success messages
           const successText = displayId
@@ -604,14 +564,7 @@ export async function sendConversationMessage({
 
           await say(successText, node.node_id);
 
-          // Dual-write: Also add Printy's success message to quote_messages
-          await ChatDatabaseService.insertQuoteMessage({
-            conversationId,
-            senderId: customerId, // System messages attributed to customer context
-            senderRole: 'printy',
-            messageText: successText,
-            messageType: 'system',
-          });
+          // REMOVED: Dual-write to deprecated quote_messages table
 
           // Reset context after submission
           if (flow) {

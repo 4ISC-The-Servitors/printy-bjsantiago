@@ -132,10 +132,18 @@ CREATE OR REPLACE FUNCTION api_get_flow_definition(
 ) RETURNS JSONB AS $$
 DECLARE
   v_definition JSONB;
+  v_owner TEXT;
 BEGIN
-  SELECT flow_definition INTO v_definition
+  SELECT flow_definition, COALESCE(flow_owner, 'customer') INTO v_definition, v_owner
   FROM chat_flows_v2
   WHERE flow_id = p_flow_id AND active = true;
+
+  -- Merge DB-level owner as fallback when JSON lacks it
+  IF v_definition IS NOT NULL THEN
+    IF (v_definition ? 'owner') IS FALSE THEN
+      v_definition := jsonb_set(v_definition, '{owner}', to_jsonb(v_owner::text), true);
+    END IF;
+  END IF;
 
   RETURN v_definition;
 END;

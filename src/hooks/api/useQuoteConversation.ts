@@ -93,7 +93,7 @@ export function useQuoteConversation(conversationId: string) {
 
     loadConversation();
 
-    // Subscribe to new messages
+    // Subscribe to new messages and updates
     const channel = supabase
       .channel(`quote-conversation-${conversationId}`)
       .on(
@@ -101,8 +101,8 @@ export function useQuoteConversation(conversationId: string) {
         {
           event: 'INSERT',
           schema: 'public',
-          table: 'quote_messages',
-          filter: `conversation_id=eq.${conversationId}`
+          table: 'chat_messages_v2',
+          filter: `session_id=eq.${conversationId}`
         },
         () => {
           // Reload messages when new ones are added
@@ -114,8 +114,8 @@ export function useQuoteConversation(conversationId: string) {
         {
           event: 'UPDATE',
           schema: 'public',
-          table: 'quote_conversations',
-          filter: `conversation_id=eq.${conversationId}`
+          table: 'quotes',
+          filter: `session_id=eq.${conversationId}`
         },
         () => {
           // Reload conversation when status changes
@@ -128,7 +128,7 @@ export function useQuoteConversation(conversationId: string) {
           event: '*',
           schema: 'public',
           table: 'quote_proposals',
-          filter: `conversation_id=eq.${conversationId}`
+          filter: `session_id=eq.${conversationId}`
         },
         () => {
           // Reload proposals when they change

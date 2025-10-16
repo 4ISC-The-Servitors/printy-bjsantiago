@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { SPEC_EDITOR_OPEN } from '../../../features/quote/specEditorEvents';
 import type { SpecData } from '../../../features/quote/quoteAssistantPrompt';
 import { supabase } from '../../../lib/supabase';
+import { Modal } from '../../shared';
+import SpecEditorForm, { type SpecFormData } from './SpecEditorForm';
 
 
 export function SpecEditorModal() {
@@ -36,248 +38,89 @@ export function SpecEditorModal() {
 
   if (!isOpen || !modalData) return null;
 
+  const initialFormData: SpecFormData = {
+    product_name: modalData.specData.product_name || '',
+    service_code: (modalData.specData as any).service_code || '',
+    category: modalData.specData.category || '',
+    description: modalData.specData.description || '',
+    size: modalData.specData.size || '',
+    materials: modalData.specData.materials || [],
+    color: modalData.specData.color || '',
+    finishing: modalData.specData.finishing || [],
+    others: (modalData.specData as any).others || [],
+    quantity: modalData.specData.quantity || 1,
+    artwork: (modalData.specData as any).artwork || '',
+    deadline: modalData.specData.deadline || '',
+    notes: modalData.specData.notes || '',
+    quoted_price: (modalData.specData as any).quoted_price || 0,
+    admin_notes: (modalData.specData as any).admin_notes || '',
+  };
+
   return (
-    <div className="fixed inset-y-0 left-0 right-[420px] bg-black bg-opacity-30 flex items-center justify-center z-[9999]">
-      <div className="bg-white rounded-lg p-6 max-w-xl w-full max-h-[80vh] overflow-y-auto shadow-xl">
-        <h2 className="text-xl font-semibold mb-4">Review Order Specifications</h2>
-        
-        <form className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Product Name</label>
-            <input
-              type="text"
-              value={modalData.specData.product_name}
-              onChange={(e) => setModalData({
-                ...modalData,
-                specData: { ...modalData.specData, product_name: e.target.value }
-              })}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
-            />
-          </div>
+    <Modal isOpen={isOpen} onClose={() => setIsOpen(false)} size="md">
+      <div className="bg-white rounded-2xl shadow-xl border border-neutral-200 p-4 sm:p-5 md:p-6 max-h-[85vh] overflow-y-auto overscroll-contain">
+        <h2 className="text-base sm:text-lg md:text-xl font-semibold mb-3 sm:mb-4">Review Order Specifications</h2>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Category</label>
-            <input
-              type="text"
-              value={modalData.specData.category || ''}
-              onChange={(e) => setModalData({
-                ...modalData,
-                specData: { ...modalData.specData, category: e.target.value }
-              })}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
-            />
-          </div>
+        <SpecEditorForm
+          initialData={initialFormData}
+          loading={isSaving}
+          onCancel={() => {
+            setIsOpen(false);
+            setSaveError(null);
+            setSaveSuccess(false);
+          }}
+          onSubmit={async (data) => {
+            if (!data.quoted_price) {
+              setSaveError('Quoted price is required');
+              return;
+            }
+            setIsSaving(true);
+            setSaveError(null);
+            setSaveSuccess(false);
+            try {
+              // Use RPC with SECURITY DEFINER to bypass RLS
+              const { error } = await supabase.rpc('save_quote_spec', {
+                p_session_id: modalData.conversationId,
+                p_spec_data: data,
+              });
+              if (error) throw error;
+              setSaveSuccess(true);
+              try {
+                if (modalData.sessionId) {
+                  await supabase.rpc('api_insert_chat_message_v2', {
+                    p_session_id: modalData.sessionId,
+                    p_text: 'Draft saved successfully.',
+                    p_role: 'printy',
+                    p_node_id: 'wait_for_draft_save',
+                  });
+                }
+              } catch {}
+              setTimeout(() => {
+                setIsOpen(false);
+                setSaveError(null);
+                setSaveSuccess(false);
+              }, 1200);
+            } catch (e: any) {
+              console.error('Error saving spec:', e);
+              setSaveError(e?.message || 'Failed to save draft');
+            } finally {
+              setIsSaving(false);
+            }
+          }}
+        />
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Description</label>
-            <textarea
-              value={modalData.specData.description || ''}
-              onChange={(e) => setModalData({
-                ...modalData,
-                specData: { ...modalData.specData, description: e.target.value }
-              })}
-              rows={3}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Size</label>
-            <input
-              type="text"
-              value={modalData.specData.size || ''}
-              onChange={(e) => setModalData({
-                ...modalData,
-                specData: { ...modalData.specData, size: e.target.value }
-              })}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Materials</label>
-            <input
-              type="text"
-              value={modalData.specData.materials?.join(', ') || ''}
-              onChange={(e) => setModalData({
-                ...modalData,
-                specData: { ...modalData.specData, materials: e.target.value.split(',').map(s => s.trim()) }
-              })}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
-              placeholder="Separate multiple materials with commas"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Color</label>
-            <input
-              type="text"
-              value={modalData.specData.color || ''}
-              onChange={(e) => setModalData({
-                ...modalData,
-                specData: { ...modalData.specData, color: e.target.value }
-              })}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Finishing</label>
-            <input
-              type="text"
-              value={modalData.specData.finishing?.join(', ') || ''}
-              onChange={(e) => setModalData({
-                ...modalData,
-                specData: { ...modalData.specData, finishing: e.target.value.split(',').map(s => s.trim()) }
-              })}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
-              placeholder="Separate multiple finishes with commas"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Quantity</label>
-            <input
-              type="number"
-              value={modalData.specData.quantity || ''}
-              onChange={(e) => setModalData({
-                ...modalData,
-                specData: { ...modalData.specData, quantity: parseInt(e.target.value) }
-              })}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Quoted Price (PHP) - e.g., 1500.00, 2500.50, 5000
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              value={modalData.specData.quoted_price || ''}
-              onChange={(e) => setModalData({
-                ...modalData,
-                specData: { ...modalData.specData, quoted_price: parseFloat(e.target.value) || 0 }
-              })}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
-              placeholder="1500.00"
-              required
-            />
-            <p className="mt-1 text-sm text-gray-500">
-              Enter the total price in Philippine Pesos (PHP). Use decimal places for cents if needed.
-            </p>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Deadline</label>
-            <input
-              type="text"
-              value={modalData.specData.deadline || ''}
-              onChange={(e) => setModalData({
-                ...modalData,
-                specData: { ...modalData.specData, deadline: e.target.value }
-              })}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Notes</label>
-            <textarea
-              value={modalData.specData.notes || ''}
-              onChange={(e) => setModalData({
-                ...modalData,
-                specData: { ...modalData.specData, notes: e.target.value }
-              })}
-              rows={2}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
-            />
-          </div>
-        </form>
-
-        {/* Error/Success Messages */}
         {saveError && (
           <div className="mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
             Error saving draft: {saveError}
           </div>
         )}
-        
         {saveSuccess && (
           <div className="mt-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded">
             Draft saved successfully!
           </div>
         )}
-
-        <div className="mt-6 flex justify-end gap-2">
-          <button
-            onClick={() => {
-              setIsOpen(false);
-              setSaveError(null);
-              setSaveSuccess(false);
-            }}
-            className="px-4 py-2 text-gray-600 hover:text-gray-800"
-            disabled={isSaving}
-          >
-            Cancel
-          </button>
-          <button
-            onClick={async () => {
-              if (!modalData?.specData.quoted_price) {
-                setSaveError('Quoted price is required');
-                return;
-              }
-
-              setIsSaving(true);
-              setSaveError(null);
-              setSaveSuccess(false);
-
-              try {
-                // Save to quote_specs table
-                const { error } = await supabase
-                  .from('quote_specs')
-                  .insert({
-                    conversation_id: modalData.conversationId,
-                    spec_data: modalData.specData
-                  })
-                  .select()
-                  .single();
-
-                if (error) throw error;
-                
-                setSaveSuccess(true);
-                // Acknowledge in chat transcript if sessionId available
-                try {
-                  if (modalData.sessionId) {
-                    await supabase.rpc('api_insert_chat_message_v2', {
-                      p_session_id: modalData.sessionId,
-                      p_text: 'Draft saved successfully.',
-                      p_role: 'printy',
-                      p_node_id: 'wait_for_draft_save'
-                    });
-                  }
-                } catch {}
-                setTimeout(() => {
-                  setIsOpen(false);
-                  setSaveError(null);
-                  setSaveSuccess(false);
-                }, 1500);
-              } catch (error: any) {
-                console.error('Error saving spec:', error);
-                setSaveError(error.message || 'Failed to save draft');
-              } finally {
-                setIsSaving(false);
-              }
-            }}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
-            disabled={isSaving}
-          >
-            {isSaving ? 'Saving...' : 'Save Draft'}
-          </button>
-        </div>
       </div>
-    </div>
+    </Modal>
   );
 }
 

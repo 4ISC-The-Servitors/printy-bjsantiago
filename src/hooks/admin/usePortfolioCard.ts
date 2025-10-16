@@ -4,12 +4,10 @@ import {
   getServicesOffered,
   getServicesByCategory,
 } from '@data/services';
-import { useServiceSelection } from '@hooks/admin/SelectionContext';
-import { createServiceSelectionItems } from '@utils/admin/selectionUtils';
+// Selection removed
 import { useAdmin } from '@hooks/admin/AdminContext';
 
 export const usePortfolioCard = () => {
-  const serviceSelection = useServiceSelection();
   const { openChat, openChatWithTopic, addSelected } = useAdmin();
   // No artificial timers: compute data synchronously; rely on route Suspense for bundle load
   const [isLoading] = useState(false);
@@ -27,11 +25,11 @@ export const usePortfolioCard = () => {
   const offeredServices = getServicesOffered();
   const categoriesAll = getServicesByCategory(allServices);
   const categoriesOffered = getServicesByCategory(offeredServices);
-  const serviceItems = createServiceSelectionItems(allServices);
+  const serviceItems = allServices.map(svc => ({ id: svc.id, label: `${svc.name} (${svc.code})` }));
 
   const toggleServiceSelection = (serviceId: string) => {
     const item = serviceItems.find(i => i.id === serviceId);
-    if (item) serviceSelection.toggle(item);
+    // no selection; noop
   };
 
   const viewInChat = (serviceId: string) => {
@@ -69,8 +67,8 @@ export const usePortfolioCard = () => {
     openOfferedCategoryId,
     hoveredServiceId,
     setHoveredServiceId,
-    isSelected: serviceSelection.isSelected,
-    selectionCount: serviceSelection.selectionCount,
+    isSelected: () => false,
+    selectionCount: 0,
     toggleServiceSelection,
     viewInChat,
     handleAddService,

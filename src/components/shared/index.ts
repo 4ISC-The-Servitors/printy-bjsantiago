@@ -55,8 +55,6 @@ export type { ToastOptions, ToastMethods, ToastData } from '../../lib/useToast';
 // Showcase Components
 export { default as ComponentShowcase } from './showcase/ComponentShowcase';
 
-// Chat utilities
-export { default as SelectedChipsBar } from './SelectedChipsBar';
 // Tooltip
 export { default as Tooltip } from './Tooltip';
 export { default as Pagination } from './Pagination';

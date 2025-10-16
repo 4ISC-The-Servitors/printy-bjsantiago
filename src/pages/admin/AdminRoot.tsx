@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { AdminLayout } from '@components/admin/shared/layouts';
-import SelectionProvider from '@hooks/admin/SelectionContext';
 import { AdminProvider, type SelectedItem } from '@hooks/admin/AdminContext';
 import { AdminConversationsProvider } from '@hooks/admin/useAdminConversations';
 
@@ -47,15 +46,13 @@ const AdminRoot: React.FC = () => {
   );
 
   return (
-    <SelectionProvider>
-      <AdminConversationsProvider>
-        <AdminProvider value={adminContextValue}>
-          <AdminLayout>
-            <Outlet />
-          </AdminLayout>
-        </AdminProvider>
-      </AdminConversationsProvider>
-    </SelectionProvider>
+    <AdminConversationsProvider>
+      <AdminProvider value={adminContextValue}>
+        <AdminLayout>
+          <Outlet />
+        </AdminLayout>
+      </AdminProvider>
+    </AdminConversationsProvider>
   );
 };
 

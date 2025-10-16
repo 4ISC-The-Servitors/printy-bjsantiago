@@ -3,8 +3,8 @@
  * Sends the latest saved spec as a proposal to the customer and updates status.
  */
 
-import { supabase } from '../../../../../lib/supabase';
-import type { ActionExecutionParams, ActionExecutionResult } from '../types';
+import { supabase } from '../../../../../../lib/supabase';
+import type { ActionExecutionParams, ActionExecutionResult } from '../../types';
 
 export async function sendQuoteProposal(params: ActionExecutionParams): Promise<ActionExecutionResult> {
   const { actionNode, context } = params;
@@ -12,6 +12,8 @@ export async function sendQuoteProposal(params: ActionExecutionParams): Promise<
 
   const config = actionNode.action_config as any;
   const conversationIdKey = config.conversation_id_key || 'session_id';
+  // Note: conversationId here refers to the CUSTOMER's quote session (ask-quote flow), 
+  // NOT the admin's chat session (admin-quote-propose flow)
   const conversationId = String(context[conversationIdKey] || '').trim();
 
   if (!conversationId) {
@@ -19,13 +21,20 @@ export async function sendQuoteProposal(params: ActionExecutionParams): Promise<
     return { messages };
   }
 
-  // Load latest saved spec for this conversation
+  // Load latest saved spec for this customer quote session
+  console.log('[sendQuoteProposal] Fetching specs for customer quote session_id:', conversationId);
   const { data: existingSpecs, error: specError } = await supabase
     .from('quote_specs')
     .select('*')
-    .or(`session_id.eq.${conversationId},conversation_id.eq.${conversationId}`)
+    .eq('session_id', conversationId)
     .order('created_at', { ascending: false })
     .limit(1);
+
+  console.log('[sendQuoteProposal] Query result:', { 
+    found: existingSpecs?.length || 0, 
+    error: specError,
+    sessionId: conversationId 
+  });
 
   if (specError) {
     console.error('[sendQuoteProposal] Error fetching specs:', specError);
@@ -34,6 +43,7 @@ export async function sendQuoteProposal(params: ActionExecutionParams): Promise<
   }
 
   if (!existingSpecs || existingSpecs.length === 0) {
+    console.error('[sendQuoteProposal] No saved specifications found for session:', conversationId);
     messages.push({ id: crypto.randomUUID(), role: 'printy', text: 'No saved specifications found. Please prepare specs first.', ts: Date.now() });
     return { messages };
   }
@@ -66,11 +76,18 @@ export async function sendQuoteProposal(params: ActionExecutionParams): Promise<
     return { messages };
   }
 
-  // Update quote status in legacy conversation table for visibility
-  await supabase
-    .from('quote_conversations')
-    .update({ status: 'spec_proposed' })
-    .eq('conversation_id', conversationId);
+  // Update quote status in quotes table
+  const { error: quoteUpdateError } = await supabase
+    .from('quotes')
+    .update({ 
+      status: 'spec_proposed',
+      updated_at: new Date().toISOString()
+    })
+    .eq('session_id', conversationId);
+
+  if (quoteUpdateError) {
+    console.error('[sendQuoteProposal] Error updating quote status:', quoteUpdateError);
+  }
 
   messages.push({
     id: crypto.randomUUID(),

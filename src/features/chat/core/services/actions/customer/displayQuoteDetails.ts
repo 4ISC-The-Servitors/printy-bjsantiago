@@ -3,10 +3,10 @@
  * Displays details of a quote conversation including proposals
  */
 
-import { supabase } from '../../../../../lib/supabase';
-import { insertMessage, updateSessionMetadata } from '../helpers/flowHelpers';
-import type { ActionExecutionParams, ActionExecutionResult } from '../types';
-import type { SessionMetadata } from '../../../../../chatFlows/types';
+import { supabase } from '../../../../../../lib/supabase';
+import { insertMessage, updateSessionMetadata } from '../../helpers/flowHelpers';
+import type { ActionExecutionParams, ActionExecutionResult } from '../../types';
+import type { SessionMetadata } from '../../../../../../chatFlows/types';
 
 export async function displayQuoteDetails(params: ActionExecutionParams): Promise<ActionExecutionResult> {
   const { actionNode, context, sessionId } = params;
@@ -51,7 +51,7 @@ export async function displayQuoteDetails(params: ActionExecutionParams): Promis
       }
     }
 
-    // Check for proposals (now using session_id instead of conversation_id)
+    // Check for proposals (using session_id)
     const { data: proposals } = await supabase
       .from('quote_proposals')
       .select(`
@@ -62,7 +62,7 @@ export async function displayQuoteDetails(params: ActionExecutionParams): Promis
         notes,
         created_at
       `)
-      .or(`session_id.eq.${conversationId},conversation_id.eq.${conversationId}`)
+      .eq('session_id', conversationId)
       .order('created_at', { ascending: false })
       .limit(1);
 

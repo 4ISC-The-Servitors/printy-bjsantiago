@@ -3,8 +3,8 @@
  * Handles uploading payment proof for an order
  */
 
-import { supabase } from '../../../../../lib/supabase';
-import type { ActionExecutionParams, ActionExecutionResult } from '../types';
+import { supabase } from '../../../../../../lib/supabase';
+import type { ActionExecutionParams, ActionExecutionResult } from '../../types';
 
 export async function uploadPaymentProof(params: ActionExecutionParams): Promise<ActionExecutionResult> {
   const { actionNode, context, customerId } = params;

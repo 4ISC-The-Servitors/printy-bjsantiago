@@ -203,6 +203,9 @@ export interface FlowDefinition {
 
   /** Map of node_id to node definition */
   nodes: Record<string, FlowNode>;
+
+  /** Who owns/initiates this flow (drives default sender role and UI policies) */
+  owner?: 'customer' | 'admin' | 'guest';
 }
 
 // ============================================================================

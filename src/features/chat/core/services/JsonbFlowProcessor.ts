@@ -36,7 +36,7 @@ export class JsonbFlowProcessor {
 
     // Create chat session
     const sessionId = crypto.randomUUID();
-    const { error: sessionError } = await supabase
+      const { error: sessionError } = await supabase
       .from('chat_sessions_v2')
       .insert({
         session_id: sessionId,
@@ -45,7 +45,10 @@ export class JsonbFlowProcessor {
         status: 'active',
         metadata: {
           current_node_id: flowDefinition.initial_node,
-          context: initialContext || {},
+            context: {
+              ...(initialContext || {}),
+              flow_owner: (flowDefinition as any).owner || 'customer',
+            },
         },
       });
 
@@ -143,6 +146,8 @@ export class JsonbFlowProcessor {
               current_node_id: afterActionId,
               context: (initialContext || {}) as any,
             });
+            // Ensure we compute quick replies for the correct node
+            currentNodeId = afterActionId;
             const afterActionNode = flowDefinition.nodes[afterActionId];
             if (afterActionNode && afterActionNode.type === 'message' && typeof afterActionNode.message === 'string' && afterActionNode.message.trim().length > 0) {
               bootMessages.push({ id: crypto.randomUUID(), role: 'printy', text: afterActionNode.message, ts: Date.now() });
@@ -185,8 +190,9 @@ export class JsonbFlowProcessor {
     sessionId: string;
     userInput: string;
     flowDefinition: FlowDefinition;
+    senderRole?: 'customer' | 'admin';
   }) {
-    const { sessionId, userInput, flowDefinition } = params;
+    const { sessionId, userInput, flowDefinition, senderRole = 'customer' } = params;
 
     // Get current session metadata
     const { data: session, error: sessionError } = await supabase
@@ -207,11 +213,11 @@ export class JsonbFlowProcessor {
       throw new Error(`Current node ${metadata.current_node_id} not found`);
     }
 
-    // Insert user message
+    // Insert user message with correct sender role (customer/admin)
     await insertMessage({
       sessionId,
       text: userInput,
-      role: 'customer',
+      role: senderRole,
       nodeId: metadata.current_node_id,
     });
 

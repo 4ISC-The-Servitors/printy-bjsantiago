@@ -6,7 +6,9 @@ import type {
   QuickReply,
   ChatRole,
 } from '../../components/chat/types';
-import { resolveAdminFlow, dispatchAdminCommand } from '../../chatLogic/admin';
+// Legacy admin scripted flows removed; use JSONB flows only.
+import { JsonbFlowProcessor } from '../../features/chat/core/services/JsonbFlowProcessor';
+import { getFlowDefinition } from '../../features/api/jsonbChatFlowApi';
 import { useAdmin } from '@hooks/admin/AdminContext';
 import { useInquiryActions } from './useInquiryActions';
 import { useAdminConversations } from './useAdminConversations';
@@ -149,18 +151,18 @@ export const useAdminChat = (): UseAdminChatReturn => {
       setCurrentContext({});
       const convId = startConversation('Admin Chat');
       setCurrentConversationId(convId);
-      const flow = resolveAdminFlow('intro');
-      if (!flow) return;
-
-      // Handle async initial() and quickReplies()
       void (async () => {
-        const initial = await Promise.resolve(flow.initial({}));
-        await appendMessagesWithTyping(initial.map(m => ({ role: m.role as ChatRole, text: m.text })));
-
-        const quickRepliesResult = await Promise.resolve(flow.quickReplies({}));
-        setQuickReplies(
-          quickRepliesResult.map((l, index) => ({ id: `qr-${index}`, label: l, value: l }))
-        );
+        const flowDef = await getFlowDefinition('admin-quote-propose');
+        if (!flowDef) return;
+        const start = await JsonbFlowProcessor.startFlow({
+          flowId: 'admin-quote-propose',
+          customerId: (await supabase.auth.getUser()).data?.user?.id || '00000000-0000-0000-0000-000000000000',
+          flowDefinition: flowDef,
+          initialContext: {},
+        });
+        setDbSessionId(start.sessionId);
+        await appendMessagesWithTyping(start.messages.map(m => ({ role: m.role as ChatRole, text: m.text })));
+        setQuickReplies(start.quickReplies || []);
       })();
     }
   };
@@ -188,7 +190,7 @@ export const useAdminChat = (): UseAdminChatReturn => {
       setCurrentFlow(nextTopic);
 
       // Pass context - handle both order and service contexts
-      let context;
+      let context: any;
       if (nextTopic === 'multiple-portfolio') {
         context = {
           serviceIds: orderIds,
@@ -262,9 +264,9 @@ export const useAdminChat = (): UseAdminChatReturn => {
             try {
               if (typeof updates?.status === 'string') {
                 const { error } = await supabase
-                  .from('quote_conversations')
-                  .update({ status: updates.status })
-                  .eq('conversation_id', conversationId);
+                  .from('quotes')
+                  .update({ status: updates.status, updated_at: new Date().toISOString() })
+                  .eq('session_id', conversationId);
                 
                 if (error) {
                   console.error('Failed to update quote status', error);
@@ -272,7 +274,7 @@ export const useAdminChat = (): UseAdminChatReturn => {
                 }
               }
               // Refresh the quotes data after update
-              refreshOrders();
+              refreshOrders?.();
             } catch (e) {
               console.error('Failed to update quote', e);
             }
@@ -291,26 +293,24 @@ export const useAdminChat = (): UseAdminChatReturn => {
       console.log('🎯 useAdminChat opening with topic:', nextTopic);
       console.log('📋 Context:', context);
 
-      const flow = resolveAdminFlow(nextTopic);
-      console.log('🔍 Resolved flow:', flow);
-      if (!flow) {
-        console.error('❌ No flow found for topic:', nextTopic);
-        return;
-      }
+      console.log('🔍 Opening admin JSONB flow for topic:', nextTopic);
       const title = buildConversationTitle(nextTopic, orderId);
-      const convId = startConversation(title);
+      const convId = startConversation ? startConversation(title) : 'conv';
       setCurrentConversationId(convId);
 
-      // Handle async initial() method
+      // Handle async initial() for JSONB admin-quote-propose
       void (async () => {
-        const initial = await Promise.resolve(flow.initial(context));
-
-        console.log('💬 Initial messages from useAdminChat:', initial);
-
-        const quickRepliesResult = await Promise.resolve(flow.quickReplies(context));
-        console.log('⚡ Quick replies from flow:', quickRepliesResult);
-
-        await appendMessagesWithTyping(initial.map(m => ({ role: m.role as ChatRole, text: m.text })));
+        const flowDef = await getFlowDefinition('admin-quote-propose');
+        if (!flowDef) return;
+        const start = await JsonbFlowProcessor.startFlow({
+          flowId: 'admin-quote-propose',
+          customerId: (await supabase.auth.getUser()).data?.user?.id || '00000000-0000-0000-0000-000000000000',
+          flowDefinition: flowDef,
+          initialContext: { session_id: orderId },
+        });
+        setDbSessionId(start.sessionId);
+        await appendMessagesWithTyping(start.messages.map(m => ({ role: m.role as ChatRole, text: m.text })));
+        setQuickReplies(start.quickReplies || []);
 
         // Persist initial bot messages to DB if this is a ticket chat and a session was created
         if (nextTopic.includes('ticket')) {
@@ -318,7 +318,7 @@ export const useAdminChat = (): UseAdminChatReturn => {
             // Small delay to allow session creation async to complete
             await new Promise(r => setTimeout(r, 80));
             if (dbSessionId) {
-              for (const m of initial) {
+              for (const m of start.messages) {
                 await ChatDatabaseService.insertMessage({
                   sessionId: dbSessionId,
                   text: m.text,
@@ -329,26 +329,9 @@ export const useAdminChat = (): UseAdminChatReturn => {
           } catch {}
         }
 
-        initial.forEach(m => addConvMessage('printy', m.text, convId));
-        setQuickReplies(
-          quickRepliesResult.map((l, index) => ({ id: `qr-${index}`, label: l, value: l }))
-        );
+        start.messages.forEach(m => addConvMessage('printy', m.text, convId));
 
-        // For quotes flow, automatically load customer description after initial messages
-        if (nextTopic === 'quotes' && orderId) {
-          setIsTyping(true);
-          const resp = await flow.respond(context, '');
-          await appendMessagesWithTyping(resp.messages.map(m => ({ role: m.role as ChatRole, text: m.text })));
-          const quickRepliesForResp = await Promise.resolve(flow.quickReplies(context));
-          setQuickReplies(
-            (resp.quickReplies || quickRepliesForResp).map((l, index) => ({
-              id: `qr-${index}`,
-              label: l,
-              value: l,
-            }))
-          );
-          setIsTyping(false);
-        }
+        // No extra respond step; the JSONB flow already displayed details via action auto-advance
       })();
 
       return;
@@ -437,69 +420,8 @@ export const useAdminChat = (): UseAdminChatReturn => {
     }
 
     // Always use the current flow when we have context (like order-specific chats)
-    const flow = resolveAdminFlow(currentFlow);
-    if (flow) {
-      void flow.respond(currentContext, text).then(resp => {
-        void appendMessagesWithTyping(resp.messages.map(m => ({ role: m.role as ChatRole, text: m.text })));
-        // Persist bot responses to DB for ticket chats (store as 'printy')
-        if (dbSessionId && currentFlow.includes('ticket')) {
-          void (async () => {
-            for (const m of resp.messages) {
-              await ChatDatabaseService.insertMessage({
-                sessionId: dbSessionId,
-                text: m.text,
-                role: 'printy',
-              });
-            }
-          })();
-        }
-        setQuickReplies(
-          (resp.quickReplies || []).map((l, index) => ({
-            id: `qr-${index}`,
-            label: l,
-            value: l,
-          }))
-        );
-        // If we're in a ticket flow and there's a currentInquiryId,
-        // also persist the user's message as a resolution comment.
-        if (currentInquiryId && currentFlow.includes('tickets')) {
-          void (async () => {
-            try {
-              await saveResolutionComment(currentInquiryId!, trimmed);
-            } catch (e) {
-              console.error('Failed to save resolution comment via Reply', e);
-            }
-          })();
-        }
-        setIsTyping(false);
-      });
-    } else {
-      // Fallback to dispatchAdminCommand for general cases
-      const dispatched = dispatchAdminCommand(text);
-      if (dispatched) {
-        const d = dispatched as {
-          messages?: { role: string; text: string }[];
-          quickReplies?: string[];
-        };
-        const botMessages = (d.messages || []).map(m => ({
-          id: crypto.randomUUID(),
-          role: m.role as ChatRole,
-          text: m.text,
-          ts: Date.now(),
-        }));
-        setMessages(prev => [...prev, ...botMessages]);
-        setQuickReplies(
-          (d.quickReplies || []).map((l, index) => ({
-            id: `qr-${index}`,
-            label: l,
-            value: l,
-          }))
-        );
-        setIsTyping(false);
-      } else {
-        setIsTyping(false);
-      }
-    }
+    // For JSONB admin flow, we don't process free-form replies; keep as no-op for now
+    setIsTyping(false);
   };
 
   const handleQuickReply = (v: string) => {
@@ -581,36 +503,36 @@ export const useAdminChat = (): UseAdminChatReturn => {
     }
     setIsTyping(true);
 
-    const flow = resolveAdminFlow(currentFlow);
-    if (!flow) return;
-    void flow.respond(currentContext, val).then(async resp => {
-      await appendMessagesWithTyping(resp.messages.map(m => ({ role: m.role as ChatRole, text: m.text })));
-      // Persist bot responses to DB for ticket chats (store as 'printy')
-      if (dbSessionId && currentFlow.includes('ticket')) {
-        void (async () => {
-          for (const m of resp.messages) {
-            await ChatDatabaseService.insertMessage({
-              sessionId: dbSessionId,
-              text: m.text,
-              role: 'printy',
-            });
-          }
-        })();
-      }
-      setQuickReplies(
-        (resp.quickReplies || []).map((l, index) => ({
-          id: `qr-${index}`,
-          label: l,
-          value: l,
-        }))
-      );
-      if (currentConversationId) {
-        resp.messages.forEach(m =>
-          addConvMessage('printy', m.text, currentConversationId)
-        );
-      }
+    // Drive JSONB flow for quick replies
+    if (!dbSessionId) {
       setIsTyping(false);
-    });
+      return;
+    }
+
+    void (async () => {
+      try {
+        const flowDef = await getFlowDefinition('admin-quote-propose');
+        if (!flowDef) {
+          setIsTyping(false);
+          return;
+        }
+        const resp = await JsonbFlowProcessor.processInput({
+          sessionId: dbSessionId,
+          userInput: val,
+          flowDefinition: flowDef,
+          senderRole: 'admin',
+        });
+        await appendMessagesWithTyping(resp.messages.map(m => ({ role: m.role as ChatRole, text: m.text })));
+        setQuickReplies((resp.quickReplies || []).map((qr, i) => ({ id: qr.id || `qr-${i}`, label: qr.label, value: qr.value })));
+        if (currentConversationId) {
+          resp.messages.forEach(m => addConvMessage('printy', m.text, currentConversationId));
+        }
+      } catch (e) {
+        console.error('Failed to process quick reply', e);
+      } finally {
+        setIsTyping(false);
+      }
+    })();
   };
 
   return {

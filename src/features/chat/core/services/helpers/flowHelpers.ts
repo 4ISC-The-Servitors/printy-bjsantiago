@@ -34,6 +34,21 @@ export function buildQuickReplies(node: FlowNode): Array<{
 }
 
 /**
+ * Resolve flow owner from a flow definition with a fallback.
+ * - Prefer explicit `owner` in the JSON flow definition
+ * - Otherwise use provided fallback (e.g., DB column)
+ */
+export function getFlowOwner(
+  flowDefinition: { owner?: 'customer' | 'admin' | 'guest' } | undefined,
+  fallback: 'customer' | 'admin' | 'guest' = 'customer'
+): 'customer' | 'admin' | 'guest' {
+  if (flowDefinition && typeof flowDefinition.owner === 'string') {
+    return flowDefinition.owner as any;
+  }
+  return fallback;
+}
+
+/**
  * Insert a message to chat_messages_v2
  */
 export async function insertMessage(params: {
@@ -101,7 +116,7 @@ export async function processPendingQuoteAction(action: string, conversationId: 
     const { data: proposals, error: fetchError } = await supabase
       .from('quote_proposals')
       .select('proposal_id, status')
-      .eq('conversation_id', conversationId)
+      .eq('session_id', conversationId)
       .order('created_at', { ascending: false })
       .limit(1);
 
@@ -131,20 +146,23 @@ export async function processPendingQuoteAction(action: string, conversationId: 
 
     console.log(`[ProcessPendingQuote] Proposal status updated to ${newStatus}`);
 
-    // Update conversation status
-    console.log(`[ProcessPendingQuote] Attempting to update conversation status to ${newStatus} for conversation_id:`, conversationId);
+    // Update quote status in quotes table
+    console.log(`[ProcessPendingQuote] Attempting to update quote status to ${newStatus} for session_id:`, conversationId);
 
-    const { data: updateResult, error: conversationError } = await supabase
-      .from('quote_conversations')
-      .update({ status: newStatus })
-      .eq('conversation_id', conversationId)
+    const { data: updateResult, error: quoteError } = await supabase
+      .from('quotes')
+      .update({ 
+        status: newStatus,
+        updated_at: new Date().toISOString()
+      })
+      .eq('session_id', conversationId)
       .select();
 
-    if (conversationError) {
-      console.error(`[ProcessPendingQuote] Error updating conversation status:`, conversationError);
+    if (quoteError) {
+      console.error(`[ProcessPendingQuote] Error updating quote status:`, quoteError);
     } else {
-      console.log(`[ProcessPendingQuote] Conversation status update result:`, updateResult);
-      console.log(`[ProcessPendingQuote] Conversation status updated to ${newStatus}`);
+      console.log(`[ProcessPendingQuote] Quote status update result:`, updateResult);
+      console.log(`[ProcessPendingQuote] Quote status updated to ${newStatus}`);
     }
 
   } catch (error) {

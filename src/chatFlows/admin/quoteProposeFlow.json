@@ -20,8 +20,12 @@
       },
       "manual_specs": {
         "next": "wait_for_draft_save",
-        "type": "message",
-        "message": "Opening manual specification form... Please fill out the details and save the draft."
+        "type": "action",
+        "action": "open_spec_editor",
+        "message": "Opening manual specification form... Please fill out the details and save the draft.",
+        "action_config": {
+          "conversation_id_key": "session_id"
+        }
       },
       "show_details": {
         "next": "choose_action",
@@ -43,10 +47,6 @@
           {
             "next": "manual_specs",
             "label": "Manual Order Specs"
-          },
-          {
-            "next": "end",
-            "label": "End Chat"
           }
         ]
       },

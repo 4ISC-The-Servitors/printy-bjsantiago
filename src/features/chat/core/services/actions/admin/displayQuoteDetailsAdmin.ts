@@ -6,10 +6,10 @@
  * - Formats messaging for admin audience (no customer-facing wording)
  */
 
-import { supabase } from '../../../../../lib/supabase';
-import { insertMessage, updateSessionMetadata } from '../helpers/flowHelpers';
-import type { ActionExecutionParams, ActionExecutionResult } from '../types';
-import type { SessionMetadata } from '../../../../../chatFlows/types';
+import { supabase } from '../../../../../../lib/supabase';
+import { insertMessage, updateSessionMetadata } from '../../helpers/flowHelpers';
+import type { ActionExecutionParams, ActionExecutionResult } from '../../types';
+import type { SessionMetadata } from '../../../../../../chatFlows/types';
 
 export async function displayQuoteDetailsAdmin(params: ActionExecutionParams): Promise<ActionExecutionResult> {
   const { actionNode, context, sessionId } = params;

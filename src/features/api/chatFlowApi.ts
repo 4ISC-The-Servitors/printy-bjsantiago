@@ -501,32 +501,34 @@ export async function getQuoteConversationIdFromSession(
 }
 
 /**
- * Dual-write a message to both chat_messages and quote_messages
+ * DEPRECATED: Dual-write to quote_messages table
+ * This function is no longer used as all messages now go to chat_messages_v2 only
  */
-export async function insertQuoteMessage(params: {
-  conversationId: string;
-  senderId: string;
-  senderRole: 'customer' | 'admin' | 'printy' | 'ai';
-  messageText: string;
-  messageType?: 'chat' | 'spec_summary' | 'spec_proposal' | 'system';
-  metadata?: Record<string, unknown>;
-}): Promise<{ messageId: string | null }> {
-  const { data, error } = await supabase.rpc('add_quote_message', {
-    p_conversation_id: params.conversationId,
-    p_sender_id: params.senderId,
-    p_sender_role: params.senderRole,
-    p_message_text: params.messageText,
-    p_message_type: params.messageType || 'chat',
-    p_metadata: params.metadata || {},
-  });
-
-  if (error) {
-    console.error('insertQuoteMessage error', error);
-    return { messageId: null };
-  }
-
-  return { messageId: (data as string) || null };
-}
+// Commented out - no longer needed with chat_messages_v2 migration
+// export async function insertQuoteMessage(params: {
+//   conversationId: string;
+//   senderId: string;
+//   senderRole: 'customer' | 'admin' | 'printy' | 'ai';
+//   messageText: string;
+//   messageType?: 'chat' | 'spec_summary' | 'spec_proposal' | 'system';
+//   metadata?: Record<string, unknown>;
+// }): Promise<{ messageId: string | null }> {
+//   const { data, error } = await supabase.rpc('add_quote_message', {
+//     p_conversation_id: params.conversationId,
+//     p_sender_id: params.senderId,
+//     p_sender_role: params.senderRole,
+//     p_message_text: params.messageText,
+//     p_message_type: params.messageType || 'chat',
+//     p_metadata: params.metadata || {},
+//   });
+//
+//   if (error) {
+//     console.error('insertQuoteMessage error', error);
+//     return { messageId: null };
+//   }
+//
+//   return { messageId: (data as string) || null };
+// }
 
 /**
  * Creates a quote conversation and returns conversation_id and display_id

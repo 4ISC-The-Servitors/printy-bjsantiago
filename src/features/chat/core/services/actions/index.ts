@@ -1,37 +1,27 @@
 /**
- * Action Registry
- * Maps action names to their handler functions
+ * Unified action registry entrypoint
+ *
+ * Keeps admin and customer action handlers defined in their own folders,
+ * but exposes a single `actionHandlers` map for the flow processor.
  */
 
-import type { ActionHandler } from '../types';
-import { verifyOrder } from './verifyOrder';
-import { uploadPaymentProof } from './uploadPaymentProof';
-import { createQuoteConversation } from './createQuoteConversation';
-import { createInquiry } from './createInquiry';
-import { displayQuoteDetails } from './displayQuoteDetails';
-import { displayQuoteDetailsAdmin } from './displayQuoteDetailsAdmin';
-import { acceptQuoteProposal } from './acceptQuoteProposal';
-import { rejectQuoteProposal } from './rejectQuoteProposal';
-import { aiSummarizeSpecs } from './aiSummarizeSpecs';
-import { sendQuoteProposal } from './sendQuoteProposal';
+import type { ActionHandler } from "../types";
+
+// Import the per-role registries
+import { actionHandlers as adminActionHandlers } from "./admin/index";
+import { actionHandlers as customerActionHandlers } from "./customer/index";
 
 /**
- * Registry of all available action handlers
+ * Merged registry. Action names are distinct across roles
+ * (e.g., `display_quote_details_admin` vs `display_quote_details`).
  */
 export const actionHandlers: Record<string, ActionHandler> = {
-  verify_order: verifyOrder,
-  upload_payment_proof: uploadPaymentProof,
-  create_quote_conversation: createQuoteConversation,
-  create_inquiry: createInquiry,
-  display_quote_details: displayQuoteDetails,
-  display_quote_details_admin: displayQuoteDetailsAdmin,
-  accept_quote_proposal: acceptQuoteProposal,
-  reject_quote_proposal: rejectQuoteProposal,
-  ai_summarize_specs: aiSummarizeSpecs,
-  send_quote_proposal: sendQuoteProposal,
+  ...customerActionHandlers,
+  ...adminActionHandlers,
 };
 
-/**
- * Execute an action by name
- */
-export { verifyOrder, uploadPaymentProof, createQuoteConversation, createInquiry, displayQuoteDetails, acceptQuoteProposal, rejectQuoteProposal, aiSummarizeSpecs, sendQuoteProposal };
+// Re-export individual handlers if callers need direct imports
+export * from "./admin/index";
+export * from "./customer/index";
+
+

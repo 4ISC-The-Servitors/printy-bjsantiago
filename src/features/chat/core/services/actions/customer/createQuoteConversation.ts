@@ -3,9 +3,9 @@
  * Creates a new quote conversation and adds the initial message
  */
 
-import { supabase } from '../../../../../lib/supabase';
-import { insertMessage } from '../helpers/flowHelpers';
-import type { ActionExecutionParams, ActionExecutionResult } from '../types';
+import { supabase } from '../../../../../../lib/supabase';
+import { insertMessage } from '../../helpers/flowHelpers';
+import type { ActionExecutionParams, ActionExecutionResult } from '../../types';
 
 export async function createQuoteConversation(params: ActionExecutionParams): Promise<ActionExecutionResult> {
   const { actionNode, context, customerId, sessionId } = params;
