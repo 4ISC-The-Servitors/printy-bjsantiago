@@ -7,7 +7,6 @@ import { useDeviceUtils } from '@shared/hooks/ui';
 import { useToast } from '@lib/useToast';
 import { useAdminChat } from '@admin/hooks/useAdminChat';
 import { useAdminConversations } from '@admin/hooks/useAdminConversations';
-import { useAdminRecentChatSessions } from '@admin/hooks/useAdminRecentChatSessions';
 import type { NavRoute } from '../navigation';
 import DesktopLayout from './DesktopLayout';
 import MobileLayout from './MobileLayout';
@@ -38,15 +37,15 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     quickReplies,
     handleChatOpen,
     handleChatOpenWithTopic,
+    handleShowConversation,
     handleSendMessage,
     handleQuickReply,
     endChatWithDelay,
     readOnly,
   } = useAdminChat();
 
-  // Load recent chat sessions from database
-  const { setConversations } = useAdminConversations();
-  useAdminRecentChatSessions(setConversations);
+  // Admin conversations are loaded via useAdminConversations hook
+  const { conversations } = useAdminConversations();
 
   // Listen for admin-chat-open custom events from ticket cards
   useEffect(() => {
@@ -64,14 +63,23 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       );
     };
 
-    // Add event listener for admin-chat-open custom events
-    window.addEventListener('admin-chat-open', handleAdminChatOpen as EventListener);
+    const handleAdminShowConversation = (event: CustomEvent) => {
+      const { conversationId } = event.detail;
+      
+      // Call the handleShowConversation function to view historical chat
+      handleShowConversation(conversationId);
+    };
 
-    // Cleanup event listener on unmount
+    // Add event listeners for admin chat events
+    window.addEventListener('admin-chat-open', handleAdminChatOpen as EventListener);
+    window.addEventListener('admin-show-conversation', handleAdminShowConversation as EventListener);
+
+    // Cleanup event listeners on unmount
     return () => {
       window.removeEventListener('admin-chat-open', handleAdminChatOpen as EventListener);
+      window.removeEventListener('admin-show-conversation', handleAdminShowConversation as EventListener);
     };
-  }, [handleChatOpenWithTopic]);
+  }, [handleChatOpenWithTopic, handleShowConversation]);
 
   // Check for signin success toast
   useEffect(() => {

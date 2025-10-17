@@ -75,8 +75,7 @@ const RecentChats: React.FC<RecentChatsProps> = ({
                     color="muted"
                     className="truncate"
                   >
-                    {lastBotMessage?.text?.substring(0, 60) ||
-                      'No messages yet'}
+                    {lastBotMessage?.text?.substring(0, 60) || ''}
                     {(lastBotMessage?.text?.length || 0) > 60 ? '...' : ''}
                   </Text>
                   <Text variant="p" size="xs" color="muted" className="mt-1">
