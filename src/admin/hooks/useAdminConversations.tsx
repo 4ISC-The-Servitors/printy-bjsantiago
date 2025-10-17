@@ -27,6 +27,7 @@ interface AdminConversationsContextValue {
   endConversation: (id?: string) => void;
   setActive: (id: string | null) => void;
   clear: () => void;
+  setConversations: React.Dispatch<React.SetStateAction<AdminConversation[]>>;
 }
 
 const AdminConversationsContext = createContext<
@@ -92,6 +93,7 @@ export const AdminConversationsProvider: React.FC<{
       endConversation,
       setActive: setActiveId,
       clear,
+      setConversations,
     }),
     [conversations, activeId]
   );

@@ -48,7 +48,7 @@ export const DesktopLayout: React.FC<DesktopLayoutProps> = ({
       </main>
 
       {/* Bottom Navbar */}
-      <BottomNavbar onNavigate={onNavigate} onOpenChat={onOpenChat} />
+      <BottomNavbar onNavigate={onNavigate} />
 
       {/* Chat Dock (right side, optional) */}
       {chatDock}

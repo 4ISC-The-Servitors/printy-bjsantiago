@@ -9,7 +9,7 @@ export const RequireAuth: React.FC<{ allowed: Role[]; children: React.ReactNode 
   const location = useLocation();
 
   // Show loading state while checking authentication instead of blank screen
-  if (loading) return <PageLoading variant="page" />;
+  if (loading) return <PageLoading variant="minimal" />;
 
   // Redirect to signin if not authenticated
   if (!session) return <Navigate to="/auth/signin" state={{ from: location }} replace />;

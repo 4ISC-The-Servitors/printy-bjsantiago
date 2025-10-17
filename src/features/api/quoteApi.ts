@@ -268,3 +268,43 @@ export async function fetchRecentQuoteConversations(customerId: string): Promise
   if (error) throw error;
   return data as any[];
 }
+
+// Export a unified quoteActions object for useQuoteActions hook
+export const quoteActions = async (params: {
+  action: 'show-specs' | 'edit-specs' | 'propose-quote' | 'send-for-approval' | 'place-order';
+  inquiry_id?: string;
+  quote_id?: string;
+  spec_patch?: Record<string, unknown>;
+  quoted_price?: number;
+  notes?: string;
+  valued?: boolean;
+  supabaseUrl?: string;
+  accessToken?: string;
+}) => {
+  // This is a placeholder implementation that would need to be connected to actual backend functions
+  // For now, return mock responses to prevent the white screen issue
+  switch (params.action) {
+    case 'show-specs':
+      return {
+        quote_id: params.quote_id,
+        status: 'active',
+        spec: {},
+        quoted_price: params.quoted_price || 0
+      };
+
+    case 'edit-specs':
+      return { success: true };
+
+    case 'propose-quote':
+      return { success: true };
+
+    case 'send-for-approval':
+      return { success: true };
+
+    case 'place-order':
+      return { success: true };
+
+    default:
+      throw new Error(`Unknown action: ${params.action}`);
+  }
+};

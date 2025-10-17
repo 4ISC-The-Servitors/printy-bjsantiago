@@ -11,8 +11,8 @@ import AdminRoot from '@admin/pages/AdminRoot';
 import SuperAdminRoot from '@superadmin/pages/SuperAdminRoot';
 import { PageLoading } from '@shared/components';
 import './index.css';
-import RequireAuth from '@components/auth/guards/RequireAuth';
-import GuestOnly from '@components/auth/guards/GuestOnly';
+import { RequireAuth } from '@auth/components/guards/RequireAuth';
+import { GuestOnly } from '@auth/components/guards/GuestOnly';
 
 // Lazy load heavy components
 const AdminDashboard = lazy(() => import('@admin/pages/Dashboard'));

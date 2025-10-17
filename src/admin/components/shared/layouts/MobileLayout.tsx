@@ -58,7 +58,7 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({
       </main>
 
       {/* Bottom Navbar */}
-      <BottomNavbar onNavigate={onNavigate} onOpenChat={onOpenChat} />
+      <BottomNavbar onNavigate={onNavigate} />
 
       {/* Sidebar Overlay */}
       {sidebarOpen && (
