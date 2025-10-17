@@ -1,7 +1,10 @@
 import { Routes, Route } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
-import { LandingPage } from '@guest/pages';
-import { SignIn, SignUp, ForgotPassword, ResetPassword } from '@auth/pages';
+import LandingPage from './guest/pages/LandingPage';
+import SignIn from '@auth/pages/SignIn';
+import SignUp from '@auth/pages/SignUp';
+import ForgotPassword from '@auth/pages/ForgotPassword';
+import ResetPassword from '@auth/pages/ResetPassword';
 import CustomerAccountSettings from '@customer/pages/CustomerAccountSettings';
 import CustomerRoot from '@customer/pages/CustomerRoot';
 import AdminRoot from '@admin/pages/AdminRoot';
@@ -162,7 +165,8 @@ function App() {
           </Suspense>
         }
       />
-      </Routes>
+
+    </Routes>
   );
 }
 
