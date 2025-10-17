@@ -78,3 +78,6 @@ forContext/
 .cursor/
 docs/
 .claude/
+
+# legacy chat flows kept only for reference
+src/chatFlows/
