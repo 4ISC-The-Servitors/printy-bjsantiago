@@ -20,14 +20,17 @@ export function SpecEditorModal() {
 
   useEffect(() => {
     const handleSpecEditorOpen = (event: Event) => {
+      console.log('[SpecEditorModal] Received spec-editor-open event:', event);
       const customEvent = event as CustomEvent<{
         conversationId: string;
         specData: SpecData;
         language: string;
         sessionId?: string;
       }>;
+      console.log('[SpecEditorModal] Event detail:', customEvent.detail);
       setModalData(customEvent.detail);
       setIsOpen(true);
+      console.log('[SpecEditorModal] Modal should now be open');
     };
 
     window.addEventListener(SPEC_EDITOR_OPEN, handleSpecEditorOpen);

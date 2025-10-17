@@ -1139,7 +1139,7 @@ The chat system migration has been successfully executed through Phases 1-3, est
 - **Action handlers updated** to maintain bidirectional relationships
 - **Unified query patterns implemented** via `sessionQueries.ts`
 - **Hooks updated** to use new FK-based query patterns:
-  - `useAdminRecentChatSessions.ts` - Updated to query `chat_sessions_v2`
+  - `useAdminRecentChatSessions.ts` - Removed (redundant - admin uses All Chats page instead of sidebar)
   - `useRecentTicket.ts` - Updated to use `getCustomerInquiries()`
   - `useRecentQuote.ts` - Updated to use `getCustomerQuotes()`
 - **Old flow driver system deprecated** with comprehensive audit documentation

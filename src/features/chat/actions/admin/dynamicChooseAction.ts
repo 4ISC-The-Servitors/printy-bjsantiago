@@ -87,21 +87,8 @@ export async function dynamicChooseAction(params: ActionExecutionParams): Promis
     context.has_existing_specs = hasExistingSpecs;
     context.existing_spec_id = hasExistingSpecs ? existingSpecs[0].spec_id : null;
 
-    if (hasExistingSpecs) {
-      messages.push({ 
-        id: crypto.randomUUID(), 
-        role: 'printy', 
-        text: 'I found existing specifications for this quote. What would you like to do?', 
-        ts: Date.now() 
-      });
-    } else {
-      messages.push({ 
-        id: crypto.randomUUID(), 
-        role: 'printy', 
-        text: 'Choose how to prepare the specifications.', 
-        ts: Date.now() 
-      });
-    }
+    // Don't add messages here - let the next node (conditional_options) handle the message display
+    // The action only needs to set the context for the flow to use
 
   } catch (error: any) {
     console.error('[dynamicChooseAction] Unexpected error:', error);
