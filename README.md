@@ -2,6 +2,35 @@
 
 ## 📄 Changelogs
 
+### 2025-10-18-Andeng
+
+- Chat System v2 (JSONB) rollout and fixes
+  - Flows now load from `chat_flows_v2`; sessions/messages use `chat_sessions_v2` and `chat_messages_v2`.
+  - Ask-Quote flow fully functional end-to-end (session start → input → create quote → messages saved).
+  - Admin chat history & sessioning complete: can open ended conversations read-only and view full history.
+  - Unified types under `@features/chat/types`; removed runtime reliance on `src/chatFlows/*` (legacy only).
+
+- Admin Quote Proposal flow
+  - Manual specs editor wired: `manual_order_specs` opens empty form for draft.
+  - Edit saved specs: `edit_saved_specs` loads latest `quote_specs` by customer session and opens editor.
+  - Send proposal: `send_quote_proposal` validates latest draft and updates quote to `spec_proposed`.
+  - Fixed option routing: "Edit Specs Again" now points to `edit_saved_specs` instead of options menu.
+  - Option matching improved (matches by label or value); removed duplicate messages from dynamic actions.
+  - Action messages are now persisted to `chat_messages_v2` to survive backtracks.
+
+- Admin UX updates
+  - "All Chats" page mirrors customer history loader; removed crash from incorrect state setter.
+  - Removed non-existent `quotes.total_price` from admin queries; unified timestamps for cards.
+
+- Stability/infra
+  - Fixed PostgREST filter syntax (`inquiry_id.not.is.null`).
+  - Temporarily disabled pgcrypto/Vault encryption for chat while resolving extension availability.
+
+- Current working flows
+  - Customer: Ask Quote, Issue Ticket (DB-backed), About.
+  - Admin: Quote Proposal (manual/AI summarize, edit, send), historical chat viewing.
+
+
 ### 2025-10-15-Andeng
 
 - **Admin UI/UX Enhancements**

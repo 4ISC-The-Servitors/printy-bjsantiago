@@ -1,7 +1,7 @@
 ## Chat System v2 — Simple Overview
 
 Last Updated: 2025-10-17  
-**Status**: ✅ Ask-Quote flow fully functional
+**Status**: ✅ Ask-Quote flow fully functional, ✅ Admin chat history & sessioning complete
 
 ### What “chat” is here (super simple)
 
@@ -60,8 +60,8 @@ Last Updated: 2025-10-17
 
 ### Admin vs Customer
 
-- **Customer**: starts flows (Ask Quote, Issue Ticket); messages saved with `sender_role='customer'`; Printy responds from the flow.
-- **Admin**: opens sessions, can reply (role `admin`), sees quick replies; ended sessions are read-only.
+- **Customer**: starts flows (Ask Quote, Issue Ticket); messages saved with `sender_role='customer'`; Printy responds from the flow; can view historical conversations in sidebar.
+- **Admin**: opens sessions, can reply (role `admin`), sees quick replies; can view historical conversations in "All Chats" page; ended sessions are read-only with proper overlay.
 
 ### Start a flow (how-to)
 
@@ -96,7 +96,7 @@ const { data } = await supabase
   .select(`
     session_id, flow_id, status, created_at, metadata,
     inquiry:inquiries!inquiry_id(inquiry_id, display_id, inquiry_status),
-    quote:quotes!quote_id(quote_id, display_id, status, total_price)
+    quote:quotes!quote_id(quote_id, display_id, status)
   `)
   .eq('customer_id', userId)
   .order('created_at', { ascending: false });
@@ -107,6 +107,8 @@ await supabase
   .select('message_id, sender_role, message_text_enc, sent_at, metadata')
   .eq('session_id', sessionId)
   .order('sent_at', { ascending: true });
+
+```
 
 ### Guardrails (do this, not that)
 - Use only `chat_sessions_v2`, `chat_messages_v2`, `chat_flows_v2`.
@@ -125,6 +127,40 @@ await supabase
   - Temporarily disabled encryption to resolve pgcrypto dependency issues
   - Updated RPC functions to work without Supabase Vault extension
   - Flow now successfully creates quotes with display IDs (QOT-XXXXXX)
+- **✅ COMPLETED: Admin chat history & sessioning** (2025-10-17)
+  - Fixed PostgREST query syntax error in admin conversations loading
+  - Implemented historical chat viewing for admins (mimics customer experience)
+  - Added read-only overlay for admin chat dock when viewing ended conversations
+  - Removed redundant `useAdminRecentChatSessions` hook (admin uses "All Chats" page instead of sidebar)
+  - Admin can now click on ended conversations to view complete chat history
+  - Messages load from database using same API as customer historical chats
+- **✅ COMPLETED: Admin quote proposal flow & manual specs** (2025-10-17)
+  - Fixed admin quote proposal flow to properly show options and execute actions
+  - Renamed `openSpecEditor.ts` → `manualOrderSpecs.ts` for clarity
+  - Fixed option matching logic in JsonbFlowProcessor to handle both label and value matching
+  - Removed duplicate messages from `dynamicChooseAction` and flow definition
+  - Fixed action message persistence - action messages now properly saved to chat_messages_v2
+  - Removed redundant `sent_confirmation` node since action provides the message
+  - Admin can now click "Manual Order Specs" to open empty spec editor form
+
+### Admin Quote Propose UX updates (2025-10-17)
+- Removed non-existent `quotes.total_price` from admin sessions query
+- Unified timestamps: customer quote card now uses `quotes.updated_at` for "Updated"
+- Fixed admin chat crash: correct `setCurrentContext` state setter usage
+- Added saved-spec detection on admin chat open for a quote session
+  - When a saved draft exists, Printy posts a reminder:
+    - "You have drafted an order specs for this quote request. What do you want to do?"
+  - Quick replies shown in this case:
+    - Edit Specs → opens Spec Editor prefilled with latest saved spec
+    - Send Specs to Customer → validates and sends latest spec as proposal
+    - End Chat
+- Kept Edit Specs persistently available after saving a draft (no "Create New Specs" option to avoid confusion)
+- New admin actions registered:
+  - `edit_saved_specs` — loads latest spec by `session_id` and opens Spec Editor
+  - `send_quote_proposal` — sends latest saved spec and updates quote to `spec_proposed`
+
+Notes:
+- `quote_specs` links via `session_id` (no `quote_id` FK); admin chat passes the customer's quote `session_id` in context.
 
 ### Troubleshooting (common issues)
 - **"function pgp_sym_decrypt does not exist"**: Encryption functions not available. Use plain text storage temporarily.
@@ -132,10 +168,43 @@ await supabase
 - **"vault.get_secret does not exist"**: Supabase Vault not available. Use `priv.get_vault_secret()` wrapper.
 - **"session not found"**: Check if session exists and user has proper permissions.
 - **Flow not advancing**: Check if action handlers are properly registered in `actionHandlers` registry.
+- **PostgREST query syntax error**: Use correct syntax for null checks: `inquiry_id.not.is.null` not `inquiry_id.is.not.null`.
+- **Duplicate messages in flow**: Check for multiple nodes showing messages - remove options from action nodes or messages from dynamic actions.
+- **Quick replies not working**: Ensure option matching logic handles both `label` and `value` properties.
+- **Action messages not persisting**: Action messages must be saved to database via `insertMessage()` in JsonbFlowProcessor.
+
+### Debugging Process (Admin Quote Proposal Flow)
+**Problem**: "Manual Order Specs" button not opening spec editor form.
+
+**Debugging Steps**:
+1. **Console Error Analysis**: Found PostgREST syntax error in admin conversations loading
+   - Fixed: `inquiry_id.is.not.null` → `inquiry_id.not.is.null`
+
+2. **Flow Definition Issues**: 
+   - Issue: `manual_specs` node was message-only, not action node
+   - Fix: Updated database to use `manual_order_specs` action
+
+3. **Action Registration**: 
+   - Issue: Action handler not registered correctly
+   - Fix: Renamed file and updated action registry from `open_spec_editor` → `manual_order_specs`
+
+4. **Option Matching Logic**:
+   - Issue: JsonbFlowProcessor only matched by label, not value
+   - Fix: Enhanced matching to handle both `opt.label` and `opt.value`
+
+5. **Duplicate Messages**:
+   - Issue: Both `choose_action` and `conditional_options` showing messages
+   - Fix: Removed message from `dynamicChooseAction` function and `choose_action` node
+
+6. **Message Persistence**:
+   - Issue: Action messages not saved to database, lost on backtrack
+   - Fix: Added database save loop for action messages in JsonbFlowProcessor
+
+**Final Solution**: Simplified flow with hardcoded options and proper action execution.
 
 ### Read more
 - `docs_guide/CHAT_SYSTEM_V2_DEV_GUIDE.md` — quick reference + queries
 - `docs_guide/JSONB_CHAT_FLOW_SYSTEM.md` — JSON flow format + execution details
 - `src/features/chat/services/JsonbFlowProcessor.ts` — the engine
 - `src/features/chat/api/sessionQueries.ts` — unified query helpers
-```
+ 

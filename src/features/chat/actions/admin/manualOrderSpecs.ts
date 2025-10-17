@@ -1,5 +1,5 @@
 /**
- * Action handler: open_spec_editor
+ * Action handler: manual_order_specs
  *
  * Opens the Spec Editor modal with an empty specification template for manual entry.
  * This allows admins to create quote specifications from scratch without AI assistance.
@@ -39,7 +39,7 @@
  * {
  *   "id": "manual_spec",
  *   "type": "action",
- *   "action": "open_spec_editor",
+ *   "action": "manual_order_specs",
  *   "action_config": {
  *     "conversation_id_key": "session_id"
  *   },
@@ -57,7 +57,7 @@
 import { openSpecEditor } from '@features/quote/specEditorEvents';
 import type { ActionExecutionParams, ActionExecutionResult } from '@features/chat/types';
 
-export async function openSpecEditorManual(params: ActionExecutionParams): Promise<ActionExecutionResult> {
+export async function manualOrderSpecs(params: ActionExecutionParams): Promise<ActionExecutionResult> {
   const { actionNode, context, sessionId } = params;
 
   const config = (actionNode.action_config as any) || {};
@@ -72,6 +72,28 @@ export async function openSpecEditorManual(params: ActionExecutionParams): Promi
   }
 
   // Open Spec Editor with minimal default structure
+  console.log('[manualOrderSpecs] Opening spec editor with params:', {
+    conversationId,
+    sessionId,
+    specData: {
+      product_name: '',
+      service_code: '',
+      category: '',
+      description: '',
+      size: '',
+      materials: [],
+      color: '',
+      finishing: [],
+      others: [],
+      quantity: undefined,
+      quoted_price: undefined,
+      artwork: '',
+      deadline: '',
+      notes: '',
+    },
+    language: 'en',
+  });
+  
   openSpecEditor({
     conversationId,
     specData: {
@@ -93,6 +115,8 @@ export async function openSpecEditorManual(params: ActionExecutionParams): Promi
     language: 'en',
     sessionId,
   });
+  
+  console.log('[manualOrderSpecs] Spec editor event dispatched');
 
   // Avoid duplicating the node's own message; no extra messages returned.
   return { messages };

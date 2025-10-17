@@ -68,6 +68,7 @@ export interface QuoteWithSession {
   status: string;
   total_price?: number;
   created_at: string;
+  updated_at?: string;
   session_id?: string;
   session?: {
     session_id: string;
@@ -78,6 +79,7 @@ export interface QuoteWithSession {
   quoteId: string;
   displayId: string;
   createdAt: number;
+  updatedAt?: number;
   endedAt?: number;
 }
 
@@ -437,8 +439,7 @@ export async function getAdminInquirySessions(): Promise<
       quote:quotes!quote_id(
         quote_id,
         display_id,
-        status,
-        total_price
+        status
       )
     `
     )
@@ -533,6 +534,7 @@ export async function getCustomerQuotes(
       customer_id,
       status,
       created_at,
+      updated_at,
       ended_at,
       session_id,
       session:chat_sessions_v2!session_id(
@@ -557,6 +559,7 @@ export async function getCustomerQuotes(
     customer_id: quote.customer_id,
     status: quote.status,
     created_at: quote.created_at,
+    updated_at: quote.updated_at,
     ended_at: quote.ended_at,
     session_id: quote.session_id,
     session: Array.isArray(quote.session) ? quote.session[0] : quote.session,
@@ -564,6 +567,7 @@ export async function getCustomerQuotes(
     quoteId: quote.quote_id,
     displayId: quote.display_id,
     createdAt: new Date(quote.created_at).getTime(),
+    updatedAt: quote.updated_at ? new Date(quote.updated_at).getTime() : undefined,
     endedAt: quote.ended_at ? new Date(quote.ended_at).getTime() : undefined,
   }));
 }

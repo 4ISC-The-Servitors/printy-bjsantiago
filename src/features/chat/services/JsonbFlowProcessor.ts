@@ -338,7 +338,9 @@ export class JsonbFlowProcessor {
       console.log('[ProcessInput] User input:', userInput);
 
       const selectedOption = currentNode.options.find(
-        opt => opt.label.toLowerCase() === userInput.toLowerCase()
+        opt => 
+          opt.label.toLowerCase() === userInput.toLowerCase() ||
+          opt.value?.toLowerCase() === userInput.toLowerCase()
       );
 
       console.log('[ProcessInput] Selected option:', selectedOption);
@@ -393,6 +395,16 @@ export class JsonbFlowProcessor {
       });
 
       responses.push(...actionResult.messages);
+
+      // Save action messages to database
+      for (const message of actionResult.messages) {
+        await insertMessage({
+          sessionId,
+          text: message.text,
+          role: message.role,
+          nodeId: metadata.current_node_id,
+        });
+      }
 
       // Move to next node after action
       if (nextNode.next) {

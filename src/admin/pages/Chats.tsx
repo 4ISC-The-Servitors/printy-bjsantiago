@@ -22,8 +22,9 @@ const AdminChatsPage: React.FC = () => {
 
   const handleOpen = (id: string) => {
     setActive(id);
+    // Dispatch event to open the conversation in the chat dock
     window.dispatchEvent(
-      new CustomEvent('admin-chat-open', { detail: { conversationId: id } })
+      new CustomEvent('admin-show-conversation', { detail: { conversationId: id } })
     );
   };
 
@@ -79,8 +80,7 @@ const AdminChatsPage: React.FC = () => {
                     color="muted"
                     className="truncate"
                   >
-                    {lastBotMessage?.text?.substring(0, 100) ||
-                      'No messages yet'}
+                    {lastBotMessage?.text?.substring(0, 100) || ''}
                     {(lastBotMessage?.text?.length || 0) > 100 ? '...' : ''}
                   </Text>
                   <Text variant="p" size="xs" color="muted" className="mt-1">
