@@ -1,10 +1,12 @@
 /**
  * useRecentTicket
  * Fetches the latest inquiry/ticket for the current user and shapes minimal card data.
+ *
+ * NOTE: Updated to use new sessionQueries pattern for FK-based lookups
  */
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
-
+import { getCustomerInquiries } from '@features/chat/api/sessionQueries';
 import type { RecentTicket } from '@shared/types/customer';
 
 export type RecentTicketData = RecentTicket;
@@ -24,26 +26,26 @@ export function useRecentTicket() {
           setLoading(false);
           return;
         }
-        const { data, error } = await supabase.rpc('api_inquiries_for_user', {
-          p_limit: 1,
-          p_offset: 0,
-        });
-        const row = ((data as any[]) || [])[0];
-        if (error) {
-          setError(error.message);
-          setLoading(false);
-          return;
-        }
-        if (row) {
-          const receivedAt = new Date(row.received_at).getTime();
+
+        // Use new sessionQueries to get customer inquiries
+        const inquiries = await getCustomerInquiries(user.id);
+        const latestInquiry = inquiries[0]; // Most recent inquiry
+
+        if (latestInquiry) {
+          const receivedAt = latestInquiry.createdAt;
           setData({
-            id: row.inquiry_id,
-            displayId: row.display_id || row.inquiry_id.slice(0, 8).toUpperCase(),
-            subject: row.inquiry_message || '(no subject)',
-            status: row.inquiry_status || 'unknown',
+            id: latestInquiry.inquiry_id,
+            displayId:
+              latestInquiry.displayId ||
+              latestInquiry.inquiry_id.slice(0, 8).toUpperCase(),
+            subject: latestInquiry.inquiryType || '(no subject)',
+            status: latestInquiry.inquiryStatus || 'unknown',
             createdAt: receivedAt,
-            updatedAt: receivedAt, // Using received_at as updatedAt since it's the only date we have
-            resolvedAt: row.inquiry_status === 'resolved' ? receivedAt : undefined
+            updatedAt: receivedAt,
+            resolvedAt:
+              latestInquiry.inquiryStatus === 'resolved'
+                ? receivedAt
+                : undefined,
           });
         }
       } catch (e: any) {

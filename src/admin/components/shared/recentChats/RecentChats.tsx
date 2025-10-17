@@ -19,7 +19,7 @@ const RecentChats: React.FC<RecentChatsProps> = ({
   const { conversations, setActive } = useAdminConversations();
   const items = conversations
     .slice()
-    .sort((a, b) => b.updatedAt - a.updatedAt)
+    .sort((a, b) => b.createdAt - a.createdAt)
     .slice(0, limit);
 
   return (
@@ -80,7 +80,7 @@ const RecentChats: React.FC<RecentChatsProps> = ({
                     {(lastBotMessage?.text?.length || 0) > 60 ? '...' : ''}
                   </Text>
                   <Text variant="p" size="xs" color="muted" className="mt-1">
-                    {new Date(c.updatedAt).toLocaleTimeString([], {
+                    {new Date(c.createdAt).toLocaleTimeString([], {
                       hour: '2-digit',
                       minute: '2-digit',
                     })}

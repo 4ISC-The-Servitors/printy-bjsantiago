@@ -1,52 +1,27 @@
 /**
  * ChatDatabaseService
- * Thin wrappers around src/api/chatFlowApi.ts for DB-backed flows.
+ * Thin wrappers around src/api/jsonbChatFlowApi.ts for v2 JSONB-based flows.
  * UI-agnostic and easily unit testable.
  */
 import {
-  attachSessionToFlow,
-  createSession,
-  fetchCurrentNode,
-  fetchInitialNode,
-  fetchOptions,
-  fetchSessionMessages,
-  insertMessage,
-  updateCurrentNode,
-  endSession,
-  fetchEndNodeText,
-  fetchNodeById,
-  fetchSessionFlow,
-  setSessionContext,
-  fetchOrderSummaryForCustomer,
-  listRecentOrdersForCustomer,
-  fetchInquiryById,
-  createInquiryWithTurnstile,
-  fetchSessionCustomerId,
-  getQuoteConversationIdFromSession,
-  createQuoteConversation,
-  linkSessionToQuoteConversation,
-} from '@features/chat/api/chatFlowApi';
+  createChatSessionV2,
+  insertMessageV2,
+  fetchSessionMessagesV2,
+  endSessionV2,
+  getFlowDefinition,
+  getSessionMetadata,
+  updateSessionMetadata,
+  getSessionCustomerId,
+} from '@features/chat/api/jsonbChatFlowApi';
 
 export const ChatDatabaseService = {
-  createSession,
-  attachSessionToFlow,
-  fetchInitialNode,
-  fetchCurrentNode,
-  fetchOptions,
-  fetchSessionMessages,
-  insertMessage,
-  updateCurrentNode,
-  endSession,
-  fetchEndNodeText,
-  fetchNodeById,
-  fetchSessionFlow,
-  setSessionContext,
-  fetchOrderSummaryForCustomer,
-  listRecentOrdersForCustomer,
-  fetchInquiryById,
-  createInquiryWithTurnstile,
-  fetchSessionCustomerId,
-  getQuoteConversationIdFromSession,
-  createQuoteConversation,
-  linkSessionToQuoteConversation,
+  // v2 API functions
+  createSession: createChatSessionV2,
+  insertMessage: insertMessageV2,
+  fetchSessionMessages: fetchSessionMessagesV2,
+  endSession: endSessionV2,
+  getFlowDefinition,
+  getSessionMetadata,
+  updateSessionMetadata,
+  getSessionCustomerId,
 } as const;

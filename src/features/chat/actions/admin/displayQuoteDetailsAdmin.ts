@@ -47,33 +47,55 @@
  */
 
 import { supabase } from '@lib/supabase';
-import { insertMessage, updateSessionMetadata } from '@features/chat/helpers/flowHelpers';
-import type { ActionExecutionParams, ActionExecutionResult } from '@features/chat/types';
-import type { SessionMetadata } from '@chatFlows/types';
+import {
+  insertMessage,
+  updateSessionMetadata,
+} from '@features/chat/helpers/flowHelpers';
+import type {
+  ActionExecutionParams,
+  ActionExecutionResult,
+} from '@features/chat/types';
+import type { SessionMetadata } from '@features/chat/types';
 
-export async function displayQuoteDetailsAdmin(params: ActionExecutionParams): Promise<ActionExecutionResult> {
+export async function displayQuoteDetailsAdmin(
+  params: ActionExecutionParams
+): Promise<ActionExecutionResult> {
   const { actionNode, context, sessionId } = params;
-  const messages: Array<{ id: string; role: 'printy'; text: string; ts: number }> = [];
+  const messages: Array<{
+    id: string;
+    role: 'printy';
+    text: string;
+    ts: number;
+  }> = [];
 
   const config = actionNode.action_config as any;
   const sessionIdKey = config.conversation_id_key || 'session_id';
   const quoteSessionId = String(context[sessionIdKey] || '').trim();
 
   if (!quoteSessionId) {
-    messages.push({ id: crypto.randomUUID(), role: 'printy', text: 'Session ID is missing for this quote.', ts: Date.now() });
+    messages.push({
+      id: crypto.randomUUID(),
+      role: 'printy',
+      text: 'Session ID is missing for this quote.',
+      ts: Date.now(),
+    });
     return { messages };
   }
 
   try {
     // Load messages via RPC (security definer)
-    const { data: allMessages } = await supabase
-      .rpc('api_fetch_chat_messages_v2', { p_session_id: quoteSessionId });
+    const { data: allMessages } = await supabase.rpc(
+      'api_fetch_chat_messages_v2',
+      { p_session_id: quoteSessionId }
+    );
 
     let details = 'Original Customer Request:\n\n';
     if (Array.isArray(allMessages) && allMessages.length > 0) {
-      const customerOnly = (allMessages as any[]).filter((m: any) => m.sender_role === 'customer');
+      const customerOnly = (allMessages as any[]).filter(
+        (m: any) => m.sender_role === 'customer'
+      );
       const original = customerOnly.map((m: any) => m.message_text).join('\n');
-      details += (original || 'No customer text found.');
+      details += original || 'No customer text found.';
     } else {
       details += 'No customer text found.';
     }
@@ -81,8 +103,12 @@ export async function displayQuoteDetailsAdmin(params: ActionExecutionParams): P
     // Latest proposal (if any) – support session_id and legacy conversation_id
     const { data: proposals } = await supabase
       .from('quote_proposals')
-      .select('proposal_id, spec_final, quoted_price, status, notes, created_at')
-      .or(`session_id.eq.${quoteSessionId},conversation_id.eq.${quoteSessionId}`)
+      .select(
+        'proposal_id, spec_final, quoted_price, status, notes, created_at'
+      )
+      .or(
+        `session_id.eq.${quoteSessionId},conversation_id.eq.${quoteSessionId}`
+      )
       .order('created_at', { ascending: false })
       .limit(1);
 
@@ -95,20 +121,33 @@ export async function displayQuoteDetailsAdmin(params: ActionExecutionParams): P
       if (spec.category) lines.push(`• Category: ${spec.category}`);
       if (spec.description) lines.push(`• Description: ${spec.description}`);
       if (spec.size) lines.push(`• Size: ${spec.size}`);
-      if (Array.isArray(spec.materials) && spec.materials.length) lines.push(`• Materials: ${spec.materials.join(', ')}`);
+      if (Array.isArray(spec.materials) && spec.materials.length)
+        lines.push(`• Materials: ${spec.materials.join(', ')}`);
       if (spec.color) lines.push(`• Color: ${spec.color}`);
-      if (Array.isArray(spec.finishing) && spec.finishing.length) lines.push(`• Finishing: ${spec.finishing.join(', ')}`);
+      if (Array.isArray(spec.finishing) && spec.finishing.length)
+        lines.push(`• Finishing: ${spec.finishing.join(', ')}`);
       if (spec.quantity) lines.push(`• Quantity: ${spec.quantity}`);
       if (spec.deadline) lines.push(`• Deadline: ${spec.deadline}`);
       if (spec.notes) lines.push(`• Notes: ${spec.notes}`);
       if (proposal.notes) lines.push(`• Admin Notes: ${proposal.notes}`);
-      if (proposal.quoted_price != null) lines.push(`• Quoted Price: ₱${proposal.quoted_price}`);
+      if (proposal.quoted_price != null)
+        lines.push(`• Quoted Price: ₱${proposal.quoted_price}`);
       details += `\n${lines.join('\n')}`;
     }
 
-    messages.push({ id: crypto.randomUUID(), role: 'printy', text: details, ts: Date.now() });
+    messages.push({
+      id: crypto.randomUUID(),
+      role: 'printy',
+      text: details,
+      ts: Date.now(),
+    });
 
-    await insertMessage({ sessionId, text: details, role: 'printy', nodeId: actionNode.action });
+    await insertMessage({
+      sessionId,
+      text: details,
+      role: 'printy',
+      nodeId: actionNode.action,
+    });
 
     // Store simple flags for downstream nodes
     const { data: currentSession } = await supabase
@@ -129,10 +168,13 @@ export async function displayQuoteDetailsAdmin(params: ActionExecutionParams): P
     }
   } catch (e) {
     console.error('[displayQuoteDetailsAdmin] error:', e);
-    messages.push({ id: crypto.randomUUID(), role: 'printy', text: 'Failed to load quote details.', ts: Date.now() });
+    messages.push({
+      id: crypto.randomUUID(),
+      role: 'printy',
+      text: 'Failed to load quote details.',
+      ts: Date.now(),
+    });
   }
 
   return { messages };
 }
-
-

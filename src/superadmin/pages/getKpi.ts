@@ -96,12 +96,12 @@ function parseTimestampToMilliseconds(timestamp: string): number {
  */
 export async function getFirstContactResolutionRate(range: DateRange): Promise<number | null> {
   console.log(`[KPI 1] Fetching FCR Rate for range: ${range.startDate} to ${range.endDate}`);
-  
+
   const exclusiveEndDate = getNextDayString(range.endDate);
-  
+
   // 1. Denominator: Get the total number of sessions in the specified range.
   const { count: totalSessions, error: countError } = await supabase
-    .from('chat_sessions')
+    .from('chat_sessions_v2')
     .select('session_id', { count: 'exact', head: true })
     .gte('created_at', range.startDate)
     .lt('created_at', exclusiveEndDate); 
@@ -121,11 +121,11 @@ export async function getFirstContactResolutionRate(range: DateRange): Promise<n
 
   // 2. Find all unique session IDs that triggered an escalation flow in the reporting period
   const { data: escalatedFlows, error: flowError } = await supabase
-    .from('chat_session_flow')
+    .from('chat_sessions_v2')
     .select('session_id')
     .in('flow_id', ESCALATION_FLOW_IDS)
-    .gte('started_at', range.startDate) 
-    .lt('started_at', exclusiveEndDate);
+    .gte('created_at', range.startDate)
+    .lt('created_at', exclusiveEndDate);
 
   if (flowError || !escalatedFlows) {
     console.error('[KPI 1 ERROR] Failed to fetch escalation flows for exclusion. Error details:', JSON.stringify(flowError));
@@ -138,7 +138,7 @@ export async function getFirstContactResolutionRate(range: DateRange): Promise<n
 
   // 3. Numerator Part A: Get ALL sessions that ended within the range (candidates for FCR)
   const { data: endedSessions, error: endedSessionsError } = await supabase
-    .from('chat_sessions')
+    .from('chat_sessions_v2')
     .select('session_id')
     .eq('status', 'ended')
     .gte('created_at', range.startDate)
@@ -176,7 +176,7 @@ export async function getAverageInitialResponseTime(range: DateRange): Promise<n
   
   // 1. Get all session_ids in range
   const { data: sessions, error: sessionError } = await supabase
-    .from('chat_sessions')
+    .from('chat_sessions_v2')
     .select('session_id')
     .gte('created_at', range.startDate)
     .lt('created_at', exclusiveEndDate);
@@ -194,11 +194,12 @@ export async function getAverageInitialResponseTime(range: DateRange): Promise<n
 
   // 2. REFACTOR: Fetch all messages and metas in one go using the join syntax.
   const { data: combinedMessages, error: combinedError } = await supabase
-    .from('chat_messages')
+    .from('chat_messages_v2')
     .select(`
       session_id,
       sent_at,
-      chat_message_meta!inner(sender_role)
+      sender_role,
+      metadata
     `)
     .in('session_id', sessionIds)
     .order('sent_at', { ascending: true }); // Ensure messages are chronologically ordered
@@ -210,8 +211,8 @@ export async function getAverageInitialResponseTime(range: DateRange): Promise<n
 
   // Process combined data to group by session_id
   const groupedMessages = combinedMessages.reduce((acc, msg) => {
-    // Supabase returns joined data nested, e.g., msg.chat_message_meta[0].sender_role
-    const sender_role = msg.chat_message_meta[0]?.sender_role; 
+    // In v2, sender_role is directly on the message
+    const sender_role = msg.sender_role;
     if (!sender_role) return acc;
 
     const messageWithRole = {
@@ -307,10 +308,10 @@ export async function getAverageCustomerSatisfactionScore(range: DateRange): Pro
   
   // 1. Fetch all ratings within the date range, excluding nulls.
   const { data, error } = await supabase
-    .from('chat_sessions')
-    .select('feedback_rating') 
+    .from('chat_sessions_v2')
+    .select('feedback_rating')
     .gte('created_at', range.startDate)
-    .lt('created_at', exclusiveEndDate) 
+    .lt('created_at', exclusiveEndDate)
     .not('feedback_rating', 'is', null);
 
   if (error || !data) {
@@ -343,12 +344,12 @@ export async function getAverageCustomerSatisfactionScore(range: DateRange): Pro
  */
 export async function getEscalationRate(range: DateRange): Promise<number | null> {
   console.log(`[KPI 4] Fetching Escalation Rate for range: ${range.startDate} to ${range.endDate}`);
-  
+
   const exclusiveEndDate = getNextDayString(range.endDate);
-  
+
   // 1. Denominator: Get the total number of sessions in the specified range.
   const { count: totalSessions, error: countError } = await supabase
-    .from('chat_sessions')
+    .from('chat_sessions_v2')
     .select('session_id', { count: 'exact', head: true })
     .gte('created_at', range.startDate)
     .lt('created_at', exclusiveEndDate); 
@@ -366,11 +367,11 @@ export async function getEscalationRate(range: DateRange): Promise<number | null
 
   // 2. Numerator: Find all unique session IDs that triggered an escalation flow in the reporting period
   const { data: escalatedFlows, error: flowError } = await supabase
-    .from('chat_session_flow')
+    .from('chat_sessions_v2')
     .select('session_id')
     .in('flow_id', ESCALATION_FLOW_IDS) // *** USING GLOBAL CONSTANT ***
-    .gte('started_at', range.startDate) 
-    .lt('started_at', exclusiveEndDate);
+    .gte('created_at', range.startDate)
+    .lt('created_at', exclusiveEndDate);
 
   if (flowError || !escalatedFlows) {
     console.error('[KPI 4 ERROR] Failed to fetch escalation flows. Error details:', JSON.stringify(flowError));
@@ -404,7 +405,7 @@ export async function getAverageServiceRequestThroughputTime(range: DateRange): 
 
   const customerIds = Array.from(new Set(orders.map(o => o.customer_id)));
   const { data: sessions, error: sessionError } = await supabase
-    .from('chat_sessions')
+    .from('chat_sessions_v2')
     .select('session_id, customer_id, created_at')
     .in('customer_id', customerIds);
 
@@ -412,7 +413,7 @@ export async function getAverageServiceRequestThroughputTime(range: DateRange): 
 
   const sessionIds = sessions.map(s => s.session_id);
   const { data: messages, error: messageError } = await supabase
-    .from('chat_messages')
+    .from('chat_messages_v2')
     .select('session_id, sent_at')
     .in('session_id', sessionIds);
 
@@ -459,7 +460,7 @@ export async function getOrdersSourcedFromChatRate(range: DateRange, ordersFromO
   
   // 1. Get the distinct customer IDs from chat sessions in the date range.
   const { data: sessions, error: sessionError } = await supabase
-    .from('chat_sessions')
+    .from('chat_sessions_v2')
     .select('customer_id')
     .gte('created_at', range.startDate)
     .lt('created_at', exclusiveEndDate);
@@ -552,16 +553,16 @@ async function getRawOrderStatusInquiryTriggers(range: DateRange): Promise<numbe
   
   const exclusiveEndDate = getNextDayString(range.endDate);
   
-  // Count entries in chat_session_flow that match the dedicated status inquiry flows
+  // Count entries in chat_sessions_v2 that match the dedicated status inquiry flows
   const { count: inquiryCount, error: countError } = await supabase
-    .from('chat_session_flow')
+    .from('chat_sessions_v2')
     .select('session_id', { count: 'exact', head: true })
     .in('flow_id', ORDER_STATUS_INQUIRY_FLOW_IDS) // <<< UPDATED TO USE .in() AND NEW ARRAY CONSTANT
-    .gte('started_at', range.startDate) // Filter by flow start time
-    .lt('started_at', exclusiveEndDate);
+    .gte('created_at', range.startDate) // Filter by flow start time
+    .lt('created_at', exclusiveEndDate);
 
   if (countError || inquiryCount === null) {
-    console.error('[KPI 8 ERROR] Failed to count order status inquiry triggers. Check RLS on chat_session_flow.');
+    console.error('[KPI 8 ERROR] Failed to count order status inquiry triggers. Check RLS on chat_sessions_v2.');
     console.error(countError);
     return null;
   }
@@ -650,7 +651,7 @@ export async function getServicePortfolioUtilizationRate(range: DateRange): Prom
   
   // 1. Get the total number of chat sessions started (Denominator).
   const { count: totalSessions, error: sessionError } = await supabase
-    .from('chat_sessions')
+    .from('chat_sessions_v2')
     .select('session_id', { count: 'exact', head: true })
     .gte('created_at', range.startDate)
     .lt('created_at', exclusiveEndDate);

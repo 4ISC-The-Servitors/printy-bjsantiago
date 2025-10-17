@@ -1,12 +1,9 @@
-// BACKEND_TODO: Ensure this orchestrator receives live context from pages using Supabase data (orders/services/tickets).
-// Remove any reliance on mock data within flows; flows should operate on passed context only.
 import { useState } from 'react';
 import type {
   ChatMessage,
   QuickReply,
   ChatRole,
 } from '@features/chat/types/chat';
-// Legacy admin scripted flows removed; use JSONB flows only.
 import { JsonbFlowProcessor } from '@features/chat/services/JsonbFlowProcessor';
 import { getFlowDefinition } from '@features/chat/api/jsonbChatFlowApi';
 import { useAdmin } from '@admin/hooks/AdminContext';
@@ -64,15 +61,24 @@ export const useAdminChat = (): UseAdminChatReturn => {
   const [dbSessionId, setDbSessionId] = useState<string | null>(null);
 
   // Helper: append Printy messages gradually with typing indicator
-  const appendMessagesWithTyping = async (botTexts: { role: ChatRole; text: string }[]) => {
+  const appendMessagesWithTyping = async (
+    botTexts: { role: ChatRole; text: string }[]
+  ) => {
     for (const m of botTexts) {
       setIsTyping(true);
       // Simple delay heuristic: base 350ms + 25ms per 20 chars
-      const delay = 350 + Math.min(1200, Math.floor((m.text?.length || 0) / 20) * 25);
+      const delay =
+        350 + Math.min(1200, Math.floor((m.text?.length || 0) / 20) * 25);
       await new Promise(r => setTimeout(r, delay));
-      const botMsg = { id: crypto.randomUUID(), role: m.role, text: m.text, ts: Date.now() } as const;
+      const botMsg = {
+        id: crypto.randomUUID(),
+        role: m.role,
+        text: m.text,
+        ts: Date.now(),
+      } as const;
       setMessages(prev => [...prev, botMsg]);
-      if (currentConversationId) addConvMessage('printy', m.text, currentConversationId);
+      if (currentConversationId)
+        addConvMessage('printy', m.text, currentConversationId);
       setIsTyping(false);
     }
   };
@@ -156,12 +162,16 @@ export const useAdminChat = (): UseAdminChatReturn => {
         if (!flowDef) return;
         const start = await JsonbFlowProcessor.startFlow({
           flowId: 'admin-quote-propose',
-          customerId: (await supabase.auth.getUser()).data?.user?.id || '00000000-0000-0000-0000-000000000000',
+          customerId:
+            (await supabase.auth.getUser()).data?.user?.id ||
+            '00000000-0000-0000-0000-000000000000',
           flowDefinition: flowDef,
           initialContext: {},
         });
         setDbSessionId(start.sessionId);
-        await appendMessagesWithTyping(start.messages.map(m => ({ role: m.role as ChatRole, text: m.text })));
+        await appendMessagesWithTyping(
+          start.messages.map(m => ({ role: m.role as ChatRole, text: m.text }))
+        );
         setQuickReplies(start.quickReplies || []);
       })();
     }
@@ -265,9 +275,12 @@ export const useAdminChat = (): UseAdminChatReturn => {
               if (typeof updates?.status === 'string') {
                 const { error } = await supabase
                   .from('quotes')
-                  .update({ status: updates.status, updated_at: new Date().toISOString() })
+                  .update({
+                    status: updates.status,
+                    updated_at: new Date().toISOString(),
+                  })
                   .eq('session_id', conversationId);
-                
+
                 if (error) {
                   console.error('Failed to update quote status', error);
                   throw error;
@@ -304,12 +317,16 @@ export const useAdminChat = (): UseAdminChatReturn => {
         if (!flowDef) return;
         const start = await JsonbFlowProcessor.startFlow({
           flowId: 'admin-quote-propose',
-          customerId: (await supabase.auth.getUser()).data?.user?.id || '00000000-0000-0000-0000-000000000000',
+          customerId:
+            (await supabase.auth.getUser()).data?.user?.id ||
+            '00000000-0000-0000-0000-000000000000',
           flowDefinition: flowDef,
           initialContext: { session_id: orderId },
         });
         setDbSessionId(start.sessionId);
-        await appendMessagesWithTyping(start.messages.map(m => ({ role: m.role as ChatRole, text: m.text })));
+        await appendMessagesWithTyping(
+          start.messages.map(m => ({ role: m.role as ChatRole, text: m.text }))
+        );
         setQuickReplies(start.quickReplies || []);
 
         // Persist initial bot messages to DB if this is a ticket chat and a session was created
@@ -522,10 +539,20 @@ export const useAdminChat = (): UseAdminChatReturn => {
           flowDefinition: flowDef,
           senderRole: 'admin',
         });
-        await appendMessagesWithTyping(resp.messages.map(m => ({ role: m.role as ChatRole, text: m.text })));
-        setQuickReplies((resp.quickReplies || []).map((qr, i) => ({ id: qr.id || `qr-${i}`, label: qr.label, value: qr.value })));
+        await appendMessagesWithTyping(
+          resp.messages.map(m => ({ role: m.role as ChatRole, text: m.text }))
+        );
+        setQuickReplies(
+          (resp.quickReplies || []).map((qr, i) => ({
+            id: qr.id || `qr-${i}`,
+            label: qr.label,
+            value: qr.value,
+          }))
+        );
         if (currentConversationId) {
-          resp.messages.forEach(m => addConvMessage('printy', m.text, currentConversationId));
+          resp.messages.forEach(m =>
+            addConvMessage('printy', m.text, currentConversationId)
+          );
         }
       } catch (e) {
         console.error('Failed to process quick reply', e);

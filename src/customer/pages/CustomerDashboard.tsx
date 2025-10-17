@@ -14,15 +14,20 @@ import RecentOrder from '@customer/components/dashboard/recentOrders/RecentOrder
 import RecentTickets from '@customer/components/dashboard/recentTickets/RecentTickets';
 import RecentQuotes from '@customer/components/dashboard/recentQuotes/RecentQuotes';
 // Shared UI components
-import { ToastContainer, Text, PageLoading, Notification } from '@shared/components';
-import { useLogoutWithToast } from '@shared/hooks/auth/useLogoutWithToast';
+import {
+  ToastContainer,
+  Text,
+  PageLoading,
+  Notification,
+} from '@shared/components';
+import { useLogoutWithToast } from '@/auth/hooks/useLogoutWithToast';
 import { useRecentOrder } from '@customer/hooks/useRecentOrder';
 import { useRecentTicket } from '@customer/hooks/useRecentTicket';
 import { useRecentQuote } from '@customer/hooks/useRecentQuote';
 import { useRecentChatSessions } from '@features/chat/hooks/customer/useRecentChatSessions';
 import { useDashboardChatEvents } from '@features/chat/hooks/customer/useDashboardChatEvents';
 import { useChatAttachments } from '@features/chat/hooks/shared/useChatAttachments';
-import { usePaymentProofUpload } from '@customer/hooks/usePaymentProofUpload';
+import { usePaymentProofUpload } from '@/features/chat/hooks/customer/usePaymentProofUpload';
 import { useDeviceUtils } from '@shared/hooks/ui';
 // Chat feature hooks
 import { useCustomerConversations } from '@features/chat/hooks/customer/useCustomerConversations';
@@ -133,19 +138,23 @@ const CustomerDashboard: React.FC = () => {
 
   // Live recent order/ticket/quote from Supabase
   const { data: recentOrder, loading: loadingRecentOrder } = useRecentOrder();
-  const { data: recentTicket, loading: loadingRecentTicket } = useRecentTicket();
-  
+  const { data: recentTicket, loading: loadingRecentTicket } =
+    useRecentTicket();
+
   // Get current user for recent quote
   const [customerId, setCustomerId] = useState<string | undefined>();
   useEffect(() => {
     const getCustomerId = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       setCustomerId(user?.id);
     };
     getCustomerId();
   }, []);
-  
-  const { data: recentQuote, loading: loadingRecentQuote } = useRecentQuote(customerId);
+
+  const { data: recentQuote, loading: loadingRecentQuote } =
+    useRecentQuote(customerId);
   useRecentChatSessions(setConversations);
 
   // Check for signin success toast
@@ -157,24 +166,23 @@ const CustomerDashboard: React.FC = () => {
   }, [toast]);
 
   // Determine loading based on data hooks
-  const isLoading = loadingRecentOrder || loadingRecentTicket || loadingRecentQuote;
+  const isLoading =
+    loadingRecentOrder || loadingRecentTicket || loadingRecentQuote;
 
   // Load recent chat sessions from database for the sidebar list (initial)
   useEffect(() => {
     const loadRecentSessions = async () => {
       try {
         const { data: sessions, error } = await supabase
-          .from('chat_sessions')
+          .from('chat_sessions_v2')
           .select(
             `
             session_id,
             customer_id,
             status,
             created_at,
-            chat_session_flow!inner(
-              flow_id,
-              chat_flows!inner(title)
-            )
+            flow_id,
+            metadata
           `
           )
           .order('created_at', { ascending: false })
@@ -189,10 +197,10 @@ const CustomerDashboard: React.FC = () => {
           const sessionConversations: Conversation[] = sessions.map(
             (session: any) => ({
               id: session.session_id,
-              title: session.chat_session_flow?.chat_flows?.title || 'Chat',
+              title: session.metadata?.title || session.flow_id || 'Chat',
               createdAt: new Date(session.created_at).getTime(),
               messages: [], // Messages will be loaded when switching to conversation
-              flowId: session.chat_session_flow?.flow_id || 'about',
+              flowId: session.flow_id || 'about',
               status: session.status === 'ended' ? 'ended' : 'active',
               icon: undefined,
             })
@@ -235,49 +243,73 @@ const CustomerDashboard: React.FC = () => {
   const { handlePaymentProofUpload } = usePaymentProofUpload();
 
   // Check if current conversation is a payment flow
-  const isPaymentFlow = activeId && conversations.find(c => c.id === activeId)?.title?.toLowerCase().includes('payment');
+  const isPaymentFlow =
+    activeId &&
+    conversations
+      .find(c => c.id === activeId)
+      ?.title?.toLowerCase()
+      .includes('payment');
 
   // Enhanced file upload handler that uses payment proof upload for payment flows
-  const handleFileUpload = useCallback(async (files: FileList) => {
-    console.log('File upload triggered:', files);
-    console.log('Is payment flow:', isPaymentFlow);
-    console.log('Recent order ID:', recentOrder?.id);
-    console.log('Active conversation:', conversations.find(c => c.id === activeId));
-    
-    if (isPaymentFlow) {
-      // Get order ID from payment flow context or fallback to recent order
-      let orderId = recentOrder?.id;
-      
-      // Try to get order ID from payment flow context if available
-      const activeConversation = conversations.find(c => c.id === activeId);
-      if (activeConversation?.context?.orderId) {
-        orderId = activeConversation.context.orderId;
-      }
-      
-      console.log('Using order ID:', orderId);
-      
-      if (orderId) {
-        // Use payment proof upload for payment flows
-        console.log('Starting payment proof upload...');
-        await handlePaymentProofUpload(files, orderId, (url) => {
-          // Send the uploaded file URL to the chat
-          console.log('Upload successful, sending URL to chat:', url);
-          sendViaHook(url);
-        }, (error) => {
-          // Handle error - could show a toast or error message
-          console.error('Payment proof upload failed:', error);
-          sendViaHook(`Upload failed: ${error}`);
-        });
+  const handleFileUpload = useCallback(
+    async (files: FileList) => {
+      console.log('File upload triggered:', files);
+      console.log('Is payment flow:', isPaymentFlow);
+      console.log('Recent order ID:', recentOrder?.id);
+      console.log(
+        'Active conversation:',
+        conversations.find(c => c.id === activeId)
+      );
+
+      if (isPaymentFlow) {
+        // Get order ID from payment flow context or fallback to recent order
+        let orderId = recentOrder?.id;
+
+        // Try to get order ID from payment flow context if available
+        const activeConversation = conversations.find(c => c.id === activeId);
+        if (activeConversation?.context?.orderId) {
+          orderId = activeConversation.context.orderId;
+        }
+
+        console.log('Using order ID:', orderId);
+
+        if (orderId) {
+          // Use payment proof upload for payment flows
+          console.log('Starting payment proof upload...');
+          await handlePaymentProofUpload(
+            files,
+            orderId,
+            url => {
+              // Send the uploaded file URL to the chat
+              console.log('Upload successful, sending URL to chat:', url);
+              sendViaHook(url);
+            },
+            error => {
+              // Handle error - could show a toast or error message
+              console.error('Payment proof upload failed:', error);
+              sendViaHook(`Upload failed: ${error}`);
+            }
+          );
+        } else {
+          console.error('No order ID available for payment proof upload');
+          sendViaHook('Error: No order ID available. Please try again.');
+        }
       } else {
-        console.error('No order ID available for payment proof upload');
-        sendViaHook('Error: No order ID available. Please try again.');
+        // Use regular chat attachments for other flows
+        console.log('Using regular chat attachments');
+        handleAttachFiles(files);
       }
-    } else {
-      // Use regular chat attachments for other flows
-      console.log('Using regular chat attachments');
-      handleAttachFiles(files);
-    }
-  }, [isPaymentFlow, recentOrder?.id, conversations, activeId, handlePaymentProofUpload, sendViaHook, handleAttachFiles]);
+    },
+    [
+      isPaymentFlow,
+      recentOrder?.id,
+      conversations,
+      activeId,
+      handlePaymentProofUpload,
+      sendViaHook,
+      handleAttachFiles,
+    ]
+  );
 
   const handleTopic = (key: TopicKey) => {
     const cfg = topicConfig[key];
@@ -351,7 +383,7 @@ const CustomerDashboard: React.FC = () => {
                     title: 'No recent order',
                     status: 'none',
                     createdAt: Date.now(),
-                    updatedAt: Date.now()
+                    updatedAt: Date.now(),
                   }
                 }
               />
@@ -363,7 +395,7 @@ const CustomerDashboard: React.FC = () => {
                     subject: 'No recent ticket',
                     status: 'none',
                     createdAt: Date.now(),
-                    updatedAt: Date.now()
+                    updatedAt: Date.now(),
                   }
                 }
               />
@@ -374,7 +406,7 @@ const CustomerDashboard: React.FC = () => {
                     displayId: 'NO-QUOTE',
                     status: 'active',
                     createdAt: Date.now(),
-                    updatedAt: Date.now()
+                    updatedAt: Date.now(),
                   }
                 }
               />
@@ -390,7 +422,7 @@ const CustomerDashboard: React.FC = () => {
     <>
       {/* Notification Bell - Fixed Position */}
       <Notification />
-      
+
       {/* Desktop Layout */}
       <div className="hidden lg:block">
         <div className="h-screen bg-gradient-to-br from-neutral-50 to-brand-primary-50 flex">
@@ -400,9 +432,7 @@ const CustomerDashboard: React.FC = () => {
           </aside>
 
           {/* Main Content */}
-          <main className="flex-1 flex flex-col">
-            {content}
-          </main>
+          <main className="flex-1 flex flex-col">{content}</main>
         </div>
       </div>
 
@@ -429,7 +459,7 @@ const CustomerDashboard: React.FC = () => {
         }}
         onConfirm={async () => {
           setShowLogoutModal(false);
-          await logout('/auth/signin', 1500);
+          await logout('/auth/signin');
         }}
       />
 

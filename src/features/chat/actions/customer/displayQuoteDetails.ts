@@ -47,13 +47,26 @@
  */
 
 import { supabase } from '@lib/supabase';
-import { insertMessage, updateSessionMetadata } from '@features/chat/helpers/flowHelpers';
-import type { ActionExecutionParams, ActionExecutionResult } from '@features/chat/types';
-import type { SessionMetadata } from '@chatFlows/types';
+import {
+  insertMessage,
+  updateSessionMetadata,
+} from '@features/chat/helpers/flowHelpers';
+import type {
+  ActionExecutionParams,
+  ActionExecutionResult,
+} from '@features/chat/types';
+import type { SessionMetadata } from '@features/chat/types';
 
-export async function displayQuoteDetails(params: ActionExecutionParams): Promise<ActionExecutionResult> {
+export async function displayQuoteDetails(
+  params: ActionExecutionParams
+): Promise<ActionExecutionResult> {
   const { actionNode, context, sessionId } = params;
-  const messages: Array<{ id: string; role: 'printy'; text: string; ts: number }> = [];
+  const messages: Array<{
+    id: string;
+    role: 'printy';
+    text: string;
+    ts: number;
+  }> = [];
 
   const config = actionNode.action_config as any;
   const conversationIdKey = config.conversation_id_key || 'session_id';
@@ -71,14 +84,20 @@ export async function displayQuoteDetails(params: ActionExecutionParams): Promis
 
   try {
     // Load messages via RPC (security definer) to avoid RLS issues
-    const { data: allMessages, error: msgError } = await supabase
-      .rpc('api_fetch_chat_messages_v2', { p_session_id: conversationId });
+    const { data: allMessages, error: msgError } = await supabase.rpc(
+      'api_fetch_chat_messages_v2',
+      { p_session_id: conversationId }
+    );
 
     let quoteDetailsText = `Your Original Request:\n\n`;
     if (!msgError && allMessages && allMessages.length > 0) {
-      const customerOnlyMessages = (allMessages as any[]).filter((m: any) => m.sender_role === 'customer');
-      const originalRequestText = customerOnlyMessages.map((m: any) => m.message_text).join('\n');
-      quoteDetailsText += (originalRequestText || 'No original request found.');
+      const customerOnlyMessages = (allMessages as any[]).filter(
+        (m: any) => m.sender_role === 'customer'
+      );
+      const originalRequestText = customerOnlyMessages
+        .map((m: any) => m.message_text)
+        .join('\n');
+      quoteDetailsText += originalRequestText || 'No original request found.';
     } else {
       // As a best-effort fallback, try to read metadata if policies allow; do not fail if blocked
       try {
@@ -87,8 +106,10 @@ export async function displayQuoteDetails(params: ActionExecutionParams): Promis
           .select('metadata')
           .eq('session_id', conversationId)
           .single();
-        const contextQuoteDetails = session?.metadata?.context?.quote_details as string | undefined;
-        quoteDetailsText += (contextQuoteDetails?.trim() || 'No original request found.');
+        const contextQuoteDetails = session?.metadata?.context
+          ?.quote_details as string | undefined;
+        quoteDetailsText +=
+          contextQuoteDetails?.trim() || 'No original request found.';
       } catch {
         quoteDetailsText += 'No original request found.';
       }
@@ -97,14 +118,16 @@ export async function displayQuoteDetails(params: ActionExecutionParams): Promis
     // Check for proposals (using session_id)
     const { data: proposals } = await supabase
       .from('quote_proposals')
-      .select(`
+      .select(
+        `
         proposal_id,
         spec_final,
         quoted_price,
         status,
         notes,
         created_at
-      `)
+      `
+      )
       .eq('session_id', conversationId)
       .order('created_at', { ascending: false })
       .limit(1);
@@ -115,10 +138,14 @@ export async function displayQuoteDetails(params: ActionExecutionParams): Promis
 
       // Build proposal details
       const proposalDetails = ['Admin Proposal:\n'];
-      proposalDetails.push(`• Product: ${specData.product_name || 'Not specified'}`);
+      proposalDetails.push(
+        `• Product: ${specData.product_name || 'Not specified'}`
+      );
 
-      if (specData.category) proposalDetails.push(`• Category: ${specData.category}`);
-      if (specData.description) proposalDetails.push(`• Description: ${specData.description}`);
+      if (specData.category)
+        proposalDetails.push(`• Category: ${specData.category}`);
+      if (specData.description)
+        proposalDetails.push(`• Description: ${specData.description}`);
       if (specData.size) proposalDetails.push(`• Size: ${specData.size}`);
       if (specData.materials && specData.materials.length > 0) {
         proposalDetails.push(`• Materials: ${specData.materials.join(', ')}`);
@@ -127,15 +154,19 @@ export async function displayQuoteDetails(params: ActionExecutionParams): Promis
       if (specData.finishing && specData.finishing.length > 0) {
         proposalDetails.push(`• Finishing: ${specData.finishing.join(', ')}`);
       }
-      if (specData.quantity) proposalDetails.push(`• Quantity: ${specData.quantity}`);
-      if (specData.deadline) proposalDetails.push(`• Deadline: ${specData.deadline}`);
+      if (specData.quantity)
+        proposalDetails.push(`• Quantity: ${specData.quantity}`);
+      if (specData.deadline)
+        proposalDetails.push(`• Deadline: ${specData.deadline}`);
       if (specData.notes) proposalDetails.push(`• Notes: ${specData.notes}`);
-      if (proposal.notes) proposalDetails.push(`• Admin Notes: ${proposal.notes}`);
+      if (proposal.notes)
+        proposalDetails.push(`• Admin Notes: ${proposal.notes}`);
 
       quoteDetailsText += '\n\n' + proposalDetails.join('\n');
       quoteDetailsText += `\n\nQuoted Price: ₱${proposal.quoted_price}`;
     } else {
-      quoteDetailsText += '\n\nYour quote request is being reviewed by our admin team. We will send you a detailed proposal with pricing soon.';
+      quoteDetailsText +=
+        '\n\nYour quote request is being reviewed by our admin team. We will send you a detailed proposal with pricing soon.';
     }
 
     messages.push({
@@ -174,7 +205,6 @@ export async function displayQuoteDetails(params: ActionExecutionParams): Promis
         } as any,
       });
     }
-
   } catch (error) {
     console.error('Error displaying quote details:', error);
     messages.push({

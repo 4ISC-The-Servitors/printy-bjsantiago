@@ -76,5 +76,5 @@ tmp/
 temp/
 forContext/
 .cursor/
-docs/
 .claude/
+chatFlows/

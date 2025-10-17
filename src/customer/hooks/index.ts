@@ -6,4 +6,4 @@ export { useRecentChatSessions } from './useRecentChatSessions';
 export { useRecentOrder } from './useRecentOrder';
 export { useRecentTicket } from './useRecentTicket';
 export { useRecentQuote } from './useRecentQuote';
-export { usePaymentProofUpload } from './usePaymentProofUpload';
+export { usePaymentProofUpload } from '../../features/chat/hooks/customer/usePaymentProofUpload';

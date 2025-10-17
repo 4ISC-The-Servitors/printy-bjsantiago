@@ -1,19 +1,16 @@
 /**
  * useCustomerConversations (composer)
- * Small hook that composes core state + controller + switcher for customer-side chat.
- * Keeps page code thin and migration-friendly.
- * 
- * NOTE: Migrated to JSONB-based flows only. Old scripted flows are commented out.
+ * Small hook that composes core state for customer-side chat.
+ * Uses JSONB-based flows.
  */
 import { useCallback, useState } from 'react';
 import { useConversationState } from '@features/chat/hooks/shared/useConversationState';
-// import { useConversationController } from '../core/useConversationController';
-// import { fetchSessionMessages } from '@features/chat/api/chatFlowApi';
-// import { useConversationSwitcher } from '../core/useConversationSwitcher';
-// import { customerFlows as scriptedRegistry } from '@/chatLogic/customer';
 import { auth } from '@lib/supabase';
 import { JsonbFlowProcessor } from '@features/chat/services/JsonbFlowProcessor';
-import { getFlowDefinition, fetchSessionMessagesV2 } from '@features/chat/api/jsonbChatFlowApi';
+import {
+  getFlowDefinition,
+  fetchSessionMessagesV2,
+} from '@features/chat/api/jsonbChatFlowApi';
 import type { ChatMessage, ChatRole } from '@features/chat/types/chat';
 
 // Helper to map JSONB roles to ChatRole
@@ -41,18 +38,10 @@ export function useCustomerConversations() {
   const [sessionId, setSessionIdState] = useState<string | null>(null);
   const [_currentNodeId, setCurrentNodeIdState] = useState<string | null>(null);
 
-  // Old scripted flow controller - COMMENTED OUT
-  // const { start, send, end, sessionId, setControllerSession } =
-  //   useConversationController();
-  // const { switchConversation } = useConversationSwitcher();
-
-  const updateInputPlaceholder = useCallback(
-    () => {
-      // Use a generic placeholder for DB-backed flows
-      setInputPlaceholder('Type a message...');
-    },
-    [setInputPlaceholder]
-  );
+  const updateInputPlaceholder = useCallback(() => {
+    // Use a generic placeholder for DB-backed flows
+    setInputPlaceholder('Type a message...');
+  }, [setInputPlaceholder]);
 
   const initializeFlow = useCallback(
     async (flowId: string, title: string, ctx?: any) => {
@@ -63,8 +52,8 @@ export function useCustomerConversations() {
           flowId === 'track-ticket'
             ? 'customer-track-ticket'
             : flowId === 'track-quote'
-            ? 'track-quote'
-            : flowId;
+              ? 'track-quote'
+              : flowId;
 
         // Get customer ID
         const { data: userData } = await auth.getUser();
@@ -146,7 +135,9 @@ export function useCustomerConversations() {
       setMessages(prev => [...prev, userMessage]);
       setConversations(prev =>
         prev.map(c =>
-          c.id === activeId ? { ...c, messages: [...c.messages, userMessage] } : c
+          c.id === activeId
+            ? { ...c, messages: [...c.messages, userMessage] }
+            : c
         )
       );
 
@@ -246,10 +237,10 @@ export function useCustomerConversations() {
     setTimeout(async () => {
       try {
         // End the session in the database (using JSONB flow API)
-        await import('@features/chat/api/jsonbChatFlowApi').then(api => 
+        await import('@features/chat/api/jsonbChatFlowApi').then(api =>
           api.endSessionV2(sessionId)
         );
-        
+
         // Refresh messages from database
         const fetched = await fetchSessionMessagesV2(sessionId);
         const mappedFetched: ChatMessage[] = fetched.map(m => ({
@@ -274,13 +265,7 @@ export function useCustomerConversations() {
         console.error('Failed to refresh messages after ending chat:', error);
       }
     }, 3000); // 3 second delay
-  }, [
-    activeId,
-    sessionId,
-    setMessages,
-    setConversations,
-    setQuickReplies,
-  ]);
+  }, [activeId, sessionId, setMessages, setConversations, setQuickReplies]);
 
   const handleQuickReply = useCallback(
     (value: string) => {
@@ -366,14 +351,14 @@ export function useCustomerConversations() {
 
         // Update conversation with fetched messages
         setConversations(prev =>
-          prev.map(c =>
-            c.id === id ? { ...c, messages: mappedMessages } : c
-          )
+          prev.map(c => (c.id === id ? { ...c, messages: mappedMessages } : c))
         );
 
         // Set quick replies based on conversation status
         if (conv.status === 'active') {
-          setQuickReplies([{ id: 'qr-end', label: 'End Chat', value: 'End Chat' }]);
+          setQuickReplies([
+            { id: 'qr-end', label: 'End Chat', value: 'End Chat' },
+          ]);
         } else {
           setQuickReplies([]);
         }
@@ -386,7 +371,15 @@ export function useCustomerConversations() {
         setIsTyping(false);
       }
     },
-    [conversations, setActiveId, setMessages, setQuickReplies, updateInputPlaceholder, setIsTyping, setConversations]
+    [
+      conversations,
+      setActiveId,
+      setMessages,
+      setQuickReplies,
+      updateInputPlaceholder,
+      setIsTyping,
+      setConversations,
+    ]
   );
 
   return {

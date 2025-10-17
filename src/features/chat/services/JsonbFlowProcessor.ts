@@ -6,7 +6,12 @@
  * Refactored to use modular action handlers and helper functions
  */
 
-import type { FlowDefinition, ActionNode, SessionMetadata, SessionContext } from '@chatFlows/types';
+import type {
+  FlowDefinition,
+  ActionNode,
+  SessionMetadata,
+  SessionContext,
+} from '@features/chat/types';
 import { supabase } from '@lib/supabase';
 import { actionHandlers } from '@features/chat/actions';
 import {
@@ -15,7 +20,7 @@ import {
   updateSessionMetadata,
   endSession,
   processPendingQuoteAction,
-  fetchSessionMessages
+  fetchSessionMessages,
 } from '@features/chat/helpers/flowHelpers';
 
 // Re-export types and fetchSessionMessages for backward compatibility
@@ -30,25 +35,38 @@ export class JsonbFlowProcessor {
     flowId: string;
     customerId: string;
     flowDefinition: FlowDefinition;
-    initialContext?: Partial<SessionContext> & { order_id?: string; display_id?: string; total_amount?: string };
+    initialContext?: Partial<SessionContext> & {
+      order_id?: string;
+      display_id?: string;
+      total_amount?: string;
+      inquiry_id?: string; // ADD THIS
+      quote_id?: string; // ADD THIS
+    };
   }) {
     const { flowId, customerId, flowDefinition, initialContext } = params;
 
     // Create chat session
     const sessionId = crypto.randomUUID();
-      const { error: sessionError } = await supabase
+
+    // Prepare FK columns
+    const inquiryId = initialContext?.inquiry_id || null;
+    const quoteId = initialContext?.quote_id || null;
+
+    const { error: sessionError } = await supabase
       .from('chat_sessions_v2')
       .insert({
         session_id: sessionId,
         flow_id: flowId,
         customer_id: customerId,
         status: 'active',
+        inquiry_id: inquiryId, // ✅ Set FK directly
+        quote_id: quoteId, // ✅ Set FK directly
         metadata: {
           current_node_id: flowDefinition.initial_node,
-            context: {
-              ...(initialContext || {}),
-              flow_owner: (flowDefinition as any).owner || 'customer',
-            },
+          context: {
+            ...(initialContext || {}),
+            flow_owner: (flowDefinition as any).owner || 'customer',
+          },
         },
       });
 
@@ -64,7 +82,12 @@ export class JsonbFlowProcessor {
       throw new Error(`Initial node ${flowDefinition.initial_node} not found`);
     }
 
-    const bootMessages: Array<{ id: string; role: 'printy'; text: string; ts: number; }> = [];
+    const bootMessages: Array<{
+      id: string;
+      role: 'printy';
+      text: string;
+      ts: number;
+    }> = [];
 
     // If initial node expects input and initialContext already has it, skip to next node
     if (
@@ -73,18 +96,29 @@ export class JsonbFlowProcessor {
       initialNode.input_config?.store_as &&
       initialContext &&
       typeof initialContext[initialNode.input_config.store_as] === 'string' &&
-      String(initialContext[initialNode.input_config.store_as]).trim().length > 0 &&
+      String(initialContext[initialNode.input_config.store_as]).trim().length >
+        0 &&
       initialNode.next
     ) {
       // Personalized greeting when order context exists
       const orderInput = String(
-        (initialContext.display_id || initialContext.order_id || '')
+        initialContext.display_id || initialContext.order_id || ''
       ).trim();
 
       if (orderInput) {
         const greet = `Hi! I'm Printy. I see you'd like to pay for your ${orderInput}.`;
-        bootMessages.push({ id: crypto.randomUUID(), role: 'printy', text: greet, ts: Date.now() });
-        await insertMessage({ sessionId, text: greet, role: 'printy', nodeId: currentNodeId });
+        bootMessages.push({
+          id: crypto.randomUUID(),
+          role: 'printy',
+          text: greet,
+          ts: Date.now(),
+        });
+        await insertMessage({
+          sessionId,
+          text: greet,
+          role: 'printy',
+          nodeId: currentNodeId,
+        });
       }
 
       // Move to next
@@ -118,13 +152,31 @@ export class JsonbFlowProcessor {
     }
 
     // Show the node's message (if any)
-    if (initialNode.type === 'message' && typeof initialNode.message === 'string' && initialNode.message.trim().length > 0) {
-      bootMessages.push({ id: crypto.randomUUID(), role: 'printy', text: initialNode.message, ts: Date.now() });
-      await insertMessage({ sessionId, text: initialNode.message, role: 'printy', nodeId: currentNodeId });
+    if (
+      initialNode.type === 'message' &&
+      typeof initialNode.message === 'string' &&
+      initialNode.message.trim().length > 0
+    ) {
+      bootMessages.push({
+        id: crypto.randomUUID(),
+        role: 'printy',
+        text: initialNode.message,
+        ts: Date.now(),
+      });
+      await insertMessage({
+        sessionId,
+        text: initialNode.message,
+        role: 'printy',
+        nodeId: currentNodeId,
+      });
     }
 
     // Auto-advance if initial node has a next and does NOT require input (common for admin flows)
-    if (initialNode.type === 'message' && initialNode.next && !initialNode.expects_input) {
+    if (
+      initialNode.type === 'message' &&
+      initialNode.next &&
+      !initialNode.expects_input
+    ) {
       currentNodeId = initialNode.next;
       await updateSessionMetadata(sessionId, {
         current_node_id: currentNodeId,
@@ -149,14 +201,43 @@ export class JsonbFlowProcessor {
             // Ensure we compute quick replies for the correct node
             currentNodeId = afterActionId;
             const afterActionNode = flowDefinition.nodes[afterActionId];
-            if (afterActionNode && afterActionNode.type === 'message' && typeof afterActionNode.message === 'string' && afterActionNode.message.trim().length > 0) {
-              bootMessages.push({ id: crypto.randomUUID(), role: 'printy', text: afterActionNode.message, ts: Date.now() });
-              await insertMessage({ sessionId, text: afterActionNode.message, role: 'printy', nodeId: afterActionId });
+            if (
+              afterActionNode &&
+              afterActionNode.type === 'message' &&
+              typeof afterActionNode.message === 'string' &&
+              afterActionNode.message.trim().length > 0
+            ) {
+              bootMessages.push({
+                id: crypto.randomUUID(),
+                role: 'printy',
+                text: afterActionNode.message,
+                ts: Date.now(),
+              });
+              await insertMessage({
+                sessionId,
+                text: afterActionNode.message,
+                role: 'printy',
+                nodeId: afterActionId,
+              });
             }
           }
-        } else if (nextNode.type === 'message' && typeof nextNode.message === 'string' && nextNode.message.trim().length > 0) {
-          bootMessages.push({ id: crypto.randomUUID(), role: 'printy', text: nextNode.message, ts: Date.now() });
-          await insertMessage({ sessionId, text: nextNode.message, role: 'printy', nodeId: currentNodeId });
+        } else if (
+          nextNode.type === 'message' &&
+          typeof nextNode.message === 'string' &&
+          nextNode.message.trim().length > 0
+        ) {
+          bootMessages.push({
+            id: crypto.randomUUID(),
+            role: 'printy',
+            text: nextNode.message,
+            ts: Date.now(),
+          });
+          await insertMessage({
+            sessionId,
+            text: nextNode.message,
+            role: 'printy',
+            nodeId: currentNodeId,
+          });
         }
       }
     }
@@ -164,16 +245,21 @@ export class JsonbFlowProcessor {
     const quickReplies = buildQuickReplies(flowDefinition.nodes[currentNodeId]);
 
     // Build fallback message if bootMessages is empty and initialNode has a valid string message
-    const fallbackMessages = bootMessages.length > 0 
-      ? bootMessages 
-      : (initialNode.type === 'message' && typeof initialNode.message === 'string' && initialNode.message.trim().length > 0
-        ? [{
-            id: crypto.randomUUID(),
-            role: 'printy' as const,
-            text: initialNode.message,
-            ts: Date.now(),
-          }]
-        : []);
+    const fallbackMessages =
+      bootMessages.length > 0
+        ? bootMessages
+        : initialNode.type === 'message' &&
+            typeof initialNode.message === 'string' &&
+            initialNode.message.trim().length > 0
+          ? [
+              {
+                id: crypto.randomUUID(),
+                role: 'printy' as const,
+                text: initialNode.message,
+                ts: Date.now(),
+              },
+            ]
+          : [];
 
     return {
       messages: fallbackMessages,
@@ -192,7 +278,12 @@ export class JsonbFlowProcessor {
     flowDefinition: FlowDefinition;
     senderRole?: 'customer' | 'admin';
   }) {
-    const { sessionId, userInput, flowDefinition, senderRole = 'customer' } = params;
+    const {
+      sessionId,
+      userInput,
+      flowDefinition,
+      senderRole = 'customer',
+    } = params;
 
     // Get current session metadata
     const { data: session, error: sessionError } = await supabase
@@ -229,7 +320,11 @@ export class JsonbFlowProcessor {
     }> = [];
 
     // Handle input collection if node expects it
-    if (currentNode.type === 'message' && currentNode.expects_input && currentNode.input_config) {
+    if (
+      currentNode.type === 'message' &&
+      currentNode.expects_input &&
+      currentNode.input_config
+    ) {
       // Store user input in context
       metadata.context[currentNode.input_config.store_as] = userInput;
 
@@ -257,17 +352,27 @@ export class JsonbFlowProcessor {
 
         // Move to next node
         if (selectedOption.next) {
-          console.log('[ProcessInput] Moving to next node:', selectedOption.next);
+          console.log(
+            '[ProcessInput] Moving to next node:',
+            selectedOption.next
+          );
           metadata.current_node_id = selectedOption.next;
           await updateSessionMetadata(sessionId, metadata);
         }
       } else {
-        console.log('[ProcessInput] No matching option found for input:', userInput);
+        console.log(
+          '[ProcessInput] No matching option found for input:',
+          userInput
+        );
       }
     }
 
     // Move to next node if specified (for input nodes)
-    if (currentNode.type === 'message' && currentNode.next && currentNode.expects_input) {
+    if (
+      currentNode.type === 'message' &&
+      currentNode.next &&
+      currentNode.expects_input
+    ) {
       metadata.current_node_id = currentNode.next;
       await updateSessionMetadata(sessionId, metadata);
     }
@@ -299,7 +404,8 @@ export class JsonbFlowProcessor {
           .single();
 
         if (postActionSession) {
-          const postActionMetadata = postActionSession.metadata as SessionMetadata;
+          const postActionMetadata =
+            postActionSession.metadata as SessionMetadata;
           // Update only the current_node_id, preserving the context from the action
           metadata.current_node_id = nextNode.next;
           metadata.context = postActionMetadata.context; // Preserve context updates from action
@@ -312,8 +418,12 @@ export class JsonbFlowProcessor {
 
         // Get the node after the action and display it if it's a message node with text
         const nodeAfterAction = flowDefinition.nodes[nextNode.next];
-        if (nodeAfterAction && nodeAfterAction.type === 'message' && 
-            typeof nodeAfterAction.message === 'string' && nodeAfterAction.message.trim().length > 0) {
+        if (
+          nodeAfterAction &&
+          nodeAfterAction.type === 'message' &&
+          typeof nodeAfterAction.message === 'string' &&
+          nodeAfterAction.message.trim().length > 0
+        ) {
           responses.push({
             id: crypto.randomUUID(),
             role: 'printy',
@@ -331,7 +441,11 @@ export class JsonbFlowProcessor {
       }
     } else {
       // Regular message node - send the message only if it's not empty (handle both string and array)
-      if (nextNode.message && typeof nextNode.message === 'string' && nextNode.message.trim().length > 0) {
+      if (
+        nextNode.message &&
+        typeof nextNode.message === 'string' &&
+        nextNode.message.trim().length > 0
+      ) {
         responses.push({
           id: crypto.randomUUID(),
           role: 'printy',
@@ -362,7 +476,10 @@ export class JsonbFlowProcessor {
       .single();
 
     if (freshSessionError) {
-      console.error('[ProcessInput] Error fetching fresh session:', freshSessionError);
+      console.error(
+        '[ProcessInput] Error fetching fresh session:',
+        freshSessionError
+      );
     }
 
     if (freshSession) {
@@ -372,23 +489,45 @@ export class JsonbFlowProcessor {
       console.log('[ProcessInput] Checking for pending quote actions:', {
         currentNodeId: freshMetadata.current_node_id,
         hasPendingAction: !!freshMetadata.context?.pending_quote_action,
-        hasPendingConversationId: !!freshMetadata.context?.pending_conversation_id,
+        hasPendingConversationId:
+          !!freshMetadata.context?.pending_conversation_id,
         pendingAction: freshMetadata.context?.pending_quote_action,
         pendingConversationId: freshMetadata.context?.pending_conversation_id,
         fullContext: freshMetadata.context,
       });
 
-      const isAcceptedOrRejectedNode = freshMetadata.current_node_id === 'quote_accepted' || freshMetadata.current_node_id === 'quote_rejected';
-      console.log('[ProcessInput] Is accepted/rejected node?', isAcceptedOrRejectedNode);
-      console.log('[ProcessInput] Has pending action?', !!freshMetadata.context?.pending_quote_action);
-      console.log('[ProcessInput] Has pending conversation ID?', !!freshMetadata.context?.pending_conversation_id);
+      const isAcceptedOrRejectedNode =
+        freshMetadata.current_node_id === 'quote_accepted' ||
+        freshMetadata.current_node_id === 'quote_rejected';
+      console.log(
+        '[ProcessInput] Is accepted/rejected node?',
+        isAcceptedOrRejectedNode
+      );
+      console.log(
+        '[ProcessInput] Has pending action?',
+        !!freshMetadata.context?.pending_quote_action
+      );
+      console.log(
+        '[ProcessInput] Has pending conversation ID?',
+        !!freshMetadata.context?.pending_conversation_id
+      );
 
-      if (isAcceptedOrRejectedNode &&
-          freshMetadata.context?.pending_quote_action && freshMetadata.context?.pending_conversation_id) {
-        console.log('[ProcessInput] All conditions met! Processing pending quote action...');
-        await processPendingQuoteAction(freshMetadata.context.pending_quote_action, freshMetadata.context.pending_conversation_id);
+      if (
+        isAcceptedOrRejectedNode &&
+        freshMetadata.context?.pending_quote_action &&
+        freshMetadata.context?.pending_conversation_id
+      ) {
+        console.log(
+          '[ProcessInput] All conditions met! Processing pending quote action...'
+        );
+        await processPendingQuoteAction(
+          freshMetadata.context.pending_quote_action,
+          freshMetadata.context.pending_conversation_id
+        );
       } else {
-        console.log('[ProcessInput] Conditions not met for processing pending action');
+        console.log(
+          '[ProcessInput] Conditions not met for processing pending action'
+        );
       }
     }
 
@@ -414,10 +553,19 @@ export class JsonbFlowProcessor {
     context: SessionContext;
   }) {
     const { actionNode, sessionId, customerId, context } = params;
-    const messages: Array<{ id: string; role: 'printy'; text: string; ts: number }> = [];
+    const messages: Array<{
+      id: string;
+      role: 'printy';
+      text: string;
+      ts: number;
+    }> = [];
 
     // Show action message only if it's not empty (handle both string and potential array cases)
-    if (actionNode.message && typeof actionNode.message === 'string' && actionNode.message.trim().length > 0) {
+    if (
+      actionNode.message &&
+      typeof actionNode.message === 'string' &&
+      actionNode.message.trim().length > 0
+    ) {
       messages.push({
         id: crypto.randomUUID(),
         role: 'printy',

@@ -4,7 +4,7 @@
  */
 
 import { supabase } from '@lib/supabase';
-import type { FlowDefinition, SessionMetadata } from '@chatFlows/types';
+import type { FlowDefinition, SessionMetadata } from '@features/chat/types';
 
 export type SenderRole = 'printy' | 'customer' | 'admin';
 
@@ -35,7 +35,7 @@ export async function createChatSessionV2(params: {
   metadata?: Partial<SessionMetadata>;
 }): Promise<string | null> {
   const sessionId = crypto.randomUUID();
-  
+
   const { error } = await supabase.from('chat_sessions_v2').insert({
     session_id: sessionId,
     flow_id: params.flowId,
@@ -79,9 +79,7 @@ export async function insertMessageV2(params: {
 /**
  * Fetch all messages for a session (decrypted)
  */
-export async function fetchSessionMessagesV2(
-  sessionId: string
-): Promise<
+export async function fetchSessionMessagesV2(sessionId: string): Promise<
   Array<{
     id: string;
     role: SenderRole;
@@ -224,7 +222,7 @@ export async function linkSessionToQuote(params: {
   quoteConversationId: string;
 }): Promise<boolean> {
   const metadata = await getSessionMetadata(params.sessionId);
-  
+
   if (!metadata) {
     return false;
   }
@@ -242,7 +240,7 @@ export async function linkSessionToInquiry(params: {
   inquiryId: string;
 }): Promise<boolean> {
   const metadata = await getSessionMetadata(params.sessionId);
-  
+
   if (!metadata) {
     return false;
   }
@@ -251,4 +249,3 @@ export async function linkSessionToInquiry(params: {
 
   return await updateSessionMetadata(params.sessionId, metadata);
 }
-

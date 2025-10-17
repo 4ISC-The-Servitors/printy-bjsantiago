@@ -2,7 +2,7 @@
  * Shared types for JsonbFlowProcessor
  */
 
-import type { ActionNode, SessionContext } from '@chatFlows/types';
+import type { ActionNode, SessionContext } from '@features/chat/types';
 
 export interface FlowExecutionResult {
   messages: Array<{
@@ -36,4 +36,6 @@ export interface ActionExecutionResult {
   }>;
 }
 
-export type ActionHandler = (params: ActionExecutionParams) => Promise<ActionExecutionResult>;
+export type ActionHandler = (
+  params: ActionExecutionParams
+) => Promise<ActionExecutionResult>;

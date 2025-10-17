@@ -11,7 +11,6 @@ interface TurnstileProps {
 
 const Turnstile: React.FC<TurnstileProps> = ({
   action,
-  onTokenReceived,
   onError,
   className = '',
   appearance = 'always'

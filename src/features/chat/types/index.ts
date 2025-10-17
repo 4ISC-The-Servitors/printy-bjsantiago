@@ -8,3 +8,14 @@ export type {
   ActionExecutionResult,
   ActionHandler,
 } from './service';
+export type {
+  FlowDefinition,
+  FlowNode,
+  MessageNode,
+  ActionNode,
+  EndNode,
+  SessionMetadata,
+  SessionContext,
+  ActionType,
+  InputConfig,
+} from './flow';

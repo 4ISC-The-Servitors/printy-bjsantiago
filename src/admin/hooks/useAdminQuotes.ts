@@ -1,6 +1,6 @@
 /**
  * useAdminQuotes
- * Fetches all quotes from quote_conversations table for admin view
+ * Fetches all quotes from quotes table for admin view
  * Similar to useAdminOrders but for quotes with enhanced data structure
  */
 import { useEffect, useState, useCallback } from 'react';
