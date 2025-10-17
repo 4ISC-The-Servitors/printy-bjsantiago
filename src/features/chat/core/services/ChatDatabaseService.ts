@@ -22,6 +22,9 @@ import {
   fetchInquiryById,
   createInquiryWithTurnstile,
   fetchSessionCustomerId,
+  getQuoteConversationIdFromSession,
+  createQuoteConversation,
+  linkSessionToQuoteConversation,
 } from '../../../api/chatFlowApi';
 
 export const ChatDatabaseService = {
@@ -43,6 +46,7 @@ export const ChatDatabaseService = {
   fetchInquiryById,
   createInquiryWithTurnstile,
   fetchSessionCustomerId,
+  getQuoteConversationIdFromSession,
+  createQuoteConversation,
+  linkSessionToQuoteConversation,
 } as const;
-
-

@@ -6,7 +6,7 @@ import './index.css';
 
 // Initialize console to terminal forwarding in development
 import './lib/consoleToTerminal';
-import { AuthProvider } from './hooks/auth/AuthContext';
+import { AuthProvider } from '@shared/hooks/auth/AuthContext';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

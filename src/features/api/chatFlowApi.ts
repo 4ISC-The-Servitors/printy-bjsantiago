@@ -1,6 +1,6 @@
 import { supabase } from '../../lib/supabase';
 
-export type SenderRole = 'user' | 'printy';
+export type SenderRole = 'printy' | 'customer' | 'admin';
 
 export interface DbFlowNode {
   node_id: string;
@@ -61,7 +61,9 @@ export async function fetchOptions(
   return (data || []) as unknown as DbFlowOption[];
 }
 
-export async function fetchNodeById(nodeId: string): Promise<DbFlowNode | null> {
+export async function fetchNodeById(
+  nodeId: string
+): Promise<DbFlowNode | null> {
   const { data, error } = await supabase
     .from('chat_flow_nodes')
     .select('*')
@@ -142,9 +144,7 @@ export async function updateCurrentNode(
   return true;
 }
 
-export async function fetchSessionFlow(
-  sessionId: string
-): Promise<{
+export async function fetchSessionFlow(sessionId: string): Promise<{
   sessionId: string;
   flowId: string;
   currentNodeId: string;
@@ -356,7 +356,8 @@ export async function fetchSessionMessages(
       messageList = messageList.map(m => {
         if (m.message_text) return m;
         const nodeId = idToNodeId.get(m.message_id) || null;
-        const text = (nodeId && nodeIdToText.get(nodeId)) || m.message_text || '';
+        const text =
+          (nodeId && nodeIdToText.get(nodeId)) || m.message_text || '';
         return { ...m, message_text: text };
       });
     }
@@ -394,16 +395,13 @@ export async function fetchCurrentNode(
 export async function fetchOrderSummaryForCustomer(
   orderId: string,
   customerId: string
-): Promise<
-  | null
-  | {
-      order_id: string;
-      order_status: string | null;
-      order_datetime: string | null;
-      page_size: string | null;
-      quantity: number | null;
-    }
-> {
+): Promise<null | {
+  order_id: string;
+  order_status: string | null;
+  order_datetime: string | null;
+  page_size: string | null;
+  quantity: number | null;
+}> {
   const { data, error } = await supabase
     .from('orders')
     .select('order_id, order_status, order_datetime, page_size, quantity')
@@ -437,19 +435,14 @@ export async function listRecentOrdersForCustomer(
   }));
 }
 
-export async function fetchInquiryById(
-  inquiryId: string
-): Promise<
-  | null
-  | {
-      inquiry_id: string;
-      inquiry_message: string | null;
-      inquiry_type: string | null;
-      inquiry_status: string;
-      resolution_comments: string | null;
-      received_at: string;
-    }
-> {
+export async function fetchInquiryById(inquiryId: string): Promise<null | {
+  inquiry_id: string;
+  inquiry_message: string | null;
+  inquiry_type: string | null;
+  inquiry_status: string;
+  resolution_comments: string | null;
+  received_at: string;
+}> {
   const { data, error } = await supabase.rpc('api_inquiry_by_id', {
     p_inquiry_id: inquiryId,
   });
@@ -475,10 +468,121 @@ export async function createInquiryWithTurnstile(params: {
       console.error('api_create_inquiry error', error);
       return { ok: false };
     }
-    const inquiry_id = ((data as any[]) || [])[0]?.inquiry_id as string | undefined;
+    const inquiry_id = ((data as any[]) || [])[0]?.inquiry_id as
+      | string
+      | undefined;
     return inquiry_id ? { ok: true, inquiry_id } : { ok: false };
   } catch (e) {
     console.error('api_create_inquiry exception', e);
     return { ok: false };
   }
+}
+
+// ===== Quote Conversation Helpers =====
+
+/**
+ * Gets the quote_conversation_id from chat session metadata
+ */
+export async function getQuoteConversationIdFromSession(
+  sessionId: string
+): Promise<string | null> {
+  const { data, error } = await supabase
+    .from('chat_sessions')
+    .select('metadata')
+    .eq('session_id', sessionId)
+    .maybeSingle();
+
+  if (error) {
+    console.error('getQuoteConversationIdFromSession error', error);
+    return null;
+  }
+
+  return ((data as any)?.metadata?.quote_conversation_id as string) || null;
+}
+
+/**
+ * DEPRECATED: Dual-write to quote_messages table
+ * This function is no longer used as all messages now go to chat_messages_v2 only
+ */
+// Commented out - no longer needed with chat_messages_v2 migration
+// export async function insertQuoteMessage(params: {
+//   conversationId: string;
+//   senderId: string;
+//   senderRole: 'customer' | 'admin' | 'printy' | 'ai';
+//   messageText: string;
+//   messageType?: 'chat' | 'spec_summary' | 'spec_proposal' | 'system';
+//   metadata?: Record<string, unknown>;
+// }): Promise<{ messageId: string | null }> {
+//   const { data, error } = await supabase.rpc('add_quote_message', {
+//     p_conversation_id: params.conversationId,
+//     p_sender_id: params.senderId,
+//     p_sender_role: params.senderRole,
+//     p_message_text: params.messageText,
+//     p_message_type: params.messageType || 'chat',
+//     p_metadata: params.metadata || {},
+//   });
+//
+//   if (error) {
+//     console.error('insertQuoteMessage error', error);
+//     return { messageId: null };
+//   }
+//
+//   return { messageId: (data as string) || null };
+// }
+
+/**
+ * Creates a quote conversation and returns conversation_id and display_id
+ */
+export async function createQuoteConversation(params: {
+  customerId: string;
+}): Promise<{
+  conversationId: string | null;
+  displayId: string | null;
+}> {
+  const { data: conversationId, error: convError } = await supabase.rpc(
+    'create_quote_conversation',
+    { p_customer_id: params.customerId }
+  );
+
+  if (convError || !conversationId) {
+    console.error('createQuoteConversation error', convError);
+    return { conversationId: null, displayId: null };
+  }
+
+  // Fetch the auto-generated display_id
+  const { data: quoteData, error: quoteError } = await supabase
+    .from('quote_conversations')
+    .select('display_id')
+    .eq('conversation_id', conversationId)
+    .single();
+
+  if (quoteError || !quoteData?.display_id) {
+    console.error('Failed to fetch quote display_id:', quoteError);
+    return { conversationId: conversationId as string, displayId: null };
+  }
+
+  return {
+    conversationId: conversationId as string,
+    displayId: quoteData.display_id as string,
+  };
+}
+
+/**
+ * Links a chat session to a quote conversation via metadata
+ */
+export async function linkSessionToQuoteConversation(params: {
+  sessionId: string;
+  conversationId: string;
+}): Promise<boolean> {
+  const { error } = await supabase
+    .from('chat_sessions')
+    .update({ metadata: { quote_conversation_id: params.conversationId } })
+    .eq('session_id', params.sessionId);
+
+  if (error) {
+    console.error('linkSessionToQuoteConversation error', error);
+    return false;
+  }
+
+  return true;
 }

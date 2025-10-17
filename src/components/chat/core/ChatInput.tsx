@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { Send, Paperclip } from 'lucide-react';
-import { Button } from '../../shared';
+import { Button } from '@shared/components';
 
 export interface ChatInputProps {
   value: string;

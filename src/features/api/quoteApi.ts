@@ -55,15 +55,15 @@ export async function createQuoteConversation(customerId: string, quoteId?: stri
   return data;
 }
 
-export async function fetchConversation(conversationId: string): Promise<ConversationData> {
+export async function fetchConversation(sessionId: string): Promise<ConversationData> {
   const { data, error } = await supabase
-    .from('quote_conversations')
+    .from('quotes')
     .select('*')
-    .eq('conversation_id', conversationId)
+    .eq('session_id', sessionId)
     .single();
 
   if (error) throw error;
-  return data;
+  return data as any;
 }
 
 export async function fetchMessages(conversationId: string): Promise<Message[]> {
@@ -174,18 +174,18 @@ export async function sendProposalToCustomer(proposalId: string): Promise<void> 
 
   if (error) throw error;
 
-  // Update conversation status
+  // Update quote status
   const { data: proposal } = await supabase
     .from('quote_proposals')
-    .select('conversation_id')
+    .select('session_id')
     .eq('proposal_id', proposalId)
     .single();
 
   if (proposal) {
     await supabase
-      .from('quote_conversations')
-      .update({ status: 'spec_proposed' })
-      .eq('conversation_id', proposal.conversation_id);
+      .from('quotes')
+      .update({ status: 'spec_proposed', updated_at: new Date().toISOString() })
+      .eq('session_id', proposal.session_id);
   }
 }
 
@@ -197,18 +197,18 @@ export async function acceptProposal(proposalId: string): Promise<void> {
 
   if (error) throw error;
 
-  // Update conversation status
+  // Update quote status
   const { data: proposal } = await supabase
     .from('quote_proposals')
-    .select('conversation_id')
+    .select('session_id')
     .eq('proposal_id', proposalId)
     .single();
 
   if (proposal) {
     await supabase
-      .from('quote_conversations')
-      .update({ status: 'accepted' })
-      .eq('conversation_id', proposal.conversation_id);
+      .from('quotes')
+      .update({ status: 'accepted', updated_at: new Date().toISOString() })
+      .eq('session_id', proposal.session_id);
   }
 }
 
@@ -223,18 +223,18 @@ export async function rejectProposal(proposalId: string, reason?: string): Promi
 
   if (error) throw error;
 
-  // Update conversation status
+  // Update quote status
   const { data: proposal } = await supabase
     .from('quote_proposals')
-    .select('conversation_id')
+    .select('session_id')
     .eq('proposal_id', proposalId)
     .single();
 
   if (proposal) {
     await supabase
-      .from('quote_conversations')
-      .update({ status: 'rejected' })
-      .eq('conversation_id', proposal.conversation_id);
+      .from('quotes')
+      .update({ status: 'rejected', updated_at: new Date().toISOString() })
+      .eq('session_id', proposal.session_id);
   }
 }
 
@@ -259,12 +259,12 @@ export async function fetchProposals(conversationId: string): Promise<Proposal[]
 
 export async function fetchRecentQuoteConversations(customerId: string): Promise<ConversationData[]> {
   const { data, error } = await supabase
-    .from('quote_conversations')
+    .from('quotes')
     .select('*')
     .eq('customer_id', customerId)
     .order('updated_at', { ascending: false })
     .limit(5);
 
   if (error) throw error;
-  return data;
+  return data as any[];
 }

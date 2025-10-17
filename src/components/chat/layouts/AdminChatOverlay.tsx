@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { X, Minus } from 'lucide-react';
-import { Button, Text } from '../../shared';
+import { Button, Text } from '@shared/components';
 import { MessageGroup, TypingIndicator, ChatInput } from '../core';
 import type { ChatMessage, QuickReply } from '../types';
 

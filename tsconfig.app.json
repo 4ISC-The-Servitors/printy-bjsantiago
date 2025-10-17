@@ -16,12 +16,21 @@
     "jsx": "react-jsx",
     "baseUrl": ".",
     "paths": {
+      "@/*": ["src/*"],
+      "@admin/*": ["src/admin/*"],
+      "@customer/*": ["src/customer/*"],
+      "@guest/*": ["src/guest/*"],
+      "@auth/*": ["src/auth/*"],
+      "@superadmin/*": ["src/superadmin/*"],
+      "@shared/*": ["src/shared/*"],
+      "@features/*": ["src/features/*"],
+      "@lib/*": ["src/lib/*"],
+      "@data/*": ["src/data/*"],
       "@components/*": ["src/components/*"],
       "@pages/*": ["src/pages/*"],
       "@hooks/*": ["src/hooks/*"],
       "@utils/*": ["src/utils/*"],
-      "@data/*": ["src/data/*"],
-      "@lib/*": ["src/lib/*"]
+      "@chatFlows/*": ["src/chatFlows/*"]
     },
 
     /* Linting */

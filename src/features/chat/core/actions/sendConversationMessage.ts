@@ -20,16 +20,39 @@ export async function sendConversationMessage({
   activeNodeId,
   input,
 }: Params) {
-  // DB-backed path (About Us, Issue Ticket)
+  // DB-backed path (About Us, Ask Assistance, Track Ticket)
   if (sessionId) {
     const sid = sessionId;
-    const ephemeral: Array<{ id: string; role: 'user' | 'printy'; text: string; ts: number }> = [];
-    ephemeral.push({ id: crypto.randomUUID(), role: 'user', text: input, ts: Date.now() });
+    const ephemeral: Array<{
+      id: string;
+      role: 'customer' | 'printy';
+      text: string;
+      ts: number;
+    }> = [];
+    ephemeral.push({
+      id: crypto.randomUUID(),
+      role: 'customer',
+      text: input,
+      ts: Date.now(),
+    });
+
+    // REMOVED: No longer needed with dual-write removal
+    // const quoteConvIdForCustomer = await ChatDatabaseService.getQuoteConversationIdFromSession(sid);
+    // const customerIdForDualWrite = await ChatDatabaseService.fetchSessionCustomerId(sid);
+
+    // Persist user's message with correct sender role and node context
+    const current = activeNodeId
+      ? { node_id: activeNodeId }
+      : await ChatDatabaseService.fetchCurrentNode(sid);
     await ChatDatabaseService.insertMessage({
       sessionId: sid,
       text: input,
-      role: 'user',
+      role: 'customer',
+      nodeId: (current as any)?.node_id || undefined,
     });
+
+    // REMOVED: Dual-write to deprecated quote_messages table
+    // All messages now stored in chat_messages_v2 only
     // Resolve transition from current node with support for node_action
     const node = (await ChatDatabaseService.fetchCurrentNode(sid)) as
       | (DbFlowNode & { action_config?: any })
@@ -40,19 +63,40 @@ export async function sendConversationMessage({
 
     const normalized = input.trim();
 
+    // Check if this session is linked to a quote conversation for dual-write
+    // REMOVED: No longer needed with dual-write removal
+    // const quoteConvId = await ChatDatabaseService.getQuoteConversationIdFromSession(sid);
+    // const customerId = await ChatDatabaseService.fetchSessionCustomerId(sid);
+
     // Helper: push a bot message
-    const say = async (text: string, nodeId?: string | null) => {
+    const say = async (
+      text: string,
+      nodeId?: string | null
+    ) => {
       await ChatDatabaseService.insertMessage({
         sessionId: sid,
         text,
         role: 'printy',
         nodeId: nodeId ?? node?.node_id,
       });
-      ephemeral.push({ id: crypto.randomUUID(), role: 'printy', text, ts: Date.now() });
+
+      // REMOVED: Dual-write to deprecated quote_messages table
+      // All messages now stored in chat_messages_v2 only
+
+      ephemeral.push({
+        id: crypto.randomUUID(),
+        role: 'printy',
+        text,
+        ts: Date.now(),
+      });
     };
 
     let handledByAction = false;
-    let dynamicQuickReplies: Array<{ id: string; label: string; value: string }> | null = null;
+    let dynamicQuickReplies: Array<{
+      id: string;
+      label: string;
+      value: string;
+    }> | null = null;
 
     // First, prefer matching an option (quick reply). If no match, fall back to node_action.
     const match = options.find(
@@ -67,9 +111,12 @@ export async function sendConversationMessage({
         case 'expects_input': {
           const inputKey = String(cfg?.input_key || 'details');
           const append = Boolean(cfg?.append ?? true);
+          const autoTransition = String(cfg?.auto_transition || '');
           const flow = await ChatDatabaseService.fetchSessionFlow(sid);
           if (flow) {
-            const nextCtx: Record<string, unknown> = { ...(flow.context || {}) };
+            const nextCtx: Record<string, unknown> = {
+              ...(flow.context || {}),
+            };
             if (append) {
               const prev = String((nextCtx[inputKey] as string) || '');
               nextCtx[inputKey] = prev ? `${prev}\n${normalized}` : normalized;
@@ -78,6 +125,101 @@ export async function sendConversationMessage({
             }
             await ChatDatabaseService.setSessionContext(sid, nextCtx);
           }
+
+          // If auto_transition is specified, move to that node instead of showing confirmation
+          if (autoTransition) {
+            await ChatDatabaseService.updateCurrentNode(sid, autoTransition);
+            const nextNode = (await ChatDatabaseService.fetchCurrentNode(
+              sid
+            )) as (DbFlowNode & { action_config?: any }) | null;
+            if (nextNode) {
+              // Execute the next node's action immediately
+              const nextAction = (nextNode.node_action as string) || 'none';
+              const nextCfg = (nextNode.action_config as any) || {};
+
+              if (nextAction === 'create_quote_conversation') {
+                // Execute create_quote_conversation action
+                const detailsKey = String(
+                  nextCfg?.details_key || 'quote_details'
+                );
+                const flowData =
+                  await ChatDatabaseService.fetchSessionFlow(sid);
+                const quoteDetails = String(
+                  (flowData?.context?.[detailsKey] as string) || ''
+                );
+
+                if (!quoteDetails) {
+                  await say(
+                    "No quote details found. Please describe what you'd like to print.",
+                    nextNode.node_id
+                  );
+                  handledByAction = true;
+                  break;
+                }
+
+                const customerId =
+                  await ChatDatabaseService.fetchSessionCustomerId(sid);
+                if (!customerId) {
+                  await say(
+                    'Sorry, there was an error identifying your account. Please try again.',
+                    nextNode.node_id
+                  );
+                  handledByAction = true;
+                  break;
+                }
+
+                // Create quote conversation
+                const { conversationId, displayId } =
+                  await ChatDatabaseService.createQuoteConversation({
+                    customerId,
+                  });
+
+                if (!conversationId) {
+                  await say(
+                    'Sorry, there was an error creating your quote request. Please try again.',
+                    nextNode.node_id
+                  );
+                  dynamicQuickReplies = [
+                    { id: 'qr-try', label: 'Try again', value: 'Try again' },
+                    { id: 'qr-end', label: 'End Chat', value: 'End Chat' },
+                  ];
+                  handledByAction = true;
+                  break;
+                }
+
+                // Link chat session to quote conversation
+                await ChatDatabaseService.linkSessionToQuoteConversation({
+                  sessionId: sid,
+                  conversationId,
+                });
+
+                // REMOVED: Dual-write to deprecated quote_messages table
+
+                // Send success messages
+                const successText = displayId
+                  ? `Thank you for providing those details! I've created your quote request.\n\nQuote Request: ${displayId}\n\nAdmin will review your request and get back to you with pricing and details.`
+                  : "Thank you for providing those details! I've created your quote request.\n\nAdmin will review your request and get back to you with pricing and details.";
+
+                await say(successText, nextNode.node_id);
+
+                // REMOVED: Dual-write to deprecated quote_messages table
+
+                // Reset context after submission
+                if (flowData) {
+                  const nextCtx = { ...(flowData.context || {}) } as Record<
+                    string,
+                    unknown
+                  >;
+                  delete (nextCtx as any)[detailsKey];
+                  await ChatDatabaseService.setSessionContext(sid, nextCtx);
+                }
+              }
+            }
+            handledByAction = true;
+            break;
+          }
+
+          // Default behavior for expects_input without auto_transition
           await say(
             "Got it. I've added that to your ticket notes. You can add more details or choose 'Submit ticket' when ready.",
             node.node_id
@@ -92,17 +234,27 @@ export async function sendConversationMessage({
             orderId = orderId.replace(/[^a-zA-Z0-9-]/g, '');
           }
           if (!orderId) {
-            await say(String(cfg?.error_message || 'Please enter a valid order number.'), node.node_id);
+            await say(
+              String(
+                cfg?.error_message || 'Please enter a valid order number.'
+              ),
+              node.node_id
+            );
             handledByAction = true;
             break;
           }
-          const customerCtxId = await ChatDatabaseService.fetchSessionCustomerId(sid);
-          const summary = await ChatDatabaseService.fetchOrderSummaryForCustomer(
-            orderId,
-            customerCtxId || ''
-          );
+          const customerCtxId =
+            await ChatDatabaseService.fetchSessionCustomerId(sid);
+          const summary =
+            await ChatDatabaseService.fetchOrderSummaryForCustomer(
+              orderId,
+              customerCtxId || ''
+            );
           if (!summary) {
-            await say(`Order ${orderId} not found or you are not authorized to view it.`, node.node_id);
+            await say(
+              `Order ${orderId} not found or you are not authorized to view it.`,
+              node.node_id
+            );
             handledByAction = true;
             break;
           }
@@ -115,7 +267,10 @@ export async function sendConversationMessage({
           const orderIdKey = String(cfg?.order_id_context_key || 'order_id');
           const flow2 = await ChatDatabaseService.fetchSessionFlow(sid);
           if (flow2) {
-            const nextCtx = { ...(flow2.context || {}), [orderIdKey]: summary.order_id } as Record<string, unknown>;
+            const nextCtx = {
+              ...(flow2.context || {}),
+              [orderIdKey]: summary.order_id,
+            } as Record<string, unknown>;
             await ChatDatabaseService.setSessionContext(sid, nextCtx);
           }
           // Transition to next node if configured
@@ -127,31 +282,50 @@ export async function sendConversationMessage({
               await say(next.text, next.node_id);
               const nextCfg = (next.action_config as any) || {};
               const nextAction = (next.node_action as string) || 'none';
-              if (nextCfg?.set_on_enter && typeof nextCfg.set_on_enter === 'object') {
+              if (
+                nextCfg?.set_on_enter &&
+                typeof nextCfg.set_on_enter === 'object'
+              ) {
                 const flow = await ChatDatabaseService.fetchSessionFlow(sid);
                 if (flow) {
-                  const nextCtx = { ...(flow.context || {}), ...nextCfg.set_on_enter };
+                  const nextCtx = {
+                    ...(flow.context || {}),
+                    ...nextCfg.set_on_enter,
+                  };
                   await ChatDatabaseService.setSessionContext(sid, nextCtx);
                 }
               }
               if (nextAction === 'list_recent_orders') {
                 const limit = Number(nextCfg?.limit ?? 10);
-                const customerCtxId = await ChatDatabaseService.fetchSessionCustomerId(sid);
+                const customerCtxId =
+                  await ChatDatabaseService.fetchSessionCustomerId(sid);
                 const orders = customerCtxId
-                  ? await ChatDatabaseService.listRecentOrdersForCustomer(customerCtxId, limit)
+                  ? await ChatDatabaseService.listRecentOrdersForCustomer(
+                      customerCtxId,
+                      limit
+                    )
                   : [];
                 if (!orders || orders.length === 0) {
-                  await say("I couldn't find any past orders for your account.", next.node_id);
+                  await say(
+                    "I couldn't find any past orders for your account.",
+                    next.node_id
+                  );
                 } else {
                   const lines: string[] = [
                     String(nextCfg?.prompt || 'Here are your recent orders:'),
                     '',
                   ];
                   for (const o of orders) {
-                    lines.push(`${new Date(o.order_datetime).toLocaleDateString()} — ${o.order_id}`);
+                    lines.push(
+                      `${new Date(o.order_datetime).toLocaleDateString()} — ${o.order_id}`
+                    );
                   }
                   await say(lines.join('\n'), next.node_id);
-                  dynamicQuickReplies = orders.map((o, i) => ({ id: `qr-${i}`, label: o.order_id, value: o.order_id }));
+                  dynamicQuickReplies = orders.map((o, i) => ({
+                    id: `qr-${i}`,
+                    label: o.order_id,
+                    value: o.order_id,
+                  }));
                 }
               }
             }
@@ -161,17 +335,22 @@ export async function sendConversationMessage({
         }
         case 'list_recent_orders': {
           const limit = Number(cfg?.limit ?? 10);
-          const customerCtxId = await ChatDatabaseService.fetchSessionCustomerId(sid);
+          const customerCtxId =
+            await ChatDatabaseService.fetchSessionCustomerId(sid);
           const orders = customerCtxId
-            ? await ChatDatabaseService.listRecentOrdersForCustomer(customerCtxId, limit)
+            ? await ChatDatabaseService.listRecentOrdersForCustomer(
+                customerCtxId,
+                limit
+              )
             : [];
           // If user typed or clicked an order id, attempt to select it
           const typedId = normalized.replace(/[^a-zA-Z0-9-]/g, '');
           if (typedId && customerCtxId) {
-            const summary = await ChatDatabaseService.fetchOrderSummaryForCustomer(
-              typedId,
-              customerCtxId
-            );
+            const summary =
+              await ChatDatabaseService.fetchOrderSummaryForCustomer(
+                typedId,
+                customerCtxId
+              );
             if (summary) {
               const lines = [
                 `Order ${summary.order_id} — Status: ${summary.order_status ?? 'N/A'}`,
@@ -181,11 +360,16 @@ export async function sendConversationMessage({
               // Save chosen order_id in context
               const flow2 = await ChatDatabaseService.fetchSessionFlow(sid);
               if (flow2) {
-                const nextCtx = { ...(flow2.context || {}), order_id: summary.order_id } as Record<string, unknown>;
+                const nextCtx = {
+                  ...(flow2.context || {}),
+                  order_id: summary.order_id,
+                } as Record<string, unknown>;
                 await ChatDatabaseService.setSessionContext(sid, nextCtx);
               }
               // Move to issue menu
-              const nextOnSelect = String(cfg?.next_on_select || 'order_issue_menu');
+              const nextOnSelect = String(
+                cfg?.next_on_select || 'order_issue_menu'
+              );
               await ChatDatabaseService.updateCurrentNode(sid, nextOnSelect);
               const nextNode = await ChatDatabaseService.fetchCurrentNode(sid);
               if (nextNode) await say(nextNode.text, nextNode.node_id);
@@ -195,17 +379,26 @@ export async function sendConversationMessage({
           }
           // Otherwise, re-list recent orders
           if (!orders || orders.length === 0) {
-            await say("I couldn't find any past orders for your account.", node.node_id);
+            await say(
+              "I couldn't find any past orders for your account.",
+              node.node_id
+            );
           } else {
             const lines: string[] = [
               String(cfg?.prompt || 'Here are your recent orders:'),
               '',
             ];
             for (const o of orders) {
-              lines.push(`${new Date(o.order_datetime).toLocaleDateString()} — ${o.order_id}`);
+              lines.push(
+                `${new Date(o.order_datetime).toLocaleDateString()} — ${o.order_id}`
+              );
             }
             await say(lines.join('\n'), node.node_id);
-            dynamicQuickReplies = orders.map((o, i) => ({ id: `qr-${i}`, label: o.order_id, value: o.order_id }));
+            dynamicQuickReplies = orders.map((o, i) => ({
+              id: `qr-${i}`,
+              label: o.order_id,
+              value: o.order_id,
+            }));
           }
           handledByAction = true;
           break;
@@ -217,13 +410,22 @@ export async function sendConversationMessage({
             inquiryId = inquiryId.replace(/[^a-zA-Z0-9-]/g, '');
           }
           if (!inquiryId) {
-            await say(String(cfg?.error_message || 'Please enter a valid ticket number (inquiry ID).'), node.node_id);
+            await say(
+              String(
+                cfg?.error_message ||
+                  'Please enter a valid ticket number (inquiry ID).'
+              ),
+              node.node_id
+            );
             handledByAction = true;
             break;
           }
           const inquiry = await ChatDatabaseService.fetchInquiryById(inquiryId);
           if (!inquiry) {
-            await say(`I couldn't find a ticket with ID "${inquiryId}". Please check and try again.`, node.node_id);
+            await say(
+              `I couldn't find a ticket with ID "${inquiryId}". Please check and try again.`,
+              node.node_id
+            );
             handledByAction = true;
             break;
           }
@@ -233,7 +435,9 @@ export async function sendConversationMessage({
             `Issue type: ${inquiry.inquiry_type || '(not specified)'}`,
             `Received: ${new Date(inquiry.received_at).toLocaleString()}`,
             `Status: ${inquiry.inquiry_status}`,
-            inquiry.resolution_comments ? `Resolution: ${inquiry.resolution_comments}` : 'Resolution: (not yet provided)',
+            inquiry.resolution_comments
+              ? `Resolution: ${inquiry.resolution_comments}`
+              : 'Resolution: (not yet provided)',
           ];
           await say(lines.join('\n'), node.node_id);
           handledByAction = true;
@@ -243,14 +447,21 @@ export async function sendConversationMessage({
           const detailsKey = String(cfg?.details_key || 'details');
           const typeKey = String(cfg?.type_key || 'inquiry_type');
           const flow = await ChatDatabaseService.fetchSessionFlow(sid);
-          const message = String((flow?.context?.[detailsKey] as string) || '(no details provided)');
-          const inquiryType = String((flow?.context?.[typeKey] as string) || 'other');
+          const message = String(
+            (flow?.context?.[detailsKey] as string) || '(no details provided)'
+          );
+          const inquiryType = String(
+            (flow?.context?.[typeKey] as string) || 'other'
+          );
           const created = await ChatDatabaseService.createInquiryWithTurnstile({
             message,
             inquiry_type: inquiryType,
           });
           if (!created.ok) {
-            await say("Couldn't create the ticket. Try again later.", node.node_id);
+            await say(
+              "Couldn't create the ticket. Try again later.",
+              node.node_id
+            );
             // Offer a Try again quick reply so the user can re-attempt without refreshing
             dynamicQuickReplies = [
               { id: 'qr-try', label: 'Try again', value: 'Try again' },
@@ -259,13 +470,22 @@ export async function sendConversationMessage({
             handledByAction = true;
             break;
           }
-          await say(String(cfg?.success_message || 'Ticket submitted successfully!'), node.node_id);
+          await say(
+            String(cfg?.success_message || 'Ticket submitted successfully!'),
+            node.node_id
+          );
           if (cfg?.show_inquiry_id && created.inquiry_id) {
-            await say(`Your ticket number is: ${created.inquiry_id}`, node.node_id);
+            await say(
+              `Your ticket number is: ${created.inquiry_id}`,
+              node.node_id
+            );
           }
           // Reset relevant context after submission
           if (flow) {
-            const nextCtx = { ...(flow.context || {}) } as Record<string, unknown>;
+            const nextCtx = { ...(flow.context || {}) } as Record<
+              string,
+              unknown
+            >;
             delete (nextCtx as any)[detailsKey];
             delete (nextCtx as any)[typeKey];
             await ChatDatabaseService.setSessionContext(sid, nextCtx);
@@ -283,6 +503,82 @@ export async function sendConversationMessage({
           handledByAction = false; // allow normal option transition
           break;
         }
+        case 'create_quote_conversation': {
+          const detailsKey = String(cfg?.details_key || 'quote_details');
+          const flow = await ChatDatabaseService.fetchSessionFlow(sid);
+          const quoteDetails = String(
+            (flow?.context?.[detailsKey] as string) || ''
+          );
+
+          if (!quoteDetails) {
+            await say(
+              "No quote details found. Please describe what you'd like to print.",
+              node.node_id
+            );
+            handledByAction = true;
+            break;
+          }
+
+          const customerId =
+            await ChatDatabaseService.fetchSessionCustomerId(sid);
+          if (!customerId) {
+            await say(
+              'Sorry, there was an error identifying your account. Please try again.',
+              node.node_id
+            );
+            handledByAction = true;
+            break;
+          }
+
+          // Create quote conversation
+          const { conversationId, displayId } =
+            await ChatDatabaseService.createQuoteConversation({
+              customerId,
+            });
+
+          if (!conversationId) {
+            await say(
+              'Sorry, there was an error creating your quote request. Please try again.',
+              node.node_id
+            );
+            dynamicQuickReplies = [
+              { id: 'qr-try', label: 'Try again', value: 'Try again' },
+              { id: 'qr-end', label: 'End Chat', value: 'End Chat' },
+            ];
+            handledByAction = true;
+            break;
+          }
+
+          // Link chat session to quote conversation
+          await ChatDatabaseService.linkSessionToQuoteConversation({
+            sessionId: sid,
+            conversationId,
+          });
+
+          // REMOVED: Dual-write to deprecated quote_messages table
+
+          // Send success messages
+          const successText = displayId
+            ? `Thank you for providing those details! I've created your quote request.\n\nQuote Request: ${displayId}\n\nAdmin will review your request and get back to you with pricing and details.`
+            : "Thank you for providing those details! I've created your quote request.\n\nAdmin will review your request and get back to you with pricing and details.";
+
+          await say(successText, node.node_id);
+
+          // REMOVED: Dual-write to deprecated quote_messages table
+
+          // Reset context after submission
+          if (flow) {
+            const nextCtx = { ...(flow.context || {}) } as Record<
+              string,
+              unknown
+            >;
+            delete (nextCtx as any)[detailsKey];
+            await ChatDatabaseService.setSessionContext(sid, nextCtx);
+          }
+
+          handledByAction = true;
+          break;
+        }
         default:
           break;
       }
@@ -295,41 +591,55 @@ export async function sendConversationMessage({
         await say('Retrying...', node?.node_id);
         handledByAction = false; // fall through to option resolution to re-trigger flow
       }
-    if (!match) {
-      await ChatDatabaseService.insertMessage({
-        sessionId: sid,
-        text: 'Please choose one of the options.',
-        role: 'printy',
-        nodeId: activeNodeId || node?.node_id,
-      });
-    } else {
-      await ChatDatabaseService.updateCurrentNode(sid, match.to_node_id);
+      if (!match) {
+        await ChatDatabaseService.insertMessage({
+          sessionId: sid,
+          text: 'Please choose one of the options.',
+          role: 'printy',
+          nodeId: activeNodeId || node?.node_id,
+        });
+      } else {
+        await ChatDatabaseService.updateCurrentNode(sid, match.to_node_id);
         const next = (await ChatDatabaseService.fetchCurrentNode(sid)) as
           | (DbFlowNode & { action_config?: any })
           | null;
-      if (next) {
+        if (next) {
           await say(next.text, next.node_id);
           const nextCfg = (next.action_config as any) || {};
           const nextAction = (next.node_action as string) || 'none';
           // Apply on-enter set_on_enter when arriving to next node
-          if (nextCfg?.set_on_enter && typeof nextCfg.set_on_enter === 'object') {
+          if (
+            nextCfg?.set_on_enter &&
+            typeof nextCfg.set_on_enter === 'object'
+          ) {
             const flow = await ChatDatabaseService.fetchSessionFlow(sid);
             if (flow) {
-              const nextCtx = { ...(flow.context || {}), ...nextCfg.set_on_enter };
+              const nextCtx = {
+                ...(flow.context || {}),
+                ...nextCfg.set_on_enter,
+              };
               await ChatDatabaseService.setSessionContext(sid, nextCtx);
             }
           }
           switch (nextAction) {
             case 'list_recent_orders': {
               const limit = Number(nextCfg?.limit ?? 10);
-              const customerCtxId = await ChatDatabaseService.fetchSessionCustomerId(sid);
+              const customerCtxId =
+                await ChatDatabaseService.fetchSessionCustomerId(sid);
               const orders = customerCtxId
-                ? await ChatDatabaseService.listRecentOrdersForCustomer(customerCtxId, limit)
+                ? await ChatDatabaseService.listRecentOrdersForCustomer(
+                    customerCtxId,
+                    limit
+                  )
                 : [];
               // If the last input is an order id, select it and move forward
               const typedId = normalized.replace(/[^a-zA-Z0-9-]/g, '');
               if (typedId && customerCtxId) {
-                const summary = await ChatDatabaseService.fetchOrderSummaryForCustomer(typedId, customerCtxId);
+                const summary =
+                  await ChatDatabaseService.fetchOrderSummaryForCustomer(
+                    typedId,
+                    customerCtxId
+                  );
                 if (summary) {
                   const lines = [
                     `Order ${summary.order_id} — Status: ${summary.order_status ?? 'N/A'}`,
@@ -338,28 +648,45 @@ export async function sendConversationMessage({
                   await say(lines.join('\n'), next.node_id);
                   const flow2 = await ChatDatabaseService.fetchSessionFlow(sid);
                   if (flow2) {
-                    const nextCtx = { ...(flow2.context || {}), order_id: summary.order_id } as Record<string, unknown>;
+                    const nextCtx = {
+                      ...(flow2.context || {}),
+                      order_id: summary.order_id,
+                    } as Record<string, unknown>;
                     await ChatDatabaseService.setSessionContext(sid, nextCtx);
                   }
-                  const nextOnSelect = String(nextCfg?.next_on_select || 'order_issue_menu');
-                  await ChatDatabaseService.updateCurrentNode(sid, nextOnSelect);
+                  const nextOnSelect = String(
+                    nextCfg?.next_on_select || 'order_issue_menu'
+                  );
+                  await ChatDatabaseService.updateCurrentNode(
+                    sid,
+                    nextOnSelect
+                  );
                   const after = await ChatDatabaseService.fetchCurrentNode(sid);
                   if (after) await say(after.text, after.node_id);
                   break;
                 }
               }
               if (!orders || orders.length === 0) {
-                await say("I couldn't find any past orders for your account.", next.node_id);
+                await say(
+                  "I couldn't find any past orders for your account.",
+                  next.node_id
+                );
               } else {
                 const lines: string[] = [
                   String(nextCfg?.prompt || 'Here are your recent orders:'),
                   '',
                 ];
                 for (const o of orders) {
-                  lines.push(`${new Date(o.order_datetime).toLocaleDateString()} — ${o.order_id}`);
+                  lines.push(
+                    `${new Date(o.order_datetime).toLocaleDateString()} — ${o.order_id}`
+                  );
                 }
                 await say(lines.join('\n'), next.node_id);
-                dynamicQuickReplies = orders.map((o, i) => ({ id: `qr-${i}`, label: o.order_id, value: o.order_id }));
+                dynamicQuickReplies = orders.map((o, i) => ({
+                  id: `qr-${i}`,
+                  label: o.order_id,
+                  value: o.order_id,
+                }));
               }
               break;
             }
@@ -367,23 +694,43 @@ export async function sendConversationMessage({
               const detailsKey = String(nextCfg?.details_key || 'details');
               const typeKey = String(nextCfg?.type_key || 'inquiry_type');
               const flow = await ChatDatabaseService.fetchSessionFlow(sid);
-              const message = String((flow?.context?.[detailsKey] as string) || '(no details provided)');
-              const inquiryType = String((flow?.context?.[typeKey] as string) || 'other');
-              const created = await ChatDatabaseService.createInquiryWithTurnstile({
-                message,
-                inquiry_type: inquiryType,
-              });
+              const message = String(
+                (flow?.context?.[detailsKey] as string) ||
+                  '(no details provided)'
+              );
+              const inquiryType = String(
+                (flow?.context?.[typeKey] as string) || 'other'
+              );
+              const created =
+                await ChatDatabaseService.createInquiryWithTurnstile({
+                  message,
+                  inquiry_type: inquiryType,
+                });
               if (!created.ok) {
-                await say("Couldn't create the ticket. Try again later.", next.node_id);
+                await say(
+                  "Couldn't create the ticket. Try again later.",
+                  next.node_id
+                );
                 break;
               }
-              await say(String(nextCfg?.success_message || 'Ticket submitted successfully!'), next.node_id);
+              await say(
+                String(
+                  nextCfg?.success_message || 'Ticket submitted successfully!'
+                ),
+                next.node_id
+              );
               if (nextCfg?.show_inquiry_id && created.inquiry_id) {
-                await say(`Your ticket number is: ${created.inquiry_id}`, next.node_id);
+                await say(
+                  `Your ticket number is: ${created.inquiry_id}`,
+                  next.node_id
+                );
               }
               // Reset context
               if (flow) {
-                const nextCtx = { ...(flow.context || {}) } as Record<string, unknown>;
+                const nextCtx = { ...(flow.context || {}) } as Record<
+                  string,
+                  unknown
+                >;
                 delete (nextCtx as any)[detailsKey];
                 delete (nextCtx as any)[typeKey];
                 await ChatDatabaseService.setSessionContext(sid, nextCtx);
@@ -410,16 +757,20 @@ export async function sendConversationMessage({
     const newOptions = now
       ? await ChatDatabaseService.fetchOptions(now.node_id)
       : [];
-    const quickReplies = (dynamicQuickReplies && dynamicQuickReplies.length
-      ? dynamicQuickReplies
-      : (newOptions.length ? newOptions : [{ label: 'End Chat' }]).map((o: any, i: number) => ({
-      id: `qr-${i}`,
-      label: o.label,
-      value: o.label,
-        }))
-    );
+    const quickReplies =
+      dynamicQuickReplies && dynamicQuickReplies.length
+        ? dynamicQuickReplies
+        : (newOptions.length ? newOptions : [{ label: 'End Chat' }]).map(
+            (o: any, i: number) => ({
+              id: `qr-${i}`,
+              label: o.label,
+              value: o.label,
+            })
+          );
     const usedFallback = !messages || messages.length === 0;
-    const outgoing = usedFallback ? ephemeral.filter(m => m.role === 'printy') : messages;
+    const outgoing = usedFallback
+      ? ephemeral.filter(m => m.role === 'printy')
+      : messages;
     return {
       messages: outgoing,
       quickReplies,

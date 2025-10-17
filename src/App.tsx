@@ -1,35 +1,33 @@
 import { Routes, Route } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
-import LandingPage from './pages/LandingPage';
-import SignIn from './pages/auth/SignIn';
-import SignUp from './pages/auth/SignUp';
-import ForgotPassword from './pages/auth/ForgotPassword';
-import ResetPassword from './pages/auth/ResetPassword';
-import CustomerAccountSettings from './pages/customer/CustomerAccountSettings';
-import CustomerRoot from './pages/customer/CustomerRoot';
-import AdminRoot from './pages/admin/AdminRoot';
-import { PageLoading } from './components/shared';
+import LandingPage from './guest/pages/LandingPage';
+import SignIn from '@auth/pages/SignIn';
+import SignUp from '@auth/pages/SignUp';
+import ForgotPassword from '@auth/pages/ForgotPassword';
+import ResetPassword from '@auth/pages/ResetPassword';
+import CustomerAccountSettings from '@customer/pages/CustomerAccountSettings';
+import CustomerRoot from '@customer/pages/CustomerRoot';
+import AdminRoot from '@admin/pages/AdminRoot';
+import SuperAdminRoot from '@superadmin/pages/SuperAdminRoot';
+import { PageLoading } from '@shared/components';
 import './index.css';
-import RequireAuth from './components/auth/guards/RequireAuth';
-import GuestOnly from './components/auth/guards/GuestOnly';
+import RequireAuth from '@components/auth/guards/RequireAuth';
+import GuestOnly from '@components/auth/guards/GuestOnly';
 
 // Lazy load heavy components
-const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'));
-const AdminOrders = lazy(() => import('./pages/admin/Orders'));
-const AdminTickets = lazy(() => import('./pages/admin/Tickets'));
-const AdminQuotes = lazy(() => import('./pages/admin/Quotes'));
-const AdminSettingsPage = lazy(() => import('./pages/admin/AdminSettings'));
-const AdminPortfolio = lazy(() => import('./pages/admin/Portfolio'));
-const AdminChats = lazy(() => import('./pages/admin/Chats'));
-const SuperAdminDashboard = lazy(() => import('./pages/superadmin/Dashboard'));
-const ComponentShowcase = lazy(
-  () => import('./components/shared/showcase/ComponentShowcase')
-);
-const CustomerDashboard = lazy(() => import('./pages/customer/CustomerDashboard'));
-const CustomerChatHistory = lazy(() => import('./pages/customer/CustomerChatHistory'));
-const CustomerOrderHistory = lazy(() => import('./pages/customer/CustomerOrderHistory'));
-const CustomerTicketHistory = lazy(() => import('./pages/customer/CustomerTicketHistory'));
-const CustomerQuoteHistory = lazy(() => import('./pages/customer/CustomerQuoteHistory'));
+const AdminDashboard = lazy(() => import('@admin/pages/Dashboard'));
+const AdminOrders = lazy(() => import('@admin/pages/Orders'));
+const AdminTickets = lazy(() => import('@admin/pages/Tickets'));
+const AdminQuotes = lazy(() => import('@admin/pages/Quotes'));
+const AdminSettingsPage = lazy(() => import('@admin/pages/AdminSettings'));
+const AdminPortfolio = lazy(() => import('@admin/pages/Portfolio'));
+const AdminChats = lazy(() => import('@admin/pages/Chats'));
+const SuperAdminDashboard = lazy(() => import('@superadmin/pages/Dashboard'));
+const CustomerDashboard = lazy(() => import('@customer/pages/CustomerDashboard'));
+const CustomerChatHistory = lazy(() => import('@customer/pages/CustomerChatHistory'));
+const CustomerOrderHistory = lazy(() => import('@customer/pages/CustomerOrderHistory'));
+const CustomerTicketHistory = lazy(() => import('@customer/pages/CustomerTicketHistory'));
+const CustomerQuoteHistory = lazy(() => import('@customer/pages/CustomerQuoteHistory'));
 
 function App() {
   return (
@@ -172,20 +170,20 @@ function App() {
         path="/superadmin"
         element={
           <RequireAuth allowed={['superadmin']}>
+            <SuperAdminRoot />
+          </RequireAuth>
+        }
+      >
+        <Route
+          index
+          element={
             <Suspense fallback={<PageLoading variant="dashboard" />}>
               <SuperAdminDashboard />
             </Suspense>
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/showcase"
-        element={
-          <Suspense fallback={<PageLoading variant="minimal" />}>
-            <ComponentShowcase />
-          </Suspense>
-        }
-      />
+          }
+        />
+      </Route>
+
     </Routes>
   );
 }

@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { X, Minus } from 'lucide-react';
-import { Button, Text } from '../../shared';
+import { Button, Text } from '@shared/components';
 import { MessageGroup, TypingIndicator, ChatInput } from '../core';
-import SelectedChipsBar from '../../shared/SelectedChipsBar';
 import type { ChatMessage, QuickReply } from '../types';
 
 export interface AdminChatDockProps {
@@ -17,9 +16,6 @@ export interface AdminChatDockProps {
   onEndChat?: () => void;
   onAttachFiles?: (files: FileList) => void;
   readOnly?: boolean;
-  selected?: { id: string; label: string }[];
-  onRemoveSelected?: (id: string) => void;
-  onClearSelected?: () => void;
 }
 
 /**
@@ -38,9 +34,6 @@ export const AdminChatDock: React.FC<AdminChatDockProps> = ({
   onEndChat,
   onAttachFiles,
   readOnly = false,
-  selected = [],
-  onRemoveSelected,
-  onClearSelected,
 }) => {
   const [input, setInput] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -96,7 +89,6 @@ export const AdminChatDock: React.FC<AdminChatDockProps> = ({
     setInput('');
   };
 
-  const shouldShowSelectedBar = !readOnly && selected.length > 1;
 
   if (!open) return null;
 
@@ -129,15 +121,6 @@ export const AdminChatDock: React.FC<AdminChatDockProps> = ({
         </div>
       </div>
 
-      {/* Selected chips bar */}
-      {shouldShowSelectedBar && (
-        <SelectedChipsBar
-          title="Selected Items"
-          items={selected}
-          onRemove={onRemoveSelected!}
-          onClear={onClearSelected!}
-        />
-      )}
 
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4">
