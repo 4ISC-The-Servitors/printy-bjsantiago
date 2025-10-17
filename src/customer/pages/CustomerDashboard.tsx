@@ -3,8 +3,8 @@ import { supabase } from '@lib/supabase';
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 // Customer chat UI and types
-import { CustomerChatPanel } from '@components/chat/layouts';
-import type { ConversationItem } from '@shared/hooks/core/useConversationState';
+import { CustomerChatPanel } from '@features/chat/components/layouts';
+import type { ConversationItem } from '@features/chat/hooks/shared/useConversationState';
 // Sidebar and dashboard widgets
 import SidebarPanel from '@customer/components/shared/sidebar/SidebarPanel';
 import LogoutButton from '@customer/components/shared/sidebar/LogoutButton';
@@ -19,13 +19,13 @@ import { useLogoutWithToast } from '@shared/hooks/auth/useLogoutWithToast';
 import { useRecentOrder } from '@customer/hooks/useRecentOrder';
 import { useRecentTicket } from '@customer/hooks/useRecentTicket';
 import { useRecentQuote } from '@customer/hooks/useRecentQuote';
-import { useRecentChatSessions } from '@customer/hooks/useRecentChatSessions';
-import { useDashboardChatEvents } from '@customer/hooks/useDashboardChatEvents';
-import { useChatAttachments } from '@shared/hooks/core/useChatAttachments';
+import { useRecentChatSessions } from '@features/chat/hooks/customer/useRecentChatSessions';
+import { useDashboardChatEvents } from '@features/chat/hooks/customer/useDashboardChatEvents';
+import { useChatAttachments } from '@features/chat/hooks/shared/useChatAttachments';
 import { usePaymentProofUpload } from '@customer/hooks/usePaymentProofUpload';
 import { useDeviceUtils } from '@shared/hooks/ui';
 // Chat feature hooks
-import { useCustomerConversations } from '@customer/hooks/useCustomerConversations';
+import { useCustomerConversations } from '@features/chat/hooks/customer/useCustomerConversations';
 
 // ---------------- Types / Config ----------------
 import {

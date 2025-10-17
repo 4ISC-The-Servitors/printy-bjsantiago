@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Bell, X, Check } from 'lucide-react';
-import { useDeviceUtils } from '../../hooks/ui/useResponsiveClasses';
+import { useDeviceUtils } from '@shared/hooks/ui/useResponsiveClasses';
 
 export interface NotificationProps {
   className?: string;

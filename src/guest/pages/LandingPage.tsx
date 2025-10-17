@@ -7,7 +7,7 @@ import {
   type ChatMessage,
   type QuickReply,
   type ChatRole,
-} from '@components/chat/types';
+} from '@features/chat/types/chat';
 // TODO: Migrate guest flows to JSONB system
 // import { guestFlows as flows } from '../chatLogic/guest';
 const flows: Record<string, any> = {}; // Temporary placeholder until guest flows are migrated

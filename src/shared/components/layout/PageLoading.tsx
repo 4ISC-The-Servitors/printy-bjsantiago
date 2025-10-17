@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Skeleton } from '../ui';
-import { Card } from '../ui';
+import { Skeleton } from '@shared/components/ui';
+import { Card } from '@shared/components/ui';
 import { Container } from './index';
 
 interface PageLoadingProps {

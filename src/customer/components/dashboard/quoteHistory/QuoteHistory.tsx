@@ -8,7 +8,7 @@ import LogoutButton from '@customer/components/shared/sidebar/LogoutButton';
 import LogoutModal from '@customer/components/shared/sidebar/LogoutModal';
 import { Text, Badge, Button } from '@shared/components';
 import { formatQuoteStatus } from '@shared/utils/statusFormatter';
-import { getQuoteStatusBadgeVariant } from '@utils/admin/statusColors';
+import { getQuoteStatusBadgeVariant } from '@admin/utils/statusColors';
 import { formatLongDate } from '@shared/utils/dateFormatter';
 import { formatRelativeTimeLabel } from '@shared/utils/timeFormatter';
 import { useRecentChatSessions, type ConversationLike } from '@customer/hooks/useRecentChatSessions';

@@ -7,8 +7,8 @@ import Header from '@customer/components/chatHistory/Header';
 import Filters from '@customer/components/chatHistory/Filters';
 import ConversationList from '@customer/components/chatHistory/ConversationList';
 import { Text } from '@shared/components';
-import type { ChatMessage } from '@components/chat/types';
-import { getUserSessionsV2 } from '@features/api/jsonbChatFlowApi';
+import type { ChatMessage } from '@features/chat/types/chat';
+import { getUserSessionsV2 } from '@features/chat/api/jsonbChatFlowApi';
 
 interface Conversation {
   id: string;

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Badge, Button, Text } from '@admin/components/shared';
-import { getServiceStatusBadgeVariant } from '@utils/admin/statusColors';
+import { getServiceStatusBadgeVariant } from '@admin/utils/statusColors';
 import { formatStatus } from '@shared/utils/statusFormatter';
 import { MessageSquare } from 'lucide-react';
 

@@ -1,9 +1,8 @@
 // src/hooks/customer/useRecentQuote.ts
 
 import { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabase';
-import type { RecentQuote } from '../../types/customer';
-import { fetchRecentQuoteConversations } from '../../features/api/quoteApi';
+import { supabase } from '@lib/supabase';
+import type { RecentQuote } from '@shared/types/customer';
 
 export function useRecentQuote(customerId?: string) {
   const [recentQuote, setRecentQuote] = useState<RecentQuote | null>(null);
@@ -40,7 +39,6 @@ export function useRecentQuote(customerId?: string) {
           setRecentQuote({
             id: data.quote_id,
             displayId: data.display_id || data.quote_id.slice(0, 8).toUpperCase(),
-            subject: `Quote Request #${data.display_id || data.quote_id.slice(0, 8).toUpperCase()}`,
             status: data.status,
             createdAt: new Date(data.created_at).getTime(),
             updatedAt: new Date(data.updated_at).getTime(),

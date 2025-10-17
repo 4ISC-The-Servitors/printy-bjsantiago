@@ -1,6 +1,6 @@
 import React from 'react';
 import ConversationItem from './ConversationItem';
-import type { ChatMessage } from '@components/chat/types';
+import type { ChatMessage } from '@features/chat/types/chat';
 
 interface Conversation {
   id: string;

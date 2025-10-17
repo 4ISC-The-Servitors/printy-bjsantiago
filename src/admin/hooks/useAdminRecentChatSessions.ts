@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { supabase } from '@lib/supabase';
-import { useAdminConversations } from './useAdminConversations';
 
 export interface AdminConversationLike {
   id: string;

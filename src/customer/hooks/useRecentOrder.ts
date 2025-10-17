@@ -3,7 +3,7 @@
  * Fetches the latest order for the current user and shapes minimal card data.
  */
 import { useEffect, useState } from 'react';
-import { supabase } from '../../lib/supabase';
+import { supabase } from '@lib/supabase';
 
 import { formatCurrency } from '@shared/utils/priceFormatter';
 import type { RecentOrder } from '@shared/types/customer';

@@ -24,7 +24,6 @@ export const DesktopLayout: React.FC<DesktopLayoutProps> = ({
   children,
   chatDock,
   onNavigate,
-  onOpenChat,
   onSettings,
   onLogout,
   onViewAllChats,

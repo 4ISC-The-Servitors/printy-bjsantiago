@@ -1,9 +1,9 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
-import { Button } from '../ui';
-import { Input } from '../ui';
+import { Button } from '@shared/components/ui';
+import { Input } from '@shared/components/ui';
 import { SlidersHorizontal, Calendar, ChevronDown, X, CheckCircle } from 'lucide-react';
-import { useResponsiveClasses, useDeviceUtils } from '../../hooks/ui/useResponsiveClasses';
-import type { FilterValue, FilterConfig } from '../../types/filters';
+import { useResponsiveClasses, useDeviceUtils } from '@shared/hooks/ui/useResponsiveClasses';
+import type { FilterValue, FilterConfig } from '@shared/types/filters';
 
 export interface FilterProps {
   value: FilterValue;

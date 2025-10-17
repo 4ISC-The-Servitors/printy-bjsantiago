@@ -3,7 +3,7 @@
  * Uploads payment proof files to Supabase Storage
  */
 
-import { supabase } from '../../lib/supabase';
+import { supabase } from '@lib/supabase';
 
 export interface UploadResult {
   url: string;

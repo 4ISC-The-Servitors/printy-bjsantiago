@@ -1,6 +1,6 @@
 import React, { useEffect, type FC } from 'react';
 import { createPortal } from 'react-dom';
-import Button from './Button';
+import Button from '@shared/components/ui/Button';
 import { X } from 'lucide-react';
 
 export interface ModalProps {

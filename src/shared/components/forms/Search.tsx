@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import Input from '../ui/Input';
+import Input from '@shared/components/ui/Input';
 import { Search as SearchIcon, X } from 'lucide-react';
 // Responsive classes applied directly
 

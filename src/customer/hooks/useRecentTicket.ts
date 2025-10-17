@@ -5,7 +5,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 
-import type { RecentTicket } from '../../types/customer';
+import type { RecentTicket } from '@shared/types/customer';
 
 export type RecentTicketData = RecentTicket;
 

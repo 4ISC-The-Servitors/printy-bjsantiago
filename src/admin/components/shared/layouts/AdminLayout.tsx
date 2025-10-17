@@ -11,7 +11,7 @@ import { useAdminRecentChatSessions } from '@admin/hooks/useAdminRecentChatSessi
 import type { NavRoute } from '../navigation';
 import DesktopLayout from './DesktopLayout';
 import MobileLayout from './MobileLayout';
-import { AdminChatDock, AdminChatOverlay } from '@components/chat/layouts';
+import { AdminChatDock, AdminChatOverlay } from '@features/chat/components/layouts';
 import { supabase } from '@lib/supabase';
 
 export interface AdminLayoutProps {

@@ -1,5 +1,5 @@
 import React from 'react';
-import type { ChatMessage } from '@components/chat/types';
+import type { ChatMessage } from '@features/chat/types/chat';
 import { Bot } from 'lucide-react';
 import AccountButton from './AccountButton';
 import { Text } from '@shared/components';

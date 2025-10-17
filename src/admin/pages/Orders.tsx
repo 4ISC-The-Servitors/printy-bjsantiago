@@ -6,7 +6,7 @@ import { Search, Filter } from '@shared/components';
 import { OrdersProvider, useOrders } from '@admin/hooks/OrdersContext';
 import { useGenericSearchFilter } from '@shared/hooks/ui/useGenericSearchFilter';
 import { useResponsiveClasses, useDeviceUtils } from '@shared/hooks/ui/useResponsiveClasses';
-import { FILTER_CONFIGS } from '../../types/filters';
+import { FILTER_CONFIGS } from '@shared/types/filters';
 
 const OrdersContent: React.FC = () => {
   const { orders: ordersAll } = useOrders();

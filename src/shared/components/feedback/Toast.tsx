@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { cn } from '../../../lib/utils';
-import { Text } from '../ui';
+import { cn } from '@lib/utils';
+import { Text } from '@shared/components/ui';
 
 export interface ToastProps {
   id: string;

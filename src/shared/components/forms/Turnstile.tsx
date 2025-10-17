@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { renderInlineTurnstile } from '../../../lib/turnstile';
+import { renderInlineTurnstile } from '@lib/turnstile';
 
 interface TurnstileProps {
   action: string;

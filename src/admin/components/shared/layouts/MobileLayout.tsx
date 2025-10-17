@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Menu, X } from 'lucide-react';
+import { Menu } from 'lucide-react';
 import { Button, Text } from '@admin/components/shared';
 import { MobileSidebarMenu } from '../sidebar';
 import { BottomNavbar } from '../navigation';
@@ -26,7 +26,6 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({
   children,
   chatOverlay,
   onNavigate,
-  onOpenChat,
   onSettings,
   onLogout,
   onViewAllChats,

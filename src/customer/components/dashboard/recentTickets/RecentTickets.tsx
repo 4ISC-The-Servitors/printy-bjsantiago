@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, Text, Button, Badge } from '@shared/components';
+import { Card, Text, Button } from '@shared/components';
 import type { RecentTicket as RecentTicketType } from '@shared/types/customer';
 import StatusBadge from './StatusBadge';
 import TrackTicketButton from './TrackTicketButton';

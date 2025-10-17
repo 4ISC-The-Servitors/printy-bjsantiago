@@ -1,6 +1,6 @@
 import React from 'react';
-import Button from './Button';
-import Text from './Text';
+import Button from '@shared/components/ui/Button';
+import Text from '@shared/components/ui/Text';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 export interface PaginationProps {

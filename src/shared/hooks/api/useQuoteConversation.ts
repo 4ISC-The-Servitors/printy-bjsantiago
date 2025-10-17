@@ -11,7 +11,7 @@ import {
   type ConversationData,
   type Message,
   type Proposal
-} from '@features/api/quoteApi';
+} from '@features/quote/api/quoteApi';
 
 export function useQuoteConversation(conversationId: string) {
   const [messages, setMessages] = useState<Message[]>([]);

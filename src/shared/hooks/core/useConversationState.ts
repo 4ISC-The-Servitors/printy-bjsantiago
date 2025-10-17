@@ -1,50 +1,8 @@
 /**
- * useConversationState
- * Owns chat UI state: messages, conversations, active conversation, typing,
- * quick replies, and input placeholder. Keeps state management separate from
- * data access and flow logic so it can be reused across roles (customer/admin).
+ * useConversationState (re-export for backward compatibility)
+ * This file now re-exports from the new location in features/chat/hooks/shared/
+ *
+ * DEPRECATED: Import directly from '@features/chat/hooks/shared/useConversationState' instead
  */
-import { useState } from 'react';
-import type { ChatMessage, QuickReply } from '@components/chat/types';
-
-export interface ConversationItem {
-  id: string;
-  title: string;
-  createdAt: number;
-  messages: ChatMessage[];
-  flowId: string;
-  status: 'active' | 'ended';
-  icon?: React.ReactNode;
-  context?: {
-    orderId?: string;
-    [key: string]: unknown;
-  };
-}
-
-export function useConversationState() {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [isTyping, setIsTyping] = useState(false);
-  const [conversations, setConversations] = useState<ConversationItem[]>([]);
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const [quickReplies, setQuickReplies] = useState<QuickReply[]>([]);
-  const [inputPlaceholder, setInputPlaceholder] = useState('Type a message...');
-
-  return {
-    messages,
-    setMessages,
-    isTyping,
-    setIsTyping,
-    conversations,
-    setConversations,
-    activeId,
-    setActiveId,
-    quickReplies,
-    setQuickReplies,
-    inputPlaceholder,
-    setInputPlaceholder,
-  } as const;
-}
-
-export default useConversationState;
-
-
+export { useConversationState, default } from '@features/chat/hooks/shared/useConversationState';
+export type { ConversationItem } from '@features/chat/hooks/shared/useConversationState';

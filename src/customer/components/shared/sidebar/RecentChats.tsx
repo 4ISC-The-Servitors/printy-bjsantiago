@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import type { ChatMessage } from '@components/chat/types';
+import type { ChatMessage } from '@features/chat/types/chat';
 import { Bot } from 'lucide-react';
 import { Badge } from '@shared/components';
 import { formatLongDate } from '@shared/utils/dateFormatter';

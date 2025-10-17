@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useAdmin } from './AdminContext';
-import { useAdminTickets } from '@features/chat/admin/hooks/useAdminTickets';
+import { useAdminTickets } from '@features/chat/hooks/admin/useAdminTickets';
 import useResponsivePageSize from '@shared/hooks/ui/useResponsivePageSize';
 
 export const useTicketsCard = (overridePageSize?: number) => {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { MessageGroup, TypingIndicator, ChatInput } from '@components/chat/core';
-import type { ChatMessage, QuickReply } from '@components/chat/types';
+import { MessageGroup, TypingIndicator, ChatInput } from '@features/chat/components/core';
+import type { ChatMessage, QuickReply } from '@features/chat/types/chat';
 
 interface GuestChatPanelProps {
   title?: string;

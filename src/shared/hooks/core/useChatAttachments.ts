@@ -1,23 +1,7 @@
 /**
- * useChatAttachments
- * Wraps URL.createObjectURL and delegates the produced URL/string to your send handler.
- * Shared across customer/admin surfaces.
+ * useChatAttachments (re-export for backward compatibility)
+ * This file now re-exports from the new location in features/chat/hooks/shared/
+ *
+ * DEPRECATED: Import directly from '@features/chat/hooks/shared/useChatAttachments' instead
  */
-import { useCallback } from 'react';
-
-export function useChatAttachments(onSend: (text: string) => void) {
-  const handleAttachFiles = useCallback(
-    (files: FileList) => {
-      const f = files?.[0];
-      if (f) {
-        const url = URL.createObjectURL(f);
-        onSend(url);
-      }
-    },
-    [onSend]
-  );
-
-  return { handleAttachFiles } as const;
-}
-
-export default useChatAttachments;
+export { useChatAttachments, default } from '@features/chat/hooks/shared/useChatAttachments';

@@ -5,7 +5,7 @@ import { Search, Filter } from '@shared/components';
 import { QuotesProvider } from '@admin/hooks/QuotesContext';
 import { useGenericSearchFilter } from '@shared/hooks/ui/useGenericSearchFilter';
 import { useResponsiveClasses, useDeviceUtils } from '@shared/hooks/ui/useResponsiveClasses';
-import { FILTER_CONFIGS } from '../../types/filters';
+import { FILTER_CONFIGS } from '@shared/types/filters';
 import { useAdminQuotes } from '@admin/hooks/useAdminQuotes';
 
 const QuotesContent: React.FC = () => {

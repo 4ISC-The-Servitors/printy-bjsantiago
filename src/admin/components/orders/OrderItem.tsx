@@ -1,6 +1,6 @@
 import React from 'react';
 import { Badge, Button } from '@admin/components/shared';
-import { getOrderStatusBadgeVariant } from '@utils/admin/statusColors';
+import { getOrderStatusBadgeVariant } from '@admin/utils/statusColors';
 import { formatOrderStatus } from '@shared/utils';
 import {
   formatOrderDateDesktop,

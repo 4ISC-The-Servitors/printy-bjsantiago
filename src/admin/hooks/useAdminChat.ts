@@ -5,14 +5,14 @@ import type {
   ChatMessage,
   QuickReply,
   ChatRole,
-} from '../../components/chat/types';
+} from '@features/chat/types/chat';
 // Legacy admin scripted flows removed; use JSONB flows only.
-import { JsonbFlowProcessor } from '@features/chat/core/services/JsonbFlowProcessor';
-import { getFlowDefinition } from '@features/api/jsonbChatFlowApi';
+import { JsonbFlowProcessor } from '@features/chat/services/JsonbFlowProcessor';
+import { getFlowDefinition } from '@features/chat/api/jsonbChatFlowApi';
 import { useAdmin } from '@admin/hooks/AdminContext';
 import { useInquiryActions } from './useInquiryActions';
 import { useAdminConversations } from './useAdminConversations';
-import { ChatDatabaseService } from '@features/chat/core/services/ChatDatabaseService';
+import { ChatDatabaseService } from '@features/chat/services/ChatDatabaseService';
 import { supabase } from '@lib/supabase';
 
 export interface UseAdminChatReturn {
@@ -43,11 +43,11 @@ export const useAdminChat = (): UseAdminChatReturn => {
   const [isTyping, setIsTyping] = useState(false);
   const [quickReplies, setQuickReplies] = useState<QuickReply[]>([]);
   const [currentFlow, setCurrentFlow] = useState<string>('intro');
-  const [currentContext, setCurrentContext] = useState<any>({});
+  const [setCurrentContext] = useState<any>({});
   const [pendingAction, setPendingAction] = useState<
     null | 'assign' | 'status'
   >(null);
-  const [currentInquiryId, setCurrentInquiryId] = useState<string | null>(null);
+  const [currentInquiryId] = useState<string | null>(null);
   const { updateInquiryStatus, assignInquiry, saveResolutionComment } =
     useInquiryActions();
   const {
