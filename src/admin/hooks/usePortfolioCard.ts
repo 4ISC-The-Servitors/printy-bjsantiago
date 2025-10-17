@@ -25,10 +25,8 @@ export const usePortfolioCard = () => {
   const offeredServices = getServicesOffered();
   const categoriesAll = getServicesByCategory(allServices);
   const categoriesOffered = getServicesByCategory(offeredServices);
-  const serviceItems = allServices.map(svc => ({ id: svc.id, label: `${svc.name} (${svc.code})` }));
 
-  const toggleServiceSelection = (serviceId: string) => {
-    const item = serviceItems.find(i => i.id === serviceId);
+  const toggleServiceSelection = (_serviceId: string) => {
     // no selection; noop
   };
 

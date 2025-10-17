@@ -3,7 +3,7 @@ import { Card, Pagination } from '@admin/components/shared';
 import { useTicketsCard } from '@admin/hooks/useTicketsCard';
 import { TicketItem } from './TicketItem';
 import { TicketsSkeleton } from './TicketsSkeleton';
-import { useResponsiveLayout } from '@hooks/ui';
+import { useResponsiveLayout } from '@shared/hooks/ui';
 
 interface TicketsCardProps {
   filteredTickets?: any[];

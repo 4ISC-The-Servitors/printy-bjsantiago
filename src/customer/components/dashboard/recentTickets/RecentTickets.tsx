@@ -1,11 +1,11 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, Text, Button, Badge } from '@shared/components';
-import type { RecentTicket as RecentTicketType } from '../../../types/customer';
+import type { RecentTicket as RecentTicketType } from '@shared/types/customer';
 import StatusBadge from './StatusBadge';
 import TrackTicketButton from './TrackTicketButton';
-import { formatLongDate } from '@utils/shared/dateFormatter';
-import { formatRelativeTimeLabel } from '@utils/shared/timeFormatter';
+import { formatLongDate } from '@shared/utils/dateFormatter';
+import { formatRelativeTimeLabel } from '@shared/utils/timeFormatter';
 
 interface RecentTicketsProps {
   recentTicket: RecentTicketType;

@@ -6,7 +6,7 @@ import type { ChatMessage, QuickReply } from '../types';
 import {
   formatShortTime,
   formatRelativeTimeLabel,
-} from '../../../utils/shared';
+} from '@shared/utils';
 
 interface MessageGroupProps {
   messages: ChatMessage[];

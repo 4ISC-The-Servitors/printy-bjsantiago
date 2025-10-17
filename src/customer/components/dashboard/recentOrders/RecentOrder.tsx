@@ -1,11 +1,11 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, Text, Button } from '@shared/components';
-import type { RecentOrder as RecentOrderType } from '../../../types/customer';
+import type { RecentOrder as RecentOrderType } from '@shared/types/customer';
 import StatusBadge from './StatusBadge';
 import PayNowButton from './PayNowButton';
-import { formatLongDate } from '@utils/shared/dateFormatter';
-import { formatRelativeTimeLabel } from '@utils/shared/timeFormatter';
+import { formatLongDate } from '@shared/utils/dateFormatter';
+import { formatRelativeTimeLabel } from '@shared/utils/timeFormatter';
 
 interface RecentOrderProps {
   recentOrder: RecentOrderType;

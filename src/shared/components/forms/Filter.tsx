@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
-import Button from './Button';
-import Input from './Input';
+import { Button } from '../ui';
+import { Input } from '../ui';
 import { SlidersHorizontal, Calendar, ChevronDown, X, CheckCircle } from 'lucide-react';
 import { useResponsiveClasses, useDeviceUtils } from '../../hooks/ui/useResponsiveClasses';
 import type { FilterValue, FilterConfig } from '../../types/filters';

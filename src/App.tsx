@@ -17,9 +17,6 @@ const AdminSettingsPage = lazy(() => import('@admin/pages/AdminSettings'));
 const AdminPortfolio = lazy(() => import('@admin/pages/Portfolio'));
 const AdminChats = lazy(() => import('@admin/pages/Chats'));
 const SuperAdminDashboard = lazy(() => import('./superadmin/pages/Dashboard'));
-const ComponentShowcase = lazy(
-  () => import('./components/shared/showcase/ComponentShowcase')
-);
 const CustomerDashboard = lazy(() => import('@customer/pages/CustomerDashboard'));
 const CustomerChatHistory = lazy(() => import('@customer/pages/CustomerChatHistory'));
 const CustomerOrderHistory = lazy(() => import('@customer/pages/CustomerOrderHistory'));
@@ -165,15 +162,7 @@ function App() {
           </Suspense>
         }
       />
-      <Route
-        path="/showcase"
-        element={
-          <Suspense fallback={<PageLoading variant="minimal" />}>
-            <ComponentShowcase />
-          </Suspense>
-        }
-      />
-    </Routes>
+      </Routes>
   );
 }
 

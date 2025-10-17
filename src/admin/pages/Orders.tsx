@@ -4,8 +4,8 @@ import React from 'react';
 import { OrdersCard } from '@admin/components';
 import { Search, Filter } from '@shared/components';
 import { OrdersProvider, useOrders } from '@admin/hooks/OrdersContext';
-import { useGenericSearchFilter } from '@hooks/ui/useGenericSearchFilter';
-import { useResponsiveClasses, useDeviceUtils } from '@hooks/ui/useResponsiveClasses';
+import { useGenericSearchFilter } from '@shared/hooks/ui/useGenericSearchFilter';
+import { useResponsiveClasses, useDeviceUtils } from '@shared/hooks/ui/useResponsiveClasses';
 import { FILTER_CONFIGS } from '../../types/filters';
 
 const OrdersContent: React.FC = () => {

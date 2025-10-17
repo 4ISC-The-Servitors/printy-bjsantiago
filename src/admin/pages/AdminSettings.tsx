@@ -4,8 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { Container, Text, Card, ToastContainer } from '@shared/components';
 import { useToast } from '@lib/useToast';
 //
-import * as SettingsDesktop from '../../components/admin/settings/desktop';
-import * as SettingsMobile from '../../components/admin/settings/mobile';
+import * as SettingsDesktop from '../components/settings/desktop';
+import * as SettingsMobile from '../components/settings/mobile';
 
 export interface AdminData {
   displayName: string;

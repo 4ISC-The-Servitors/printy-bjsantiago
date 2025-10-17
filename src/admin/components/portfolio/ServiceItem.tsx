@@ -1,9 +1,8 @@
 import React from 'react';
 import { Badge, Button, Text } from '@admin/components/shared';
 import { getServiceStatusBadgeVariant } from '@utils/admin/statusColors';
-import { formatStatus } from '@utils/shared/statusFormatter';
+import { formatStatus } from '@shared/utils/statusFormatter';
 import { MessageSquare } from 'lucide-react';
-import { cn } from '@lib/utils';
 
 interface Service {
   id: string;
@@ -14,21 +13,13 @@ interface Service {
 
 interface ServiceItemProps {
   service: Service;
-  isSelected: boolean;
-  isHovered: boolean;
-  showCheckbox: boolean;
   onHover: (serviceId: string | null) => void;
-  onToggleSelection: (serviceId: string) => void;
   onViewInChat: (serviceId: string) => void;
 }
 
 export const ServiceItem: React.FC<ServiceItemProps> = ({
   service,
-  isSelected,
-  isHovered,
-  showCheckbox,
   onHover,
-  onToggleSelection,
   onViewInChat,
 }) => {
 
@@ -38,19 +29,7 @@ export const ServiceItem: React.FC<ServiceItemProps> = ({
       onMouseEnter={() => onHover(service.id)}
       onMouseLeave={() => onHover(null)}
     >
-      {/* Hover checkbox on left - TODO: Re-implement when Checkbox component is available */}
-      {/* <div className="absolute -left-3 top-1/2 -translate-y-1/2 z-10">
-        <Checkbox
-          checked={isSelected}
-          onCheckedChange={() => onToggleSelection(service.id)}
-          className={cn(
-            'transition-opacity bg-white border-2 border-gray-300 w-5 h-5 rounded data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500',
-            isHovered || showCheckbox ? 'opacity-100' : 'opacity-0'
-          )}
-        />
-      </div> */}
-
-      <div className="flex items-center gap-4 min-w-0 flex-1 pl-6">
+      <div className="flex items-center gap-4 min-w-0 flex-1">
         <div className="min-w-0 flex-1">
           <Text
             variant="p"

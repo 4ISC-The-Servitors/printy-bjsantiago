@@ -8,7 +8,7 @@ import {
   Gauge,
   Wrench,
 } from 'lucide-react';
-import type { AdminNotificationData } from '../../../../pages/admin/AdminSettings';
+import type { AdminNotificationData } from '../../../pages/AdminSettings';
 
 interface NotificationSettingsProps {
   value: AdminNotificationData;

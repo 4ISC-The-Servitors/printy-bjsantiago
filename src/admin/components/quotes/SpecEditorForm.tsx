@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Button, Input } from '@admin/components/shared';
-import { useResponsiveClasses, useResponsiveButton } from '@hooks/ui';
+import { useResponsiveClasses, useResponsiveButton } from '@shared/hooks/ui';
 
 export interface SpecFormData {
   product_name: string;

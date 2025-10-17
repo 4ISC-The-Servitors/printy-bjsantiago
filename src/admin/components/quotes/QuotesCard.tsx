@@ -3,7 +3,7 @@ import { Card, Pagination } from '@admin/components/shared';
 import { useQuotesCard } from '@admin/hooks/useQuotesCard';
 import { QuoteItem } from './QuoteItem';
 import QuotesSkeleton from './QuotesSkeleton';
-import { useResponsiveLayout } from '@hooks/ui';
+import { useResponsiveLayout } from '@shared/hooks/ui';
 import type { AdminQuoteRow } from '@admin/hooks/useAdminQuotes';
 
 export interface QuotesCardProps {

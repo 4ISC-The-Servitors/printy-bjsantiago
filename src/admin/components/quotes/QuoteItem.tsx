@@ -1,16 +1,16 @@
 import React from 'react';
 import { Badge, Button } from '@admin/components/shared';
 import { getQuoteStatusBadgeVariant } from '@utils/admin/statusColors';
-import { formatQuoteStatus } from '@utils/shared/statusFormatter';
-import { 
-  formatOrderDateDesktop, 
-  formatOrderDateTablet, 
-  formatOrderDateMobile 
-} from '@utils/shared/dateFormatter';
-import { formatRelativeTimeLabel } from '@utils/shared/timeFormatter';
+import { formatQuoteStatus } from '@shared/utils/statusFormatter';
+import {
+  formatOrderDateDesktop,
+  formatOrderDateTablet,
+  formatOrderDateMobile
+} from '@shared/utils/dateFormatter';
+import { formatRelativeTimeLabel } from '@shared/utils/timeFormatter';
 import { MessageSquare } from 'lucide-react';
 import type { AdminQuoteRow } from '@admin/hooks/useAdminQuotes';
-import { useResponsiveLayout } from '@hooks/ui';
+import { useResponsiveLayout } from '@shared/hooks/ui';
 
 // Use AdminQuoteRow type instead of local Quote interface
 type Quote = AdminQuoteRow;

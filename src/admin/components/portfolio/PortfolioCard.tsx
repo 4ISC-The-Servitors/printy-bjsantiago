@@ -14,11 +14,7 @@ const PortfolioCard: React.FC = () => {
     categoriesOffered,
     openAllCategoryId,
     openOfferedCategoryId,
-    hoveredServiceId,
     setHoveredServiceId,
-    isSelected,
-    selectionCount,
-    toggleServiceSelection,
     viewInChat,
     handleAddService,
     toggleAllCategory,
@@ -88,11 +84,7 @@ const PortfolioCard: React.FC = () => {
                       <ServiceItem
                         key={s.id}
                         service={s}
-                        isSelected={isSelected(s.id)}
-                        isHovered={hoveredServiceId === s.id}
-                        showCheckbox={selectionCount > 0}
                         onHover={setHoveredServiceId}
-                        onToggleSelection={toggleServiceSelection}
                         onViewInChat={viewInChat}
                       />
                     ))}

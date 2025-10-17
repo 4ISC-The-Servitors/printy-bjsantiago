@@ -93,25 +93,6 @@ export default defineConfig({
           if (id.includes('/src/features/quotes/')) {
             return 'quotes';
           }
-          // Legacy paths (to be removed after migration)
-          if (
-            id.includes('/src/components/admin/') ||
-            id.includes('/src/pages/admin/')
-          ) {
-            return 'admin-legacy';
-          }
-          if (
-            id.includes('/src/components/customer/') ||
-            id.includes('/src/pages/customer/')
-          ) {
-            return 'customer-legacy';
-          }
-          if (id.includes('/src/components/shared/')) {
-            return 'shared-legacy';
-          }
-          if (id.includes('/src/chatLogic/')) {
-            return 'chat-legacy';
-          }
         },
       },
     },

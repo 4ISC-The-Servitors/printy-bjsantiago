@@ -7,10 +7,10 @@ import SidebarPanel from '@customer/components/shared/sidebar/SidebarPanel';
 import LogoutButton from '@customer/components/shared/sidebar/LogoutButton';
 import LogoutModal from '@customer/components/shared/sidebar/LogoutModal';
 import { Text, Badge, Button } from '@shared/components';
-import { formatTicketStatus } from '@utils/shared/statusFormatter';
+import { formatTicketStatus } from '@shared/utils/statusFormatter';
 import { getTicketStatusBadgeVariant } from '@utils/admin/statusColors';
-import { formatLongDate } from '@utils/shared/dateFormatter';
-import { formatRelativeTimeLabel } from '@utils/shared/timeFormatter';
+import { formatLongDate } from '@shared/utils/dateFormatter';
+import { formatRelativeTimeLabel } from '@shared/utils/timeFormatter';
 import { useRecentChatSessions, type ConversationLike } from '@customer/hooks/useRecentChatSessions';
 
 interface Ticket {

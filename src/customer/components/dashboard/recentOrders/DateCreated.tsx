@@ -1,6 +1,6 @@
 import React from 'react';
 import { Text } from '@shared/components';
-import { formatLongDate } from '@utils/shared';
+import { formatLongDate } from '@shared/utils/dateFormatter';
 
 interface DateCreatedProps {
   ts: number;

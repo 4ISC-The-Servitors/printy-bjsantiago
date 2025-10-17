@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useAdmin } from './AdminContext';
 import { useOrders } from './OrdersContext';
-import useResponsivePageSize from '@hooks/ui/useResponsivePageSize';
+import useResponsivePageSize from '@shared/hooks/ui/useResponsivePageSize';
 
 export const useOrdersCard = (overridePageSize?: number) => {
   const { openChatWithTopic, openChat } = useAdmin();

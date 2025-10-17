@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 // Customer chat UI and types
 import { CustomerChatPanel } from '@components/chat/layouts';
-import type { ConversationItem } from '@hooks/core/useConversationState';
+import type { ConversationItem } from '@shared/hooks/core/useConversationState';
 // Sidebar and dashboard widgets
 import SidebarPanel from '@customer/components/shared/sidebar/SidebarPanel';
 import LogoutButton from '@customer/components/shared/sidebar/LogoutButton';
@@ -15,13 +15,13 @@ import RecentTickets from '@customer/components/dashboard/recentTickets/RecentTi
 import RecentQuotes from '@customer/components/dashboard/recentQuotes/RecentQuotes';
 // Shared UI components
 import { ToastContainer, Text, PageLoading, Notification } from '@shared/components';
-import { useLogoutWithToast } from '@hooks/auth/useLogoutWithToast';
+import { useLogoutWithToast } from '@shared/hooks/auth/useLogoutWithToast';
 import { useRecentOrder } from '@customer/hooks/useRecentOrder';
 import { useRecentTicket } from '@customer/hooks/useRecentTicket';
 import { useRecentQuote } from '@customer/hooks/useRecentQuote';
 import { useRecentChatSessions } from '@customer/hooks/useRecentChatSessions';
 import { useDashboardChatEvents } from '@customer/hooks/useDashboardChatEvents';
-import { useChatAttachments } from '@hooks/core/useChatAttachments';
+import { useChatAttachments } from '@shared/hooks/core/useChatAttachments';
 import { usePaymentProofUpload } from '@customer/hooks/usePaymentProofUpload';
 // Chat feature hooks
 import { useCustomerConversations } from '@customer/hooks/useCustomerConversations';

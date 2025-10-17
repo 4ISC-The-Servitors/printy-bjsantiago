@@ -1,16 +1,16 @@
 import React from 'react';
 import { Badge, Button } from '@admin/components/shared';
 import { getOrderStatusBadgeVariant } from '@utils/admin/statusColors';
-import { formatOrderStatus } from '@utils/shared/statusFormatter';
-import { 
-  formatOrderDateDesktop, 
-  formatOrderDateTablet, 
-  formatOrderDateMobile 
-} from '@utils/shared/dateFormatter';
-import { formatRelativeTimeLabel } from '@utils/shared/timeFormatter';
+import { formatOrderStatus } from '@shared/utils';
+import {
+  formatOrderDateDesktop,
+  formatOrderDateTablet,
+  formatOrderDateMobile
+} from '@shared/utils';
+import { formatRelativeTimeLabel } from '@shared/utils';
 import { MessageSquare } from 'lucide-react';
 import type { AdminOrderRow } from '@admin/hooks/useAdminOrders';
-import { useResponsiveLayout } from '@hooks/ui';
+import { useResponsiveLayout } from '@shared/hooks';
 
 // Use AdminOrderRow type instead of local Order interface
 type Order = AdminOrderRow;

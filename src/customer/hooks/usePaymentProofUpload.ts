@@ -6,7 +6,7 @@
 
 import { useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
-import { uploadPaymentProof } from '../../utils/shared/uploadPaymentProof';
+import { uploadPaymentProof } from '@shared/utils/uploadPaymentProof';
 
 export interface UsePaymentProofUploadResult {
   handlePaymentProofUpload: (

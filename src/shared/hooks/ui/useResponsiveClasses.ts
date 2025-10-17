@@ -185,39 +185,5 @@ export function useDeviceUtils() {
   };
 }
 
-/**
- * Hook that provides responsive layout classes for common patterns
- */
-export function useResponsiveLayout() {
-  const { textClasses, spacingClasses, iconClasses } = useResponsiveClasses();
-
-  const cardLayout = useMemo(() => ({
-    // Card container with responsive padding
-    container: `${spacingClasses.container} rounded-lg border bg-white/60 hover:bg-white transition-colors`,
-    
-    // Row with responsive gaps
-    row: `flex items-center justify-between ${spacingClasses.gap} mb-2 sm:mb-3`,
-    
-    // Element gaps within rows
-    elementGap: 'gap-1 sm:gap-2 md:gap-3',
-    
-    // Text elements
-    orderId: `${textClasses.caption} font-semibold text-neutral-900 whitespace-nowrap`,
-    productName: `${textClasses.caption} font-medium text-neutral-700 truncate`,
-    customerName: `${textClasses.body} font-medium text-neutral-900 truncate`,
-    amount: `${textClasses.heading} font-semibold text-neutral-900`,
-    dates: `${textClasses.caption} text-neutral-500`,
-    
-    // Icons
-    chatIcon: iconClasses.small,
-    
-    // Badge classes
-    badge: `${textClasses.caption} ${spacingClasses.gap}`
-  }), [textClasses, spacingClasses, iconClasses]);
-
-  return {
-    cardLayout
-  };
-}
 
 export default useResponsiveClasses;

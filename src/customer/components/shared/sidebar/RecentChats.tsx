@@ -2,9 +2,9 @@ import React, { useMemo } from 'react';
 import type { ChatMessage } from '@components/chat/types';
 import { Bot } from 'lucide-react';
 import { Badge } from '@shared/components';
-import { formatLongDate } from '@utils/shared/dateFormatter';
-import { formatShortTime } from '@utils/shared/timeFormatter';
-import useResponsiveListItems from '@hooks/ui/useResponsiveListItems';
+import { formatLongDate } from '@shared/utils/dateFormatter';
+import { formatShortTime } from '@shared/utils/timeFormatter';
+import useResponsiveListItems from '@shared/hooks/ui/useResponsiveListItems';
 
 interface Conversation {
   id: string;

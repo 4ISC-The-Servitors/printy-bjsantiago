@@ -1,7 +1,7 @@
 import React from 'react';
 import { Text, Badge } from '@shared/components';
-import { formatLongDate } from '@utils/shared/dateFormatter';
-import { formatShortTime } from '@utils/shared/timeFormatter';
+import { formatLongDate } from '@shared/utils/dateFormatter';
+import { formatShortTime } from '@shared/utils/timeFormatter';
 import type { ChatMessage } from '@components/chat/types';
 
 interface ConversationItemProps {

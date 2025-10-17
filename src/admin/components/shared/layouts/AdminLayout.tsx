@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Modal, Text, Button, ToastContainer } from '@admin/components/shared';
 import { SpecEditorModal } from '../../quotes/SpecEditorModal';
 import { X } from 'lucide-react';
-import { useDeviceUtils } from '@hooks/ui';
+import { useDeviceUtils } from '@shared/hooks/ui';
 import { useToast } from '@lib/useToast';
 import { useAdminChat } from '@admin/hooks/useAdminChat';
 import { useAdminConversations } from '@admin/hooks/useAdminConversations';

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Text } from '@shared/components';
-import { formatCurrency, extractNumericValue } from '@utils/shared';
+import { formatCurrency, extractNumericValue } from '@shared/utils';
 
 interface PriceProps {
   total?: string;

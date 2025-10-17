@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, Skeleton } from '@admin/components/shared';
-import { useResponsiveLayout } from '@hooks/ui';
+import { useResponsiveLayout } from '@shared/hooks/ui';
 
 export const OrdersSkeleton: React.FC = () => {
   const { getCardLayout } = useResponsiveLayout();

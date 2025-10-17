@@ -1,6 +1,6 @@
 import React from 'react';
 import { Badge } from '@shared/components';
-import { formatTicketStatus } from '@utils/shared';
+import { formatTicketStatus } from '@shared/utils';
 
 interface StatusBadgeProps {
   status: string;

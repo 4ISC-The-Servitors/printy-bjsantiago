@@ -5,8 +5,8 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 
-import { formatCurrency } from '../../utils/shared/priceFormatter';
-import type { RecentOrder } from '../../types/customer';
+import { formatCurrency } from '@shared/utils/priceFormatter';
+import type { RecentOrder } from '@shared/types/customer';
 
 export type RecentOrderData = RecentOrder;
 

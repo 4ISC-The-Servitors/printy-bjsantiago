@@ -1,15 +1,15 @@
 import React from 'react';
 import { Badge, Button } from '@admin/components/shared';
 import { getTicketStatusBadgeVariant } from '@utils/admin/statusColors';
-import { formatTicketStatus } from '@utils/shared/statusFormatter';
-import { 
-  formatOrderDateDesktop, 
-  formatOrderDateTablet, 
-  formatOrderDateMobile 
-} from '@utils/shared/dateFormatter';
-import { formatRelativeTimeLabel } from '@utils/shared/timeFormatter';
+import { formatTicketStatus } from '@shared/utils/statusFormatter';
+import {
+  formatOrderDateDesktop,
+  formatOrderDateTablet,
+  formatOrderDateMobile
+} from '@shared/utils/dateFormatter';
+import { formatRelativeTimeLabel } from '@shared/utils/timeFormatter';
 import { MessageSquare } from 'lucide-react';
-import { useResponsiveLayout } from '@hooks/ui';
+import { useResponsiveLayout } from '@shared/hooks/ui';
 
 interface Ticket {
   inquiry_id: string;

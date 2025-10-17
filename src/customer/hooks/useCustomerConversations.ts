@@ -6,7 +6,7 @@
  * NOTE: Migrated to JSONB-based flows only. Old scripted flows are commented out.
  */
 import { useCallback, useState } from 'react';
-import { useConversationState } from '@hooks/core/useConversationState';
+import { useConversationState } from '@shared/hooks/core/useConversationState';
 // import { useConversationController } from '../core/useConversationController';
 // import { fetchSessionMessages } from '../../features/api/chatFlowApi';
 // import { useConversationSwitcher } from '../core/useConversationSwitcher';

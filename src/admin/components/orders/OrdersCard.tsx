@@ -3,7 +3,7 @@ import { Card, Pagination } from '@admin/components/shared';
 import { useOrdersCard } from '@admin/hooks/useOrdersCard';
 import { OrderItem } from './OrderItem';
 import { OrdersSkeleton } from './OrdersSkeleton';
-import { useResponsiveLayout } from '@hooks/ui';
+import { useResponsiveLayout } from '@shared/hooks';
 import type { AdminOrderRow } from '@admin/hooks/useAdminOrders';
 
 export interface OrdersCardProps {
