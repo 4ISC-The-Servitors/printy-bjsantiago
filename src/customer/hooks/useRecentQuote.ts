@@ -23,12 +23,14 @@ export function useRecentQuote(customerId?: string) {
 
         if (latestQuote) {
           setRecentQuote({
-            id: latestQuote.quoteId,
-            displayId: latestQuote.displayId || latestQuote.quoteId.slice(0, 8).toUpperCase(),
-            status: latestQuote.status,
+            id: latestQuote.quote_id,
+            displayId:
+              latestQuote.displayId ||
+              latestQuote.quote_id.slice(0, 8).toUpperCase(),
+            status: latestQuote.status as any, // Type casting due to v2 schema differences
             createdAt: latestQuote.createdAt,
-            updatedAt: latestQuote.updatedAt,
-            endedAt: latestQuote.endedAt
+            updatedAt: latestQuote.createdAt, // Using createdAt instead
+            endedAt: latestQuote.endedAt,
           });
         } else {
           setRecentQuote(null);
@@ -37,7 +39,9 @@ export function useRecentQuote(customerId?: string) {
         setError(null);
       } catch (err) {
         console.error('Error loading recent quote:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load recent quote');
+        setError(
+          err instanceof Error ? err.message : 'Failed to load recent quote'
+        );
         setRecentQuote(null);
       } finally {
         setLoading(false);
@@ -50,6 +54,6 @@ export function useRecentQuote(customerId?: string) {
   return {
     data: recentQuote,
     loading,
-    error
+    error,
   };
 }

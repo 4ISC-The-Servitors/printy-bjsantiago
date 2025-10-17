@@ -11,10 +11,7 @@ export function useLogoutWithToast() {
   const [toasts, toast] = useToast();
   const navigate = useNavigate();
 
-  const logout = async (
-    redirectPath: string = '/auth/signin',
-    delayMs: number = 1500 // Parameter kept for backward compatibility but unused
-  ) => {
+  const logout = async (redirectPath: string = '/auth/signin') => {
     try {
       // Clear the session from Supabase
       const { error } = await supabase.auth.signOut();

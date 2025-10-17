@@ -8,11 +8,13 @@ const AdminChatsPage: React.FC = () => {
   const { conversations, setActive } = useAdminConversations();
 
   const sorted = useMemo(
-    () => conversations.slice().sort((a, b) => b.updatedAt - a.updatedAt),
+    () => conversations.slice().sort((a, b) => b.createdAt - a.createdAt),
     [conversations]
   );
 
-  const pageSize = useResponsivePageSize({ phone: 2, tablet: 3, desktop: 5 });
+  const pageSize = useResponsivePageSize({
+    breakpoints: { phone: 2, tablet: 3, desktop: 5 },
+  });
   const [page, setPage] = useState(1);
   const total = sorted.length;
   const start = (page - 1) * pageSize;
@@ -82,8 +84,8 @@ const AdminChatsPage: React.FC = () => {
                     {(lastBotMessage?.text?.length || 0) > 100 ? '...' : ''}
                   </Text>
                   <Text variant="p" size="xs" color="muted" className="mt-1">
-                    {formatLongDate(c.updatedAt)} •{' '}
-                    {formatShortTime(c.updatedAt)}
+                    {formatLongDate(c.createdAt)} •{' '}
+                    {formatShortTime(c.createdAt)}
                   </Text>
                 </div>
               </button>

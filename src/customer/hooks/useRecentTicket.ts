@@ -34,13 +34,18 @@ export function useRecentTicket() {
         if (latestInquiry) {
           const receivedAt = latestInquiry.createdAt;
           setData({
-            id: latestInquiry.inquiryId,
-            displayId: latestInquiry.displayId || latestInquiry.inquiryId.slice(0, 8).toUpperCase(),
-            subject: latestInquiry.inquiryMessage || '(no subject)',
+            id: latestInquiry.inquiry_id,
+            displayId:
+              latestInquiry.displayId ||
+              latestInquiry.inquiry_id.slice(0, 8).toUpperCase(),
+            subject: latestInquiry.inquiryType || '(no subject)',
             status: latestInquiry.inquiryStatus || 'unknown',
             createdAt: receivedAt,
             updatedAt: receivedAt,
-            resolvedAt: latestInquiry.inquiryStatus === 'resolved' ? receivedAt : undefined
+            resolvedAt:
+              latestInquiry.inquiryStatus === 'resolved'
+                ? receivedAt
+                : undefined,
           });
         }
       } catch (e: any) {

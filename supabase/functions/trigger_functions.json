@@ -36,6 +36,13 @@
   },
   {
     "schema": "public",
+    "name": "api_get_session_metadata_v2",
+    "arguments": "p_session_id uuid",
+    "returns": "jsonb",
+    "language": "plpgsql"
+  },
+  {
+    "schema": "public",
     "name": "api_get_or_create_inquiry_session",
     "arguments": "p_inquiry_id uuid",
     "returns": "uuid",
@@ -285,6 +292,14 @@
     "arguments": "",
     "returns": "boolean",
     "language": "plpgsql"
+  },
+  {
+    "schema": "priv",
+    "name": "get_vault_secret",
+    "arguments": "secret_name text",
+    "returns": "text",
+    "language": "sql",
+    "comment": "Helper to retrieve secrets from vault.decrypted_secrets view"
   },
   {
     "schema": "public",

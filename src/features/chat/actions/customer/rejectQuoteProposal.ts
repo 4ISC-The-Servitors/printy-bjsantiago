@@ -35,12 +35,22 @@
 
 import { supabase } from '@lib/supabase';
 import { updateSessionMetadata } from '@features/chat/helpers/flowHelpers';
-import type { ActionExecutionParams, ActionExecutionResult } from '@features/chat/types';
-import type { SessionMetadata } from '@chatFlows/types';
+import type {
+  ActionExecutionParams,
+  ActionExecutionResult,
+} from '@features/chat/types';
+import type { SessionMetadata } from '@features/chat/types';
 
-export async function rejectQuoteProposal(params: ActionExecutionParams): Promise<ActionExecutionResult> {
+export async function rejectQuoteProposal(
+  params: ActionExecutionParams
+): Promise<ActionExecutionResult> {
   const { actionNode, context, sessionId } = params;
-  const messages: Array<{ id: string; role: 'printy'; text: string; ts: number }> = [];
+  const messages: Array<{
+    id: string;
+    role: 'printy';
+    text: string;
+    ts: number;
+  }> = [];
 
   // Store the conversation ID for later database update
   const config = actionNode.action_config as any;
@@ -64,7 +74,10 @@ export async function rejectQuoteProposal(params: ActionExecutionParams): Promis
     .eq('session_id', sessionId)
     .single();
 
-  console.log('[RejectQuote] Current session metadata before update:', currentSession?.metadata);
+  console.log(
+    '[RejectQuote] Current session metadata before update:',
+    currentSession?.metadata
+  );
 
   if (currentSession) {
     const currentMetadata = currentSession.metadata as SessionMetadata;
@@ -88,10 +101,16 @@ export async function rejectQuoteProposal(params: ActionExecutionParams): Promis
       .select('metadata')
       .eq('session_id', sessionId)
       .single();
-    console.log('[RejectQuote] Metadata after update:', verifySession?.metadata);
+    console.log(
+      '[RejectQuote] Metadata after update:',
+      verifySession?.metadata
+    );
   }
 
-  console.log('[RejectQuote] Quote rejection queued for conversation:', conversationId);
+  console.log(
+    '[RejectQuote] Quote rejection queued for conversation:',
+    conversationId
+  );
 
   return { messages };
 }

@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useMemo, useRef, useState } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
 export type AdminChatRole = 'user' | 'printy';
 
@@ -13,7 +19,6 @@ export interface AdminConversation {
   id: string;
   title: string;
   createdAt: number;
-  updatedAt: number;
   messages: AdminChatMessage[];
   status: 'active' | 'ended';
   icon?: React.ReactNode;
@@ -47,7 +52,6 @@ export const AdminConversationsProvider: React.FC<{
       id,
       title,
       createdAt: Date.now(),
-      updatedAt: Date.now(),
       messages: [],
       status: 'active',
     };
@@ -67,9 +71,7 @@ export const AdminConversationsProvider: React.FC<{
     };
     setConversations(prev =>
       prev.map(c =>
-        c.id === targetId
-          ? { ...c, updatedAt: msg.ts, messages: [...c.messages, msg] }
-          : c
+        c.id === targetId ? { ...c, messages: [...c.messages, msg] } : c
       )
     );
   };

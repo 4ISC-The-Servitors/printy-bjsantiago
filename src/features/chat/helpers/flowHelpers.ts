@@ -2,7 +2,7 @@
  * Helper functions for JsonbFlowProcessor
  */
 
-import type { FlowNode, SessionMetadata } from '@chatFlows/types';
+import type { FlowNode, SessionMetadata } from '@features/chat/types';
 import { supabase } from '@lib/supabase';
 
 /**
@@ -68,6 +68,7 @@ export async function insertMessage(params: {
 
   if (error) {
     console.error('Failed to insert message:', error);
+    throw new Error(`Failed to insert message: ${error.message}`);
   }
 }
 
@@ -108,9 +109,15 @@ export async function endSession(sessionId: string): Promise<void> {
 /**
  * Process pending quote actions (accept/reject) after conversation ends
  */
-export async function processPendingQuoteAction(action: string, conversationId: string): Promise<void> {
+export async function processPendingQuoteAction(
+  action: string,
+  conversationId: string
+): Promise<void> {
   try {
-    console.log(`[ProcessPendingQuote] Processing ${action} for conversation:`, conversationId);
+    console.log(
+      `[ProcessPendingQuote] Processing ${action} for conversation:`,
+      conversationId
+    );
 
     // Get the latest proposal
     const { data: proposals, error: fetchError } = await supabase
@@ -121,12 +128,18 @@ export async function processPendingQuoteAction(action: string, conversationId: 
       .limit(1);
 
     if (fetchError) {
-      console.error(`[ProcessPendingQuote] Error fetching proposal:`, fetchError);
+      console.error(
+        `[ProcessPendingQuote] Error fetching proposal:`,
+        fetchError
+      );
       return;
     }
 
     if (!proposals || proposals.length === 0) {
-      console.error(`[ProcessPendingQuote] No proposals found for conversation:`, conversationId);
+      console.error(
+        `[ProcessPendingQuote] No proposals found for conversation:`,
+        conversationId
+      );
       return;
     }
 
@@ -140,33 +153,49 @@ export async function processPendingQuoteAction(action: string, conversationId: 
       .eq('proposal_id', proposal.proposal_id);
 
     if (proposalError) {
-      console.error(`[ProcessPendingQuote] Error updating proposal status:`, proposalError);
+      console.error(
+        `[ProcessPendingQuote] Error updating proposal status:`,
+        proposalError
+      );
       return;
     }
 
-    console.log(`[ProcessPendingQuote] Proposal status updated to ${newStatus}`);
+    console.log(
+      `[ProcessPendingQuote] Proposal status updated to ${newStatus}`
+    );
 
     // Update quote status in quotes table
-    console.log(`[ProcessPendingQuote] Attempting to update quote status to ${newStatus} for session_id:`, conversationId);
+    console.log(
+      `[ProcessPendingQuote] Attempting to update quote status to ${newStatus} for session_id:`,
+      conversationId
+    );
 
     const { data: updateResult, error: quoteError } = await supabase
       .from('quotes')
-      .update({ 
+      .update({
         status: newStatus,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .eq('session_id', conversationId)
       .select();
 
     if (quoteError) {
-      console.error(`[ProcessPendingQuote] Error updating quote status:`, quoteError);
+      console.error(
+        `[ProcessPendingQuote] Error updating quote status:`,
+        quoteError
+      );
     } else {
-      console.log(`[ProcessPendingQuote] Quote status update result:`, updateResult);
+      console.log(
+        `[ProcessPendingQuote] Quote status update result:`,
+        updateResult
+      );
       console.log(`[ProcessPendingQuote] Quote status updated to ${newStatus}`);
     }
-
   } catch (error) {
-    console.error(`[ProcessPendingQuote] Unexpected error processing ${action}:`, error);
+    console.error(
+      `[ProcessPendingQuote] Unexpected error processing ${action}:`,
+      error
+    );
   }
 }
 
