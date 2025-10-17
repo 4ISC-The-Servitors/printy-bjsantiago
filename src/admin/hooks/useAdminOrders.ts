@@ -1,6 +1,6 @@
 /**
  * useAdminOrders
- * Fetches all orders from orders_duplicate table for admin view
+ * Fetches all orders from orders table for admin view
  * Similar to customer useRecentOrder but fetches all orders with pagination
  */
 import { useEffect, useState, useCallback } from 'react';
@@ -64,7 +64,7 @@ export function useAdminOrders(options: LoadOrdersOptions = {}) {
       
       // Fetch orders with customer information
       const { data, error, count } = await supabase
-        .from('orders_duplicate')
+        .from('orders')
         .select(`
           order_id,
           display_id,
@@ -158,7 +158,7 @@ export function useAdminOrders(options: LoadOrdersOptions = {}) {
       .channel('orders-changes')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'orders_duplicate' },
+        { event: '*', schema: 'public', table: 'orders' },
         () => {
           void loadOrders();
         }

@@ -72,6 +72,7 @@ export async function createInquiry(params: ActionExecutionParams): Promise<Acti
       inquiry_type: inquiryType,
       inquiry_message_enc: issueDetails, // Store as plain text for now
       inquiry_status: 'new',
+      session_id: sessionId,  // ✅ Set FK directly
     })
     .select('inquiry_id, display_id')
     .single();
@@ -105,13 +106,14 @@ export async function createInquiry(params: ActionExecutionParams): Promise<Acti
     displayId = inquiryId;
   }
 
-  // Update session metadata to store inquiry_id
+  // Update session with inquiry_id FK and metadata
   await supabase
     .from('chat_sessions_v2')
     .update({
+      inquiry_id: inquiryId,  // ✅ Set FK
       metadata: {
         ...context,
-        inquiry_id: inquiryId,
+        inquiry_id: inquiryId,  // Keep in metadata for backward compat
       } as any,
     })
     .eq('session_id', sessionId);

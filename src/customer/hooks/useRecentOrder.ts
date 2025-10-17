@@ -26,7 +26,7 @@ export function useRecentOrder() {
           return;
         }
         const { data, error } = await supabase
-          .from('orders_duplicate')
+          .from('orders')
           .select(`
             order_id,
             display_id,

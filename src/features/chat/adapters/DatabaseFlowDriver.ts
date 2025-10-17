@@ -1,4 +1,12 @@
 /**
+ * @deprecated LEGACY SYSTEM - DO NOT USE
+ *
+ * DatabaseFlowDriver used the old chat_sessions table (non-v2).
+ * Use JsonbFlowProcessor with chat_sessions_v2 instead.
+ *
+ * This file will be removed in Phase 5.
+ * See: docs_guide/CHAT_SYSTEM_MIGRATION_PLAN.md
+ *
  * DatabaseFlowDriver
  * Implements FlowDriver using ChatDatabaseService (Supabase-backed flows).
  * Keeps logic UI-agnostic and focused on orchestrating DB operations.

@@ -82,10 +82,13 @@ export async function createQuoteConversation(params: ActionExecutionParams): Pr
     },
   };
 
-  // Update current session with quote metadata
+  // Update current session with quote metadata and FK
   const { error: updateError } = await supabase
     .from('chat_sessions_v2')
-    .update({ metadata: updatedMetadata })
+    .update({
+      quote_id: quoteId,  // ✅ Set FK
+      metadata: updatedMetadata
+    })
     .eq('session_id', sessionId);
 
   if (updateError) {

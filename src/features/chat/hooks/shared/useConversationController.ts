@@ -1,5 +1,31 @@
 /**
- * useConversationController
+ * @deprecated Use JsonbFlowProcessor directly instead.
+ *
+ * This hook wraps the old FlowDriver system and will be removed in Phase 5.
+ *
+ * Migration example:
+ *
+ * OLD:
+ * const { start, send } = useConversationController();
+ * await start(driver, context);
+ *
+ * NEW:
+ * const result = await JsonbFlowProcessor.startFlow({
+ *   flowId: 'your-flow-id',
+ *   customerId,
+ *   flowDefinition: await getFlowDefinition('your-flow-id'),
+ *   initialContext: context,
+ * });
+ *
+ * const response = await JsonbFlowProcessor.processInput({
+ *   sessionId: result.sessionId,
+ *   userInput: input,
+ *   flowDefinition: await getFlowDefinition('your-flow-id'),
+ * });
+ *
+ * This file will be removed in Phase 5.
+ * See: docs_guide/CHAT_SYSTEM_MIGRATION_PLAN.md
+ *
  * Composes start/send/end actions and exposes a simple API for pages.
  * Driver selection is handled inside actions (DB for 'about', scripted otherwise).
  */

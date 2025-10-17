@@ -15,7 +15,7 @@ export type OrderData = {
 
 export async function createOrder(order: Omit<OrderData, 'order_id'>) {
   const { data, error } = await supabase
-    .from('orders_duplicate')
+    .from('orders')
     .insert([
       {
         // order_id will be auto-generated UUID

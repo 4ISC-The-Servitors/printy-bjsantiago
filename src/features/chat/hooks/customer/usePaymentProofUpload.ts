@@ -5,7 +5,7 @@
  */
 
 import { useCallback } from 'react';
-import { supabase } from '../../lib/supabase';
+import { supabase } from '../../../../lib/supabase';
 import { uploadPaymentProof } from '@shared/utils/uploadPaymentProof';
 
 export interface UsePaymentProofUploadResult {
@@ -59,7 +59,7 @@ export function usePaymentProofUpload(): UsePaymentProofUploadResult {
       });
 
       const { error: updateError } = await supabase
-        .from('orders_duplicate')
+        .from('orders')
         .update({
           payment_proof: uploadResult.url,
           payment_proof_uploaded_at: new Date().toISOString(),

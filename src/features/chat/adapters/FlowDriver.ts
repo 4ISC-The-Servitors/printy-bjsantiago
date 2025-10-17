@@ -1,4 +1,12 @@
 /**
+ * @deprecated LEGACY SYSTEM - DO NOT USE
+ *
+ * This interface is part of the old flow driver system and is being phased out.
+ * Use JsonbFlowProcessor from @features/chat/services/JsonbFlowProcessor instead.
+ *
+ * This file will be removed in Phase 5 of the chat system migration.
+ * See: docs_guide/CHAT_SYSTEM_MIGRATION_PLAN.md
+ *
  * FlowDriver defines the minimal interface for any chat flow backend.
  * Implementations:
  * - DatabaseFlowDriver: uses Supabase-backed chat flow (sessions, nodes, messages)

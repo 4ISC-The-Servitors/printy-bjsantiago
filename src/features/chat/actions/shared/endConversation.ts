@@ -1,5 +1,20 @@
 /**
- * endConversation
+ * @deprecated LEGACY SYSTEM - DO NOT USE
+ *
+ * This action uses the old ChatDatabaseService system (non-v2 tables).
+ * Use JsonbFlowProcessor.endSession() and endSessionV2() instead.
+ *
+ * Migration example:
+ *
+ * OLD:
+ * await endConversation(sessionId, flowId);
+ *
+ * NEW:
+ * await endSessionV2(sessionId);
+ *
+ * This file will be removed in Phase 5.
+ * See: docs_guide/CHAT_SYSTEM_MIGRATION_PLAN.md
+ *
  * Ends the current conversation. For DB-backed sessions, inserts end text (if any)
  * and calls endSession. Scripted flows are no-ops.
  */

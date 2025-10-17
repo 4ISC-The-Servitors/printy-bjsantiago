@@ -1,4 +1,17 @@
 /**
+ * @deprecated LEGACY SYSTEM - DO NOT USE
+ *
+ * ScriptedFlowDriver is part of the old in-memory flow system.
+ * All flows should now be defined as JSONB flow definitions in the database.
+ *
+ * Migration path:
+ * 1. Convert your scripted flow to a JSONB FlowDefinition
+ * 2. Insert it into chat_flows_v2 table
+ * 3. Use JsonbFlowProcessor.startFlow() instead
+ *
+ * This file will be removed in Phase 5.
+ * See: docs_guide/CHAT_SYSTEM_MIGRATION_PLAN.md
+ *
  * ScriptedFlowDriver
  * Implements FlowDriver by wrapping in-memory flows in src/chatLogic/*.
  * This allows us to keep using scripted flows during migration.

@@ -4,7 +4,7 @@
  */
 
 // API Hooks
-export * from './api/usePaymentMethods';
+export * from '../../features/chat/hooks/customer/usePaymentMethods';
 export * from './api/useQuoteActions';
 export * from './api/useQuoteConversation';
 

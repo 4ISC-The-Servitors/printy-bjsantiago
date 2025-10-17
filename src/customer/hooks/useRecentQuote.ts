@@ -1,7 +1,7 @@
 // src/hooks/customer/useRecentQuote.ts
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@lib/supabase';
+import { getCustomerQuotes } from '@features/chat/api/sessionQueries';
 import type { RecentQuote } from '@shared/types/customer';
 
 export function useRecentQuote(customerId?: string) {
@@ -17,37 +17,23 @@ export function useRecentQuote(customerId?: string) {
       }
 
       try {
-        const { data, error } = await supabase
-          .from('quotes')
-          .select(`
-            quote_id,
-            session_id,
-            display_id,
-            status,
-            created_at,
-            updated_at,
-            ended_at
-          `)
-          .eq('customer_id', customerId)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
+        // Use new sessionQueries to get customer quotes
+        const quotes = await getCustomerQuotes(customerId);
+        const latestQuote = quotes[0]; // Most recent quote
 
-        if (error) throw error;
-        
-        if (data) {
+        if (latestQuote) {
           setRecentQuote({
-            id: data.quote_id,
-            displayId: data.display_id || data.quote_id.slice(0, 8).toUpperCase(),
-            status: data.status,
-            createdAt: new Date(data.created_at).getTime(),
-            updatedAt: new Date(data.updated_at).getTime(),
-            endedAt: data.ended_at ? new Date(data.ended_at).getTime() : undefined
+            id: latestQuote.quoteId,
+            displayId: latestQuote.displayId || latestQuote.quoteId.slice(0, 8).toUpperCase(),
+            status: latestQuote.status,
+            createdAt: latestQuote.createdAt,
+            updatedAt: latestQuote.updatedAt,
+            endedAt: latestQuote.endedAt
           });
         } else {
           setRecentQuote(null);
         }
-        
+
         setError(null);
       } catch (err) {
         console.error('Error loading recent quote:', err);

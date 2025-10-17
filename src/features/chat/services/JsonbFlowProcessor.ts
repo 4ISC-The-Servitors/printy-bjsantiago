@@ -30,19 +30,32 @@ export class JsonbFlowProcessor {
     flowId: string;
     customerId: string;
     flowDefinition: FlowDefinition;
-    initialContext?: Partial<SessionContext> & { order_id?: string; display_id?: string; total_amount?: string };
+    initialContext?: Partial<SessionContext> & {
+      order_id?: string;
+      display_id?: string;
+      total_amount?: string;
+      inquiry_id?: string;  // ADD THIS
+      quote_id?: string;    // ADD THIS
+    };
   }) {
     const { flowId, customerId, flowDefinition, initialContext } = params;
 
     // Create chat session
     const sessionId = crypto.randomUUID();
-      const { error: sessionError } = await supabase
+
+    // Prepare FK columns
+    const inquiryId = initialContext?.inquiry_id || null;
+    const quoteId = initialContext?.quote_id || null;
+
+    const { error: sessionError } = await supabase
       .from('chat_sessions_v2')
       .insert({
         session_id: sessionId,
         flow_id: flowId,
         customer_id: customerId,
         status: 'active',
+        inquiry_id: inquiryId,  // ✅ Set FK directly
+        quote_id: quoteId,      // ✅ Set FK directly
         metadata: {
           current_node_id: flowDefinition.initial_node,
             context: {

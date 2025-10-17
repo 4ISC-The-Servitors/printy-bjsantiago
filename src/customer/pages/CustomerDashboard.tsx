@@ -22,7 +22,7 @@ import { useRecentQuote } from '@customer/hooks/useRecentQuote';
 import { useRecentChatSessions } from '@features/chat/hooks/customer/useRecentChatSessions';
 import { useDashboardChatEvents } from '@features/chat/hooks/customer/useDashboardChatEvents';
 import { useChatAttachments } from '@features/chat/hooks/shared/useChatAttachments';
-import { usePaymentProofUpload } from '@customer/hooks/usePaymentProofUpload';
+import { usePaymentProofUpload } from '@/features/chat/hooks/customer/usePaymentProofUpload';
 import { useDeviceUtils } from '@shared/hooks/ui';
 // Chat feature hooks
 import { useCustomerConversations } from '@features/chat/hooks/customer/useCustomerConversations';

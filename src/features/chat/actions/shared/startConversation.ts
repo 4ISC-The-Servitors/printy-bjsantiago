@@ -1,5 +1,26 @@
 /**
- * startConversation
+ * @deprecated LEGACY SYSTEM - DO NOT USE
+ *
+ * This action uses the old DatabaseFlowDriver and ScriptedFlowDriver systems.
+ * Use JsonbFlowProcessor.startFlow() instead.
+ *
+ * Migration example:
+ *
+ * OLD:
+ * const result = await startConversation({ flowId: 'ask-quote', ctx });
+ *
+ * NEW:
+ * const flowDefinition = await getFlowDefinition('ask-quote');
+ * const result = await JsonbFlowProcessor.startFlow({
+ *   flowId: 'ask-quote',
+ *   customerId,
+ *   flowDefinition,
+ *   initialContext: ctx,
+ * });
+ *
+ * This file will be removed in Phase 5.
+ * See: docs_guide/CHAT_SYSTEM_MIGRATION_PLAN.md
+ *
  * Chooses a driver based on flowId, creates session if DB-backed, and returns
  * a minimal descriptor the UI/hooks can use to update state.
  */

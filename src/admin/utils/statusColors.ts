@@ -21,7 +21,7 @@ export const getTicketStatusBadgeVariant = (status: string): BadgeVariant => {
 export const getOrderStatusBadgeVariant = (status: string): BadgeVariant => {
   const s = (status || '').toLowerCase();
   
-  // Match actual database status values from orders_duplicate table
+  // Match actual database status values from orders table
   if (s === 'awaiting_payment') return 'warning';
   if (s === 'verifying_payment') return 'info';
   if (s === 'reupload_payment_proof') return 'error';
@@ -37,14 +37,14 @@ export const getOrderStatusBadgeVariant = (status: string): BadgeVariant => {
 
 export const getQuoteStatusBadgeVariant = (status: string): BadgeVariant => {
   const s = (status || '').toLowerCase();
-  
-  // Match actual database status values from quote_conversations table
+
+  // Match actual database status values from quotes table
   if (s === 'active') return 'info';
   if (s === 'spec_proposed') return 'warning';
   if (s === 'accepted') return 'success';
   if (s === 'rejected') return 'error';
   if (s === 'ended') return 'secondary';
-  
+
   // Fallback for any other status
   return 'secondary';
 };

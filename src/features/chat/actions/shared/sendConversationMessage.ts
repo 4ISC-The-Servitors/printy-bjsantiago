@@ -1,5 +1,24 @@
 /**
- * sendConversationMessage
+ * @deprecated LEGACY SYSTEM - DO NOT USE
+ *
+ * This action uses the old FlowDriver interface and ChatDatabaseService.
+ * Use JsonbFlowProcessor.processInput() instead.
+ *
+ * Migration example:
+ *
+ * OLD:
+ * const result = await sendConversationMessage({ driver, sessionId, input });
+ *
+ * NEW:
+ * const result = await JsonbFlowProcessor.processInput({
+ *   sessionId,
+ *   userInput: input,
+ *   flowDefinition: await getFlowDefinition(flowId),
+ * });
+ *
+ * This file will be removed in Phase 5.
+ * See: docs_guide/CHAT_SYSTEM_MIGRATION_PLAN.md
+ *
  * Sends user input through the appropriate driver and returns UI-ready updates.
  */
 import { ChatDatabaseService } from '@features/chat/services/ChatDatabaseService';
