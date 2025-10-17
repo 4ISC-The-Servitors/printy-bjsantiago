@@ -29,7 +29,7 @@ export function useRecentQuote(customerId?: string) {
               latestQuote.quote_id.slice(0, 8).toUpperCase(),
             status: latestQuote.status as any, // Type casting due to v2 schema differences
             createdAt: latestQuote.createdAt,
-            updatedAt: latestQuote.createdAt, // Using createdAt instead
+            updatedAt: latestQuote.updatedAt || latestQuote.createdAt,
             endedAt: latestQuote.endedAt,
           });
         } else {
