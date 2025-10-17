@@ -6,7 +6,6 @@ import { X } from 'lucide-react';
 import { useDeviceUtils } from '@shared/hooks/ui';
 import { useToast } from '@lib/useToast';
 import { useAdminChat } from '@admin/hooks/useAdminChat';
-import { useAdminConversations } from '@admin/hooks/useAdminConversations';
 import type { NavRoute } from '../navigation';
 import DesktopLayout from './DesktopLayout';
 import MobileLayout from './MobileLayout';
@@ -43,9 +42,6 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     endChatWithDelay,
     readOnly,
   } = useAdminChat();
-
-  // Admin conversations are loaded via useAdminConversations hook
-  const { conversations } = useAdminConversations();
 
   // Listen for admin-chat-open custom events from ticket cards
   useEffect(() => {
