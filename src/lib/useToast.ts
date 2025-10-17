@@ -1,6 +1,7 @@
+// src/lib/useToast.ts
 import { useState, useCallback, useRef } from 'react';
 
-// Define ToastData locally to avoid circular dependencies
+// ✅ Toast data structure
 export interface ToastData {
   id: string;
   title: string;
@@ -14,6 +15,7 @@ export interface ToastData {
   };
 }
 
+// ✅ Options when showing a toast
 export interface ToastOptions {
   duration?: number;
   position?:
@@ -29,6 +31,7 @@ export interface ToastOptions {
   };
 }
 
+// ✅ Methods exposed by the toast system
 export interface ToastMethods {
   show: (toast: Omit<ToastData, 'id'>) => string;
   success: (title: string, message?: string, options?: ToastOptions) => string;
@@ -39,17 +42,20 @@ export interface ToastMethods {
   clear: () => void;
 }
 
+// ✅ React hook for managing toasts locally
 export const useToast = (
   defaultOptions: ToastOptions = {}
 ): [ToastData[], ToastMethods] => {
   const [toasts, setToasts] = useState<ToastData[]>([]);
   const idCounter = useRef(0);
 
+  // Generate unique toast IDs
   const generateId = useCallback(() => {
     idCounter.current += 1;
     return `toast-${idCounter.current}`;
   }, []);
 
+  // Show any toast
   const show = useCallback(
     (toast: Omit<ToastData, 'id'>) => {
       const id = generateId();
@@ -58,67 +64,40 @@ export const useToast = (
         id,
         duration: toast.duration ?? defaultOptions.duration ?? 5000,
       };
-
-      setToasts(prev => [...prev, newToast]);
+      setToasts((prev) => [...prev, newToast]);
       return id;
     },
     [defaultOptions.duration, generateId]
   );
 
+  // Preset variants
   const success = useCallback(
-    (title: string, message?: string, options?: ToastOptions) => {
-      return show({
-        title,
-        message,
-        variant: 'success',
-        ...defaultOptions,
-        ...options,
-      });
-    },
+    (title: string, message?: string, options?: ToastOptions) =>
+      show({ title, message, variant: 'success', ...defaultOptions, ...options }),
     [show, defaultOptions]
   );
 
   const error = useCallback(
-    (title: string, message?: string, options?: ToastOptions) => {
-      return show({
-        title,
-        message,
-        variant: 'error',
-        ...defaultOptions,
-        ...options,
-      });
-    },
+    (title: string, message?: string, options?: ToastOptions) =>
+      show({ title, message, variant: 'error', ...defaultOptions, ...options }),
     [show, defaultOptions]
   );
 
   const warning = useCallback(
-    (title: string, message?: string, options?: ToastOptions) => {
-      return show({
-        title,
-        message,
-        variant: 'warning',
-        ...defaultOptions,
-        ...options,
-      });
-    },
+    (title: string, message?: string, options?: ToastOptions) =>
+      show({ title, message, variant: 'warning', ...defaultOptions, ...options }),
     [show, defaultOptions]
   );
 
   const info = useCallback(
-    (title: string, message?: string, options?: ToastOptions) => {
-      return show({
-        title,
-        message,
-        variant: 'info',
-        ...defaultOptions,
-        ...options,
-      });
-    },
+    (title: string, message?: string, options?: ToastOptions) =>
+      show({ title, message, variant: 'info', ...defaultOptions, ...options }),
     [show, defaultOptions]
   );
 
+  // Remove or clear
   const remove = useCallback((id: string) => {
-    setToasts(prev => prev.filter(toast => toast.id !== id));
+    setToasts((prev) => prev.filter((toast) => toast.id !== id));
   }, []);
 
   const clear = useCallback(() => {
@@ -137,3 +116,26 @@ export const useToast = (
 
   return [toasts, methods];
 };
+
+// ✅ Global toast store (for realtime/global access)
+let globalToast: ToastMethods | null = null;
+
+// Register the global toast methods
+export const registerGlobalToast = (methods: ToastMethods) => {
+  globalToast = methods;
+};
+
+// ✅ Global toast shortcut
+export const toast = {
+  success: (title: string, message?: string, options?: ToastOptions) =>
+    globalToast?.success(title, message, options),
+  error: (title: string, message?: string, options?: ToastOptions) =>
+    globalToast?.error(title, message, options),
+  warning: (title: string, message?: string, options?: ToastOptions) =>
+    globalToast?.warning(title, message, options),
+  info: (title: string, message?: string, options?: ToastOptions) =>
+    globalToast?.info(title, message, options),
+  show: (toastData: Omit<ToastData, 'id'>) => globalToast?.show(toastData),
+};
+
+

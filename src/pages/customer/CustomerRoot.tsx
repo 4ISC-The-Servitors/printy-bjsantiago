@@ -9,12 +9,20 @@ const CustomerRoot: React.FC = () => {
 
   useEffect(() => {
     let cleanup: (() => void) | null = null;
+
     (async () => {
       const { data } = await supabase.auth.getUser();
       const userId = data?.user?.id;
-      if (!userId) return;
+
+      if (!userId) {
+        console.warn('⚠️ No logged-in user, skipping notifications');
+        return;
+      }
+
+      console.log(`🔔 Starting customer notifications for ${userId}`);
       cleanup = startCustomerNotifications(userId, toast);
     })();
+
     return () => {
       if (cleanup) cleanup();
     };
@@ -23,4 +31,5 @@ const CustomerRoot: React.FC = () => {
   return <Outlet />;
 };
 
-export default CustomerRoot; 
+export default CustomerRoot;
+
