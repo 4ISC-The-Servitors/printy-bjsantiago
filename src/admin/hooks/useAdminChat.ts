@@ -10,6 +10,7 @@ import { useAdmin } from '@admin/hooks/AdminContext';
 import { useInquiryActions } from './useInquiryActions';
 import { useAdminConversations } from './useAdminConversations';
 import { ChatDatabaseService } from '@features/chat/services/ChatDatabaseService';
+import { editSavedSpecs, sendQuoteProposal } from '@features/chat/actions/admin';
 import { supabase } from '@lib/supabase';
 
 export interface UseAdminChatReturn {
@@ -40,7 +41,7 @@ export const useAdminChat = (): UseAdminChatReturn => {
   const [isTyping, setIsTyping] = useState(false);
   const [quickReplies, setQuickReplies] = useState<QuickReply[]>([]);
   const [currentFlow, setCurrentFlow] = useState<string>('intro');
-  const [setCurrentContext] = useState<any>({});
+  const [, setCurrentContext] = useState<any>({});
   const [pendingAction, setPendingAction] = useState<
     null | 'assign' | 'status'
   >(null);
@@ -327,7 +328,38 @@ export const useAdminChat = (): UseAdminChatReturn => {
         await appendMessagesWithTyping(
           start.messages.map(m => ({ role: m.role as ChatRole, text: m.text }))
         );
-        setQuickReplies(start.quickReplies || []);
+        // Inject smarter quick replies if there is already a saved spec for this quote session
+        try {
+          if (orderId) {
+            const { data: existingSpecs } = await supabase
+              .from('quote_specs')
+              .select('spec_id')
+              .eq('session_id', orderId)
+              .order('created_at', { ascending: false })
+              .limit(1);
+            if (existingSpecs && existingSpecs.length > 0) {
+              // Remind admin there is a drafted spec and present actions
+              await appendMessagesWithTyping([
+                {
+                  role: 'printy',
+                  text:
+                    'You have drafted an order specs for this quote request. What do you want to do?',
+                },
+              ]);
+              setQuickReplies([
+                { id: 'qr-edit-specs', label: 'Edit Specs', value: '__edit_specs__' },
+                { id: 'qr-send-specs', label: 'Send Specs to Customer', value: '__send_specs__' },
+                { id: 'qr-end', label: 'End Chat', value: 'End Chat' },
+              ]);
+            } else {
+              setQuickReplies(start.quickReplies || []);
+            }
+          } else {
+            setQuickReplies(start.quickReplies || []);
+          }
+        } catch {
+          setQuickReplies(start.quickReplies || []);
+        }
 
         // Persist initial bot messages to DB if this is a ticket chat and a session was created
         if (nextTopic.includes('ticket')) {
@@ -447,6 +479,62 @@ export const useAdminChat = (): UseAdminChatReturn => {
       setMessages([]);
       return;
     }
+
+    // Intercepts for admin-quote-propose special actions
+    if (val === '__edit_specs__' && dbSessionId) {
+      void (async () => {
+        try {
+          const flowDef = await getFlowDefinition('admin-quote-propose');
+          const resp = await editSavedSpecs({
+            actionNode: { id: 'edit_saved_specs', type: 'action', action: 'edit_saved_specs', action_config: { conversation_id_key: 'session_id' } } as any,
+            context: { session_id: (await supabase
+              .from('chat_sessions_v2')
+              .select('metadata')
+              .eq('session_id', dbSessionId)
+              .single()
+            ).data?.metadata?.context?.session_id || null } as any,
+            sessionId: dbSessionId,
+            customerId: (await supabase.auth.getUser()).data?.user?.id || '',
+          });
+          for (const m of resp.messages) {
+            setMessages(prev => [...prev, { id: m.id, role: m.role, text: m.text, ts: m.ts }]);
+          }
+          setQuickReplies([
+            { id: 'qr-edit-specs', label: 'Edit Specs', value: '__edit_specs__' },
+            { id: 'qr-send-specs', label: 'Send Specs to Customer', value: '__send_specs__' },
+            { id: 'qr-end', label: 'End Chat', value: 'End Chat' },
+          ]);
+        } catch (e) {
+          console.error('Failed to open saved specs editor', e);
+        }
+      })();
+      return;
+    }
+
+    if (val === '__send_specs__' && dbSessionId) {
+      void (async () => {
+        try {
+          const resp = await sendQuoteProposal({
+            actionNode: { id: 'send_specs', type: 'action', action: 'send_quote_proposal', action_config: { conversation_id_key: 'session_id' } } as any,
+            context: { session_id: (await supabase
+              .from('chat_sessions_v2')
+              .select('metadata')
+              .eq('session_id', dbSessionId)
+              .single()
+            ).data?.metadata?.context?.session_id || null } as any,
+            sessionId: dbSessionId,
+            customerId: (await supabase.auth.getUser()).data?.user?.id || '',
+          });
+          await appendMessagesWithTyping(resp.messages.map(m => ({ role: m.role as ChatRole, text: m.text })));
+          setQuickReplies([{ id: 'qr-end', label: 'End Chat', value: 'End Chat' }]);
+        } catch (e) {
+          console.error('Failed to send specs', e);
+        }
+      })();
+      return;
+    }
+
+    // no "create new" option to avoid confusion; admins can re-open editor any time
 
     // Ticket action intercepts
     if (val === 'Assign to') {

@@ -96,7 +96,7 @@ const { data } = await supabase
   .select(`
     session_id, flow_id, status, created_at, metadata,
     inquiry:inquiries!inquiry_id(inquiry_id, display_id, inquiry_status),
-    quote:quotes!quote_id(quote_id, display_id, status, total_price)
+    quote:quotes!quote_id(quote_id, display_id, status)
   `)
   .eq('customer_id', userId)
   .order('created_at', { ascending: false });
