@@ -9,13 +9,7 @@ export * from './api/useQuoteActions';
 export * from './api/useQuoteConversation';
 
 // Auth Hooks
-export * from './auth/useLogoutWithToast';
-
-// Core Hooks
-export * from './core/useChatAttachments';
-export * from './core/useConversationController';
-export * from './core/useConversationState';
-export * from './core/useConversationSwitcher';
+export * from '../../auth/hooks/useLogoutWithToast';
 
 // UI Hooks
 export * from './ui/useBreakpoint';

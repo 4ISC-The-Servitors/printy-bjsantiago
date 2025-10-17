@@ -15,7 +15,7 @@ import RecentTickets from '@customer/components/dashboard/recentTickets/RecentTi
 import RecentQuotes from '@customer/components/dashboard/recentQuotes/RecentQuotes';
 // Shared UI components
 import { ToastContainer, Text, PageLoading, Notification } from '@shared/components';
-import { useLogoutWithToast } from '@shared/hooks/auth/useLogoutWithToast';
+import { useLogoutWithToast } from '@/auth/hooks/useLogoutWithToast';
 import { useRecentOrder } from '@customer/hooks/useRecentOrder';
 import { useRecentTicket } from '@customer/hooks/useRecentTicket';
 import { useRecentQuote } from '@customer/hooks/useRecentQuote';

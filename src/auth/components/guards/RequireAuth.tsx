@@ -1,7 +1,7 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '@shared/hooks/auth/AuthContext';
-import { getHomePath, type Role } from '@shared/hooks/auth/AuthContext';
+import { useAuth } from '@/auth/hooks/AuthContext';
+import { getHomePath, type Role } from '@/auth/hooks/AuthContext';
 import { PageLoading } from '@shared/components';
 
 export const RequireAuth: React.FC<{ allowed: Role[]; children: React.ReactNode }> = ({ allowed, children }) => {
