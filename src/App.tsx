@@ -8,6 +8,7 @@ import ResetPassword from '@auth/pages/ResetPassword';
 import CustomerAccountSettings from '@customer/pages/CustomerAccountSettings';
 import CustomerRoot from '@customer/pages/CustomerRoot';
 import AdminRoot from '@admin/pages/AdminRoot';
+import SuperAdminRoot from '@superadmin/pages/SuperAdminRoot';
 import { PageLoading } from '@shared/components';
 import './index.css';
 import RequireAuth from '@components/auth/guards/RequireAuth';
@@ -169,12 +170,19 @@ function App() {
         path="/superadmin"
         element={
           <RequireAuth allowed={['superadmin']}>
+            <SuperAdminRoot />
+          </RequireAuth>
+        }
+      >
+        <Route
+          index
+          element={
             <Suspense fallback={<PageLoading variant="dashboard" />}>
               <SuperAdminDashboard />
             </Suspense>
-          </RequireAuth>
-        }
-      />
+          }
+        />
+      </Route>
 
     </Routes>
   );

@@ -12,6 +12,7 @@ import type { NavRoute } from '../navigation';
 import DesktopLayout from './DesktopLayout';
 import MobileLayout from './MobileLayout';
 import { AdminChatDock, AdminChatOverlay } from '@components/chat/layouts';
+import { supabase } from '@lib/supabase';
 
 export interface AdminLayoutProps {
   children: React.ReactNode;
@@ -23,7 +24,7 @@ export interface AdminLayoutProps {
  * Manages chat state, navigation, and logout
  */
 export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
-  const { isMobile } = useDeviceUtils();
+  const { isMobile, isMobileOrTablet } = useDeviceUtils();
   const navigate = useNavigate();
   const [toasts, toast] = useToast();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -72,6 +73,14 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     };
   }, [handleChatOpenWithTopic]);
 
+  // Check for signin success toast
+  useEffect(() => {
+    if (sessionStorage.getItem('signin-success') === 'true') {
+      sessionStorage.removeItem('signin-success');
+      toast.success('Welcome back!', 'Successfully signed in');
+    }
+  }, [toast]);
+
   const handleNavigate = (route: NavRoute) => {
     const routes = {
       dashboard: '/admin',
@@ -96,9 +105,30 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   };
 
   const confirmLogout = async () => {
-    setShowLogoutModal(false);
-    toast.success('Successfully logged out', 'You have been signed out');
-    setTimeout(() => navigate('/auth/signin'), 1000);
+    try {
+      // CRITICAL: Always call supabase.auth.signOut() to clear session
+      const { error } = await supabase.auth.signOut();
+
+      if (error) {
+        console.error('Logout error:', error);
+        toast.error('Logout failed', 'Please try again');
+        return;
+      }
+
+      // Clear any local storage related to user session
+      localStorage.removeItem('user');
+
+      setShowLogoutModal(false);
+
+      // Store logout success flag for signin page to show toast
+      sessionStorage.setItem('logout-success', 'true');
+
+      // Navigate immediately - toast will show on signin page
+      navigate('/auth/signin', { replace: true });
+    } catch (err) {
+      console.error('Unexpected logout error:', err);
+      toast.error('Logout failed', 'An unexpected error occurred');
+    }
   };
 
   const commonProps = {
@@ -200,7 +230,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       <ToastContainer
         toasts={toasts}
         onRemoveToast={toast.remove}
-        position="bottom-right"
+        position={isMobileOrTablet ? 'top-center' : 'bottom-right'}
       />
     </>
   );

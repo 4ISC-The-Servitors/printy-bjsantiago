@@ -23,6 +23,7 @@ import { useRecentChatSessions } from '@customer/hooks/useRecentChatSessions';
 import { useDashboardChatEvents } from '@customer/hooks/useDashboardChatEvents';
 import { useChatAttachments } from '@shared/hooks/core/useChatAttachments';
 import { usePaymentProofUpload } from '@customer/hooks/usePaymentProofUpload';
+import { useDeviceUtils } from '@shared/hooks/ui';
 // Chat feature hooks
 import { useCustomerConversations } from '@customer/hooks/useCustomerConversations';
 
@@ -108,6 +109,7 @@ type Conversation = ConversationItem;
 const CustomerDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { logout, toasts, toast } = useLogoutWithToast();
+  const { isMobileOrTablet } = useDeviceUtils();
 
   const {
     messages,
@@ -145,6 +147,14 @@ const CustomerDashboard: React.FC = () => {
   
   const { data: recentQuote, loading: loadingRecentQuote } = useRecentQuote(customerId);
   useRecentChatSessions(setConversations);
+
+  // Check for signin success toast
+  useEffect(() => {
+    if (sessionStorage.getItem('signin-success') === 'true') {
+      sessionStorage.removeItem('signin-success');
+      toast.success('Welcome back!', 'Successfully signed in');
+    }
+  }, [toast]);
 
   // Determine loading based on data hooks
   const isLoading = loadingRecentOrder || loadingRecentTicket || loadingRecentQuote;
@@ -426,7 +436,7 @@ const CustomerDashboard: React.FC = () => {
       <ToastContainer
         toasts={toasts}
         onRemoveToast={id => toast.remove(id)}
-        position="bottom-right"
+        position={isMobileOrTablet ? 'top-center' : 'bottom-right'}
       />
     </>
   );

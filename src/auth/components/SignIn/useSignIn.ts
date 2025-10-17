@@ -207,8 +207,10 @@ export const useSignIn = () => {
           // ignore storage errors
         }
 
-        toast.success('Welcome back!', 'Successfully signed in');
-        setTimeout(() => navigate(destination), 1000);
+        // Store signin success flag for destination page to show toast
+        sessionStorage.setItem('signin-success', 'true');
+        // Navigate immediately - toast will show on destination page
+        navigate(destination);
       } catch (error: unknown) {
         const message =
           error instanceof Error

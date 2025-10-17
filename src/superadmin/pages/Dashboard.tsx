@@ -268,6 +268,18 @@ const SuperAdminDashboard: React.FC = () => {
     fetchKpiData();
   }, [fetchKpiData]);
 
+  // Listen for refresh events from SuperAdminRoot navbar
+  useEffect(() => {
+    const handleRefresh = () => {
+      fetchKpiData();
+    };
+
+    window.addEventListener('superadmin-refresh-data', handleRefresh);
+    return () => {
+      window.removeEventListener('superadmin-refresh-data', handleRefresh);
+    };
+  }, [fetchKpiData]);
+
   // Render Section
   return (
     <div className="min-h-screen bg-gray-50 p-4 sm:p-8 font-['Inter']">

@@ -1,7 +1,7 @@
 // BACKEND_TODO: Wire Supabase Auth here (email/password + OAuth)
 // after role-based routing/guards are implemented. Persist session and support remember-me.
 // Also replace any mock/toast-only flows with real error handling from Supabase.
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Button,
@@ -34,6 +34,14 @@ const SignIn: React.FC = () => {
     isDesktop,
     handleSubmit,
   } = useSignIn();
+
+  // Check for logout success toast
+  useEffect(() => {
+    if (sessionStorage.getItem('logout-success') === 'true') {
+      sessionStorage.removeItem('logout-success');
+      toast.success('Logged Out', 'You have been successfully logged out');
+    }
+  }, [toast]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-brand-primary-50 flex items-center justify-center p-4">
