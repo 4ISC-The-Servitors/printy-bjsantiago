@@ -1,0 +1,31 @@
+name: Yearly Archive to Supabase Storage
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Run Jan 1 at 12:00 UTC (08:00 PHT alignment similar to db-backup)
+    - cron: '0 12 1 1 *'
+    # Auto-catch late entries: run daily at 12:00 UTC
+    - cron: '0 12 * * *'
+
+jobs:
+  archive:
+    runs-on: ubuntu-latest
+    environment: supabase
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Run yearly archive script
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.VITE_SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.VITE_SUPABASE_SERVICE_ROLE_KEY }}
+          ARCHIVES_BUCKET: archives
+          CRON_TZ: Asia/Manila
+        run: node --experimental-strip-types scripts/archive/yearlyArchive.ts

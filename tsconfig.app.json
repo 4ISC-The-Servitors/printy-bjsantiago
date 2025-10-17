@@ -21,6 +21,7 @@
       "@customer/*": ["src/customer/*"],
       "@guest/*": ["src/guest/*"],
       "@auth/*": ["src/auth/*"],
+      "@superadmin/*": ["src/superadmin/*"],
       "@shared/*": ["src/shared/*"],
       "@features/*": ["src/features/*"],
       "@lib/*": ["src/lib/*"],

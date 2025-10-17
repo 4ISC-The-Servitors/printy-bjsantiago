@@ -10,6 +10,8 @@ import CustomerRoot from '@customer/pages/CustomerRoot';
 import AdminRoot from '@admin/pages/AdminRoot';
 import { PageLoading } from '@shared/components';
 import './index.css';
+import RequireAuth from '@components/auth/guards/RequireAuth';
+import GuestOnly from '@components/auth/guards/GuestOnly';
 
 // Lazy load heavy components
 const AdminDashboard = lazy(() => import('@admin/pages/Dashboard'));
@@ -19,7 +21,7 @@ const AdminQuotes = lazy(() => import('@admin/pages/Quotes'));
 const AdminSettingsPage = lazy(() => import('@admin/pages/AdminSettings'));
 const AdminPortfolio = lazy(() => import('@admin/pages/Portfolio'));
 const AdminChats = lazy(() => import('@admin/pages/Chats'));
-const SuperAdminDashboard = lazy(() => import('./superadmin/pages/Dashboard'));
+const SuperAdminDashboard = lazy(() => import('@superadmin/pages/Dashboard'));
 const CustomerDashboard = lazy(() => import('@customer/pages/CustomerDashboard'));
 const CustomerChatHistory = lazy(() => import('@customer/pages/CustomerChatHistory'));
 const CustomerOrderHistory = lazy(() => import('@customer/pages/CustomerOrderHistory'));
@@ -30,16 +32,18 @@ function App() {
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
-      <Route path="/auth/signin" element={<SignIn />} />
-      <Route path="/auth/signup" element={<SignUp />} />
+      <Route path="/auth/signin" element={<GuestOnly><SignIn /></GuestOnly>} />
+      <Route path="/auth/signup" element={<GuestOnly><SignUp /></GuestOnly>} />
       <Route path="/auth/forgot-password" element={<ForgotPassword />} />
       <Route path="/auth/reset-password/confirm" element={<ResetPassword />} />
       <Route
         path="/customer"
         element={
-          <Suspense fallback={<PageLoading variant="dashboard" />}>
-            <CustomerRoot />
-          </Suspense>
+          <RequireAuth allowed={['regular','valued']}>
+            <Suspense fallback={<PageLoading variant="dashboard" />}>
+              <CustomerRoot />
+            </Suspense>
+          </RequireAuth>
         }
       >
         <Route
@@ -87,17 +91,21 @@ function App() {
       <Route
         path="/valued"
         element={
-          <Suspense fallback={<PageLoading variant="dashboard" />}>
-            <CustomerDashboard />
-          </Suspense>
+          <RequireAuth allowed={['valued']}>
+            <Suspense fallback={<PageLoading variant="dashboard" />}>
+              <CustomerDashboard />
+            </Suspense>
+          </RequireAuth>
         }
       />
       <Route
         path="/admin"
         element={
-          <Suspense fallback={<PageLoading variant="dashboard" />}>
-            <AdminRoot />
-          </Suspense>
+          <RequireAuth allowed={['admin']}>
+            <Suspense fallback={<PageLoading variant="dashboard" />}>
+              <AdminRoot />
+            </Suspense>
+          </RequireAuth>
         }
       >
         <Route
@@ -160,9 +168,11 @@ function App() {
       <Route
         path="/superadmin"
         element={
-          <Suspense fallback={<PageLoading variant="dashboard" />}>
-            <SuperAdminDashboard />
-          </Suspense>
+          <RequireAuth allowed={['superadmin']}>
+            <Suspense fallback={<PageLoading variant="dashboard" />}>
+              <SuperAdminDashboard />
+            </Suspense>
+          </RequireAuth>
         }
       />
 
