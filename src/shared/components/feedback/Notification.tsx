@@ -81,7 +81,7 @@ const Notification: React.FC<NotificationProps> = ({ className }) => {
   }, []);
 
   return (
-    <div className={`${className ?? ''} fixed top-4 right-4 z-50`}>
+    <div className={`${className ?? ''} fixed top-4 right-20 z-50`}>
       {/* Notification Bell Button */}
       <div className="relative">
         <button

@@ -19,9 +19,9 @@ export function useDashboardChatEvents(
       };
       const orderId = detail?.orderId || getRecentOrderId();
       const title = `Payment for Order ${orderId ?? ''}`;
-      initializeFlow('payment', title, {
-        orderId,
-        total: detail?.total || getRecentTotal(),
+      initializeFlow('pay-order', title, {
+        order_id: orderId,
+        total_amount: detail?.total || getRecentTotal(),
       });
     };
     window.addEventListener(
