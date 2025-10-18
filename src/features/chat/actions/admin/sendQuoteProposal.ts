@@ -73,7 +73,7 @@ export async function sendQuoteProposal(
   const config = actionNode.action_config as any;
   const conversationIdKey = config.conversation_id_key || 'session_id';
   // Note: conversationId here refers to the CUSTOMER's quote session (ask-quote flow),
-  // NOT the admin's chat session (admin-admin-quote-propose flow)
+  // NOT the admin's chat session (admin-quote-propose flow)
   const conversationId = String(context[conversationIdKey] || '').trim();
 
   if (!conversationId) {

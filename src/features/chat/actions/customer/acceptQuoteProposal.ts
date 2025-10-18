@@ -32,18 +32,16 @@
  * ```
  */
 import { supabase } from '@lib/supabase';
-import { updateSessionMetadata } from '@features/chat/helpers/flowHelpers';
 import type {
   ActionExecutionParams,
   ActionExecutionResult,
 } from '@features/chat/types';
-import type { SessionMetadata } from '@features/chat/types';
 
 export async function acceptQuoteProposal(
   params: ActionExecutionParams
 ): Promise<ActionExecutionResult> {
   console.log('[acceptQuoteProposal] Action called with params:', params);
-  const { actionNode, context, sessionId } = params;
+  const { actionNode, context } = params;
   const messages: Array<{
     id: string;
     role: 'printy';
