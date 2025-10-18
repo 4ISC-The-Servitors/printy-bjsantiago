@@ -122,6 +122,7 @@ export function useCustomerConversations() {
 
   const handleSend = useCallback(
     async (text: string) => {
+      console.log('[handleSend] Called with text:', text);
       if (!activeId || !sessionId) return;
 
       const userMessage: ChatMessage = {
@@ -269,11 +270,13 @@ export function useCustomerConversations() {
 
   const handleQuickReply = useCallback(
     (value: string) => {
+      console.log('[handleQuickReply] Quick reply clicked with value:', value);
       const normalized = (value ?? '').trim().toLowerCase();
       if (normalized === 'end chat' || normalized === 'end') {
         void endChatWithSequence();
         return;
       }
+      console.log('[handleQuickReply] Sending to handleSend:', value);
       void handleSend(value);
     },
     [handleSend, endChatWithSequence]

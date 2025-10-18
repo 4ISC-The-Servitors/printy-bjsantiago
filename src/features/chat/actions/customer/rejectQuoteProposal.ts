@@ -1,15 +1,14 @@
 /**
  * Action handler: reject_quote_proposal
  *
- * Queues a quote proposal rejection for processing after user acknowledgement.
- * This action stores the rejection intent in session metadata as a pending action,
- * which will be processed when the conversation ends.
+ * Rejects a quote proposal by updating the database status to 'Rejected'.
+ * This action immediately updates both quote_proposals and quotes tables.
  *
  * @description
  * - Retrieves the conversation ID from session context
- * - Stores 'pending_quote_action: reject' in session metadata
- * - Actual database update happens after user acknowledges the rejection
- * - Updates both quote_proposals and quotes tables
+ * - Updates quote_proposals status to 'Rejected'
+ * - Updates quotes status to 'Rejected'
+ * - Logs the rejection for audit purposes
  *
  * @param params.actionNode - The action node from the flow definition
  * @param params.context - Current session context containing conversation_id
@@ -34,17 +33,16 @@
  */
 
 import { supabase } from '@lib/supabase';
-import { updateSessionMetadata } from '@features/chat/helpers/flowHelpers';
 import type {
   ActionExecutionParams,
   ActionExecutionResult,
 } from '@features/chat/types';
-import type { SessionMetadata } from '@features/chat/types';
 
 export async function rejectQuoteProposal(
   params: ActionExecutionParams
 ): Promise<ActionExecutionResult> {
-  const { actionNode, context, sessionId } = params;
+  console.log('[rejectQuoteProposal] Action called with params:', params);
+  const { actionNode, context } = params;
   const messages: Array<{
     id: string;
     role: 'printy';
@@ -52,10 +50,9 @@ export async function rejectQuoteProposal(
     ts: number;
   }> = [];
 
-  // Store the conversation ID for later database update
   const config = actionNode.action_config as any;
   const conversationIdKey = config.conversation_id_key || 'conversation_id';
-  const conversationId = String(context[conversationIdKey] || '').trim();
+  let conversationId = String(context[conversationIdKey] || '').trim();
 
   if (!conversationId) {
     messages.push({
@@ -67,50 +64,93 @@ export async function rejectQuoteProposal(
     return { messages };
   }
 
-  // Get current metadata and update context
-  const { data: currentSession } = await supabase
-    .from('chat_sessions_v2')
-    .select('metadata')
-    .eq('session_id', sessionId)
-    .single();
-
-  console.log(
-    '[RejectQuote] Current session metadata before update:',
-    currentSession?.metadata
-  );
-
-  if (currentSession) {
-    const currentMetadata = currentSession.metadata as SessionMetadata;
-    const updatedMetadata = {
-      ...currentMetadata,
-      context: {
-        ...currentMetadata.context,
-        ...context,
-        pending_quote_action: 'reject',
-        pending_conversation_id: conversationId,
-      },
-    };
-
-    console.log('[RejectQuote] Updated metadata to save:', updatedMetadata);
-
-    await updateSessionMetadata(sessionId, updatedMetadata);
-
-    // Verify the update
-    const { data: verifySession } = await supabase
-      .from('chat_sessions_v2')
-      .select('metadata')
-      .eq('session_id', sessionId)
-      .single();
+  // If conversationId is a quote_id, we need to find the actual session_id
+  if (conversationId && conversationId.length > 30) {
     console.log(
-      '[RejectQuote] Metadata after update:',
-      verifySession?.metadata
+      '[rejectQuoteProposal] conversationId looks like quote_id, finding session_id...'
     );
+
+    // Query quotes table to get the session_id for this quote
+    const { data: quoteData } = await supabase
+      .from('quotes')
+      .select('session_id')
+      .eq('quote_id', conversationId)
+      .single();
+
+    if (quoteData?.session_id) {
+      conversationId = quoteData.session_id;
+      console.log('[rejectQuoteProposal] Found session_id:', conversationId);
+    } else {
+      console.error(
+        '[rejectQuoteProposal] No session_id found for quote_id:',
+        conversationId
+      );
+      messages.push({
+        id: crypto.randomUUID(),
+        role: 'printy',
+        text: 'Quote not found. Please try again.',
+        ts: Date.now(),
+      });
+      return { messages };
+    }
   }
 
-  console.log(
-    '[RejectQuote] Quote rejection queued for conversation:',
-    conversationId
-  );
+  try {
+    // Update quote_proposals status to 'rejected'
+    const { error: proposalError } = await supabase
+      .from('quote_proposals')
+      .update({
+        status: 'rejected',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('session_id', conversationId);
 
-  return { messages };
+    if (proposalError) {
+      console.error('Error updating quote_proposals:', proposalError);
+      messages.push({
+        id: crypto.randomUUID(),
+        role: 'printy',
+        text: 'Error rejecting quote proposal. Please try again.',
+        ts: Date.now(),
+      });
+      return { messages };
+    }
+
+    // Update quotes status to 'rejected'
+    const { error: quoteError } = await supabase
+      .from('quotes')
+      .update({
+        status: 'rejected',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('session_id', conversationId);
+
+    if (quoteError) {
+      console.error('Error updating quotes:', quoteError);
+      messages.push({
+        id: crypto.randomUUID(),
+        role: 'printy',
+        text: 'Error rejecting quote. Please try again.',
+        ts: Date.now(),
+      });
+      return { messages };
+    }
+
+    console.log(
+      '[RejectQuote] Quote proposal rejected for conversation:',
+      conversationId
+    );
+
+    // Return empty messages - the flow processor will handle the confirmation message
+    return { messages: [] };
+  } catch (error) {
+    console.error('Error rejecting quote proposal:', error);
+    messages.push({
+      id: crypto.randomUUID(),
+      role: 'printy',
+      text: 'Error rejecting quote proposal. Please try again.',
+      ts: Date.now(),
+    });
+    return { messages };
+  }
 }

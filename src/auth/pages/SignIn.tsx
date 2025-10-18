@@ -3,14 +3,10 @@
 // Also replace any mock/toast-only flows with real error handling from Supabase.
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Button,
-  Container,
-  ToastContainer,
-} from '@shared/components';
-import Header from '../components/SignIn/Header';
-import SignInForm from '../components/SignIn/SignInForm';
-import { useSignIn } from '../components/SignIn/useSignIn';
+import { Button, Container, ToastContainer } from '@shared/components';
+import Header from '@auth/components/SignIn/Header';
+import SignInForm from '@auth/components/SignIn/SignInForm';
+import { useSignIn } from '@auth/components/SignIn/useSignIn';
 import { ArrowLeft } from 'lucide-react';
 
 // TODO: Backend Integration
@@ -78,7 +74,6 @@ const SignIn: React.FC = () => {
             />
           </form>
         </div>
-
       </Container>
 
       {/* Toast Container */}

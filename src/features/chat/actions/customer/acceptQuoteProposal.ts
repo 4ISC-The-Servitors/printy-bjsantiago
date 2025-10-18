@@ -1,15 +1,14 @@
 /**
  * Action handler: accept_quote_proposal
  *
- * Queues a quote proposal acceptance for processing after user acknowledgement.
- * This action stores the acceptance intent in session metadata as a pending action,
- * which will be processed when the conversation ends.
+ * Accepts a quote proposal by updating the database status to 'Accepted'.
+ * This action immediately updates both quote_proposals and quotes tables.
  *
  * @description
  * - Retrieves the conversation ID from session context
- * - Stores 'pending_quote_action: accept' in session metadata
- * - Actual database update happens after user acknowledges the acceptance
- * - Updates both quote_proposals and quotes tables
+ * - Updates quote_proposals status to 'Accepted'
+ * - Updates quotes status to 'Accepted'
+ * - Logs the acceptance for audit purposes
  *
  * @param params.actionNode - The action node from the flow definition
  * @param params.context - Current session context containing conversation_id
@@ -33,17 +32,16 @@
  * ```
  */
 import { supabase } from '@lib/supabase';
-import { updateSessionMetadata } from '@features/chat/helpers/flowHelpers';
 import type {
   ActionExecutionParams,
   ActionExecutionResult,
 } from '@features/chat/types';
-import type { SessionMetadata } from '@features/chat/types';
 
 export async function acceptQuoteProposal(
   params: ActionExecutionParams
 ): Promise<ActionExecutionResult> {
-  const { actionNode, context, sessionId } = params;
+  console.log('[acceptQuoteProposal] Action called with params:', params);
+  const { actionNode, context } = params;
   const messages: Array<{
     id: string;
     role: 'printy';
@@ -51,10 +49,9 @@ export async function acceptQuoteProposal(
     ts: number;
   }> = [];
 
-  // Store the conversation ID for later database update
   const config = actionNode.action_config as any;
   const conversationIdKey = config.conversation_id_key || 'conversation_id';
-  const conversationId = String(context[conversationIdKey] || '').trim();
+  let conversationId = String(context[conversationIdKey] || '').trim();
 
   if (!conversationId) {
     messages.push({
@@ -66,50 +63,138 @@ export async function acceptQuoteProposal(
     return { messages };
   }
 
-  // Get current metadata and update context
-  const { data: currentSession } = await supabase
-    .from('chat_sessions_v2')
-    .select('metadata')
-    .eq('session_id', sessionId)
-    .single();
-
-  console.log(
-    '[AcceptQuote] Current session metadata before update:',
-    currentSession?.metadata
-  );
-
-  if (currentSession) {
-    const currentMetadata = currentSession.metadata as SessionMetadata;
-    const updatedMetadata = {
-      ...currentMetadata,
-      context: {
-        ...currentMetadata.context,
-        ...context,
-        pending_quote_action: 'accept',
-        pending_conversation_id: conversationId,
-      },
-    };
-
-    console.log('[AcceptQuote] Updated metadata to save:', updatedMetadata);
-
-    await updateSessionMetadata(sessionId, updatedMetadata);
-
-    // Verify the update
-    const { data: verifySession } = await supabase
-      .from('chat_sessions_v2')
-      .select('metadata')
-      .eq('session_id', sessionId)
-      .single();
+  // If conversationId is a quote_id, we need to find the actual session_id
+  if (conversationId && conversationId.length > 30) {
     console.log(
-      '[AcceptQuote] Metadata after update:',
-      verifySession?.metadata
+      '[acceptQuoteProposal] conversationId looks like quote_id, finding session_id...'
     );
+
+    // Query quotes table to get the session_id for this quote
+    const { data: quoteData } = await supabase
+      .from('quotes')
+      .select('session_id')
+      .eq('quote_id', conversationId)
+      .single();
+
+    if (quoteData?.session_id) {
+      conversationId = quoteData.session_id;
+      console.log('[acceptQuoteProposal] Found session_id:', conversationId);
+    } else {
+      console.error(
+        '[acceptQuoteProposal] No session_id found for quote_id:',
+        conversationId
+      );
+      messages.push({
+        id: crypto.randomUUID(),
+        role: 'printy',
+        text: 'Quote not found. Please try again.',
+        ts: Date.now(),
+      });
+      return { messages };
+    }
   }
 
-  console.log(
-    '[AcceptQuote] Quote acceptance queued for conversation:',
-    conversationId
-  );
+  try {
+    console.log(
+      '[acceptQuoteProposal] Updating quote_proposals for session_id:',
+      conversationId
+    );
 
-  return { messages };
+    // Update quote_proposals status to 'accepted'
+    const { data: proposalData, error: proposalError } = await supabase
+      .from('quote_proposals')
+      .update({
+        status: 'accepted',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('session_id', conversationId)
+      .select();
+
+    console.log('[acceptQuoteProposal] quote_proposals update result:', {
+      data: proposalData,
+      error: proposalError,
+      count: proposalData?.length,
+    });
+
+    if (proposalError) {
+      console.error('Error updating quote_proposals:', proposalError);
+      messages.push({
+        id: crypto.randomUUID(),
+        role: 'printy',
+        text: 'Error accepting quote proposal. Please try again.',
+        ts: Date.now(),
+      });
+      return { messages };
+    }
+
+    if (!proposalData || proposalData.length === 0) {
+      console.warn(
+        '[acceptQuoteProposal] No quote_proposals found for session_id:',
+        conversationId
+      );
+      messages.push({
+        id: crypto.randomUUID(),
+        role: 'printy',
+        text: 'No quote proposal found for this session. Please try again.',
+        ts: Date.now(),
+      });
+      return { messages };
+    }
+
+    // Update quotes status to 'accepted'
+    console.log(
+      '[acceptQuoteProposal] Updating quotes for session_id:',
+      conversationId
+    );
+
+    const { data: quoteData, error: quoteError } = await supabase
+      .from('quotes')
+      .update({
+        status: 'accepted',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('session_id', conversationId)
+      .select();
+
+    console.log('[acceptQuoteProposal] quotes update result:', {
+      data: quoteData,
+      error: quoteError,
+      count: quoteData?.length,
+    });
+
+    if (quoteError) {
+      console.error('Error updating quotes:', quoteError);
+      messages.push({
+        id: crypto.randomUUID(),
+        role: 'printy',
+        text: 'Error accepting quote. Please try again.',
+        ts: Date.now(),
+      });
+      return { messages };
+    }
+
+    if (!quoteData || quoteData.length === 0) {
+      console.warn(
+        '[acceptQuoteProposal] No quotes found for session_id:',
+        conversationId
+      );
+    }
+
+    console.log(
+      '[AcceptQuote] Quote proposal accepted for conversation:',
+      conversationId
+    );
+
+    // Return empty messages - the flow processor will handle the confirmation message
+    return { messages: [] };
+  } catch (error) {
+    console.error('Error accepting quote proposal:', error);
+    messages.push({
+      id: crypto.randomUUID(),
+      role: 'printy',
+      text: 'Error accepting quote proposal. Please try again.',
+      ts: Date.now(),
+    });
+    return { messages };
+  }
 }

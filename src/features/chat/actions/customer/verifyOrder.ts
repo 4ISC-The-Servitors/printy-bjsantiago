@@ -6,7 +6,7 @@
  *
  * @description
  * - Accepts order ID from user input (display_id or UUID)
- * - Queries orders_duplicate table with customer_id verification
+ * - Queries orders table with customer_id verification
  * - Tries display_id match first, then falls back to UUID match
  * - Stores verified_order_id in session metadata for subsequent actions
  * - Returns success or error message based on verification result
@@ -38,11 +38,21 @@
  */
 
 import { supabase } from '@lib/supabase';
-import type { ActionExecutionParams, ActionExecutionResult } from '@features/chat/types';
+import type {
+  ActionExecutionParams,
+  ActionExecutionResult,
+} from '@features/chat/types';
 
-export async function verifyOrder(params: ActionExecutionParams): Promise<ActionExecutionResult> {
+export async function verifyOrder(
+  params: ActionExecutionParams
+): Promise<ActionExecutionResult> {
   const { actionNode, context, customerId, sessionId } = params;
-  const messages: Array<{ id: string; role: 'printy'; text: string; ts: number }> = [];
+  const messages: Array<{
+    id: string;
+    role: 'printy';
+    text: string;
+    ts: number;
+  }> = [];
 
   const config = actionNode.action_config as any;
   const orderIdKey = config?.order_id_key || 'order_id';
@@ -62,12 +72,13 @@ export async function verifyOrder(params: ActionExecutionParams): Promise<Action
   let orderRow: any | null = null;
   try {
     // Try match by display_id first (human-friendly like ORD-12345)
-    const { data: byDisplay, error: errDisplay } = await supabase
-      .from('orders_duplicate')
-      .select('order_id, customer_id, status, payment_proof')
-      .eq('display_id', orderId)
-      .eq('customer_id', customerId)
-      .maybeSingle?.() ?? { data: null, error: null } as any;
+    const { data: byDisplay, error: errDisplay } =
+      (await supabase
+        .from('orders')
+        .select('order_id, customer_id, status, payment_proof')
+        .eq('display_id', orderId)
+        .eq('customer_id', customerId)
+        .maybeSingle?.()) ?? ({ data: null, error: null } as any);
 
     if (!errDisplay && byDisplay) {
       orderRow = byDisplay;
@@ -75,12 +86,13 @@ export async function verifyOrder(params: ActionExecutionParams): Promise<Action
 
     if (!orderRow) {
       // Try match by UUID order_id if user pasted raw UUID
-      const { data: byUuid, error: errUuid } = await supabase
-        .from('orders_duplicate')
-        .select('order_id, customer_id, status, payment_proof')
-        .eq('order_id', orderId)
-        .eq('customer_id', customerId)
-        .maybeSingle?.() ?? { data: null, error: null } as any;
+      const { data: byUuid, error: errUuid } =
+        (await supabase
+          .from('orders')
+          .select('order_id, customer_id, status, payment_proof')
+          .eq('order_id', orderId)
+          .eq('customer_id', customerId)
+          .maybeSingle?.()) ?? ({ data: null, error: null } as any);
 
       if (!errUuid && byUuid) {
         orderRow = byUuid;
@@ -103,7 +115,9 @@ export async function verifyOrder(params: ActionExecutionParams): Promise<Action
   // Save into session metadata context
   await supabase
     .from('chat_sessions_v2')
-    .update({ metadata: { ...context, verified_order_id: orderRow.order_id } as any })
+    .update({
+      metadata: { ...context, verified_order_id: orderRow.order_id } as any,
+    })
     .eq('session_id', sessionId);
 
   messages.push({

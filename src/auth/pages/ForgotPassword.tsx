@@ -7,10 +7,10 @@ import {
   Container,
   ToastContainer,
 } from '@shared/components';
-import { useToast } from '../../lib/useToast';
+import { useToast } from '@lib/useToast';
 import { ArrowLeft, Mail, CheckCircle2 } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
-import { assertHumanTurnstile } from '../../lib/turnstile';
+import { supabase } from '@lib/supabase';
+import { assertHumanTurnstile } from '@lib/turnstile';
 
 // TODO: Backend Integration
 // - Implement real password reset with Supabase Auth

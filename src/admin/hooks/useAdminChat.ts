@@ -318,17 +318,36 @@ export const useAdminChat = (): UseAdminChatReturn => {
 
       // Handle async initial() for JSONB admin-quote-propose
       void (async () => {
-        const flowDef = await getFlowDefinition('admin-quote-propose');
-        if (!flowDef) return;
-        const start = await JsonbFlowProcessor.startFlow({
-          flowId: 'admin-quote-propose',
-          customerId:
-            (await supabase.auth.getUser()).data?.user?.id ||
-            '00000000-0000-0000-0000-000000000000',
-          flowDefinition: flowDef,
-          initialContext: { session_id: orderId },
-        });
-        setDbSessionId(start.sessionId);
+        let start: any = null;
+        try {
+          console.log('🔍 Loading admin-quote-propose flow definition...');
+          const flowDef = await getFlowDefinition('admin-quote-propose');
+          if (!flowDef) {
+            console.error('Failed to load flow definition');
+            return;
+          }
+          console.log('Flow definition loaded:', flowDef);
+          
+          console.log('Starting admin-quote-propose flow...');
+          start = await JsonbFlowProcessor.startFlow({
+            flowId: 'admin-quote-propose',
+            customerId:
+              (await supabase.auth.getUser()).data?.user?.id ||
+              '00000000-0000-0000-0000-000000000000',
+            flowDefinition: flowDef,
+            initialContext: { session_id: orderId },
+          });
+          console.log('Flow started successfully:', start);
+          setDbSessionId(start.sessionId);
+        } catch (error) {
+          console.error('Error starting admin-quote-propose flow:', error);
+          return;
+        }
+        
+        if (!start) {
+          console.error('Flow start failed - no result');
+          return;
+        }
         
         // Persist admin chat session to database for "All Chats" view
         try {
@@ -354,8 +373,10 @@ export const useAdminChat = (): UseAdminChatReturn => {
         } catch (e) {
           console.error('Failed to update admin chat metadata:', e);
         }
+        
+        console.log('Appending messages to UI:', start.messages);
         await appendMessagesWithTyping(
-          start.messages.map(m => ({ role: m.role as ChatRole, text: m.text }))
+          start.messages.map((m: any) => ({ role: m.role as ChatRole, text: m.text }))
         );
         // Inject smarter quick replies if there is already a saved spec for this quote session
         try {
@@ -407,7 +428,7 @@ export const useAdminChat = (): UseAdminChatReturn => {
           } catch {}
         }
 
-        start.messages.forEach(m => addConvMessage('printy', m.text, convId));
+        start.messages.forEach((m: any) => addConvMessage('printy', m.text, convId));
 
         // No extra respond step; the JSONB flow already displayed details via action auto-advance
       })();

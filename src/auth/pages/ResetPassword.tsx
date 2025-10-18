@@ -7,9 +7,9 @@ import {
   Container,
   ToastContainer,
 } from '@shared/components';
-import { useToast } from '../../lib/useToast';
+import { useToast } from '@lib/useToast';
 import { ArrowLeft, CheckCircle2, Eye, EyeOff } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { supabase } from '@lib/supabase';
 
 // TODO: Backend Integration
 // - Validate access token and type from URL

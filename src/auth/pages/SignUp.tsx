@@ -1,17 +1,12 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Button,
-  Text,
-  Container,
-  ToastContainer,
-} from '@shared/components';
-import ProgressIndicator from '../components/SignUp/ProgressIndicator';
-import Step1Account from '../components/SignUp/Step1Account';
-import Step2Personal from '../components/SignUp/Step2Personal';
-import Step3Address from '../components/SignUp/Step3Address';
-import NavigationButtons from '../components/SignUp/NavigationButtons';
-import { useSignUp } from '../components/SignUp/useSignUp';
+import { Button, Text, Container, ToastContainer } from '@shared/components';
+import ProgressIndicator from '@auth/components/SignUp/ProgressIndicator';
+import Step1Account from '@auth/components/SignUp/Step1Account';
+import Step2Personal from '@auth/components/SignUp/Step2Personal';
+import Step3Address from '@auth/components/SignUp/Step3Address';
+import NavigationButtons from '@auth/components/SignUp/NavigationButtons';
+import { useSignUp } from '@auth/components/SignUp/useSignUp';
 import { ArrowLeft } from 'lucide-react';
 
 const SignUp: React.FC = () => {
@@ -32,7 +27,6 @@ const SignUp: React.FC = () => {
     isStepValid,
     handleSubmit,
   } = useSignUp();
-
 
   const titles: Record<number, string> = {
     1: 'Account Information',
