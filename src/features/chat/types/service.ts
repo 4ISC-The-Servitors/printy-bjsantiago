@@ -34,6 +34,7 @@ export interface ActionExecutionResult {
     text: string;
     ts: number;
   }>;
+  context?: Partial<SessionContext>;
 }
 
 export type ActionHandler = (

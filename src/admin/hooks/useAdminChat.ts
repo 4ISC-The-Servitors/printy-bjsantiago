@@ -10,7 +10,10 @@ import { useAdmin } from '@admin/hooks/AdminContext';
 import { useInquiryActions } from './useInquiryActions';
 import { useAdminConversations } from './useAdminConversations';
 import { ChatDatabaseService } from '@features/chat/services/ChatDatabaseService';
-import { editSavedSpecs, sendQuoteProposal } from '@features/chat/actions/admin';
+import {
+  editSavedSpecs,
+  sendQuoteProposal,
+} from '@features/chat/actions/admin';
 import { supabase } from '@lib/supabase';
 
 export interface UseAdminChatReturn {
@@ -65,15 +68,19 @@ export const useAdminChat = (): UseAdminChatReturn => {
   const [dbSessionId, setDbSessionId] = useState<string | null>(null);
 
   // Helper: append Printy messages gradually with typing indicator
+  // Set skipDelay=true for admin flows to show messages instantly
   const appendMessagesWithTyping = async (
-    botTexts: { role: ChatRole; text: string }[]
+    botTexts: { role: ChatRole; text: string }[],
+    skipDelay: boolean = false
   ) => {
     for (const m of botTexts) {
-      setIsTyping(true);
-      // Simple delay heuristic: base 350ms + 25ms per 20 chars
-      const delay =
-        350 + Math.min(1200, Math.floor((m.text?.length || 0) / 20) * 25);
-      await new Promise(r => setTimeout(r, delay));
+      if (!skipDelay) {
+        setIsTyping(true);
+        // Simple delay heuristic: base 350ms + 25ms per 20 chars
+        const delay =
+          350 + Math.min(1200, Math.floor((m.text?.length || 0) / 20) * 25);
+        await new Promise(r => setTimeout(r, delay));
+      }
       const botMsg = {
         id: crypto.randomUUID(),
         role: m.role,
@@ -83,7 +90,9 @@ export const useAdminChat = (): UseAdminChatReturn => {
       setMessages(prev => [...prev, botMsg]);
       if (currentConversationId)
         addConvMessage('printy', m.text, currentConversationId);
-      setIsTyping(false);
+      if (!skipDelay) {
+        setIsTyping(false);
+      }
     }
   };
 
@@ -112,7 +121,11 @@ export const useAdminChat = (): UseAdminChatReturn => {
     const existing = currentConversationId
       ? conversations.find(c => c.id === currentConversationId)
       : null;
-    if (readOnly || viewingHistorical || (existing && existing.status === 'ended')) {
+    if (
+      readOnly ||
+      viewingHistorical ||
+      (existing && existing.status === 'ended')
+    ) {
       // Close the dock and reset transient chat state so a fresh chat can start next time
       setChatOpen(false);
       setMessages([]);
@@ -316,39 +329,128 @@ export const useAdminChat = (): UseAdminChatReturn => {
       const convId = startConversation ? startConversation(title) : 'conv';
       setCurrentConversationId(convId);
 
-      // Handle async initial() for JSONB admin-quote-propose
+      // Handle async initial() for JSONB admin flows - check quote status first
       void (async () => {
         let start: any = null;
+        // ✅ FIX: Declare flowId at function scope so it's accessible throughout
+        let flowId = 'admin-quote-propose'; // default
+
         try {
-          console.log('🔍 Loading admin-quote-propose flow definition...');
-          const flowDef = await getFlowDefinition('admin-quote-propose');
+          // For quotes topic, check the quote status to determine which flow to start
+          let flowDef = null;
+
+          if (nextTopic === 'quotes' && orderId) {
+            console.log('🔍 Checking quote status for session_id:', orderId);
+
+            // Check quote status to determine which flow to start
+            const { data: quoteData, error: quoteError } = await supabase
+              .from('quotes')
+              .select('status, quote_id, session_id')
+              .eq('session_id', orderId)
+              .single();
+
+            if (!quoteError && quoteData) {
+              console.log('📊 Quote status:', quoteData.status);
+
+              if (quoteData.status === 'accepted') {
+                console.log(
+                  '✅ Quote is accepted - starting admin-create-order flow'
+                );
+                flowId = 'admin-create-order';
+
+                // Get the accepted proposal for context
+                const { data: proposalData } = await supabase
+                  .from('quote_proposals')
+                  .select('proposal_id')
+                  .eq('session_id', orderId)
+                  .eq('status', 'accepted')
+                  .single();
+
+                if (proposalData) {
+                  console.log(
+                    '📋 Found accepted proposal:',
+                    proposalData.proposal_id
+                  );
+                  // Update context with quote_id and proposal_id
+                  context = {
+                    ...context,
+                    quote_id: quoteData.quote_id,
+                    proposal_id: proposalData.proposal_id,
+                    session_id: orderId,
+                  };
+                }
+              } else {
+                // For non-accepted quotes, check if there are saved specs
+                console.log(
+                  '📝 Quote is not accepted - checking for saved specs'
+                );
+
+                const { data: savedSpecs } = await supabase
+                  .from('quote_specs')
+                  .select('spec_id, spec_data')
+                  .eq('session_id', orderId)
+                  .order('created_at', { ascending: false })
+                  .limit(1);
+
+                if (savedSpecs && savedSpecs.length > 0) {
+                  console.log(
+                    '📋 Found saved specs - using admin-quote-propose flow with saved specs context'
+                  );
+                  flowId = 'admin-quote-propose';
+                  context = {
+                    ...context,
+                    quote_id: quoteData.quote_id,
+                    session_id: orderId,
+                    has_saved_specs: true,
+                    saved_spec_id: savedSpecs[0].spec_id,
+                  };
+                } else {
+                  console.log(
+                    '📝 No saved specs found - using admin-quote-propose flow for new specs'
+                  );
+                  flowId = 'admin-quote-propose';
+                  context = {
+                    ...context,
+                    quote_id: quoteData.quote_id,
+                    session_id: orderId,
+                    has_saved_specs: false,
+                  };
+                }
+              }
+            } else {
+              console.log('⚠️ Could not find quote data, using default flow');
+            }
+          }
+
+          console.log(`🔍 Loading ${flowId} flow definition...`);
+          flowDef = await getFlowDefinition(flowId);
           if (!flowDef) {
-            console.error('Failed to load flow definition');
+            console.error(`Failed to load flow definition for ${flowId}`);
             return;
           }
           console.log('Flow definition loaded:', flowDef);
-          
-          console.log('Starting admin-quote-propose flow...');
+
+          console.log(`Starting ${flowId} flow...`);
           start = await JsonbFlowProcessor.startFlow({
-            flowId: 'admin-quote-propose',
+            flowId,
             customerId:
               (await supabase.auth.getUser()).data?.user?.id ||
               '00000000-0000-0000-0000-000000000000',
             flowDefinition: flowDef,
-            initialContext: { session_id: orderId },
+            initialContext: { session_id: orderId, ...context },
           });
           console.log('Flow started successfully:', start);
           setDbSessionId(start.sessionId);
         } catch (error) {
-          console.error('Error starting admin-quote-propose flow:', error);
+          console.error(`Error starting flow:`, error);
           return;
         }
-        
+
         if (!start) {
           console.error('Flow start failed - no result');
           return;
         }
-        
+
         // Persist admin chat session to database for "All Chats" view
         try {
           const { data: existingSession } = await supabase
@@ -367,47 +469,69 @@ export const useAdminChat = (): UseAdminChatReturn => {
               },
             })
             .eq('session_id', start.sessionId);
-          
+
           // Refresh the conversations list to show the new session
           await loadAdminChatSessions();
         } catch (e) {
           console.error('Failed to update admin chat metadata:', e);
         }
-        
+
         console.log('Appending messages to UI:', start.messages);
+        // ✅ FIX: Skip typing delays for admin-create-order flow (shows messages instantly)
+        // Keep delays for admin-quote-propose to feel more conversational
+        const skipDelay = flowId === 'admin-create-order';
         await appendMessagesWithTyping(
-          start.messages.map((m: any) => ({ role: m.role as ChatRole, text: m.text }))
+          start.messages.map((m: any) => ({
+            role: m.role as ChatRole,
+            text: m.text,
+          })),
+          skipDelay
         );
-        // Inject smarter quick replies if there is already a saved spec for this quote session
-        try {
-          if (orderId) {
-            const { data: existingSpecs } = await supabase
-              .from('quote_specs')
-              .select('spec_id')
-              .eq('session_id', orderId)
-              .order('created_at', { ascending: false })
-              .limit(1);
-            if (existingSpecs && existingSpecs.length > 0) {
-              // Remind admin there is a drafted spec and present actions
-              await appendMessagesWithTyping([
-                {
-                  role: 'printy',
-                  text:
-                    'You have drafted an order specs for this quote request. What do you want to do?',
-                },
-              ]);
-              setQuickReplies([
-                { id: 'qr-edit-specs', label: 'Edit Specs', value: '__edit_specs__' },
-                { id: 'qr-send-specs', label: 'Send Specs to Customer', value: '__send_specs__' },
-                { id: 'qr-end', label: 'End Chat', value: 'End Chat' },
-              ]);
+
+        // ✅ FIX: Only check for saved specs if this is admin-quote-propose flow
+        // For admin-create-order flow, skip this check entirely
+        if (flowId === 'admin-quote-propose') {
+          // Inject smarter quick replies if there is already a saved spec for this quote session
+          try {
+            if (orderId) {
+              const { data: existingSpecs } = await supabase
+                .from('quote_specs')
+                .select('spec_id')
+                .eq('session_id', orderId)
+                .order('created_at', { ascending: false })
+                .limit(1);
+              if (existingSpecs && existingSpecs.length > 0) {
+                // Remind admin there is a drafted spec and present actions
+                await appendMessagesWithTyping([
+                  {
+                    role: 'printy',
+                    text: 'You have drafted an order specs for this quote request. What do you want to do?',
+                  },
+                ]);
+                setQuickReplies([
+                  {
+                    id: 'qr-edit-specs',
+                    label: 'Edit Specs',
+                    value: '__edit_specs__',
+                  },
+                  {
+                    id: 'qr-send-specs',
+                    label: 'Send Specs to Customer',
+                    value: '__send_specs__',
+                  },
+                  { id: 'qr-end', label: 'End Chat', value: 'End Chat' },
+                ]);
+              } else {
+                setQuickReplies(start.quickReplies || []);
+              }
             } else {
               setQuickReplies(start.quickReplies || []);
             }
-          } else {
+          } catch {
             setQuickReplies(start.quickReplies || []);
           }
-        } catch {
+        } else {
+          // For other flows (like admin-create-order), just use the flow's quick replies
           setQuickReplies(start.quickReplies || []);
         }
 
@@ -428,7 +552,9 @@ export const useAdminChat = (): UseAdminChatReturn => {
           } catch {}
         }
 
-        start.messages.forEach((m: any) => addConvMessage('printy', m.text, convId));
+        start.messages.forEach((m: any) =>
+          addConvMessage('printy', m.text, convId)
+        );
 
         // No extra respond step; the JSONB flow already displayed details via action auto-advance
       })();
@@ -449,9 +575,10 @@ export const useAdminChat = (): UseAdminChatReturn => {
         setReadOnly(true);
         setQuickReplies([]);
         setDbSessionId(conversationId);
-        
+
         try {
-          const historicalMessages = await loadHistoricalMessages(conversationId);
+          const historicalMessages =
+            await loadHistoricalMessages(conversationId);
           setMessages(historicalMessages);
         } catch (error) {
           console.error('Failed to load historical messages:', error);
@@ -551,22 +678,42 @@ export const useAdminChat = (): UseAdminChatReturn => {
       void (async () => {
         try {
           const resp = await editSavedSpecs({
-            actionNode: { id: 'edit_saved_specs', type: 'action', action: 'edit_saved_specs', action_config: { conversation_id_key: 'session_id' } } as any,
-            context: { session_id: (await supabase
-              .from('chat_sessions_v2')
-              .select('metadata')
-              .eq('session_id', dbSessionId)
-              .single()
-            ).data?.metadata?.context?.session_id || null } as any,
+            actionNode: {
+              id: 'edit_saved_specs',
+              type: 'action',
+              action: 'edit_saved_specs',
+              action_config: { conversation_id_key: 'session_id' },
+            } as any,
+            context: {
+              session_id:
+                (
+                  await supabase
+                    .from('chat_sessions_v2')
+                    .select('metadata')
+                    .eq('session_id', dbSessionId)
+                    .single()
+                ).data?.metadata?.context?.session_id || null,
+            } as any,
             sessionId: dbSessionId,
             customerId: (await supabase.auth.getUser()).data?.user?.id || '',
           });
           for (const m of resp.messages) {
-            setMessages(prev => [...prev, { id: m.id, role: m.role, text: m.text, ts: m.ts }]);
+            setMessages(prev => [
+              ...prev,
+              { id: m.id, role: m.role, text: m.text, ts: m.ts },
+            ]);
           }
           setQuickReplies([
-            { id: 'qr-edit-specs', label: 'Edit Specs', value: '__edit_specs__' },
-            { id: 'qr-send-specs', label: 'Send Specs to Customer', value: '__send_specs__' },
+            {
+              id: 'qr-edit-specs',
+              label: 'Edit Specs',
+              value: '__edit_specs__',
+            },
+            {
+              id: 'qr-send-specs',
+              label: 'Send Specs to Customer',
+              value: '__send_specs__',
+            },
             { id: 'qr-end', label: 'End Chat', value: 'End Chat' },
           ]);
         } catch (e) {
@@ -580,18 +727,31 @@ export const useAdminChat = (): UseAdminChatReturn => {
       void (async () => {
         try {
           const resp = await sendQuoteProposal({
-            actionNode: { id: 'send_specs', type: 'action', action: 'send_quote_proposal', action_config: { conversation_id_key: 'session_id' } } as any,
-            context: { session_id: (await supabase
-              .from('chat_sessions_v2')
-              .select('metadata')
-              .eq('session_id', dbSessionId)
-              .single()
-            ).data?.metadata?.context?.session_id || null } as any,
+            actionNode: {
+              id: 'send_specs',
+              type: 'action',
+              action: 'send_quote_proposal',
+              action_config: { conversation_id_key: 'session_id' },
+            } as any,
+            context: {
+              session_id:
+                (
+                  await supabase
+                    .from('chat_sessions_v2')
+                    .select('metadata')
+                    .eq('session_id', dbSessionId)
+                    .single()
+                ).data?.metadata?.context?.session_id || null,
+            } as any,
             sessionId: dbSessionId,
             customerId: (await supabase.auth.getUser()).data?.user?.id || '',
           });
-          await appendMessagesWithTyping(resp.messages.map(m => ({ role: m.role as ChatRole, text: m.text })));
-          setQuickReplies([{ id: 'qr-end', label: 'End Chat', value: 'End Chat' }]);
+          await appendMessagesWithTyping(
+            resp.messages.map(m => ({ role: m.role as ChatRole, text: m.text }))
+          );
+          setQuickReplies([
+            { id: 'qr-end', label: 'End Chat', value: 'End Chat' },
+          ]);
         } catch (e) {
           console.error('Failed to send specs', e);
         }
@@ -681,7 +841,23 @@ export const useAdminChat = (): UseAdminChatReturn => {
 
     void (async () => {
       try {
-        const flowDef = await getFlowDefinition('admin-quote-propose');
+        // Determine which flow to use based on current session
+        let flowId = 'admin-quote-propose'; // default
+
+        // Check if we have a session and determine the flow from metadata
+        if (dbSessionId) {
+          const { data: sessionData } = await supabase
+            .from('chat_sessions_v2')
+            .select('flow_id')
+            .eq('session_id', dbSessionId)
+            .single();
+
+          if (sessionData?.flow_id) {
+            flowId = sessionData.flow_id;
+          }
+        }
+
+        const flowDef = await getFlowDefinition(flowId);
         if (!flowDef) {
           setIsTyping(false);
           return;
@@ -692,8 +868,11 @@ export const useAdminChat = (): UseAdminChatReturn => {
           flowDefinition: flowDef,
           senderRole: 'admin',
         });
+        // ✅ FIX: Skip delays for admin-create-order responses
+        const skipDelay = flowId === 'admin-create-order';
         await appendMessagesWithTyping(
-          resp.messages.map(m => ({ role: m.role as ChatRole, text: m.text }))
+          resp.messages.map(m => ({ role: m.role as ChatRole, text: m.text })),
+          skipDelay
         );
         setQuickReplies(
           (resp.quickReplies || []).map((qr, i) => ({

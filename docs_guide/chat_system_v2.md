@@ -1,7 +1,7 @@
 ## Chat System v2 — Simple Overview
 
-Last Updated: 2025-10-18  
-**Status**: ✅ Ask-Quote flow fully functional, ✅ Admin chat history & sessioning complete, ✅ Track-Quote flow fully functional
+Last Updated: 2025-10-18
+**Status**: ✅ Ask-Quote flow fully functional, ✅ Admin chat history & sessioning complete, ✅ Track-Quote flow fully functional, ✅ Admin-create-order flow fully functional (end-to-end)
 
 ### What “chat” is here (super simple)
 
@@ -177,6 +177,20 @@ Notes:
   - Flow now successfully updates both `quote_proposals` and `quotes` tables when customer accepts/rejects
   - Complete end-to-end functionality: customer can track quotes, view details, and accept/reject proposals
 
+### Admin Create Order Flow Fixes (2025-10-18)
+
+- **✅ FIXED: Context propagation and message persistence in JsonbFlowProcessor** (2025-10-18)
+  - Fixed critical bug where `executeAction()` dropped context updates from action handlers
+  - Action handlers return `{ messages, context }` but only messages were being propagated
+  - Conditional nodes failed with "undefined" because context was never saved to database
+  - Added context return in `executeAction()` method (line 838-842)
+  - Fixed message persistence - boot messages from actions now saved to database
+  - Added `insertMessage()` calls in three locations:
+    1. Initial action node execution (line 144-152)
+    2. Conditional branch to action node (line 215-223)
+    3. Auto-advance loop action nodes (line 295-303)
+  - Impact: Admin-create-order flow now works correctly with proper conditional evaluation and persistent messages
+
 ### Troubleshooting (common issues)
 
 - **"function pgp_sym_decrypt does not exist"**: Encryption functions not available. Use plain text storage temporarily.
@@ -190,6 +204,12 @@ Notes:
 - **Action messages not persisting**: Action messages must be saved to database via `insertMessage()` in JsonbFlowProcessor.
 - **Quote acceptance not updating quotes table**: Check RLS policies - customers need permission to update quote status when accepting/rejecting proposals.
 - **"invalid input syntax for type bytea"**: Message insertion failing due to improper text-to-bytea conversion in RPC function.
+- **Conditional node evaluating to undefined**: Action context updates not propagated - ensure `executeAction()` returns both messages and context.
+- **Messages not persisted to database**: Boot messages from actions must be saved via `insertMessage()` in all code paths.
+- **ReferenceError: flowId is not defined**: Variable declared in try block - move to function scope so it's accessible throughout.
+- **Hardcoded messages appearing in wrong flow**: Check flow-specific logic is wrapped in conditional (e.g., saved-specs check only for admin-quote-propose).
+- **Slow UI despite flow completing**: Typing delays in `appendMessagesWithTyping` - use `skipDelay=true` for admin flows.
+- **"Could not find column in schema cache"**: Column removed from database but still referenced in code - remove all references to deleted columns.
 
 ### Debugging Process (Track-Quote Flow - Quote Acceptance Issue)
 
@@ -341,6 +361,207 @@ Notes:
    - Fix: Added database save loop for action messages in JsonbFlowProcessor
 
 **Final Solution**: Simplified flow with hardcoded options and proper action execution.
+
+### Debugging Process (Admin Create Order Flow - Context Propagation & Message Persistence)
+
+**Problem**: Admin-create-order flow shows no messages and conditional evaluation fails with undefined context.
+
+**Debugging Steps**:
+
+1. **Log Analysis**: Found critical errors in logs:
+   - Flow returns empty messages array: `"messages": []`
+   - Conditional evaluation fails: `[StartFlow] No matching case found for condition: undefined`
+   - The `quote_status` context variable is undefined despite `checkAcceptedQuote` action setting it
+
+2. **Action Handler Investigation**:
+   - Confirmed `checkAcceptedQuote` action correctly returns: `{ messages: [], context: { quote_status: 'accepted' } }`
+   - Action logs show: `[checkAcceptedQuote] Quote status: accepted`
+
+3. **Root Cause Analysis - Context Propagation**:
+   - **Issue**: `executeAction()` method only returns `{ messages }` - it drops context updates!
+   - Action handlers return `{ messages, context }` but `executeAction()` ignores the context
+   - When conditional node evaluates, it reads from database but context was never saved
+
+4. **Root Cause Analysis - Message Persistence**:
+   - **Issue**: Boot messages from actions are added to `bootMessages` array but never saved to database
+   - Messages show in UI during initial render but disappear on refresh
+   - Three locations where this occurs:
+     1. Initial action node execution (line 142)
+     2. Conditional branch to action node (line 213)
+     3. Auto-advance loop action nodes (line 293)
+
+5. **Solution - Part 1 (Context Propagation)**:
+
+   ```typescript
+   // BEFORE (line 853):
+   return { messages }; // ❌ Context dropped
+
+   // AFTER:
+   if (result.context) {
+     return { messages, context: result.context }; // ✅ Propagate context
+   }
+   return { messages };
+   ```
+
+6. **Solution - Part 2 (Message Persistence)**:
+   Added database persistence after each `bootMessages.push()`:
+
+   ```typescript
+   bootMessages.push(...actionResult.messages);
+
+   // ✅ FIX: Save action messages to database
+   for (const message of actionResult.messages) {
+     await insertMessage({
+       sessionId,
+       text: message.text,
+       role: message.role,
+       nodeId: currentNodeId,
+     });
+   }
+   ```
+
+7. **Files Modified**:
+   - `src/features/chat/services/JsonbFlowProcessor.ts`:
+     - Line 838-842: Return context from `executeAction()`
+     - Line 144-152: Save messages from initial action node
+     - Line 215-223: Save messages from conditional branch action
+     - Line 295-303: Save messages from auto-advance action loop
+
+**Final Solution**:
+
+1. `executeAction()` now properly returns both messages and context updates
+2. All action messages in startFlow are now persisted to database
+3. Conditional nodes can now properly evaluate context set by actions
+4. Messages persist across page refreshes
+
+**Impact**: Admin-create-order flow now works correctly - conditional evaluates properly, messages persist, and flow advances as expected.
+
+### Debugging Process (Admin Create Order Flow - Complete Implementation)
+
+**Problem**: Multiple issues preventing admin-create-order flow from working end-to-end.
+
+**Issue Timeline & Fixes**:
+
+#### Issue 1: Context Propagation Failure (2025-10-18)
+
+**Problem**: Conditional node evaluating to `undefined` despite action setting context.
+
+**Root Cause**: `executeAction()` method dropped context updates from action handlers.
+
+**Solution**: Modified `src/features/chat/services/JsonbFlowProcessor.ts:838-842`:
+
+```typescript
+// Return context updates from action results
+if (result.context) {
+  return { messages, context: result.context };
+}
+```
+
+#### Issue 2: Boot Messages Not Persisted (2025-10-18)
+
+**Problem**: Messages showed in UI but disappeared on page refresh.
+
+**Root Cause**: `bootMessages` array collected messages but never saved to database.
+
+**Solution**: Added `insertMessage()` calls in three locations:
+
+- Line 144-152: Initial action node execution
+- Line 215-223: Conditional branch to action node
+- Line 295-303: Auto-advance loop action nodes
+
+#### Issue 3: Hardcoded Saved-Specs Message (2025-10-18)
+
+**Problem**: "You have drafted an order specs..." message appeared for accepted quotes.
+
+**Root Cause**: Saved-specs checking logic ran for all flows, not just `admin-quote-propose`.
+
+**Solution**: Wrapped logic in conditional check (`src/admin/hooks/useAdminChat.ts:460-496`):
+
+```typescript
+if (flowId === 'admin-quote-propose') {
+  // Only check for saved specs in quote proposal flow
+  // ...
+} else {
+  // For other flows (admin-create-order), use flow's quick replies
+  setQuickReplies(start.quickReplies || []);
+}
+```
+
+#### Issue 4: flowId Scoping Error (2025-10-18)
+
+**Problem**: `ReferenceError: flowId is not defined` when checking flow type.
+
+**Root Cause**: `flowId` declared inside `try` block, not accessible in outer scope.
+
+**Solution**: Moved declaration to function scope (`src/admin/hooks/useAdminChat.ts:322-323`):
+
+```typescript
+void (async () => {
+  let start: any = null;
+  let flowId = 'admin-quote-propose'; // ✅ Declared at function scope
+
+  try {
+    // ... flowId now accessible throughout
+  }
+})();
+```
+
+#### Issue 5: Slow UI Response (2025-10-18)
+
+**Problem**: Messages took 2-3 seconds to appear despite flow completing instantly.
+
+**Root Cause**: `appendMessagesWithTyping` added artificial typing delays (350ms + length-based delays) for every message.
+
+**Solution**: Added fast mode option (`src/admin/hooks/useAdminChat.ts:68-94`):
+
+```typescript
+const appendMessagesWithTyping = async (
+  botTexts: { role: ChatRole; text: string }[],
+  skipDelay: boolean = false // ✅ Skip delays for admin-create-order
+) => {
+  for (const m of botTexts) {
+    if (!skipDelay) {
+      setIsTyping(true);
+      const delay =
+        350 + Math.min(1200, Math.floor((m.text?.length || 0) / 20) * 25);
+      await new Promise(r => setTimeout(r, delay));
+    }
+    // ... append message
+  }
+};
+
+// Usage:
+const skipDelay = flowId === 'admin-create-order';
+await appendMessagesWithTyping(start.messages, skipDelay);
+```
+
+**Impact**: Messages now appear instantly for admin-create-order flow (no artificial delays).
+
+#### Issue 6: admin_notes Column Error (2025-10-18)
+
+**Problem**: Order creation failed with `"Could not find the 'admin_notes' column of 'orders'"`
+
+**Root Cause**: `createOrder` action trying to insert into removed `admin_notes` column.
+
+**Solution**: Removed references (`src/features/chat/actions/admin/createOrder.ts`):
+
+- Line 69: Removed `notes` from proposal query
+- Line 119-120: Removed `admin_notes` from order insert
+
+**Files Modified**:
+
+- `src/features/chat/services/JsonbFlowProcessor.ts`
+- `src/admin/hooks/useAdminChat.ts`
+- `src/features/chat/actions/admin/createOrder.ts`
+
+**Final Result**: Admin-create-order flow works end-to-end:
+
+1. ✅ Detects accepted quotes and launches correct flow
+2. ✅ Evaluates conditionals with proper context
+3. ✅ Persists all messages to database
+4. ✅ Shows messages instantly (no delays)
+5. ✅ Creates orders successfully
+6. ✅ No hardcoded messages appearing incorrectly
 
 ### Read more
 

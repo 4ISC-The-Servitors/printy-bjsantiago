@@ -27,7 +27,8 @@ export function useRecentOrder() {
         }
         const { data, error } = await supabase
           .from('orders')
-          .select(`
+          .select(
+            `
             order_id,
             display_id,
             status,
@@ -35,10 +36,10 @@ export function useRecentOrder() {
             updated_at,
             payment_verified_at,
             completed_at,
-            cancelled_at,
             total_amount,
             order_specs
-          `)
+          `
+          )
           .eq('customer_id', user.id)
           .order('updated_at', { ascending: false })
           .limit(1)
@@ -60,9 +61,12 @@ export function useRecentOrder() {
             status: data.status || 'unknown',
             createdAt: new Date(data.created_at).getTime(),
             updatedAt: new Date(data.updated_at).getTime(),
-            paymentVerifiedAt: data.payment_verified_at ? new Date(data.payment_verified_at).getTime() : undefined,
-            completedAt: data.completed_at ? new Date(data.completed_at).getTime() : undefined,
-            cancelledAt: data.cancelled_at ? new Date(data.cancelled_at).getTime() : undefined,
+            paymentVerifiedAt: data.payment_verified_at
+              ? new Date(data.payment_verified_at).getTime()
+              : undefined,
+            completedAt: data.completed_at
+              ? new Date(data.completed_at).getTime()
+              : undefined,
             total,
           });
         }

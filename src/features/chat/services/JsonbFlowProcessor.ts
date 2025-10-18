@@ -9,6 +9,7 @@
 import type {
   FlowDefinition,
   ActionNode,
+  ConditionalNode,
   SessionMetadata,
   SessionContext,
 } from '@features/chat/types';
@@ -140,14 +141,122 @@ export class JsonbFlowProcessor {
       });
       bootMessages.push(...actionResult.messages);
 
+      // ✅ FIX: Save action messages to database
+      for (const message of actionResult.messages) {
+        await insertMessage({
+          sessionId,
+          text: message.text,
+          role: message.role,
+          nodeId: currentNodeId,
+        });
+      }
+
+      // Update context if action provided context updates
+      if ('context' in actionResult && actionResult.context) {
+        const updatedContext = {
+          ...(initialContext || {}),
+          ...actionResult.context,
+        };
+        await updateSessionMetadata(sessionId, {
+          current_node_id: currentNodeId,
+          context: updatedContext,
+        });
+      }
+
       // Advance after action if next exists
       if ((initialNode as ActionNode).next) {
         currentNodeId = (initialNode as ActionNode).next as string;
+
+        // Get the updated context from the database to preserve action context updates
+        const { data: updatedSession } = await supabase
+          .from('chat_sessions_v2')
+          .select('metadata')
+          .eq('session_id', sessionId)
+          .single();
+
+        const updatedContext =
+          updatedSession?.metadata?.context || initialContext || {};
+
         await updateSessionMetadata(sessionId, {
           current_node_id: currentNodeId,
-          context: (initialContext || {}) as any,
+          context: updatedContext,
         });
         initialNode = flowDefinition.nodes[currentNodeId];
+
+        // If the next node is a conditional, process it immediately
+        if (initialNode && initialNode.type === 'conditional') {
+          const conditionalNode = initialNode as ConditionalNode;
+          const conditionValue = updatedContext[conditionalNode.condition];
+
+          console.log('[StartFlow] Processing conditional node:', {
+            condition: conditionalNode.condition,
+            value: conditionValue,
+            cases: conditionalNode.cases,
+          });
+
+          // Find matching case
+          const nextNodeId =
+            conditionalNode.cases[conditionValue] ||
+            conditionalNode.cases['default'];
+
+          if (nextNodeId) {
+            console.log('[StartFlow] Conditional branch to:', nextNodeId);
+            currentNodeId = nextNodeId;
+            await updateSessionMetadata(sessionId, {
+              current_node_id: currentNodeId,
+              context: updatedContext,
+            });
+            initialNode = flowDefinition.nodes[currentNodeId];
+
+            // If the conditional leads to an action node, execute it immediately
+            if (initialNode && initialNode.type === 'action') {
+              const actionResult = await this.executeAction({
+                actionNode: initialNode as ActionNode,
+                sessionId,
+                customerId,
+                context: updatedContext,
+              });
+              bootMessages.push(...actionResult.messages);
+
+              // ✅ FIX: Save action messages to database
+              for (const message of actionResult.messages) {
+                await insertMessage({
+                  sessionId,
+                  text: message.text,
+                  role: message.role,
+                  nodeId: currentNodeId,
+                });
+              }
+
+              // Update context if action provided context updates
+              if ('context' in actionResult && actionResult.context) {
+                const newUpdatedContext = {
+                  ...updatedContext,
+                  ...actionResult.context,
+                };
+                await updateSessionMetadata(sessionId, {
+                  current_node_id: currentNodeId,
+                  context: newUpdatedContext,
+                });
+              }
+
+              // Move to next node after action if exists
+              if ((initialNode as ActionNode).next) {
+                currentNodeId = (initialNode as ActionNode).next as string;
+                await updateSessionMetadata(sessionId, {
+                  current_node_id: currentNodeId,
+                  context: updatedContext,
+                });
+                initialNode = flowDefinition.nodes[currentNodeId];
+              }
+            }
+          } else {
+            console.log(
+              '[StartFlow] No matching case found for condition:',
+              conditionValue
+            );
+          }
+        }
       }
     }
 
@@ -184,27 +293,106 @@ export class JsonbFlowProcessor {
         context: (initialContext || {}) as any,
       });
       let currentNode = flowDefinition.nodes[currentNodeId];
-      // Loop through consecutive action nodes
-      while (currentNode && currentNode.type === 'action') {
-        const actionResult = await this.executeAction({
-          actionNode: currentNode as ActionNode,
-          sessionId,
-          customerId,
-          context: (initialContext || {}) as any,
-        });
-        bootMessages.push(...actionResult.messages);
-
-        // Move to next node if exists
-        if ((currentNode as ActionNode).next) {
-          currentNodeId = (currentNode as ActionNode).next as string;
-          await updateSessionMetadata(sessionId, {
-            current_node_id: currentNodeId,
+      // Loop through consecutive action nodes and conditional nodes
+      while (
+        currentNode &&
+        (currentNode.type === 'action' || currentNode.type === 'conditional')
+      ) {
+        if (currentNode.type === 'action') {
+          const actionResult = await this.executeAction({
+            actionNode: currentNode as ActionNode,
+            sessionId,
+            customerId,
             context: (initialContext || {}) as any,
           });
-          currentNode = flowDefinition.nodes[currentNodeId];
-        } else {
-          // No next node, break out
-          break;
+          bootMessages.push(...actionResult.messages);
+
+          // ✅ FIX: Save action messages to database
+          for (const message of actionResult.messages) {
+            await insertMessage({
+              sessionId,
+              text: message.text,
+              role: message.role,
+              nodeId: currentNodeId,
+            });
+          }
+
+          // Update context if action provided context updates
+          if ('context' in actionResult && actionResult.context) {
+            const updatedContext = {
+              ...(initialContext || {}),
+              ...actionResult.context,
+            };
+            await updateSessionMetadata(sessionId, {
+              current_node_id: currentNodeId,
+              context: updatedContext,
+            });
+            // Note: initialContext is const, so we can't reassign it
+            // The context will be updated in the database
+          }
+
+          // Move to next node if exists
+          if ((currentNode as ActionNode).next) {
+            currentNodeId = (currentNode as ActionNode).next as string;
+
+            // Get the updated context from the database to preserve action context updates
+            const { data: updatedSession } = await supabase
+              .from('chat_sessions_v2')
+              .select('metadata')
+              .eq('session_id', sessionId)
+              .single();
+
+            const updatedContext =
+              updatedSession?.metadata?.context || initialContext || {};
+
+            await updateSessionMetadata(sessionId, {
+              current_node_id: currentNodeId,
+              context: updatedContext,
+            });
+            currentNode = flowDefinition.nodes[currentNodeId];
+          } else {
+            // No next node, break out
+            break;
+          }
+        } else if (currentNode.type === 'conditional') {
+          // Handle conditional node
+          const conditionalNode = currentNode as ConditionalNode;
+
+          // Get fresh context from database to ensure we have the latest values
+          const { data: freshSession } = await supabase
+            .from('chat_sessions_v2')
+            .select('metadata')
+            .eq('session_id', sessionId)
+            .single();
+
+          const freshContext =
+            freshSession?.metadata?.context || initialContext || {};
+          const conditionValue = freshContext[conditionalNode.condition];
+
+          console.log('[Conditional] Evaluating condition:', {
+            condition: conditionalNode.condition,
+            value: conditionValue,
+            cases: conditionalNode.cases,
+          });
+
+          // Find matching case
+          const nextNodeId =
+            conditionalNode.cases[conditionValue] ||
+            conditionalNode.cases['default'];
+
+          if (nextNodeId) {
+            console.log('[Conditional] Branching to:', nextNodeId);
+            currentNodeId = nextNodeId;
+            await updateSessionMetadata(sessionId, {
+              current_node_id: currentNodeId,
+              context: freshContext,
+            });
+            currentNode = flowDefinition.nodes[currentNodeId];
+          } else {
+            console.log('[Conditional] No matching case found, breaking out');
+            // No matching case, break out
+            break;
+          }
         }
       }
 
@@ -400,6 +588,12 @@ export class JsonbFlowProcessor {
         });
       }
 
+      // Update context if action provided context updates
+      if ('context' in actionResult && actionResult.context) {
+        metadata.context = { ...metadata.context, ...actionResult.context };
+        await updateSessionMetadata(sessionId, metadata);
+      }
+
       // Move to next node after action
       if (nextNode.next) {
         // Get fresh metadata to preserve any context updates made by the action
@@ -444,6 +638,109 @@ export class JsonbFlowProcessor {
             nodeId: metadata.current_node_id,
           });
         }
+      }
+    } else if (nextNode.type === 'conditional') {
+      // Handle conditional node
+      console.log('Processing conditional node:', nextNode.condition);
+      const conditionalNode = nextNode as ConditionalNode;
+
+      // Get fresh context from database to ensure we have the latest values
+      const { data: freshSession } = await supabase
+        .from('chat_sessions_v2')
+        .select('metadata')
+        .eq('session_id', sessionId)
+        .single();
+
+      const freshContext = freshSession?.metadata?.context || metadata.context;
+      const conditionValue = freshContext[conditionalNode.condition];
+
+      console.log('[Conditional] Evaluating condition:', {
+        condition: conditionalNode.condition,
+        value: conditionValue,
+        cases: conditionalNode.cases,
+      });
+
+      // Find matching case
+      const nextNodeId =
+        conditionalNode.cases[conditionValue] ||
+        conditionalNode.cases['default'];
+
+      if (nextNodeId) {
+        console.log('[Conditional] Branching to:', nextNodeId);
+        metadata.current_node_id = nextNodeId;
+        metadata.context = freshContext; // Use fresh context
+        await updateSessionMetadata(sessionId, metadata);
+
+        // Process the next node immediately
+        const conditionalNextNode = flowDefinition.nodes[nextNodeId];
+        if (conditionalNextNode) {
+          // If it's an action node, execute it
+          if (conditionalNextNode.type === 'action') {
+            const actionResult = await this.executeAction({
+              actionNode: conditionalNextNode as ActionNode,
+              sessionId,
+              customerId,
+              context: metadata.context,
+            });
+            responses.push(...actionResult.messages);
+
+            // Save action messages to database
+            for (const message of actionResult.messages) {
+              await insertMessage({
+                sessionId,
+                text: message.text,
+                role: message.role,
+                nodeId: metadata.current_node_id,
+              });
+            }
+
+            // Update context if action provided context updates
+            if ('context' in actionResult && actionResult.context) {
+              metadata.context = {
+                ...metadata.context,
+                ...actionResult.context,
+              };
+              await updateSessionMetadata(sessionId, metadata);
+            }
+
+            // Move to next node after action if exists
+            if (conditionalNextNode.next) {
+              metadata.current_node_id = conditionalNextNode.next;
+              await updateSessionMetadata(sessionId, metadata);
+            }
+          } else if (conditionalNextNode.type === 'message') {
+            // If it's a message node, show the message
+            if (
+              typeof conditionalNextNode.message === 'string' &&
+              conditionalNextNode.message.trim().length > 0
+            ) {
+              responses.push({
+                id: crypto.randomUUID(),
+                role: 'printy',
+                text: conditionalNextNode.message,
+                ts: Date.now(),
+              });
+
+              await insertMessage({
+                sessionId,
+                text: conditionalNextNode.message,
+                role: 'printy',
+                nodeId: metadata.current_node_id,
+              });
+            }
+
+            // Move to next node if exists
+            if (conditionalNextNode.next) {
+              metadata.current_node_id = conditionalNextNode.next;
+              await updateSessionMetadata(sessionId, metadata);
+            }
+          }
+        }
+      } else {
+        console.error(
+          '[Conditional] No matching case found for condition:',
+          conditionValue
+        );
       }
     } else {
       // Regular message node - send the message only if it's not empty (handle both string and array)
@@ -600,6 +897,12 @@ export class JsonbFlowProcessor {
       });
 
       messages.push(...result.messages);
+
+      // ✅ FIX: Return context updates from action results
+      // This ensures conditional nodes can evaluate context set by actions
+      if (result.context) {
+        return { messages, context: result.context };
+      }
     } else {
       // Unknown action
       messages.push({

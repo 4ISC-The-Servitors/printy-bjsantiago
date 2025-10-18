@@ -11,6 +11,10 @@ import { manualOrderSpecs } from './manualOrderSpecs';
 import { editSavedSpecs } from './editSavedSpecs';
 import { checkExistingSpecs } from './checkExistingSpecs';
 import { dynamicChooseAction } from './dynamicChooseAction';
+import { createOrder } from './createOrder';
+import { checkAcceptedQuote } from './checkAcceptedQuote';
+import { displayAcceptedProposal } from './displayAcceptedProposal';
+import { displayQuotePrice } from './displayQuotePrice';
 
 /**
  * Registry of all available action handlers
@@ -23,9 +27,24 @@ export const actionHandlers: Record<string, ActionHandler> = {
   edit_saved_specs: editSavedSpecs,
   check_existing_specs: checkExistingSpecs,
   dynamic_choose_action: dynamicChooseAction,
+  create_order: createOrder,
+  check_accepted_quote: checkAcceptedQuote,
+  display_accepted_proposal: displayAcceptedProposal,
+  display_quote_price: displayQuotePrice,
 };
 
 /**
  * Execute an action by name
  */
-export { aiSummarizeSpecs, sendQuoteProposal, manualOrderSpecs, editSavedSpecs, checkExistingSpecs, dynamicChooseAction };
+export {
+  aiSummarizeSpecs,
+  sendQuoteProposal,
+  manualOrderSpecs,
+  editSavedSpecs,
+  checkExistingSpecs,
+  dynamicChooseAction,
+  createOrder,
+  checkAcceptedQuote,
+  displayAcceptedProposal,
+  displayQuotePrice,
+};

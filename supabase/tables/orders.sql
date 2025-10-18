@@ -3,7 +3,6 @@ create table public.orders (
   customer_id uuid not null,
   order_specs jsonb not null default '{}'::jsonb,
   total_amount numeric not null,
-  currency text not null default 'PHP'::text,
   status text not null default 'awaiting_payment'::text,
   payment_proof text null,
   payment_verified_at timestamp with time zone null,
@@ -11,19 +10,19 @@ create table public.orders (
   created_at timestamp with time zone not null default now(),
   updated_at timestamp with time zone not null default now(),
   completed_at timestamp with time zone null,
-  cancelled_at timestamp with time zone null,
-  admin_notes text null,
-  customer_notes text null,
   display_id character varying(20) null,
   payment_proof_uploaded_at timestamp with time zone null,
   quote_id uuid null,
   proposal_id uuid null,
+  session_id uuid null,
   constraint orders_duplicate_pkey primary key (order_id),
   constraint orders_duplicate_display_id_key unique (display_id),
   constraint orders_duplicate_proposal_id_fkey foreign KEY (proposal_id) references quote_proposals (proposal_id) on delete set null,
   constraint orders_duplicate_quote_id_fkey foreign KEY (quote_id) references quotes (quote_id) on delete set null,
-  constraint orders_duplicate_customer_id_fkey foreign KEY (customer_id) references customer (customer_id) on delete CASCADE,
+  constraint orders_session_id_fkey foreign KEY (session_id) references chat_sessions_v2 (session_id),
   constraint orders_duplicate_payment_verified_by_fkey foreign KEY (payment_verified_by) references customer (customer_id) on delete set null,
+  constraint orders_duplicate_customer_id_fkey foreign KEY (customer_id) references customer (customer_id) on delete CASCADE,
+  constraint orders_duplicate_total_amount_check check ((total_amount > (0)::numeric)),
   constraint orders_duplicate_status_check check (
     (
       status = any (
@@ -39,8 +38,7 @@ create table public.orders (
         ]
       )
     )
-  ) not VALID,
-  constraint orders_duplicate_total_amount_check check ((total_amount > (0)::numeric))
+  ) not VALID
 ) TABLESPACE pg_default;
 
 create index IF not exists idx_orders_display_id on public.orders using btree (display_id) TABLESPACE pg_default;

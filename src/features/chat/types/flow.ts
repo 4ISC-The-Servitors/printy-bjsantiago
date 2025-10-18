@@ -1,6 +1,6 @@
 // Unified Flow & Session Types (moved from legacy src/chatFlows/types)
 
-export type NodeType = 'message' | 'action' | 'end';
+export type NodeType = 'message' | 'action' | 'conditional' | 'end';
 export type SenderRole = 'customer' | 'admin' | 'printy';
 
 // Input configuration for message nodes expecting text input
@@ -25,7 +25,11 @@ export type ActionType =
   | 'manual_order_specs'
   | 'edit_saved_specs'
   | 'check_existing_specs'
-  | 'dynamic_choose_action';
+  | 'dynamic_choose_action'
+  | 'create_order'
+  | 'check_accepted_quote'
+  | 'display_accepted_proposal'
+  | 'display_quote_price';
 
 export interface CreateQuoteConversationConfig {
   details_key: string;
@@ -91,6 +95,22 @@ export interface DynamicChooseActionConfig {
   conversation_id_key: string;
 }
 
+export interface CreateOrderConfig {
+  conversation_id_key: string;
+}
+
+export interface CheckAcceptedQuoteConfig {
+  conversation_id_key: string;
+}
+
+export interface DisplayAcceptedProposalConfig {
+  conversation_id_key: string;
+}
+
+export interface DisplayQuotePriceConfig {
+  conversation_id_key: string;
+}
+
 export type ActionConfig =
   | CreateQuoteConversationConfig
   | CreateInquiryConfig
@@ -105,7 +125,11 @@ export type ActionConfig =
   | ManualOrderSpecsConfig
   | EditSavedSpecsConfig
   | CheckExistingSpecsConfig
-  | DynamicChooseActionConfig;
+  | DynamicChooseActionConfig
+  | CreateOrderConfig
+  | CheckAcceptedQuoteConfig
+  | DisplayAcceptedProposalConfig
+  | DisplayQuotePriceConfig;
 
 export interface FlowOption {
   label: string;
@@ -135,11 +159,17 @@ export interface ActionNode extends BaseNode {
   options?: FlowOption[];
 }
 
+export interface ConditionalNode extends BaseNode {
+  type: 'conditional';
+  condition: string;
+  cases: Record<string, string>;
+}
+
 export interface EndNode extends BaseNode {
   type: 'end';
 }
 
-export type FlowNode = MessageNode | ActionNode | EndNode;
+export type FlowNode = MessageNode | ActionNode | ConditionalNode | EndNode;
 
 export interface FlowDefinition {
   flow_id: string;
