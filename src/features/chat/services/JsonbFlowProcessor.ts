@@ -157,6 +157,7 @@ export class JsonbFlowProcessor {
       typeof initialNode.message === 'string' &&
       initialNode.message.trim().length > 0
     ) {
+      console.log('📝 Adding initial message:', initialNode.message);
       bootMessages.push({
         id: crypto.randomUUID(),
         role: 'printy',
@@ -182,59 +183,47 @@ export class JsonbFlowProcessor {
         current_node_id: currentNodeId,
         context: (initialContext || {}) as any,
       });
-      const nextNode = flowDefinition.nodes[currentNodeId];
-      if (nextNode) {
-        if (nextNode.type === 'action') {
-          const actionResult = await this.executeAction({
-            actionNode: nextNode as ActionNode,
-            sessionId,
-            customerId,
+      let currentNode = flowDefinition.nodes[currentNodeId];
+      // Loop through consecutive action nodes
+      while (currentNode && currentNode.type === 'action') {
+        const actionResult = await this.executeAction({
+          actionNode: currentNode as ActionNode,
+          sessionId,
+          customerId,
+          context: (initialContext || {}) as any,
+        });
+        bootMessages.push(...actionResult.messages);
+
+        // Move to next node if exists
+        if ((currentNode as ActionNode).next) {
+          currentNodeId = (currentNode as ActionNode).next as string;
+          await updateSessionMetadata(sessionId, {
+            current_node_id: currentNodeId,
             context: (initialContext || {}) as any,
           });
-          bootMessages.push(...actionResult.messages);
-          if ((nextNode as ActionNode).next) {
-            const afterActionId = (nextNode as ActionNode).next as string;
-            await updateSessionMetadata(sessionId, {
-              current_node_id: afterActionId,
-              context: (initialContext || {}) as any,
-            });
-            // Ensure we compute quick replies for the correct node
-            currentNodeId = afterActionId;
-            const afterActionNode = flowDefinition.nodes[afterActionId];
-            if (
-              afterActionNode &&
-              afterActionNode.type === 'message' &&
-              typeof afterActionNode.message === 'string' &&
-              afterActionNode.message.trim().length > 0
-            ) {
-              bootMessages.push({
-                id: crypto.randomUUID(),
-                role: 'printy',
-                text: afterActionNode.message,
-                ts: Date.now(),
-              });
-              await insertMessage({
-                sessionId,
-                text: afterActionNode.message,
-                role: 'printy',
-                nodeId: afterActionId,
-              });
-            }
-          }
-        } else if (
-          nextNode.type === 'message' &&
-          typeof nextNode.message === 'string' &&
-          nextNode.message.trim().length > 0
+          currentNode = flowDefinition.nodes[currentNodeId];
+        } else {
+          // No next node, break out
+          break;
+        }
+      }
+
+      // After action chain, show message if current node is a message node
+      if (currentNode) {
+        if (
+          currentNode.type === 'message' &&
+          typeof currentNode.message === 'string' &&
+          currentNode.message.trim().length > 0
         ) {
           bootMessages.push({
             id: crypto.randomUUID(),
             role: 'printy',
-            text: nextNode.message,
+            text: currentNode.message,
             ts: Date.now(),
           });
           await insertMessage({
             sessionId,
-            text: nextNode.message,
+            text: currentNode.message,
             role: 'printy',
             nodeId: currentNodeId,
           });
@@ -337,11 +326,14 @@ export class JsonbFlowProcessor {
       console.log('[ProcessInput] Current node options:', currentNode.options);
       console.log('[ProcessInput] User input:', userInput);
 
-      const selectedOption = currentNode.options.find(
-        opt => 
-          opt.label.toLowerCase() === userInput.toLowerCase() ||
-          opt.value?.toLowerCase() === userInput.toLowerCase()
-      );
+      const selectedOption = currentNode.options.find(opt => {
+        const labelMatch = opt.label.toLowerCase() === userInput.toLowerCase();
+        const valueMatch = opt.value?.toLowerCase() === userInput.toLowerCase();
+        console.log(
+          `[ProcessInput] Checking option "${opt.label}": labelMatch=${labelMatch}, valueMatch=${valueMatch}`
+        );
+        return labelMatch || valueMatch;
+      });
 
       console.log('[ProcessInput] Selected option:', selectedOption);
 
@@ -387,12 +379,14 @@ export class JsonbFlowProcessor {
 
     // Execute action if the next node is an action node
     if (nextNode.type === 'action') {
+      console.log('Executing action:', nextNode.action);
       const actionResult = await this.executeAction({
         actionNode: nextNode as ActionNode,
         sessionId,
         customerId,
         context: metadata.context,
       });
+      console.log('Action result:', actionResult);
 
       responses.push(...actionResult.messages);
 

@@ -60,6 +60,8 @@ import type { SessionMetadata } from '@features/chat/types';
 export async function displayQuoteDetails(
   params: ActionExecutionParams
 ): Promise<ActionExecutionResult> {
+  console.log('[displayQuoteDetails] OLD ACTION CALLED with params:', params);
+
   const { actionNode, context, sessionId } = params;
   const messages: Array<{
     id: string;

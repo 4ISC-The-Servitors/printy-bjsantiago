@@ -18,8 +18,14 @@ export type ActionType =
   | 'send_admin_reply'
   | 'ai_summarize_specs'
   | 'display_quote_details'
+  | 'display_quote_details_admin'
   | 'accept_quote_proposal'
-  | 'reject_quote_proposal';
+  | 'reject_quote_proposal'
+  | 'send_quote_proposal'
+  | 'manual_order_specs'
+  | 'edit_saved_specs'
+  | 'check_existing_specs'
+  | 'dynamic_choose_action';
 
 export interface CreateQuoteConversationConfig {
   details_key: string;
@@ -61,6 +67,30 @@ export interface RejectQuoteProposalConfig {
   conversation_id_key: string;
 }
 
+export interface DisplayQuoteDetailsAdminConfig {
+  conversation_id_key: string;
+}
+
+export interface SendQuoteProposalConfig {
+  conversation_id_key: string;
+}
+
+export interface ManualOrderSpecsConfig {
+  conversation_id_key: string;
+}
+
+export interface EditSavedSpecsConfig {
+  conversation_id_key: string;
+}
+
+export interface CheckExistingSpecsConfig {
+  conversation_id_key: string;
+}
+
+export interface DynamicChooseActionConfig {
+  conversation_id_key: string;
+}
+
 export type ActionConfig =
   | CreateQuoteConversationConfig
   | CreateInquiryConfig
@@ -68,8 +98,14 @@ export type ActionConfig =
   | SendAdminReplyConfig
   | AiSummarizeSpecsConfig
   | DisplayQuoteDetailsConfig
+  | DisplayQuoteDetailsAdminConfig
   | AcceptQuoteProposalConfig
-  | RejectQuoteProposalConfig;
+  | RejectQuoteProposalConfig
+  | SendQuoteProposalConfig
+  | ManualOrderSpecsConfig
+  | EditSavedSpecsConfig
+  | CheckExistingSpecsConfig
+  | DynamicChooseActionConfig;
 
 export interface FlowOption {
   label: string;
