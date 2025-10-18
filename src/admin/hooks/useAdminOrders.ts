@@ -61,11 +61,12 @@ export function useAdminOrders(options: LoadOrdersOptions = {}) {
 
     try {
       const from = (page - 1) * pageSize;
-      
+
       // Fetch orders with customer information
       const { data, error, count } = await supabase
         .from('orders')
-        .select(`
+        .select(
+          `
           order_id,
           display_id,
           customer_id,
@@ -74,12 +75,13 @@ export function useAdminOrders(options: LoadOrdersOptions = {}) {
           updated_at,
           completed_at,
           total_amount,
-          currency,
           order_specs,
           payment_proof,
           payment_verified_at,
           customer:customer_id(first_name, last_name, customer_type)
-        `, { count: 'exact' })
+        `,
+          { count: 'exact' }
+        )
         .order('created_at', { ascending: false })
         .range(from, from + pageSize - 1);
 
@@ -94,16 +96,19 @@ export function useAdminOrders(options: LoadOrdersOptions = {}) {
       // Transform the data to match the expected interface
       const normalized: AdminOrderRow[] = (data || []).map((order: any) => {
         // Handle customer data - it might be an array or object
-        const customerData = Array.isArray(order.customer) ? order.customer[0] : order.customer;
-        const customerName = customerData 
-          ? `${customerData.first_name || ''} ${customerData.last_name || ''}`.trim() || 'Unknown Customer'
+        const customerData = Array.isArray(order.customer)
+          ? order.customer[0]
+          : order.customer;
+        const customerName = customerData
+          ? `${customerData.first_name || ''} ${customerData.last_name || ''}`.trim() ||
+            'Unknown Customer'
           : 'Unknown Customer';
-        
+
         // Extract product name from order_specs JSONB
         const productName = order.order_specs?.product_name || 'Unnamed Order';
-        
-        // Normalize currency to use peso sign when currency is PHP
-        const currencySymbol = (order.currency || '').toUpperCase() === 'PHP' ? '₱' : (order.currency || '₱');
+
+        // Use peso sign as default currency
+        const currencySymbol = '₱';
 
         return {
           id: order.display_id || order.order_id, // Prefer display_id
@@ -122,16 +127,16 @@ export function useAdminOrders(options: LoadOrdersOptions = {}) {
           date: new Date(order.created_at).toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'short',
-            day: 'numeric'
+            day: 'numeric',
           }),
           proofOfPaymentUrl: order.payment_proof || undefined,
-          proofUploadedAt: order.payment_verified_at 
+          proofUploadedAt: order.payment_verified_at
             ? new Date(order.payment_verified_at).toLocaleString('en-US', {
                 year: 'numeric',
                 month: 'long',
                 day: 'numeric',
                 hour: '2-digit',
-                minute: '2-digit'
+                minute: '2-digit',
               })
             : undefined,
         };

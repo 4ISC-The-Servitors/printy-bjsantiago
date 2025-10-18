@@ -13,6 +13,7 @@ export type {
   FlowNode,
   MessageNode,
   ActionNode,
+  ConditionalNode,
   EndNode,
   SessionMetadata,
   SessionContext,

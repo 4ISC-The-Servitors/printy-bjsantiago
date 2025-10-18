@@ -10,7 +10,10 @@ import { Text, Badge, Button } from '@shared/components';
 import { formatOrderStatus } from '@shared/utils/statusFormatter';
 import { formatLongDate } from '@shared/utils/dateFormatter';
 import { formatRelativeTimeLabel } from '@shared/utils/timeFormatter';
-import { useRecentChatSessions, type ConversationLike } from '@customer/hooks/useRecentChatSessions';
+import {
+  useRecentChatSessions,
+  type ConversationLike,
+} from '@customer/hooks/useRecentChatSessions';
 
 interface Order {
   id: string;
@@ -23,7 +26,6 @@ interface Order {
   order_specs?: any;
   paymentVerifiedAt?: number;
   completedAt?: number;
-  cancelledAt?: number;
 }
 
 const OrderHistory: React.FC = () => {
@@ -41,12 +43,15 @@ const OrderHistory: React.FC = () => {
   useEffect(() => {
     const loadOrders = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
         if (!user) return;
 
         const { data, error } = await supabase
-          .from('orders_duplicate')
-          .select(`
+          .from('orders')
+          .select(
+            `
             order_id,
             display_id,
             status,
@@ -55,9 +60,9 @@ const OrderHistory: React.FC = () => {
             total_amount,
             order_specs,
             payment_verified_at,
-            completed_at,
-            cancelled_at
-          `)
+            completed_at
+          `
+          )
           .eq('customer_id', user.id)
           .order('created_at', { ascending: false });
 
@@ -73,11 +78,16 @@ const OrderHistory: React.FC = () => {
           updatedAt: new Date(order.updated_at).getTime(),
           status: order.status,
           displayId: order.display_id || order.order_id,
-          total: order.total_amount ? `₱${Number(order.total_amount).toLocaleString()}` : undefined,
+          total: order.total_amount
+            ? `₱${Number(order.total_amount).toLocaleString()}`
+            : undefined,
           order_specs: order.order_specs,
-          paymentVerifiedAt: order.payment_verified_at ? new Date(order.payment_verified_at).getTime() : undefined,
-          completedAt: order.completed_at ? new Date(order.completed_at).getTime() : undefined,
-          cancelledAt: order.cancelled_at ? new Date(order.cancelled_at).getTime() : undefined,
+          paymentVerifiedAt: order.payment_verified_at
+            ? new Date(order.payment_verified_at).getTime()
+            : undefined,
+          completedAt: order.completed_at
+            ? new Date(order.completed_at).getTime()
+            : undefined,
         }));
 
         setOrders(orderList);
@@ -97,9 +107,7 @@ const OrderHistory: React.FC = () => {
           order.displayId.toLowerCase().includes(q) ||
           order.status.toLowerCase().includes(q)
         : true;
-      const matchesStatus = status
-        ? order.status === status
-        : true;
+      const matchesStatus = status ? order.status === status : true;
       return matchesQuery && matchesStatus;
     });
   }, [orders, query, status]);
@@ -120,19 +128,19 @@ const OrderHistory: React.FC = () => {
       activeId={null}
       onSwitchConversation={(id: string) => {
         window.dispatchEvent(
-          new CustomEvent('customer-open-session', { detail: { sessionId: id } })
+          new CustomEvent('customer-open-session', {
+            detail: { sessionId: id },
+          })
         );
         navigate('/customer');
       }}
       onNavigateToAccount={() => navigate('/customer/account')}
-      bottomActions={
-        <LogoutButton onClick={() => setShowLogoutModal(true)} />
-      }
+      bottomActions={<LogoutButton onClick={() => setShowLogoutModal(true)} />}
     />
   );
 
   const renderOrderItem = (order: Order) => (
-    <div 
+    <div
       key={order.id}
       className="bg-white rounded-lg border border-neutral-200 p-4 hover:border-brand-primary-300 transition-colors cursor-pointer"
       onClick={() => handleItemClick(order)}
@@ -140,14 +148,19 @@ const OrderHistory: React.FC = () => {
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-2">
-            <Text variant="h3" size="base" weight="semibold" className="font-mono">
+            <Text
+              variant="h3"
+              size="base"
+              weight="semibold"
+              className="font-mono"
+            >
               {order.displayId}
             </Text>
             <Badge variant="secondary" size="sm">
               {formatOrderStatus(order.status)}
             </Badge>
           </div>
-          
+
           <Text variant="p" size="sm" color="muted" className="mb-3">
             {order.title}
           </Text>
@@ -155,35 +168,50 @@ const OrderHistory: React.FC = () => {
           {/* Important dates */}
           <div className="flex flex-col gap-1 mb-3">
             <div className="flex justify-between">
-              <Text variant="p" size="xs" color="muted">Created:</Text>
-              <Text variant="p" size="xs" color="muted">{formatLongDate(order.createdAt)}</Text>
+              <Text variant="p" size="xs" color="muted">
+                Created:
+              </Text>
+              <Text variant="p" size="xs" color="muted">
+                {formatLongDate(order.createdAt)}
+              </Text>
             </div>
             <div className="flex justify-between">
-              <Text variant="p" size="xs" color="muted">Updated:</Text>
-              <Text variant="p" size="xs" color="muted">{formatRelativeTimeLabel(order.updatedAt)}</Text>
+              <Text variant="p" size="xs" color="muted">
+                Updated:
+              </Text>
+              <Text variant="p" size="xs" color="muted">
+                {formatRelativeTimeLabel(order.updatedAt)}
+              </Text>
             </div>
             {order.paymentVerifiedAt && (
               <div className="flex justify-between">
-                <Text variant="p" size="xs" color="muted">Payment Verified:</Text>
-                <Text variant="p" size="xs" color="muted">{formatLongDate(order.paymentVerifiedAt)}</Text>
+                <Text variant="p" size="xs" color="muted">
+                  Payment Verified:
+                </Text>
+                <Text variant="p" size="xs" color="muted">
+                  {formatLongDate(order.paymentVerifiedAt)}
+                </Text>
               </div>
             )}
             {order.completedAt && (
               <div className="flex justify-between">
-                <Text variant="p" size="xs" color="muted">Completed:</Text>
-                <Text variant="p" size="xs" color="muted">{formatLongDate(order.completedAt)}</Text>
-              </div>
-            )}
-            {order.cancelledAt && (
-              <div className="flex justify-between">
-                <Text variant="p" size="xs" color="muted">Cancelled:</Text>
-                <Text variant="p" size="xs" color="muted">{formatLongDate(order.cancelledAt)}</Text>
+                <Text variant="p" size="xs" color="muted">
+                  Completed:
+                </Text>
+                <Text variant="p" size="xs" color="muted">
+                  {formatLongDate(order.completedAt)}
+                </Text>
               </div>
             )}
           </div>
 
           {order.total && (
-            <Text variant="p" size="sm" weight="medium" className="text-brand-primary">
+            <Text
+              variant="p"
+              size="sm"
+              weight="medium"
+              className="text-brand-primary"
+            >
               {order.total}
             </Text>
           )}
@@ -206,7 +234,12 @@ const OrderHistory: React.FC = () => {
             ← Back to Dashboard
           </Button>
         </div>
-        <Text variant="h1" size="2xl" weight="bold" className="text-neutral-900">
+        <Text
+          variant="h1"
+          size="2xl"
+          weight="bold"
+          className="text-neutral-900"
+        >
           Order History
         </Text>
         <Text variant="p" size="base" color="muted">
@@ -221,14 +254,14 @@ const OrderHistory: React.FC = () => {
             type="text"
             placeholder="Search orders..."
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={e => setQuery(e.target.value)}
             className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent"
           />
         </div>
         <div className="sm:w-48">
           <select
             value={status}
-            onChange={(e) => setStatus(e.target.value)}
+            onChange={e => setStatus(e.target.value)}
             className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent"
           >
             <option value="">All Statuses</option>
@@ -257,13 +290,13 @@ const OrderHistory: React.FC = () => {
       {filtered.length === 0 ? (
         <div className="text-center py-12">
           <Text variant="p" size="base" color="muted">
-            {orders.length === 0 ? 'No orders found.' : 'No orders match your filters.'}
+            {orders.length === 0
+              ? 'No orders found.'
+              : 'No orders match your filters.'}
           </Text>
         </div>
       ) : (
-        <div className="space-y-4">
-          {filtered.map(renderOrderItem)}
-        </div>
+        <div className="space-y-4">{filtered.map(renderOrderItem)}</div>
       )}
 
       <LogoutModal
@@ -278,16 +311,12 @@ const OrderHistory: React.FC = () => {
     <>
       {/* Desktop Layout */}
       <div className="hidden lg:block">
-        <DesktopLayout sidebar={sidebar}>
-          {content}
-        </DesktopLayout>
+        <DesktopLayout sidebar={sidebar}>{content}</DesktopLayout>
       </div>
 
       {/* Mobile Layout */}
       <div className="lg:hidden">
-        <MobileLayout sidebar={sidebar}>
-          {content}
-        </MobileLayout>
+        <MobileLayout sidebar={sidebar}>{content}</MobileLayout>
       </div>
     </>
   );
