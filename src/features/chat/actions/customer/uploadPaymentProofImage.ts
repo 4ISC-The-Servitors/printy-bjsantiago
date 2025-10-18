@@ -1,12 +1,6 @@
-import { supabase } from '@lib/supabase';
 import type { ActionHandler } from '@features/chat/types';
 
-export const uploadPaymentProofImage: ActionHandler = async ({
-  actionNode,
-  sessionId,
-  customerId,
-  context,
-}) => {
+export const uploadPaymentProofImage: ActionHandler = async () => {
   console.log('[uploadPaymentProofImage] Action called');
   const messages: Array<{
     id: string;
