@@ -257,6 +257,49 @@ export class JsonbFlowProcessor {
             );
           }
         }
+        // If the next node is an action, execute it immediately
+        else if (initialNode && initialNode.type === 'action') {
+          console.log('[StartFlow] Processing action node after advance:', currentNodeId);
+          const actionResult = await this.executeAction({
+            actionNode: initialNode as ActionNode,
+            sessionId,
+            customerId,
+            context: updatedContext,
+          });
+          bootMessages.push(...actionResult.messages);
+
+          // ✅ FIX: Save action messages to database
+          for (const message of actionResult.messages) {
+            await insertMessage({
+              sessionId,
+              text: message.text,
+              role: message.role,
+              nodeId: currentNodeId,
+            });
+          }
+
+          // Update context if action provided context updates
+          if ('context' in actionResult && actionResult.context) {
+            const newUpdatedContext = {
+              ...updatedContext,
+              ...actionResult.context,
+            };
+            await updateSessionMetadata(sessionId, {
+              current_node_id: currentNodeId,
+              context: newUpdatedContext,
+            });
+          }
+
+          // Move to next node after action if exists
+          if ((initialNode as ActionNode).next) {
+            currentNodeId = (initialNode as ActionNode).next as string;
+            await updateSessionMetadata(sessionId, {
+              current_node_id: currentNodeId,
+              context: updatedContext,
+            });
+            initialNode = flowDefinition.nodes[currentNodeId];
+          }
+        }
       }
     }
 
@@ -510,7 +553,7 @@ export class JsonbFlowProcessor {
     }
 
     // Handle option selection
-    if (currentNode.type === 'message' && currentNode.options) {
+    if ((currentNode.type === 'message' || currentNode.type === 'action') && currentNode.options) {
       console.log('[ProcessInput] Current node options:', currentNode.options);
       console.log('[ProcessInput] User input:', userInput);
 
@@ -869,6 +912,7 @@ export class JsonbFlowProcessor {
       typeof actionNode.message === 'string' &&
       actionNode.message.trim().length > 0
     ) {
+      console.log('[JsonbFlowProcessor] Node message:', actionNode.message);
       messages.push({
         id: crypto.randomUUID(),
         role: 'printy',
@@ -882,12 +926,15 @@ export class JsonbFlowProcessor {
         role: 'printy',
         nodeId: actionNode.action,
       });
+    } else {
+      console.log('[JsonbFlowProcessor] No node message (empty or not string)');
     }
 
     // Look up the action handler
     const handler = actionHandlers[actionNode.action];
 
     if (handler) {
+      console.log('[JsonbFlowProcessor] Executing action handler:', actionNode.action);
       // Execute the handler
       const result = await handler({
         actionNode,
@@ -896,6 +943,7 @@ export class JsonbFlowProcessor {
         context,
       });
 
+      console.log('[JsonbFlowProcessor] Action result messages:', result.messages.length);
       messages.push(...result.messages);
 
       // ✅ FIX: Return context updates from action results
