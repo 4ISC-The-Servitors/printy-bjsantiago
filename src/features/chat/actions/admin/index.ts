@@ -15,6 +15,11 @@ import { createOrder } from './createOrder';
 import { checkAcceptedQuote } from './checkAcceptedQuote';
 import { displayAcceptedProposal } from './displayAcceptedProposal';
 import { displayQuotePrice } from './displayQuotePrice';
+import { displayOrderSpecs } from './displayOrderSpecs';
+import { displayOrderPrice } from './displayOrderPrice';
+import { displayPaymentProof } from './displayPaymentProof';
+import { verifyPayment } from './verifyPayment';
+import { denyPayment } from './denyPayment';
 
 /**
  * Registry of all available action handlers
@@ -31,6 +36,11 @@ export const actionHandlers: Record<string, ActionHandler> = {
   check_accepted_quote: checkAcceptedQuote,
   display_accepted_proposal: displayAcceptedProposal,
   display_quote_price: displayQuotePrice,
+  display_order_specs: displayOrderSpecs,
+  display_order_price: displayOrderPrice,
+  display_payment_proof: displayPaymentProof,
+  verify_payment: verifyPayment,
+  deny_payment: denyPayment,
 };
 
 /**
@@ -47,4 +57,9 @@ export {
   checkAcceptedQuote,
   displayAcceptedProposal,
   displayQuotePrice,
+  displayOrderSpecs,
+  displayOrderPrice,
+  displayPaymentProof,
+  verifyPayment,
+  denyPayment,
 };

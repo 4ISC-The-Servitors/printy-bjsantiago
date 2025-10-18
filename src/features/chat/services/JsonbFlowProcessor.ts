@@ -560,14 +560,12 @@ export class JsonbFlowProcessor {
 
     // Execute action if the next node is an action node
     if (nextNode.type === 'action') {
-      console.log('Executing action:', nextNode.action);
       const actionResult = await this.executeAction({
         actionNode: nextNode as ActionNode,
         sessionId,
         customerId,
         context: stateManager.getContext(),
       });
-      console.log('Action result:', actionResult);
 
       responses.push(...actionResult.messages);
 

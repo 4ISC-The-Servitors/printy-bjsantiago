@@ -62,7 +62,7 @@ export const OrderItem: React.FC<OrderItemProps> = ({
   return (
     <div
       className={`group ${layout.container}`}
-      onMouseEnter={() => onHover(order.id)}
+      onMouseEnter={() => onHover(order.order_id)}
       onMouseLeave={() => onHover(null)}
     >
       {/* Row 1: Order ID + Product Name | Status Badges */}
@@ -123,7 +123,7 @@ export const OrderItem: React.FC<OrderItemProps> = ({
           size="sm"
           threeD
           aria-label={`Ask about ${displayId}`}
-          onClick={() => onViewInChat(order.id)}
+          onClick={() => onViewInChat(order.order_id)}
           className={layout.chatButton}
         >
           <MessageSquare className={layout.chatIcon} />

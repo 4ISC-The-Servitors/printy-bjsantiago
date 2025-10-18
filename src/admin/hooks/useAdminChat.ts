@@ -339,7 +339,37 @@ export const useAdminChat = (): UseAdminChatReturn => {
           // For quotes topic, check the quote status to determine which flow to start
           let flowDef = null;
 
-          if (nextTopic === 'quotes' && orderId) {
+          if (nextTopic === 'orders' && orderId) {
+            console.log('🔍 Orders topic detected - checking order status for order_id:', orderId);
+            
+            // Check order status to determine which flow to start
+            const { data: orderData, error: orderError } = await supabase
+              .from('orders')
+              .select('status, order_id, display_id, customer_id')
+              .eq('order_id', orderId)
+              .single();
+
+            if (!orderError && orderData) {
+              console.log('📊 Order status:', orderData.status);
+
+              if (orderData.status === 'verifying_payment') {
+                console.log('✅ Order is in verifying_payment status - starting admin-verify-payment flow');
+                flowId = 'admin-verify-payment';
+                context = {
+                  ...context,
+                  order_id: orderData.order_id,
+                  display_id: orderData.display_id,
+                  customer_id: orderData.customer_id,
+                };
+              } else {
+                console.log('⚠️ Order is not in verifying_payment status - using default flow');
+                // For other order statuses, could add more specific flows later
+                // For now, just use the default flow
+              }
+            } else {
+              console.log('⚠️ Could not find order data, using default flow');
+            }
+          } else if (nextTopic === 'quotes' && orderId) {
             console.log('🔍 Checking quote status for session_id:', orderId);
 
             // Check quote status to determine which flow to start
@@ -465,7 +495,9 @@ export const useAdminChat = (): UseAdminChatReturn => {
               metadata: {
                 ...(existingSession?.metadata || {}),
                 admin_chat: true,
-                title: `Quote: ${orderId || 'New Quote'}`,
+                title: nextTopic === 'orders' 
+                  ? `Order: ${orderId || 'New Order'}`
+                  : `Quote: ${orderId || 'New Quote'}`,
               },
             })
             .eq('session_id', start.sessionId);
@@ -610,7 +642,7 @@ export const useAdminChat = (): UseAdminChatReturn => {
       void ChatDatabaseService.insertMessage({
         sessionId: dbSessionId,
         text,
-        role: 'printy',
+        role: 'admin',
       });
     }
     setIsTyping(true);
@@ -661,9 +693,76 @@ export const useAdminChat = (): UseAdminChatReturn => {
       return;
     }
 
-    // Always use the current flow when we have context (like order-specific chats)
-    // For JSONB admin flow, we don't process free-form replies; keep as no-op for now
-    setIsTyping(false);
+    // Process free-form input through the flow system if we have an active session
+    if (dbSessionId) {
+      void (async () => {
+        try {
+          // Determine which flow to use based on current session
+          let flowId = 'admin-quote-propose'; // default
+
+          // Check if we have a session and determine the flow from metadata
+          const { data: sessionData } = await supabase
+            .from('chat_sessions_v2')
+            .select('flow_id')
+            .eq('session_id', dbSessionId)
+            .single();
+
+          if (sessionData?.flow_id) {
+            flowId = sessionData.flow_id;
+          }
+
+          const flowDef = await getFlowDefinition(flowId);
+          if (!flowDef) {
+            setIsTyping(false);
+            return;
+          }
+
+          const resp = await JsonbFlowProcessor.processInput({
+            sessionId: dbSessionId,
+            userInput: text,
+            flowDefinition: flowDef,
+            senderRole: 'admin',
+          });
+
+          // Skip delays for admin flows to show messages instantly
+          const skipDelay = flowId === 'admin-create-order' || flowId === 'admin-verify-payment';
+          await appendMessagesWithTyping(
+            resp.messages.map(m => ({ role: m.role as ChatRole, text: m.text })),
+            skipDelay
+          );
+
+          setQuickReplies(
+            (resp.quickReplies || []).map((qr, i) => ({
+              id: qr.id || `qr-${i}`,
+              label: qr.label,
+              value: qr.value,
+            }))
+          );
+
+          if (currentConversationId) {
+            resp.messages.forEach(m =>
+              addConvMessage('printy', m.text, currentConversationId)
+            );
+          }
+        } catch (e) {
+          console.error('Failed to process user input through flow:', e);
+          setMessages(prev => [
+            ...prev,
+            {
+              id: crypto.randomUUID(),
+              role: 'printy',
+              text: 'Sorry, there was an error processing your input. Please try again.',
+              ts: Date.now(),
+            },
+          ]);
+        } finally {
+          setIsTyping(false);
+        }
+      })();
+    } else {
+      // No active session, just stop typing
+      setIsTyping(false);
+    }
   };
 
   const handleQuickReply = (v: string) => {
