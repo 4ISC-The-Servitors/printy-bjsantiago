@@ -2,13 +2,14 @@
  * Action handler: deny_payment
  *
  * Denies a customer's payment proof and updates the order status to 'reupload_payment'.
- * Stores the denial reason in session metadata for customer retrieval.
+ * Stores the denial reason in both the orders table and session metadata.
  *
  * @description
  * - Updates order status to 'reupload_payment'
+ * - Stores denial reason in orders.denial_reason column (for customer RLS access)
  * - Stores denial reason in session metadata as 'admin_denial_message'
+ * - Records payment_denied_at timestamp and payment_denied_by admin ID
  * - Returns context updates for SessionStateManager batching
- * - Provides confirmation message to admin
  *
  * @param params.actionNode - The action node from the flow definition
  * @param params.context - Current session context containing order_id and denial_reason
@@ -34,8 +35,8 @@
  * @remarks
  * - Requires order_id and denial_reason in context
  * - Uses standardized error handling
- * - Returns context updates (not direct DB writes) per SessionStateManager pattern
- * - Denial reason stored in session metadata for customer access
+ * - Stores denial_reason in orders table so customer can access via RLS policies
+ * - Also stores in session metadata for admin reference
  */
 
 import { supabase } from '@lib/supabase';
@@ -126,13 +127,14 @@ export async function denyPayment(
 
       const adminUserId = adminData.customer_id;
 
-      // Update order status to reupload_payment
+      // Update order status to reupload_payment and store denial reason
       const { error: updateError } = await supabase
         .from('orders')
         .update({
           status: 'reupload_payment',
           payment_denied_at: new Date().toISOString(),
           payment_denied_by: adminUserId,
+          denial_reason: denialReason, // Store denial reason in orders table for customer access
         })
         .eq('order_id', orderId);
 

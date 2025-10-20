@@ -47,6 +47,12 @@ export function useCustomerConversations() {
     async (flowId: string, title: string, ctx?: any) => {
       setIsTyping(true);
       try {
+        console.log('[useCustomerConversations] initializeFlow called:', {
+          flowId,
+          title,
+          ctx,
+        });
+
         // Normalize legacy IDs to JSONB flow IDs
         const resolvedFlowId =
           flowId === 'track-ticket'
@@ -54,6 +60,11 @@ export function useCustomerConversations() {
             : flowId === 'track-quote'
               ? 'track-quote'
               : flowId;
+
+        console.log(
+          '[useCustomerConversations] Resolved flow ID:',
+          resolvedFlowId
+        );
 
         // Get customer ID
         const { data: userData } = await auth.getUser();
@@ -63,11 +74,22 @@ export function useCustomerConversations() {
           throw new Error('User not authenticated');
         }
 
+        console.log('[useCustomerConversations] Customer ID:', customerId);
+
         // Fetch flow definition from database
         const flowDefinition = await getFlowDefinition(resolvedFlowId);
         if (!flowDefinition) {
           throw new Error(`Flow ${resolvedFlowId} not found in database`);
         }
+
+        console.log(
+          '[useCustomerConversations] Flow definition loaded:',
+          flowDefinition.flow_id
+        );
+        console.log(
+          '[useCustomerConversations] Initial context being passed:',
+          ctx
+        );
 
         // Start the JSONB flow, pass initial context when present (e.g., order_id/display_id)
         const result = await JsonbFlowProcessor.startFlow({
@@ -76,6 +98,8 @@ export function useCustomerConversations() {
           flowDefinition,
           initialContext: ctx || {},
         });
+
+        console.log('[useCustomerConversations] Flow started, result:', result);
 
         // Map messages to ChatMessage format
         const mappedMessages: ChatMessage[] = result.messages.map(m => ({

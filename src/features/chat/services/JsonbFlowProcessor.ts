@@ -76,6 +76,13 @@ export class JsonbFlowProcessor {
       throw new Error('Failed to start conversation');
     }
 
+    console.log('[JsonbFlowProcessor.startFlow] Starting flow:', {
+      flowId,
+      customerId,
+      initialContext,
+      initial_node: flowDefinition.initial_node,
+    });
+
     // ✅ PHASE 3 OPTIMIZATION: Create SessionStateManager for batched metadata updates
     // This reduces 5-8 sequential database writes to 1 batched write at the end
     const stateManager = new SessionStateManager(sessionId, {
@@ -85,6 +92,11 @@ export class JsonbFlowProcessor {
         flow_owner: (flowDefinition as any).owner || 'customer',
       },
     });
+
+    console.log(
+      '[JsonbFlowProcessor.startFlow] StateManager context initialized:',
+      stateManager.getContext()
+    );
 
     // Resolve starting node, with auto-skip if initial context already provides required input
     let currentNodeId = flowDefinition.initial_node;
@@ -203,12 +215,23 @@ export class JsonbFlowProcessor {
 
             // If the conditional leads to an action node, execute it immediately
             if (initialNode && initialNode.type === 'action') {
+              console.log(
+                '[JsonbFlowProcessor.startFlow] Executing action from conditional:',
+                {
+                  actionNode: (initialNode as ActionNode).action,
+                  context: updatedContext,
+                }
+              );
               const actionResult = await this.executeAction({
                 actionNode: initialNode as ActionNode,
                 sessionId,
                 customerId,
                 context: updatedContext,
               });
+              console.log(
+                '[JsonbFlowProcessor.startFlow] Action result:',
+                actionResult
+              );
               bootMessages.push(...actionResult.messages);
 
               // ✅ FIX: Save action messages to database
@@ -821,6 +844,15 @@ export class JsonbFlowProcessor {
     context: SessionContext;
   }) {
     const { actionNode, sessionId, customerId, context } = params;
+
+    console.log('[JsonbFlowProcessor.executeAction] Starting:', {
+      action: actionNode.action,
+      sessionId,
+      customerId,
+      context,
+      action_config: actionNode.action_config,
+    });
+
     const messages: Array<{
       id: string;
       role: 'printy';
@@ -860,6 +892,13 @@ export class JsonbFlowProcessor {
         '[JsonbFlowProcessor] Executing action handler:',
         actionNode.action
       );
+      console.log('[JsonbFlowProcessor] Handler params:', {
+        actionNode,
+        sessionId,
+        customerId,
+        context,
+      });
+
       // Execute the handler
       const result = await handler({
         actionNode,
@@ -871,6 +910,10 @@ export class JsonbFlowProcessor {
       console.log(
         '[JsonbFlowProcessor] Action result messages:',
         result.messages.length
+      );
+      console.log(
+        '[JsonbFlowProcessor] Action result context:',
+        result.context
       );
       messages.push(...result.messages);
 

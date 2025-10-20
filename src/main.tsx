@@ -8,6 +8,11 @@ import './index.css';
 import './lib/consoleToTerminal';
 import { AuthProvider } from '@/auth/hooks/AuthContext';
 
+// Import console filter test in development
+if (import.meta.env.DEV) {
+  import('./lib/consoleFilterTest');
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
