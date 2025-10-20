@@ -90,7 +90,7 @@ export const CustomerChatPanel: React.FC<CustomerChatPanelProps> = ({
   };
 
   return (
-    <div className="h-full flex flex-col bg-white">
+    <div className="h-full flex flex-col bg-white" data-chat-active="true">
       {/* Header */}
       <div className="p-4 border-b border-neutral-200 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">

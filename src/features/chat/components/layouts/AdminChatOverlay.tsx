@@ -98,9 +98,10 @@ export const AdminChatOverlay: React.FC<AdminChatOverlayProps> = ({
   if (!open) return null;
 
   return (
-    <div
-      className={`fixed inset-0 z-40 ${open ? 'opacity-100' : 'opacity-0 pointer-events-none'} transition-opacity duration-200`}
-    >
+      <div
+        className={`fixed inset-0 z-40 ${open ? 'opacity-100' : 'opacity-0 pointer-events-none'} transition-opacity duration-200`}
+        data-admin-chat-open="true"
+      >
       {/* Backdrop */}
       <div
         className={`absolute inset-0 bg-black/30 backdrop-blur-sm ${show ? 'opacity-100' : 'opacity-0'}`}

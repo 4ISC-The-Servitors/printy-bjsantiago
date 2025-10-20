@@ -135,6 +135,8 @@ export const useAdminChat = (): UseAdminChatReturn => {
       setViewingHistorical(false);
       setCurrentFlow('intro');
       setCurrentContext({});
+      // Dispatch event for notification visibility
+      window.dispatchEvent(new CustomEvent('admin-chat-closed'));
       return;
     }
 
@@ -161,6 +163,8 @@ export const useAdminChat = (): UseAdminChatReturn => {
       setReadOnly(false);
       setChatOpen(false);
       setMessages([]);
+      // Dispatch event for notification visibility
+      window.dispatchEvent(new CustomEvent('admin-chat-closed'));
     }, 2000);
   };
 
@@ -170,6 +174,8 @@ export const useAdminChat = (): UseAdminChatReturn => {
       clearSelected();
     } catch {}
     setChatOpen(true);
+    // Dispatch event for notification visibility
+    window.dispatchEvent(new CustomEvent('admin-chat-opened'));
     if (messages.length === 0) {
       setCurrentFlow('intro');
       setCurrentContext({});
@@ -208,6 +214,8 @@ export const useAdminChat = (): UseAdminChatReturn => {
       clearSelected();
     } catch {}
     setChatOpen(true);
+    // Dispatch event for notification visibility
+    window.dispatchEvent(new CustomEvent('admin-chat-opened'));
     const nextTopic = topic || 'intro';
 
     // If switching topics or explicitly provided orderIds (multi-select), always (re)initialize

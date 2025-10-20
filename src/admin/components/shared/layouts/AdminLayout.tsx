@@ -164,7 +164,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   };
 
   return (
-    <>
+    <div className="relative" style={{ minHeight: '100vh' }}>
       {/* Notification Bell - Fixed Position for all admin pages */}
       <Notification />
 
@@ -193,7 +193,11 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           chatDock={
             <AdminChatDock
               open={chatOpen}
-              onToggle={() => setChatOpen(false)}
+              onToggle={() => {
+                setChatOpen(false);
+                // Dispatch event for notification visibility
+                window.dispatchEvent(new CustomEvent('admin-chat-closed'));
+              }}
               title="Printy Assistant"
               messages={messages}
               isTyping={isTyping}
@@ -256,7 +260,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         onRemoveToast={toast.remove}
         position={isMobileOrTablet ? 'top-center' : 'bottom-right'}
       />
-    </>
+    </div>
   );
 };
 

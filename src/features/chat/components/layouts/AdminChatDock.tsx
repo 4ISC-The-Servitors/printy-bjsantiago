@@ -93,7 +93,7 @@ export const AdminChatDock: React.FC<AdminChatDockProps> = ({
   if (!open) return null;
 
   return (
-    <aside className="hidden lg:flex fixed right-0 top-0 bottom-0 w-[420px] bg-white border-l border-neutral-200 flex-col z-30">
+    <aside className="hidden lg:flex fixed right-0 top-0 bottom-0 w-[420px] bg-white border-l border-neutral-200 flex-col z-30" data-admin-chat-open="true">
       {/* Header */}
       <div className="p-4 border-b border-neutral-200 flex items-center justify-between shrink-0">
         <Text variant="h3" size="lg" weight="semibold">

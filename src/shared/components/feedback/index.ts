@@ -5,11 +5,10 @@
 
 export { default as Notification } from './Notification';
 export type {
-  NotificationProps,
-  NotificationItem,
   NotificationRecord,
+  NotificationItem,
   UINotificationItem,
-} from './Notification';
+} from './notificationUtils';
 
 export { default as Toast } from './Toast';
 export type { ToastProps } from './Toast';

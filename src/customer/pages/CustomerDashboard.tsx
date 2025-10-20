@@ -309,6 +309,8 @@ const CustomerDashboard: React.FC = () => {
   const handleTopic = (key: TopicKey) => {
     const cfg = topicConfig[key];
     initializeFlow(cfg.flowId, cfg.label);
+    // Dispatch event for notification visibility
+    window.dispatchEvent(new CustomEvent('customer-chat-opened'));
   };
 
   // ---------------- UI ----------------
@@ -339,7 +341,11 @@ const CustomerDashboard: React.FC = () => {
             messages={messages}
             onSend={sendViaHook}
             isTyping={isTyping}
-            onBack={() => setActiveId(null)}
+            onBack={() => {
+              setActiveId(null);
+              // Dispatch event for notification visibility
+              window.dispatchEvent(new CustomEvent('customer-chat-closed'));
+            }}
             quickReplies={quickReplies}
             onQuickReply={quickReplyViaHook}
             onEndChat={endChatViaHook}
