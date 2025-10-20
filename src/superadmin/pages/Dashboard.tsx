@@ -217,16 +217,12 @@ const SuperAdminDashboard: React.FC = () => {
   // Function to fetch all KPI data, explicitly typed
   const fetchKpiData = useCallback(async () => {
     setLoading(true);
-    // Use Record<string, ...> for the results object
     const results: Record<string, number | null | undefined> = {};
 
-    // Use Promise.allSettled to handle errors in individual KPI calls gracefully
     const promises = kpiDefinitions.map(async kpi => {
       let value: number | null = null;
       try {
-        // Special handling for KPI 6 which requires an additional parameter
         if (kpi.id === 'chatSource') {
-          // Type assertion to satisfy TypeScript
           value = await (
             kpi.func as (
               range: DateRange,
@@ -240,13 +236,11 @@ const SuperAdminDashboard: React.FC = () => {
         }
       } catch (e) {
         console.error(`Error fetching KPI ${kpi.id}:`, e);
-        // If there's an error, the value remains null, which the card handles
         value = null;
       }
       return { id: kpi.id, value };
     });
 
-    // Explicitly define the type for the Promise.allSettled result
     const settledResults: PromiseSettledResult<{
       id: string;
       value: number | null;
@@ -256,17 +250,16 @@ const SuperAdminDashboard: React.FC = () => {
       if (result.status === 'fulfilled') {
         results[result.value.id] = result.value.value;
       }
-      // If status is 'rejected', the value remains undefined/null, handled by initial declaration
     });
 
     setKpiData(results);
     setLoading(false);
   }, [dateRange, ordersFromOtherChannels]);
 
-  // Effect to re-fetch data whenever the date range or the external order count changes
-  useEffect(() => {
-    fetchKpiData();
-  }, [fetchKpiData]);
+  // NOTE: Removed automatic fetch on mount / effect that called fetchKpiData immediately.
+  // KPI processing will now only run when:
+  // - user clicks the "Refresh Data" button below, or
+  // - a 'superadmin-refresh-data' event is dispatched (e.g., from SuperAdminRoot)
 
   // Listen for refresh events from SuperAdminRoot navbar
   useEffect(() => {
@@ -274,9 +267,15 @@ const SuperAdminDashboard: React.FC = () => {
       fetchKpiData();
     };
 
-    window.addEventListener('superadmin-refresh-data', handleRefresh);
+    window.addEventListener(
+      'superadmin-refresh-data',
+      handleRefresh as EventListener
+    );
     return () => {
-      window.removeEventListener('superadmin-refresh-data', handleRefresh);
+      window.removeEventListener(
+        'superadmin-refresh-data',
+        handleRefresh as EventListener
+      );
     };
   }, [fetchKpiData]);
 
@@ -362,7 +361,7 @@ const SuperAdminDashboard: React.FC = () => {
                 size={18}
                 className={loading ? 'animate-spin mr-2' : 'mr-2'}
               />
-              {loading ? 'Refreshing...' : 'Refresh Data'}
+              {loading ? 'Processing...' : 'Refresh Data'}
             </button>
           </div>
         </header>
@@ -382,9 +381,8 @@ const SuperAdminDashboard: React.FC = () => {
         {/* Footer/Instructions: Updated to use rounded-2xl */}
         <footer className="mt-8 text-center text-gray-500 text-sm p-4 bg-white rounded-2xl shadow-lg">
           <p>
-            Values are based on live data from Supabase. This dashboard calls
-            the 10 functions from <code>getKpi.ts</code> using the selected date
-            range.
+            Values are processed on demand. Click "Refresh Data" to pull KPIs
+            from Supabase.
           </p>
         </footer>
       </div>
