@@ -6,6 +6,8 @@ import MobileLayout from '@customer/components/shared/layouts/MobileLayout';
 import SidebarPanel from '@customer/components/shared/sidebar/SidebarPanel';
 import LogoutButton from '@customer/components/shared/sidebar/LogoutButton';
 import LogoutModal from '@customer/components/shared/sidebar/LogoutModal';
+import PayNowButton from '@customer/components/dashboard/recentOrders/PayNowButton';
+import ReuploadPaymentButton from '@customer/components/dashboard/recentOrders/ReuploadPaymentButton';
 import { Text, Badge, Button } from '@shared/components';
 import { formatOrderStatus } from '@shared/utils/statusFormatter';
 import { formatLongDate } from '@shared/utils/dateFormatter';
@@ -215,6 +217,20 @@ const OrderHistory: React.FC = () => {
               {order.total}
             </Text>
           )}
+
+          {/* Action buttons */}
+          <div className="mt-3">
+            {order.status.toLowerCase() === 'awaiting_payment' && (
+              <PayNowButton orderId={order.id} total={order.total} />
+            )}
+            {order.status.toLowerCase() === 'reupload_payment' && (
+              <ReuploadPaymentButton
+                orderId={order.id}
+                displayId={order.displayId}
+                total={order.total}
+              />
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -266,6 +282,7 @@ const OrderHistory: React.FC = () => {
           >
             <option value="">All Statuses</option>
             <option value="awaiting_payment">Awaiting Payment</option>
+            <option value="reupload_payment">Reupload Payment</option>
             <option value="processing">Processing</option>
             <option value="completed">Completed</option>
             <option value="cancelled">Cancelled</option>

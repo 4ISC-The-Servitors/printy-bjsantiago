@@ -18,7 +18,7 @@ import {
   ToastContainer,
   Text,
   PageLoading,
-  Notification,
+  //Notification,
 } from '@shared/components';
 import { useLogoutWithToast } from '@/auth/hooks/useLogoutWithToast';
 import { useRecentOrder } from '@customer/hooks/useRecentOrder';
@@ -421,7 +421,7 @@ const CustomerDashboard: React.FC = () => {
   return (
     <>
       {/* Notification Bell - Fixed Position */}
-      <Notification />
+      {/*<Notification />*/}
 
       {/* Desktop Layout */}
       <div className="hidden lg:block">

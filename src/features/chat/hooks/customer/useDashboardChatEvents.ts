@@ -35,6 +35,34 @@ export function useDashboardChatEvents(
       );
   }, [initializeFlow, getRecentOrderId, getRecentTotal]);
 
+  // Reupload Payment
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as {
+        orderId?: string;
+        total?: string;
+        displayId?: string;
+      };
+      const orderId = detail?.orderId || getRecentOrderId();
+      const displayId = detail?.displayId || orderId;
+      const title = `Reupload Payment for Order ${displayId ?? ''}`;
+      initializeFlow('reupload-payment', title, {
+        order_id: orderId,
+        total_amount: detail?.total || getRecentTotal(),
+        display_id: displayId,
+      });
+    };
+    window.addEventListener(
+      'customer-open-reupload-payment-chat',
+      handler as EventListener
+    );
+    return () =>
+      window.removeEventListener(
+        'customer-open-reupload-payment-chat',
+        handler as EventListener
+      );
+  }, [initializeFlow, getRecentOrderId, getRecentTotal]);
+
   // Open specific session from Chat History
   useEffect(() => {
     const handler = (e: Event) => {
@@ -54,23 +82,26 @@ export function useDashboardChatEvents(
   // Track Ticket - Open ticket conversation
   useEffect(() => {
     const handler = async (e: Event) => {
-      const detail = (e as CustomEvent).detail as { 
-        inquiryId: string; 
-        subject: string; 
+      const detail = (e as CustomEvent).detail as {
+        inquiryId: string;
+        subject: string;
       };
       const { inquiryId, subject } = detail;
-      
+
       if (!inquiryId) return;
-      
+
       // Use track-ticket flow with inquiry context
       const title = `Ticket: ${subject}`;
       initializeFlow('track-ticket', title, {
         inquiryId,
-        subject
+        subject,
       });
     };
-    
-    window.addEventListener('customer-open-ticket-chat', handler as EventListener);
+
+    window.addEventListener(
+      'customer-open-ticket-chat',
+      handler as EventListener
+    );
     return () =>
       window.removeEventListener(
         'customer-open-ticket-chat',
@@ -81,24 +112,27 @@ export function useDashboardChatEvents(
   // Track Quote - Open quote conversation
   useEffect(() => {
     const handler = async (e: Event) => {
-      const detail = (e as CustomEvent).detail as { 
-        conversationId: string; 
-        subject: string; 
+      const detail = (e as CustomEvent).detail as {
+        conversationId: string;
+        subject: string;
       };
       const { conversationId, subject } = detail;
-      
+
       if (!conversationId) return;
-      
+
       // Use track-quote flow with conversation context
       const title = `Quote: ${subject}`;
       initializeFlow('track-quote', title, {
         conversation_id: conversationId,
         conversationId,
-        subject
+        subject,
       });
     };
-    
-    window.addEventListener('customer-open-quote-chat', handler as EventListener);
+
+    window.addEventListener(
+      'customer-open-quote-chat',
+      handler as EventListener
+    );
     return () =>
       window.removeEventListener(
         'customer-open-quote-chat',
