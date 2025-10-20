@@ -14,7 +14,7 @@ Implement real-time notifications that listen to Supabase table updates for orde
 
 ## 📊 Tables to Monitor
 
-### 1. orders_duplicate Table
+### 1. orders Table
 
 ```sql
 -- Monitor these fields for changes:
@@ -522,3 +522,159 @@ EXECUTE FUNCTION notify_customer_on_proposal_update();
   - Used `DROP ... CASCADE` to handle trigger dependencies
 
 This fix resolved the "column qp.conversation_id does not exist" error and ensured quote proposal notifications work correctly.
+
+---
+
+## 🛠 Debugging Notes — Critical Notification Function Errors
+
+### notify_payment_events Function - CRITICAL ISSUES
+
+- Problem: Multiple column reference errors in `notify_payment_events()` function.
+  - Root cause: Function references columns that don't exist in the `payments` table:
+    - `NEW.id` → should be `NEW.payment_id` (primary key)
+    - `NEW.customer_id` → doesn't exist in payments table
+    - `NEW.status` → should be `NEW.payment_status`
+    - `NEW.order_display_id` → doesn't exist in payments table
+    - `NEW.customer_name` → doesn't exist in payments table
+  - Additional issue: References non-existent `users` table instead of `customer` table
+
+- Table structure mismatch:
+  - `payments` table columns: `payment_id`, `order_id`, `quote_id`, `payment_amount`, `payment_status`, `payment_method`, `paid_datetime`
+  - Function was written for a different schema
+
+- Fix required: Complete rewrite of the function to:
+  - Use correct primary key (`payment_id`)
+  - Join with `orders` table to get customer info
+  - Use correct status column (`payment_status`)
+  - Reference `customer` table for admin notifications
+
+### notify_ticket_events Function - CRITICAL ISSUES
+
+- Problem: Column reference errors in `notify_ticket_events()` function.
+  - Root cause: Function references columns that don't match the `inquiries` table:
+    - `NEW.id` → should be `NEW.inquiry_id` (primary key)
+    - `NEW.status` → should be `NEW.inquiry_status`
+  - Additional issue: References non-existent `users` table instead of `customer` table
+
+- Table structure mismatch:
+  - `inquiries` table columns: `inquiry_id`, `customer_id`, `inquiry_status`, `display_id`, `inquiry_type`, `inquiry_message_enc`, `resolution_comments`, `received_at`, `updated_at`, `session_id`
+  - Function was written for a different schema
+
+- Fix required: Update function to:
+  - Use correct primary key (`inquiry_id`)
+  - Use correct status column (`inquiry_status`)
+  - Reference `customer` table for admin notifications
+
+### Functions That Are Working Correctly
+
+- `notify_order_events()` - ✓ Uses correct columns (`order_id`, `customer_id`, `display_id`, `status`)
+- `notify_quote_events()` - ✓ Uses correct columns (`quote_id`, `customer_id`, `display_id`, `status`)
+- `notify_admins_on_quote_created()` - ✓ Uses correct columns and references
+- `notify_customer_on_proposal_update()` - ✓ Fixed in previous debugging session
+
+### SQL Fixes Required
+
+```sql
+-- Fix notify_payment_events function
+DROP FUNCTION IF EXISTS notify_payment_events() CASCADE;
+
+CREATE OR REPLACE FUNCTION notify_payment_events()
+RETURNS TRIGGER AS $$
+BEGIN
+  -- Get order and customer info from related tables
+  INSERT INTO notifications (customer_id, source_type, source_id, title, message, type, category)
+  SELECT 
+    o.customer_id,
+    'payment',
+    NEW.payment_id,
+    'Payment Update',
+    'Payment for order #' || COALESCE(o.display_id, o.order_id::text) || ' is now "' || NEW.payment_status || '".',
+    CASE
+      WHEN NEW.payment_status = 'approved' THEN 'success'
+      WHEN NEW.payment_status = 'rejected' THEN 'error'
+      ELSE 'info'
+    END,
+    'payment'
+  FROM orders o
+  WHERE o.order_id = NEW.order_id;
+
+  -- Notify admins
+  INSERT INTO notifications (customer_id, source_type, source_id, title, message, type, category)
+  SELECT 
+    c.customer_id, 
+    'payment', 
+    NEW.payment_id,
+    'Payment Event',
+    'Payment for order #' || COALESCE(o.display_id, o.order_id::text) || ' status changed to "' || NEW.payment_status || '".',
+    'warning', 
+    'payment'
+  FROM customer c
+  CROSS JOIN orders o
+  WHERE c.customer_type = 'admin' 
+  AND o.order_id = NEW.order_id;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Recreate the trigger
+CREATE TRIGGER trigger_payment_notifications 
+AFTER INSERT OR UPDATE ON payments 
+FOR EACH ROW 
+EXECUTE FUNCTION notify_payment_events();
+
+-- Fix notify_ticket_events function
+DROP FUNCTION IF EXISTS notify_ticket_events() CASCADE;
+
+CREATE OR REPLACE FUNCTION notify_ticket_events()
+RETURNS TRIGGER AS $$
+BEGIN
+  -- Notify customer
+  INSERT INTO notifications (customer_id, source_type, source_id, title, message, type, category)
+  VALUES (
+    NEW.customer_id,
+    'ticket',
+    NEW.inquiry_id,
+    'Ticket Update',
+    'Your support ticket #' || COALESCE(NEW.display_id, NEW.inquiry_id::text) || ' is now "' || NEW.inquiry_status || '".',
+    'info',
+    'ticket'
+  );
+
+  -- Notify admins
+  INSERT INTO notifications (customer_id, source_type, source_id, title, message, type, category)
+  SELECT 
+    c.customer_id, 
+    'ticket', 
+    NEW.inquiry_id,
+    'Ticket Update',
+    'Support ticket #' || COALESCE(NEW.display_id, NEW.inquiry_id::text) || ' status changed to "' || NEW.inquiry_status || '".',
+    'warning', 
+    'ticket'
+  FROM customer c
+  WHERE c.customer_type = 'admin';
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Recreate the trigger
+CREATE TRIGGER trigger_ticket_notifications 
+AFTER INSERT OR UPDATE ON inquiries 
+FOR EACH ROW 
+EXECUTE FUNCTION notify_ticket_events();
+```
+
+### Impact Assessment
+
+- **High Priority**: `notify_payment_events` and `notify_ticket_events` functions are completely broken
+- **Risk**: These functions will cause database errors whenever payments or tickets are updated
+- **Scope**: Affects payment processing and customer support ticket notifications
+- **Dependencies**: Both functions have active triggers that need to be recreated
+
+### Prevention Measures
+
+- Always verify table schema before writing trigger functions
+- Use `information_schema.columns` to check available columns
+- Test trigger functions with sample data before deployment
+- Document table relationships and primary key names
