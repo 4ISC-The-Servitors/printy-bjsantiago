@@ -8,13 +8,18 @@ export interface NotificationRecord {
   user_id: string;
   title: string;
   message: string;
+  type: string; // info | success | warning | error
+  category: string; // order | quote | ticket | chat | payment | system
   is_read: boolean;
   created_at: string;
 }
 
 export interface UINotificationItem {
   id: string;
+  title: string;
   message: string;
+  category: string;
+  type: string;
   timestamp: string;
   isRead: boolean;
 }
@@ -67,13 +72,28 @@ export function startNotificationListener(
 
         const item: UINotificationItem = {
           id: notif.id,
+          title: notif.title,
           message: notif.message,
+          category: notif.category,
+          type: notif.type,
           timestamp: timeAgoLabel(notif.created_at),
           isRead: notif.is_read,
         };
 
-        // Show a toast popup
-        toast.info(notif.title ?? 'Notification', notif.message);
+        // Show a toast popup with different levels
+        switch (notif.type) {
+          case 'success':
+            toast.success(notif.title ?? 'Success', notif.message);
+            break;
+          case 'error':
+            toast.error(notif.title ?? 'Error', notif.message);
+            break;
+          case 'warning':
+            toast.warning(notif.title ?? 'Warning', notif.message);
+            break;
+          default:
+            toast.info(notif.title ?? 'Notification', notif.message);
+        }
 
         // Push to UI list
         pushItem(item);
@@ -93,7 +113,7 @@ export function startNotificationListener(
 export async function fetchUserNotifications(userId: string): Promise<UINotificationItem[]> {
   const { data, error } = await supabase
     .from('notifications')
-    .select('id,message,is_read,created_at')
+    .select('id,title,message,type,category,is_read,created_at')
     .eq('user_id', userId)
     .order('created_at', { ascending: false });
 
@@ -105,7 +125,10 @@ export async function fetchUserNotifications(userId: string): Promise<UINotifica
   return (
     data?.map((n) => ({
       id: n.id,
+      title: n.title,
       message: n.message,
+      category: n.category,
+      type: n.type,
       timestamp: timeAgoLabel(n.created_at),
       isRead: n.is_read,
     })) ?? []

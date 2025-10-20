@@ -17,6 +17,7 @@ export interface NotificationProps {
   userId: string;
 }
 
+
 const Notification: React.FC<NotificationProps> = ({ className, userId }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [notifications, setNotifications] = useState<UINotificationItem[]>([]);
@@ -183,8 +184,19 @@ const Notification: React.FC<NotificationProps> = ({ className, userId }) => {
                             : 'text-xs sm:text-xs md:text-sm lg:text-base'
                         }`}
                       >
-                        {n.message}
+                        {n.title || n.message}
                       </p>
+                      {n.title && (
+                        <p
+                          className={`text-neutral-700 ${
+                            isMobile
+                              ? 'text-xs'
+                              : 'text-xs sm:text-xs md:text-sm lg:text-sm'
+                          }`}
+                        >
+                          {n.message}
+                        </p>
+                      )}
                       <p
                         className={`text-neutral-500 ${
                           isMobile
