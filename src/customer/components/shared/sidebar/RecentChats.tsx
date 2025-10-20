@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import type { ChatMessage } from '@features/chat/types/chat';
 import { Bot } from 'lucide-react';
 import { Badge } from '@shared/components';
@@ -29,6 +29,28 @@ const RecentChats: React.FC<RecentChatsProps> = ({
   onSwitchConversation,
   getContainerHeight,
 }) => {
+  // IMPORTANT: Call ALL hooks first, before any conditional returns
+  // This ensures hooks are called in the same order on every render (Rules of Hooks)
+
+  // Create a stable callback for getContainerHeight
+  const stableGetContainerHeight = useCallback(() => {
+    return getContainerHeight ? getContainerHeight() : null;
+  }, [getContainerHeight]);
+
+  // Create a stable callback for observeEl
+  const stableObserveEl = useCallback(() => {
+    return document.querySelector('.recent-chats-container');
+  }, []);
+
+  // Dynamically limit the number of items based on available height in the scroll area
+  const maxVisible = useResponsiveListItems(
+    stableGetContainerHeight,
+    { itemHeight: 60, min: 3, max: 20, observeEl: stableObserveEl }
+  );
+
+  const items = useMemo(() => conversations.slice(0, maxVisible), [conversations, maxVisible]);
+
+  // NOW we can do conditional rendering
   if (!conversations || conversations.length === 0) {
     // If the user is authenticated, there may be history loading; show a hint
     const hasUser = typeof window !== 'undefined' && !!localStorage.getItem('sb-uid');
@@ -38,14 +60,6 @@ const RecentChats: React.FC<RecentChatsProps> = ({
       </div>
     );
   }
-
-  // Dynamically limit the number of items based on available height in the scroll area
-  const maxVisible = useResponsiveListItems(
-    () => (getContainerHeight ? getContainerHeight() : null),
-    { itemHeight: 60, min: 3, max: 20, observeEl: () => document.querySelector('.recent-chats-container') }
-  );
-
-  const items = useMemo(() => conversations.slice(0, maxVisible), [conversations, maxVisible]);
 
   return (
     <div className="space-y-2 recent-chats-container">

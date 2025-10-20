@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 
 export function useResponsiveListItems(
   getContainerHeight: () => number | null,
@@ -7,17 +7,17 @@ export function useResponsiveListItems(
   const { itemHeight = 64, min = 1, max = 10, observeEl } = options || {};
   const [count, setCount] = useState<number>(min);
 
-  useEffect(() => {
-    const recalc = () => {
-      const h = getContainerHeight();
-      if (!h || h <= 0) {
-        setCount(min);
-        return;
-      }
-      const n = Math.floor(h / itemHeight);
-      setCount(Math.max(min, Math.min(max, n)));
-    };
+  const recalc = useCallback(() => {
+    const h = getContainerHeight();
+    if (!h || h <= 0) {
+      setCount(min);
+      return;
+    }
+    const n = Math.floor(h / itemHeight);
+    setCount(Math.max(min, Math.min(max, n)));
+  }, [getContainerHeight, itemHeight, min, max]);
 
+  useEffect(() => {
     recalc();
     // Recalc on next ticks to capture layout settles
     const t1 = window.setTimeout(recalc, 50);
@@ -40,7 +40,7 @@ export function useResponsiveListItems(
       window.clearTimeout(t2);
       if (ro) ro.disconnect();
     };
-  }, [getContainerHeight, itemHeight, min, max]);
+  }, [recalc, observeEl]);
 
   return count;
 }
