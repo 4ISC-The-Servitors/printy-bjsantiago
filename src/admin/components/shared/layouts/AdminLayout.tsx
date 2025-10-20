@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Modal, Text, Button, ToastContainer } from '@admin/components/shared';
+import { Notification } from '@shared/components';
 import { SpecEditorModal } from '../../quotes/SpecEditorModal';
 import { X } from 'lucide-react';
 import { useDeviceUtils } from '@shared/hooks/ui';
@@ -9,7 +10,10 @@ import { useAdminChat } from '@admin/hooks/useAdminChat';
 import type { NavRoute } from '../navigation';
 import DesktopLayout from './DesktopLayout';
 import MobileLayout from './MobileLayout';
-import { AdminChatDock, AdminChatOverlay } from '@features/chat/components/layouts';
+import {
+  AdminChatDock,
+  AdminChatOverlay,
+} from '@features/chat/components/layouts';
 import { supabase } from '@lib/supabase';
 
 export interface AdminLayoutProps {
@@ -46,8 +50,9 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   // Listen for admin-chat-open custom events from ticket cards
   useEffect(() => {
     const handleAdminChatOpen = (event: CustomEvent) => {
-      const { topic, orderId, updateOrder, orders, refreshOrders, orderIds } = event.detail;
-      
+      const { topic, orderId, updateOrder, orders, refreshOrders, orderIds } =
+        event.detail;
+
       // Call the existing handleChatOpenWithTopic function with ticket context
       handleChatOpenWithTopic(
         topic,
@@ -61,19 +66,31 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
 
     const handleAdminShowConversation = (event: CustomEvent) => {
       const { conversationId } = event.detail;
-      
+
       // Call the handleShowConversation function to view historical chat
       handleShowConversation(conversationId);
     };
 
     // Add event listeners for admin chat events
-    window.addEventListener('admin-chat-open', handleAdminChatOpen as EventListener);
-    window.addEventListener('admin-show-conversation', handleAdminShowConversation as EventListener);
+    window.addEventListener(
+      'admin-chat-open',
+      handleAdminChatOpen as EventListener
+    );
+    window.addEventListener(
+      'admin-show-conversation',
+      handleAdminShowConversation as EventListener
+    );
 
     // Cleanup event listeners on unmount
     return () => {
-      window.removeEventListener('admin-chat-open', handleAdminChatOpen as EventListener);
-      window.removeEventListener('admin-show-conversation', handleAdminShowConversation as EventListener);
+      window.removeEventListener(
+        'admin-chat-open',
+        handleAdminChatOpen as EventListener
+      );
+      window.removeEventListener(
+        'admin-show-conversation',
+        handleAdminShowConversation as EventListener
+      );
     };
   }, [handleChatOpenWithTopic, handleShowConversation]);
 
@@ -148,6 +165,9 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
 
   return (
     <>
+      {/* Notification Bell - Fixed Position for all admin pages */}
+      <Notification />
+
       {isMobile ? (
         <MobileLayout
           {...commonProps}
