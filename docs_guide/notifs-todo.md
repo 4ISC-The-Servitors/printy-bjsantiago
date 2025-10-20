@@ -451,3 +451,74 @@ $function$;
 - Now populates `orders.denial_reason` when admin denies payment
 - Ensures denial reasons are accessible to customers through RLS-compliant queries
 - Updated JSDoc to reflect dual storage (orders table + session metadata)
+
+---
+
+## 🛠 Debugging Notes — notify_customer_on_proposal_update Trigger Function
+
+- Problem: Updating quote_proposals failed with error 42703: column qp.conversation_id does not exist.
+  - Root cause: The trigger function `notify_customer_on_proposal_update()` was trying to access `qp.conversation_id` from the `quote_proposals` table, but this column doesn't exist.
+  - Additional issue: The function was also trying to query a non-existent `quote_conversations` table.
+
+- Problem: Error 2BP01: cannot drop function notify_customer_on_proposal_update() because other objects depend on it.
+  - Root cause: The trigger `trg_quote_proposal_updated_notifications` depends on the function.
+  - Fix: Use `DROP FUNCTION ... CASCADE` to drop both the function and dependent trigger, then recreate both.
+
+- Root cause analysis:
+  - The `quote_proposals` table has a `session_id` column that references `chat_sessions_v2.session_id`
+  - The `chat_sessions_v2` table contains both `customer_id` and `quote_id` columns
+  - The original function was using an outdated schema that referenced non-existent tables and columns
+
+- Final function body used:
+
+```sql
+-- Drop the existing function with CASCADE to handle the trigger dependency
+DROP FUNCTION IF EXISTS notify_customer_on_proposal_update() CASCADE;
+
+-- Create the corrected function
+CREATE OR REPLACE FUNCTION notify_customer_on_proposal_update()
+RETURNS TRIGGER AS $$
+declare
+  v_customer_id uuid;
+  v_quote_id uuid;
+begin
+  -- Find customer and quote for this proposal using session_id
+  select cs.customer_id, cs.quote_id into v_customer_id, v_quote_id
+  from chat_sessions_v2 cs
+  where cs.session_id = new.session_id;
+
+  if v_customer_id is null then
+    return new;
+  end if;
+
+  insert into notifications (id, customer_id, title, message, type, category, is_read, created_at)
+  values (
+    gen_random_uuid(),
+    v_customer_id,
+    'Quote updated by admin',
+    'Your quote has an update from the admin. Please review the latest proposal.',
+    'info',
+    'quote',
+    false,
+    now()
+  );
+
+  return new;
+end;
+$$ LANGUAGE plpgsql;
+
+-- Recreate the trigger
+CREATE TRIGGER trg_quote_proposal_updated_notifications 
+AFTER UPDATE ON quote_proposals 
+FOR EACH ROW 
+EXECUTE FUNCTION notify_customer_on_proposal_update();
+```
+
+- Key changes made:
+  - Removed references to non-existent `conversation_id` column
+  - Removed references to non-existent `quote_conversations` table
+  - Used `session_id` to join with `chat_sessions_v2` table
+  - Simplified the logic to get `customer_id` and `quote_id` directly from `chat_sessions_v2`
+  - Used `DROP ... CASCADE` to handle trigger dependencies
+
+This fix resolved the "column qp.conversation_id does not exist" error and ensured quote proposal notifications work correctly.
