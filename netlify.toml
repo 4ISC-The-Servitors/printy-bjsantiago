@@ -4,6 +4,8 @@
 
 [build.environment]
   NODE_VERSION = "20"
+  # Ignore built assets from secrets scanning (client bundle legitimately contains public keys)
+  SECRETS_SCAN_OMIT_PATHS = "dist/**"
 
 [[redirects]]
   from = "/api/*"
