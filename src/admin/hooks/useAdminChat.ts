@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import type {
   ChatMessage,
   QuickReply,
@@ -8,7 +8,6 @@ import { JsonbFlowProcessor } from '@features/chat/services/JsonbFlowProcessor';
 import { ChatEndService } from '@features/chat/services/ChatEndService';
 import { getFlowDefinition } from '@features/chat/api/jsonbChatFlowApi';
 import { useAdmin } from '@admin/hooks/AdminContext';
-import { useInquiryActions } from './useInquiryActions';
 import { useAdminConversations } from './useAdminConversations';
 import { ChatDatabaseService } from '@features/chat/services/ChatDatabaseService';
 import { useChatLoadingToast } from '@features/chat/hooks/shared/useChatLoadingToast';
@@ -17,6 +16,7 @@ import {
   sendQuoteProposal,
 } from '@features/chat/actions/admin';
 import { supabase } from '@lib/supabase';
+import { getSessionTitle } from '@features/chat/config/sessionTitleConfig';
 
 export interface UseAdminChatReturn {
   chatOpen: boolean;
@@ -38,6 +38,8 @@ export interface UseAdminChatReturn {
   handleSendMessage: (text: string) => void;
   handleQuickReply: (value: string) => void;
   readOnly: boolean;
+  dbSessionId: string | null;
+  currentConversationId: string | null;
 }
 
 export const useAdminChat = (): UseAdminChatReturn => {
@@ -45,14 +47,6 @@ export const useAdminChat = (): UseAdminChatReturn => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [quickReplies, setQuickReplies] = useState<QuickReply[]>([]);
-  const [currentFlow, setCurrentFlow] = useState<string>('intro');
-  const [, setCurrentContext] = useState<any>({});
-  const [pendingAction, setPendingAction] = useState<
-    null | 'assign' | 'status'
-  >(null);
-  const [currentInquiryId] = useState<string | null>(null);
-  const { updateInquiryStatus, assignInquiry, saveResolutionComment } =
-    useInquiryActions();
   const {
     conversations,
     startConversation,
@@ -99,25 +93,6 @@ export const useAdminChat = (): UseAdminChatReturn => {
     }
   };
 
-  const buildConversationTitle = (topic: string, orderId?: string): string => {
-    const t = (topic || '').toLowerCase();
-    if (t.includes('orders') || t.includes('order')) {
-      return orderId ? `Orders • ${orderId}` : 'Orders';
-    }
-    if (t.includes('tickets') || t.includes('ticket')) {
-      return orderId ? `Tickets • ${orderId}` : 'Tickets';
-    }
-    if (t.includes('quotes') || t.includes('quote')) {
-      return orderId ? `Quotes • ${orderId}` : 'Quotes';
-    }
-    if (t.includes('add-service') || t.includes('add service')) {
-      return 'Add Service';
-    }
-    if (t.includes('portfolio') || t.includes('service')) {
-      return orderId ? `Portfolio • ${orderId}` : 'Portfolio';
-    }
-    return 'Admin Chat';
-  };
 
   const endChatWithDelay = async () => {
     // If viewing an already-ended conversation, just close the panel
@@ -136,8 +111,6 @@ export const useAdminChat = (): UseAdminChatReturn => {
       setCurrentConversationId(null);
       setReadOnly(false);
       setViewingHistorical(false);
-      setCurrentFlow('intro');
-      setCurrentContext({});
       // Dispatch event for notification visibility
       window.dispatchEvent(new CustomEvent('admin-chat-closed'));
       return;
@@ -212,63 +185,6 @@ export const useAdminChat = (): UseAdminChatReturn => {
     }
   };
 
-  const endChat = useCallback(async (conversationIdParam?: string, targetSessionId?: string) => {
-    const targetConversationId = conversationIdParam || currentConversationId;
-    const currentSessionId = targetSessionId || dbSessionId;
-
-    if (!targetConversationId || !currentSessionId) return;
-
-    try {
-      // Get current admin user
-      const { data: userData } = await supabase.auth.getUser();
-      const adminId = userData?.user?.id;
-
-      if (!adminId) {
-        console.error('Admin not authenticated');
-        return;
-      }
-
-      // Use the unified service - this adds the end message to the database
-      const result = await ChatEndService.endChatSession({
-        sessionId: currentSessionId,
-        userId: adminId,
-        userType: 'admin',
-        conversationId: targetConversationId
-      });
-
-      if (result.success) {
-        // Update local state
-        const existing = conversations.find(c => c.id === targetConversationId);
-
-        if (existing) {
-          // Note: We don't have setConversations in this hook, but we can update the conversation via endConversation
-          endConversation(targetConversationId);
-        }
-
-        // Clear active conversation if it's the one being ended
-        if (targetConversationId === currentConversationId) {
-          setCurrentConversationId(null);
-          setDbSessionId(null);
-        }
-
-        // Add the end message to the UI immediately
-        const endMessage: ChatMessage = {
-          id: crypto.randomUUID(),
-          role: 'printy',
-          text: "This conversation has been ended by the administrator.",
-          ts: Date.now(),
-        };
-        setMessages(prev => [...prev, endMessage]);
-        setQuickReplies([]);
-        setReadOnly(true);
-      } else {
-        console.error('Failed to end chat:', result.error);
-      }
-    } catch (error) {
-      console.error('Error ending chat:', error);
-    }
-  }, [currentConversationId, dbSessionId, conversations, endConversation]);
-
   const handleChatOpen = () => {
     setReadOnly(false);
     try {
@@ -278,8 +194,6 @@ export const useAdminChat = (): UseAdminChatReturn => {
     // Dispatch event for notification visibility
     window.dispatchEvent(new CustomEvent('admin-chat-opened'));
     if (messages.length === 0) {
-      setCurrentFlow('intro');
-      setCurrentContext({});
       const convId = startConversation('Admin Chat');
       setCurrentConversationId(convId);
       void (async () => {
@@ -305,9 +219,9 @@ export const useAdminChat = (): UseAdminChatReturn => {
   const handleChatOpenWithTopic = (
     topic: string,
     orderId?: string,
-    updateOrder?: (orderId: string, updates: any) => void,
-    orders?: any[],
-    refreshOrders?: () => void,
+    _updateOrder?: (orderId: string, updates: any) => void,
+    _orders?: any[],
+    _refreshOrders?: () => void,
     orderIds?: string[]
   ) => {
     setReadOnly(false);
@@ -319,125 +233,41 @@ export const useAdminChat = (): UseAdminChatReturn => {
     window.dispatchEvent(new CustomEvent('admin-chat-opened'));
     const nextTopic = topic || 'intro';
 
-    // If switching topics or explicitly provided orderIds (multi-select), always (re)initialize
-    const shouldReset =
-      currentFlow !== nextTopic || (orderIds && orderIds.length > 0);
+    // If explicitly provided orderIds (multi-select), always (re)initialize
+    const shouldReset = (orderIds && orderIds.length > 0);
 
     if (messages.length === 0 || shouldReset) {
-      setCurrentFlow(nextTopic);
-
-      // Pass context - handle both order and service contexts
+      // Pass context - only for supported flows
       let context: any;
-      if (nextTopic === 'multiple-portfolio') {
+      if (nextTopic === 'tickets') {
+        // Only store inquiry_id for ticket review
         context = {
-          serviceIds: orderIds,
-          services: orders,
-          updateService: updateOrder,
-          refreshServices: refreshOrders,
-        };
-      } else if (nextTopic === 'portfolio') {
-        context = {
-          serviceId: orderId,
-          services: orders,
-          updateService: updateOrder,
-          refreshServices: refreshOrders,
-        };
-      } else if (nextTopic === 'multiple-tickets') {
-        context = {
-          ticketIds: orderIds,
-          tickets: orders,
-          // Bridge tickets flow updates to Supabase
-          updateTicket: async (ticketId: string, updates: any) => {
-            try {
-              if (typeof updates?.status === 'string') {
-                const map: Record<string, string> = {
-                  Open: 'open',
-                  Pending: 'in_progress',
-                  Closed: 'closed',
-                };
-                const db = map[updates.status] || updates.status;
-                await updateInquiryStatus(ticketId, db);
-              }
-              if (typeof updates?.lastMessage === 'string') {
-                await saveResolutionComment(ticketId, updates.lastMessage);
-              }
-            } catch (e) {
-              console.error('Failed to update ticket', e);
-            }
-          },
-          refreshTickets: refreshOrders,
-        };
-      } else if (nextTopic === 'tickets') {
-        context = {
-          ticketId: orderId,
-          tickets: orders,
-          // Bridge tickets flow updates to Supabase
-          updateTicket: async (ticketId: string, updates: any) => {
-            try {
-              if (typeof updates?.status === 'string') {
-                const map: Record<string, string> = {
-                  Open: 'open',
-                  Pending: 'in_progress',
-                  Closed: 'closed',
-                };
-                const db = map[updates.status] || updates.status;
-                await updateInquiryStatus(ticketId, db);
-              }
-              if (typeof updates?.lastMessage === 'string') {
-                await saveResolutionComment(ticketId, updates.lastMessage);
-              }
-            } catch (e) {
-              console.error('Failed to update ticket', e);
-            }
-          },
-          refreshTickets: refreshOrders,
+          inquiry_id: orderId, // Store the inquiry_id for fetchTicketForAdmin action
         };
       } else if (nextTopic === 'quotes') {
-        // ✅ FIX: Don't include quotes array in context to prevent metadata bloat
-        // The quotes array is only needed in UI, not in database metadata
+        // Only store conversationId for quote flows
         context = {
           conversationId: orderId,
-          // quotes: orders, // REMOVED - causes 100KB+ metadata bloat
-          // Bridge quotes flow updates to Supabase
-          updateQuote: async (conversationId: string, updates: any) => {
-            try {
-              if (typeof updates?.status === 'string') {
-                const { error } = await supabase
-                  .from('quotes')
-                  .update({
-                    status: updates.status,
-                    updated_at: new Date().toISOString(),
-                  })
-                  .eq('session_id', conversationId);
-
-                if (error) {
-                  console.error('Failed to update quote status', error);
-                  throw error;
-                }
-              }
-              // Refresh the quotes data after update
-              refreshOrders?.();
-            } catch (e) {
-              console.error('Failed to update quote', e);
-            }
-          },
-          refreshQuotes: refreshOrders,
         };
-        // Note: Quotes use conversationId, not inquiryId
+      } else if (nextTopic === 'orders') {
+        // Only store orderId for order flows
+        context = {
+          orderId,
+        };
       } else {
-        context = orderId
-          ? { orderId, updateOrder, orders, refreshOrders, orderIds }
-          : { updateOrder, orders, refreshOrders, orderIds };
+        // Default context for other flows
+        context = orderId ? { orderId } : {};
       }
-
-      setCurrentContext(context);
 
       console.log('🎯 useAdminChat opening with topic:', nextTopic);
       console.log('📋 Context:', context);
 
       console.log('🔍 Opening admin JSONB flow for topic:', nextTopic);
-      const title = buildConversationTitle(nextTopic, orderId);
-      const convId = startConversation ? startConversation(title) : 'conv';
+      // Temporary title for UI (will be properly set when saved to database)
+      const tempTitle = orderId
+        ? `${nextTopic.charAt(0).toUpperCase() + nextTopic.slice(1)}: ${orderId}`
+        : nextTopic.charAt(0).toUpperCase() + nextTopic.slice(1);
+      const convId = startConversation ? startConversation(tempTitle) : 'conv';
       setCurrentConversationId(convId);
 
       // Handle async initial() for JSONB admin flows - check quote status first
@@ -480,6 +310,15 @@ export const useAdminChat = (): UseAdminChatReturn => {
             } else {
               console.log('⚠️ Could not find order data, using default flow');
             }
+          } else if (nextTopic === 'tickets' && orderId) {
+            console.log('🔍 Tickets topic detected - starting admin-review-ticket flow for inquiry_id:', orderId);
+            flowId = 'admin-review-ticket';
+            
+            // Ensure inquiry_id is in context for fetchTicketForAdmin action
+            context = {
+              ...context,
+              inquiry_id: orderId,
+            };
           } else if (nextTopic === 'quotes' && orderId) {
             console.log('🔍 Checking quote status for session_id:', orderId);
 
@@ -600,15 +439,28 @@ export const useAdminChat = (): UseAdminChatReturn => {
             .eq('session_id', start.sessionId)
             .single();
 
+          // Use centralized title generation
+          // ✅ FIX: Preserve existing context (including session_id) while adding display_id
+          const titleMetadata = {
+            ...(existingSession?.metadata || {}),
+            admin_chat: true,
+            context: {
+              ...(existingSession?.metadata?.context || {}), // Keep existing context properties
+              display_id: orderId,
+            },
+          };
+
+          const sessionTitle = getSessionTitle({
+            flowId,
+            metadata: titleMetadata,
+          });
+
           await supabase
             .from('chat_sessions_v2')
             .update({
               metadata: {
-                ...(existingSession?.metadata || {}),
-                admin_chat: true,
-                title: nextTopic === 'orders' 
-                  ? `Order: ${orderId || 'New Order'}`
-                  : `Quote: ${orderId || 'New Quote'}`,
+                ...titleMetadata,
+                title: sessionTitle,
               },
             })
             .eq('session_id', start.sessionId);
@@ -767,52 +619,6 @@ export const useAdminChat = (): UseAdminChatReturn => {
     //   });
     // }
     setIsTyping(true);
-
-    // Intercepts for pending actions
-    const trimmed = text.trim();
-    // No separate resolution action; Reply handles resolution saving below
-    if (pendingAction === 'assign' && currentInquiryId) {
-      void (async () => {
-        try {
-          await assignInquiry(currentInquiryId, trimmed);
-          setMessages(prev => [
-            ...prev,
-            {
-              id: crypto.randomUUID(),
-              role: 'printy',
-              text: `Ticket assigned to ${trimmed}.`,
-              ts: Date.now(),
-            },
-          ]);
-          if (currentConversationId)
-            addConvMessage(
-              'printy',
-              `Ticket assigned to ${trimmed}.`,
-              currentConversationId
-            );
-        } catch (e: any) {
-          setMessages(prev => [
-            ...prev,
-            {
-              id: crypto.randomUUID(),
-              role: 'printy',
-              text: `Failed to assign ticket: ${e?.message || 'Unknown error'}`,
-              ts: Date.now(),
-            },
-          ]);
-          if (currentConversationId)
-            addConvMessage(
-              'printy',
-              `Failed to assign ticket: ${e?.message || 'Unknown error'}`,
-              currentConversationId
-            );
-        } finally {
-          setPendingAction(null);
-        }
-      })();
-      setIsTyping(false);
-      return;
-    }
 
     // Process free-form input through the flow system if we have an active session
     if (dbSessionId) {
@@ -974,60 +780,6 @@ export const useAdminChat = (): UseAdminChatReturn => {
           ]);
         } catch (e) {
           console.error('Failed to send specs', e);
-        }
-      })();
-      return;
-    }
-
-    // no "create new" option to avoid confusion; admins can re-open editor any time
-
-    // Ticket action intercepts
-    if (val === 'Assign to') {
-      setPendingAction('assign');
-      setMessages(prev => [
-        ...prev,
-        {
-          id: crypto.randomUUID(),
-          role: 'printy',
-          text: 'Who should resolve this ticket? Type the staff name.',
-          ts: Date.now(),
-        },
-      ]);
-      return;
-    }
-    if (
-      (['Open', 'Pending', 'Closed'] as string[]).includes(val) &&
-      currentInquiryId
-    ) {
-      const dbStatus = (
-        {
-          Open: 'open',
-          Pending: 'in_progress',
-          Closed: 'closed',
-        } as const
-      )[val as 'Open' | 'Pending' | 'Closed'];
-      void (async () => {
-        try {
-          await updateInquiryStatus(currentInquiryId, dbStatus);
-          setMessages(prev => [
-            ...prev,
-            {
-              id: crypto.randomUUID(),
-              role: 'printy',
-              text: `Status updated to ${val}.`,
-              ts: Date.now(),
-            },
-          ]);
-        } catch (e: any) {
-          setMessages(prev => [
-            ...prev,
-            {
-              id: crypto.randomUUID(),
-              role: 'printy',
-              text: `Failed to update status: ${e?.message || 'Unknown error'}`,
-              ts: Date.now(),
-            },
-          ]);
         }
       })();
       return;

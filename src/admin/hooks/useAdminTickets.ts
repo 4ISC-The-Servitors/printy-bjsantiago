@@ -4,12 +4,13 @@ import { supabase } from '@lib/supabase';
 export type AdminTicketRow = {
   inquiry_id: string;
   display_id?: string;
-  inquiry_message: string | null;
   inquiry_status: string | null;
   inquiry_type: string | null;
   customer_id: string | null;
   received_at: string | null;
-  resolution_comments: string | null;
+  updated_at?: string | null;
+  order_id?: string | null;
+  session_id?: string | null;
   assigned_to: string | null;
   customer_full_name?: string | null;
   customer_first_name?: string | null;
@@ -93,11 +94,11 @@ export function useAdminTickets(options: LoadInquiriesOptions = {}) {
           }
         }
       } else {
-        // Use real inquiries table only
+        // Use real inquiries_v2 table only
         const res = await supabase
-          .from('inquiries')
+          .from('inquiries_v2')
           .select(
-            'inquiry_id,display_id,inquiry_message,inquiry_status,inquiry_type,customer_id,received_at,resolution_comments,assigned_to,customer:customer_id(first_name,last_name,customer_type)'
+            'inquiry_id,display_id,inquiry_status,inquiry_type,customer_id,received_at,updated_at,order_id,session_id,customer:customer_id(first_name,last_name,customer_type)'
           )
           .order('received_at', { ascending: false })
           .range(from, from + pageSize - 1);
@@ -118,12 +119,13 @@ export function useAdminTickets(options: LoadInquiriesOptions = {}) {
         return {
           inquiry_id: (row as any).display_id || (row as any).inquiry_id, // Prefer display_id
           display_id: (row as any).display_id,
-          inquiry_message: (row as any).inquiry_message ?? null,
           inquiry_status: (row as any).inquiry_status ?? null,
           inquiry_type: (row as any).inquiry_type ?? null,
           customer_id: (row as any).customer_id ?? null,
           received_at: (row as any).received_at ?? null,
-          resolution_comments: (row as any).resolution_comments ?? null,
+          updated_at: (row as any).updated_at ?? null,
+          order_id: (row as any).order_id ?? null,
+          session_id: (row as any).session_id ?? null,
           assigned_to: (row as any).assigned_to ?? null,
           customer_full_name: full,
           customer_first_name: first || null,

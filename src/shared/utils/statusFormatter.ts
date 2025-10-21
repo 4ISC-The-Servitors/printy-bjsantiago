@@ -21,7 +21,7 @@ export function formatOrderStatus(status: string): string {
   const statusMap: Record<string, string> = {
     'awaiting_payment': 'Awaiting Payment',
     'verifying_payment': 'Verifying Payment',
-    'reupload_payment_proof': 'Reupload Payment Proof',
+    'reupload_payment_proof': 'Reupload Payment',
     'processing': 'Processing',
     'for_delivery': 'For Delivery',
     'for_pickup': 'For Pickup',
@@ -37,9 +37,10 @@ export function formatOrderStatus(status: string): string {
  */
 export function formatTicketStatus(status: string): string {
   const statusMap: Record<string, string> = {
-    'open': 'Open',
-    'in_progress': 'In Progress',
-    'pending': 'Pending',
+    'new': 'New',
+    'under_review': 'Under Review',
+    'pending_customer_reply': 'Pending Customer Reply',
+    'pending_admin_reply': 'Pending Admin Reply',
     'resolved': 'Resolved',
     'closed': 'Closed',
   };

@@ -105,26 +105,15 @@ export const usePortfolio = () => {
   const handleAddToChat = useCallback(() => {
     if (selectedServices.length === 0) return;
 
-    const flowId =
-      selectedServices.length > 1 ? 'multiple-portfolio' : 'portfolio';
-    if (flowId === 'multiple-portfolio') {
-      handleChatOpenWithTopic(
-        'multiple-portfolio',
-        undefined,
-        updateService,
-        services,
-        refreshServices,
-        selectedServices
-      );
-    } else {
-      handleChatOpenWithTopic(
-        'portfolio',
-        selectedServices[0],
-        updateService,
-        services,
-        refreshServices
-      );
-    }
+    // Use single portfolio flow for all cases
+    handleChatOpenWithTopic(
+      'portfolio',
+      selectedServices[0], // Use first service as primary
+      updateService,
+      services,
+      refreshServices,
+      selectedServices // Pass all selected services as orderIds
+    );
 
     setSelectedServices([]);
   }, [

@@ -189,7 +189,7 @@ export async function sendQuoteProposal(
   messages.push({
     id: crypto.randomUUID(),
     role: 'printy',
-    text: `Specifications sent to customer successfully. Proposal ID: ${proposalData.proposal_id.slice(0, 8)}...`,
+    text: `Specifications sent to customer successfully.`,
     ts: Date.now(),
   });
 

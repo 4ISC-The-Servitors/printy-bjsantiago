@@ -42,6 +42,7 @@
 import { supabase } from '@lib/supabase';
 import type { ActionExecutionParams, ActionExecutionResult } from '@features/chat/types';
 import { ChatEndService } from '../../services/ChatEndService';
+import { insertMessageV2 } from '@features/chat/api/jsonbChatFlowApi';
 
 export async function createInquiry(params: ActionExecutionParams): Promise<ActionExecutionResult> {
   const { actionNode, context, customerId, sessionId } = params;
@@ -50,9 +51,11 @@ export async function createInquiry(params: ActionExecutionParams): Promise<Acti
   const config = actionNode.action_config as any;
   const typeKey = config.type_key || 'inquiry_type';
   const detailsKey = config.details_key || 'issue_details';
+  const orderIdKey = config.order_id_key || 'order_id';
 
   const inquiryType = String(context[typeKey] || 'other');
   const issueDetails = String(context[detailsKey] || '');
+  const orderDisplayId = context[orderIdKey] || null;
 
   if (!issueDetails) {
     messages.push({
@@ -64,15 +67,33 @@ export async function createInquiry(params: ActionExecutionParams): Promise<Acti
     return { messages };
   }
 
-  // Create inquiry directly - let database auto-generate display_id
+  // If customer provided an order display_id, look up the actual order_id (UUID)
+  let actualOrderId = null;
+  if (orderDisplayId) {
+    const { data: orderData } = await supabase
+      .from('orders')
+      .select('order_id')
+      .eq('display_id', orderDisplayId)
+      .eq('customer_id', customerId) // Verify order belongs to this customer
+      .single();
+    
+    if (orderData) {
+      actualOrderId = orderData.order_id;
+    } else {
+      // Order not found - log but continue with ticket creation
+      console.warn(`Order ${orderDisplayId} not found for customer ${customerId}`);
+    }
+  }
+
+  // Create inquiry in v2 table - let database auto-generate display_id
   const { data: inquiryData, error } = await supabase
-    .from('inquiries')
+    .from('inquiries_v2')
     .insert({
       customer_id: customerId,
       inquiry_type: inquiryType,
-      inquiry_message_enc: issueDetails, // Store as plain text for now
       inquiry_status: 'new',
-      session_id: sessionId,  // ✅ Set FK directly
+      session_id: sessionId,
+      order_id: actualOrderId, // Store actual order UUID if found
     })
     .select('inquiry_id, display_id')
     .single();
@@ -106,14 +127,24 @@ export async function createInquiry(params: ActionExecutionParams): Promise<Acti
     displayId = inquiryId;
   }
 
+  // Store issue details in chat_messages_v2 for conversation history using proper encryption
+  await insertMessageV2({
+    sessionId,
+    text: issueDetails,
+    role: 'customer',
+    nodeId: 'collect_details',
+  });
+
   // Update session with inquiry_id FK and metadata
   await supabase
     .from('chat_sessions_v2')
     .update({
-      inquiry_id: inquiryId,  // ✅ Set FK
+      inquiry_id: inquiryId,
       metadata: {
         ...context,
-        inquiry_id: inquiryId,  // Keep in metadata for backward compat
+        inquiry_id: inquiryId,
+        title: `Issue: ${inquiryType}`,
+        issue_preview: issueDetails.substring(0, 100), // Store preview for quick display
       } as any,
     })
     .eq('session_id', sessionId);
@@ -148,7 +179,7 @@ export async function createInquiry(params: ActionExecutionParams): Promise<Acti
  * @returns ActionExecutionResult with end chat message
  */
 export async function endCustomerChat(params: ActionExecutionParams): Promise<ActionExecutionResult> {
-  const { context, customerId, sessionId } = params;
+  const { customerId, sessionId } = params;
   const messages: Array<{ id: string; role: 'printy'; text: string; ts: number }> = [];
 
   try {
@@ -157,7 +188,7 @@ export async function endCustomerChat(params: ActionExecutionParams): Promise<Ac
       sessionId,
       userId: customerId,
       userType: 'customer',
-      endMessage: ChatEndService.DEFAULT_END_MESSAGE
+      endMessage: 'Thank you for chatting with us. Have a great day!'
     });
 
     if (!result.success) {

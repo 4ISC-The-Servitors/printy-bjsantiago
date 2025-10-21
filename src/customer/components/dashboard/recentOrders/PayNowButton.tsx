@@ -3,13 +3,14 @@ import { Button } from '@shared/components';
 
 interface PayNowButtonProps {
   orderId: string;
+  displayId?: string;
   total?: string;
 }
 
-const PayNowButton: React.FC<PayNowButtonProps> = ({ orderId, total }) => {
+const PayNowButton: React.FC<PayNowButtonProps> = ({ orderId, displayId, total }) => {
   const onClick = () => {
     const event = new CustomEvent('customer-open-payment-chat', {
-      detail: { orderId, total },
+      detail: { orderId, displayId, total },
     });
     window.dispatchEvent(event);
   };

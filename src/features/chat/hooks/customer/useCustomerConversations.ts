@@ -5,7 +5,7 @@
  */
 import { useCallback, useState } from 'react';
 import { useConversationState } from '@features/chat/hooks/shared/useConversationState';
-import { auth } from '@lib/supabase';
+import { auth, supabase } from '@lib/supabase';
 import { JsonbFlowProcessor } from '@features/chat/services/JsonbFlowProcessor';
 import { ChatEndService } from '@features/chat/services/ChatEndService';
 import {
@@ -54,13 +54,8 @@ export function useCustomerConversations() {
           ctx,
         });
 
-        // Normalize legacy IDs to JSONB flow IDs
-        const resolvedFlowId =
-          flowId === 'track-ticket'
-            ? 'customer-track-ticket'
-            : flowId === 'track-quote'
-              ? 'track-quote'
-              : flowId;
+        // Use the flow ID as-is since track-ticket already exists in the database
+        const resolvedFlowId = flowId;
 
         console.log(
           '[useCustomerConversations] Resolved flow ID:',
@@ -101,6 +96,27 @@ export function useCustomerConversations() {
         });
 
         console.log('[useCustomerConversations] Flow started, result:', result);
+
+        // ✅ Phase 1 Fix: Save title to database for persistence across refreshes
+        // Fetch existing metadata to merge with new title
+        const { data: existingSession } = await supabase
+          .from('chat_sessions_v2')
+          .select('metadata')
+          .eq('session_id', result.sessionId)
+          .single();
+
+        await supabase
+          .from('chat_sessions_v2')
+          .update({
+            metadata: {
+              ...(existingSession?.metadata || {}),
+              title,  // Save the display title
+              context: ctx || {},
+            }
+          })
+          .eq('session_id', result.sessionId);
+
+        console.log('[useCustomerConversations] Title saved to database:', title);
 
         // Map messages to ChatMessage format
         const mappedMessages: ChatMessage[] = result.messages.map(m => ({

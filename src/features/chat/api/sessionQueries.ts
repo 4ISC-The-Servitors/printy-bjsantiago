@@ -47,6 +47,8 @@ export interface InquiryWithSession {
   inquiry_type: string;
   inquiry_status: string;
   created_at: string;
+  updated_at?: string;
+  order_id?: string | null;
   session_id?: string;
   session?: {
     session_id: string;
@@ -59,6 +61,8 @@ export interface InquiryWithSession {
   inquiryType: string;
   inquiryStatus: string;
   createdAt: number;
+  updatedAt?: number;
+  orderId?: string | null;
 }
 
 export interface QuoteWithSession {
@@ -98,7 +102,7 @@ export async function getUserSessions(
       status,
       created_at,
       metadata,
-      inquiry:inquiries!inquiry_id(
+      inquiry:inquiries_v2!inquiry_id(
         inquiry_id,
         display_id,
         inquiry_type,
@@ -208,7 +212,7 @@ export async function getSessionsForInquiry(
       status,
       created_at,
       metadata,
-      inquiry:inquiries!inquiry_id(
+      inquiry:inquiries_v2!inquiry_id(
         inquiry_id,
         display_id,
         inquiry_type,
@@ -258,7 +262,7 @@ export async function getSessionsForQuote(
       status,
       created_at,
       metadata,
-      inquiry:inquiries!inquiry_id(
+      inquiry:inquiries_v2!inquiry_id(
         inquiry_id,
         display_id,
         inquiry_type,
@@ -430,7 +434,7 @@ export async function getAdminInquirySessions(): Promise<
       status,
       created_at,
       metadata,
-      inquiry:inquiries!inquiry_id(
+      inquiry:inquiries_v2!inquiry_id(
         inquiry_id,
         display_id,
         inquiry_type,
@@ -473,7 +477,7 @@ export async function getCustomerInquiries(
   customerId: string
 ): Promise<InquiryWithSession[]> {
   const { data, error } = await supabase
-    .from('inquiries')
+    .from('inquiries_v2')
     .select(
       `
       inquiry_id,
@@ -483,6 +487,8 @@ export async function getCustomerInquiries(
       inquiry_status,
       created_at:received_at,
       session_id,
+      order_id,
+      updated_at,
       session:chat_sessions_v2!session_id(
         session_id,
         status,
@@ -506,6 +512,8 @@ export async function getCustomerInquiries(
     inquiry_type: inquiry.inquiry_type,
     inquiry_status: inquiry.inquiry_status,
     created_at: inquiry.created_at,
+    updated_at: inquiry.updated_at,
+    order_id: inquiry.order_id,
     session_id: inquiry.session_id,
     session: Array.isArray(inquiry.session)
       ? inquiry.session[0]
@@ -516,6 +524,8 @@ export async function getCustomerInquiries(
     inquiryType: inquiry.inquiry_type,
     inquiryStatus: inquiry.inquiry_status,
     createdAt: new Date(inquiry.created_at).getTime(),
+    updatedAt: inquiry.updated_at ? new Date(inquiry.updated_at).getTime() : undefined,
+    orderId: inquiry.order_id,
   }));
 }
 

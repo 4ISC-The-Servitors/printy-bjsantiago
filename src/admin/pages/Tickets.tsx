@@ -38,7 +38,7 @@ const TicketsContent: React.FC = () => {
       'customer_first_name',
       'customer_last_name',
       'received_at',
-      'resolution_comments'
+      'order_id'
     ],
     dateField: 'received_at',
     filterConfig: FILTER_CONFIGS.tickets,

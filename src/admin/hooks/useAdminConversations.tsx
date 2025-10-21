@@ -9,6 +9,7 @@ import React, {
 import { supabase } from '@lib/supabase';
 import { fetchSessionMessagesV2 } from '@features/chat/api/jsonbChatFlowApi';
 import type { ChatMessage } from '@features/chat/types/chat';
+import { getSessionTitle } from '@features/chat/config/sessionTitleConfig';
 
 export type AdminChatRole = 'user' | 'printy';
 
@@ -64,8 +65,9 @@ export const AdminConversationsProvider: React.FC<{
           flow_id,
           status,
           created_at,
-          metadata,
-          inquiry:inquiries!inquiry_id(
+          display_title,
+          metadata->context->display_id,
+          inquiry:inquiries_v2!inquiry_id(
             inquiry_id,
             display_id,
             inquiry_type,
@@ -89,21 +91,21 @@ export const AdminConversationsProvider: React.FC<{
       if (sessions && sessions.length > 0) {
         const sessionConversations: AdminConversation[] = sessions.map(
           (session: any) => {
-            let title = 'Admin Chat';
-            let icon = undefined;
+            const icon = undefined;
 
-            // Determine title and icon based on session type
-            if (session.metadata?.admin_chat || session.flow_id === 'admin-quote-propose') {
-              title = session.metadata?.title || `Admin Chat - ${session.flow_id}`;
-              // If there's a context session_id, try to get the related quote
-              if (session.metadata?.context?.session_id) {
-                title = `Quote: ${session.metadata.context.session_id.substring(0, 8)}...`;
-              }
-            } else if (session.inquiry) {
-              title = `Ticket: ${session.inquiry.inquiry_type || 'Support'}`;
-            } else if (session.quote) {
-              title = `Quote: ${session.quote.display_id || 'Quote Request'}`;
-            }
+            // Use centralized title logic with optimized data
+            const title = getSessionTitle({
+              flowId: session.flow_id,
+              metadata: {
+                title: session.display_title,
+                context: {
+                  display_id: session.display_id,
+                },
+              },
+              inquiry: session.inquiry,
+              quote: session.quote,
+              order: session.order,
+            });
 
             return {
               id: session.session_id,

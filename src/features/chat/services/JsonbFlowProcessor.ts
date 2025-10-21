@@ -893,28 +893,42 @@ export class JsonbFlowProcessor {
         context,
       });
 
-      // Execute the handler
-      const result = await handler({
-        actionNode,
-        sessionId,
-        customerId,
-        context,
-      });
+      try {
+        // Execute the handler
+        const result = await handler({
+          actionNode,
+          sessionId,
+          customerId,
+          context,
+        });
 
-      console.log(
-        '[JsonbFlowProcessor] Action result messages:',
-        result.messages.length
-      );
-      console.log(
-        '[JsonbFlowProcessor] Action result context:',
-        result.context
-      );
-      messages.push(...result.messages);
+        console.log(
+          '[JsonbFlowProcessor] Action result messages:',
+          result.messages.length
+        );
+        console.log(
+          '[JsonbFlowProcessor] Action result context:',
+          result.context
+        );
+        messages.push(...result.messages);
 
-      // ✅ FIX: Return context updates from action results
-      // This ensures conditional nodes can evaluate context set by actions
-      if (result.context) {
-        return { messages, context: result.context };
+        // ✅ FIX: Return context updates from action results
+        // This ensures conditional nodes can evaluate context set by actions
+        if (result.context) {
+          return { messages, context: result.context };
+        }
+      } catch (error) {
+        console.error(
+          '[JsonbFlowProcessor] Error executing action handler:',
+          actionNode.action,
+          error
+        );
+        messages.push({
+          id: crypto.randomUUID(),
+          role: 'printy',
+          text: `An error occurred while processing your request. Please try again.`,
+          ts: Date.now(),
+        });
       }
     } else {
       // Unknown action

@@ -9,6 +9,7 @@ import ConversationList from '@customer/components/chatHistory/ConversationList'
 import { Text } from '@shared/components';
 import type { ChatMessage } from '@features/chat/types/chat';
 import { getUserSessionsV2 } from '@features/chat/api/jsonbChatFlowApi';
+import { getSessionTitle } from '@features/chat/config/sessionTitleConfig';
 
 interface Conversation {
   id: string;
@@ -76,16 +77,6 @@ const ChatHistory: React.FC = () => {
     navigate('/auth/signin');
   };
 
-  // Flow ID to title mapping
-  const FLOW_TITLES: Record<string, string> = {
-    'ask-quote': 'Request a Quote',
-    'ask-assistance': 'Get Help',
-    'customer-track-ticket': 'Track Support Ticket',
-    'upload-payment': 'Upload Payment',
-    'track-order': 'Track Order',
-    'about': 'About B.J. Santiago',
-  };
-
   // Load conversations from DB (using chat_sessions_v2)
   useEffect(() => {
     (async () => {
@@ -93,7 +84,12 @@ const ChatHistory: React.FC = () => {
         const list = await getUserSessionsV2();
         const convs: Conversation[] = list.map(s => ({
           id: s.sessionId,
-          title: FLOW_TITLES[s.flowId] || s.flowId || 'Chat',
+          title: getSessionTitle({
+            flowId: s.flowId,
+            metadata: {
+              title: s.displayTitle,
+            },
+          }),
           createdAt: s.createdAt,
           messages: [],
           status: (s.status === 'ended' ? 'ended' : 'active') as

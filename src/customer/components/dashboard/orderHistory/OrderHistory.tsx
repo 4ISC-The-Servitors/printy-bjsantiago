@@ -221,7 +221,11 @@ const OrderHistory: React.FC = () => {
           {/* Action buttons */}
           <div className="mt-3">
             {order.status.toLowerCase() === 'awaiting_payment' && (
-              <PayNowButton orderId={order.id} total={order.total} />
+              <PayNowButton
+                orderId={order.id}
+                displayId={order.displayId}
+                total={order.total}
+              />
             )}
             {order.status.toLowerCase() === 'reupload_payment' && (
               <ReuploadPaymentButton

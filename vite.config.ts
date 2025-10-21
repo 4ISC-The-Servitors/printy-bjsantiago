@@ -50,8 +50,16 @@ const consoleToTerminalPlugin = () => {
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tsconfigPaths(), consoleToTerminalPlugin()],
+  optimizeDeps: {
+    include: ['tslib']
+  },
   build: {
     rollupOptions: {
+      external: (id) => {
+        // Don't externalize tslib - it should be bundled
+        if (id === 'tslib') return false;
+        return false;
+      },
       output: {
         manualChunks: id => {
           // Vendor chunks
@@ -67,6 +75,9 @@ export default defineConfig({
             }
             if (id.includes('@supabase')) {
               return 'supabase-vendor';
+            }
+            if (id.includes('tslib')) {
+              return 'tslib-vendor';
             }
             return 'vendor';
           }

@@ -3,6 +3,7 @@
  * Wires dashboard-level events: pay now, open session.
  */
 import { useEffect } from 'react';
+import { FLOW_TITLES } from '@features/chat/config/sessionTitleConfig';
 
 export function useDashboardChatEvents(
   initializeFlow: (flowId: string, title: string, ctx?: any) => void,
@@ -15,12 +16,18 @@ export function useDashboardChatEvents(
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail as {
         orderId?: string;
+        displayId?: string;
         total?: string;
       };
       const orderId = detail?.orderId || getRecentOrderId();
-      const title = `Payment for Order ${orderId ?? ''}`;
+      const displayId = detail?.displayId || orderId;
+
+      // Use centralized title from FLOW_TITLES
+      const title = FLOW_TITLES['pay-order'] || 'Pay Order';
+
       initializeFlow('pay-order', title, {
         order_id: orderId,
+        display_id: displayId,
         total_amount: detail?.total || getRecentTotal(),
       });
     };
@@ -45,7 +52,10 @@ export function useDashboardChatEvents(
       };
       const orderId = detail?.orderId || getRecentOrderId();
       const displayId = detail?.displayId || orderId;
-      const title = `Reupload Payment for Order ${displayId ?? ''}`;
+
+      // Use centralized title from FLOW_TITLES
+      const title = FLOW_TITLES['reupload-payment'] || 'Reupload Payment';
+
       initializeFlow('reupload-payment', title, {
         order_id: orderId,
         total_amount: detail?.total || getRecentTotal(),
@@ -85,16 +95,19 @@ export function useDashboardChatEvents(
       const detail = (e as CustomEvent).detail as {
         inquiryId: string;
         subject: string;
+        displayId?: string;
       };
-      const { inquiryId, subject } = detail;
+      const { inquiryId, subject, displayId } = detail;
 
       if (!inquiryId) return;
 
-      // Use track-ticket flow with inquiry context
-      const title = `Ticket: ${subject}`;
+      // Use centralized title from FLOW_TITLES
+      const title = FLOW_TITLES['track-ticket'] || 'Track Ticket';
+
       initializeFlow('track-ticket', title, {
         inquiryId,
         subject,
+        display_id: displayId,
       });
     };
 
@@ -115,17 +128,20 @@ export function useDashboardChatEvents(
       const detail = (e as CustomEvent).detail as {
         conversationId: string;
         subject: string;
+        displayId?: string;
       };
-      const { conversationId, subject } = detail;
+      const { conversationId, subject, displayId } = detail;
 
       if (!conversationId) return;
 
-      // Use track-quote flow with conversation context
-      const title = `Quote: ${subject}`;
+      // Use centralized title from FLOW_TITLES
+      const title = FLOW_TITLES['track-quote'] || 'Track Quote';
+
       initializeFlow('track-quote', title, {
         conversation_id: conversationId,
         conversationId,
         subject,
+        display_id: displayId,
       });
     };
 

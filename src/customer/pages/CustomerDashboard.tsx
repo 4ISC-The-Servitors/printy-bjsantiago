@@ -26,6 +26,7 @@ import { usePaymentProofUpload } from '@/features/chat/hooks/customer/usePayment
 import { useDeviceUtils } from '@shared/hooks/ui';
 // Chat feature hooks
 import { useCustomerConversations } from '@features/chat/hooks/customer/useCustomerConversations';
+import { getSessionTitle } from '@features/chat/config/sessionTitleConfig';
 
 // ---------------- Types / Config ----------------
 import {
@@ -180,7 +181,8 @@ const CustomerDashboard: React.FC = () => {
             status,
             created_at,
             flow_id,
-            metadata
+            display_title,
+            metadata->context->display_id
           `
           )
           .order('created_at', { ascending: false })
@@ -195,7 +197,15 @@ const CustomerDashboard: React.FC = () => {
           const sessionConversations: Conversation[] = sessions.map(
             (session: any) => ({
               id: session.session_id,
-              title: session.metadata?.title || session.flow_id || 'Chat',
+              title: getSessionTitle({
+                flowId: session.flow_id,
+                metadata: {
+                  title: session.display_title,
+                  context: {
+                    display_id: session.display_id,
+                  },
+                },
+              }),
               createdAt: new Date(session.created_at).getTime(),
               messages: [], // Messages will be loaded when switching to conversation
               flowId: session.flow_id || 'about',
@@ -311,7 +321,12 @@ const CustomerDashboard: React.FC = () => {
 
   const handleTopic = (key: TopicKey) => {
     const cfg = topicConfig[key];
-    initializeFlow(cfg.flowId, cfg.label);
+    // Use centralized title configuration for consistency
+    const title = getSessionTitle({
+      flowId: cfg.flowId,
+      metadata: { title: cfg.label }, // Pass topicConfig label as fallback
+    });
+    initializeFlow(cfg.flowId, title);
     // Dispatch event for notification visibility
     window.dispatchEvent(new CustomEvent('customer-chat-opened'));
   };
