@@ -67,7 +67,8 @@ const RecentTickets: React.FC<RecentTicketsProps> = ({ recentTicket }) => {
         <div className="pt-2">
           <TrackTicketButton 
             inquiryId={recentTicket.id} 
-            subject={recentTicket.subject} 
+            subject={recentTicket.subject}
+            status={recentTicket.status}
           />
         </div>
       </div>

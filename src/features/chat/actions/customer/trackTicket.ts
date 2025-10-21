@@ -340,10 +340,13 @@ export async function resolveTicket(params: ActionExecutionParams): Promise<Acti
 
     const originalSessionId = inquiry.session_id;
 
-    // Update inquiry status to resolved using inquiry_id
+    // Update inquiry status to resolved using inquiry_id and set resolved_at timestamp
     const { error: statusError } = await supabase
       .from('inquiries_v2')
-      .update({ inquiry_status: 'resolved' })
+      .update({ 
+        inquiry_status: 'resolved',
+        resolved_at: new Date().toISOString()
+      })
       .eq('inquiry_id', inquiryId);
 
     if (statusError) {

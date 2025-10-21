@@ -4,9 +4,15 @@ import { Button } from '@shared/components';
 interface TrackTicketButtonProps {
   inquiryId: string;
   subject: string;
+  status: string;
 }
 
-const TrackTicketButton: React.FC<TrackTicketButtonProps> = ({ inquiryId, subject }) => {
+const TrackTicketButton: React.FC<TrackTicketButtonProps> = ({ inquiryId, subject, status }) => {
+  // Hide button if ticket is resolved or closed
+  if (status === 'resolved' || status === 'closed') {
+    return null;
+  }
+
   const onClick = () => {
     const event = new CustomEvent('customer-open-ticket-chat', {
       detail: { inquiryId, subject },

@@ -41,10 +41,15 @@ export async function ticketChangeStatus(params: ActionExecutionParams): Promise
   }
 
   try {
-    // Update inquiry status
+    // Update inquiry status and set resolved_at if changing to resolved
+    const updateData: any = { inquiry_status: newStatus };
+    if (newStatus === 'resolved') {
+      updateData.resolved_at = new Date().toISOString();
+    }
+    
     const { error: statusError } = await supabase
       .from('inquiries_v2')
-      .update({ inquiry_status: newStatus })
+      .update(updateData)
       .eq('inquiry_id', inquiryId);
 
     if (statusError) {

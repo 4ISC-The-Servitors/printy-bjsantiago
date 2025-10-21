@@ -41,11 +41,8 @@ export function useRecentTicket() {
             subject: latestInquiry.inquiryType || '(no subject)',
             status: latestInquiry.inquiryStatus || 'unknown',
             createdAt: receivedAt,
-            updatedAt: receivedAt,
-            resolvedAt:
-              latestInquiry.inquiryStatus === 'resolved'
-                ? receivedAt
-                : undefined,
+            updatedAt: latestInquiry.updatedAt || receivedAt,
+            resolvedAt: latestInquiry.resolvedAt,
           });
         }
       } catch (e: any) {

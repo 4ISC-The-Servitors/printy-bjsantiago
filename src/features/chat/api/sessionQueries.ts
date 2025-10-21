@@ -48,6 +48,7 @@ export interface InquiryWithSession {
   inquiry_status: string;
   created_at: string;
   updated_at?: string;
+  resolved_at?: string;
   order_id?: string | null;
   session_id?: string;
   session?: {
@@ -62,6 +63,7 @@ export interface InquiryWithSession {
   inquiryStatus: string;
   createdAt: number;
   updatedAt?: number;
+  resolvedAt?: number;
   orderId?: string | null;
 }
 
@@ -489,6 +491,7 @@ export async function getCustomerInquiries(
       session_id,
       order_id,
       updated_at,
+      resolved_at,
       session:chat_sessions_v2!session_id(
         session_id,
         status,
@@ -513,6 +516,7 @@ export async function getCustomerInquiries(
     inquiry_status: inquiry.inquiry_status,
     created_at: inquiry.created_at,
     updated_at: inquiry.updated_at,
+    resolved_at: inquiry.resolved_at,
     order_id: inquiry.order_id,
     session_id: inquiry.session_id,
     session: Array.isArray(inquiry.session)
@@ -525,6 +529,7 @@ export async function getCustomerInquiries(
     inquiryStatus: inquiry.inquiry_status,
     createdAt: new Date(inquiry.created_at).getTime(),
     updatedAt: inquiry.updated_at ? new Date(inquiry.updated_at).getTime() : undefined,
+    resolvedAt: inquiry.resolved_at ? new Date(inquiry.resolved_at).getTime() : undefined,
     orderId: inquiry.order_id,
   }));
 }
