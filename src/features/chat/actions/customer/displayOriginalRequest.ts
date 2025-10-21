@@ -17,7 +17,6 @@
  * @returns ActionExecutionResult with formatted original request message
  */
 import { supabase } from '@lib/supabase';
-import { insertMessage } from '@features/chat/helpers/flowHelpers';
 import type {
   ActionExecutionParams,
   ActionExecutionResult,
@@ -28,7 +27,7 @@ export async function displayOriginalRequest(
 ): Promise<ActionExecutionResult> {
   console.log('[displayOriginalRequest] Action called with params:', params);
 
-  const { actionNode, context, sessionId } = params;
+  const { actionNode, context, sessionId: _sessionId } = params;
   const messages: Array<{
     id: string;
     role: 'printy';
@@ -140,18 +139,8 @@ export async function displayOriginalRequest(
       ts: Date.now(),
     });
 
-    // Save the original request message to the database
-    try {
-      await insertMessage({
-        sessionId,
-        text: originalRequestText,
-        role: 'printy',
-        nodeId: actionNode.action,
-      });
-      console.log('[displayOriginalRequest] Message saved successfully');
-    } catch (error) {
-      console.error('[displayOriginalRequest] Failed to save message:', error);
-    }
+    // ✅ FIX: Don't insert message here - JsonbFlowProcessor caller will handle it
+    // This prevents duplicate messages in the database
   } catch (error) {
     console.error('Error displaying original request:', error);
     messages.push({

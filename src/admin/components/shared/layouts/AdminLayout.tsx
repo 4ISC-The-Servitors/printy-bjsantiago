@@ -45,6 +45,8 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     handleQuickReply,
     endChatWithDelay,
     readOnly,
+    dbSessionId,
+    currentConversationId,
   } = useAdminChat();
 
   // Listen for admin-chat-open custom events from ticket cards
@@ -182,6 +184,9 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
               onQuickReply={handleQuickReply}
               onEndChat={endChatWithDelay}
               readOnly={readOnly}
+              toast={[toasts, toast]}
+              sessionId={dbSessionId}
+              conversationId={currentConversationId}
             />
           }
         >

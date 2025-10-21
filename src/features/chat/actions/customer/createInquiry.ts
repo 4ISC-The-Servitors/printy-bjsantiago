@@ -40,8 +40,8 @@
  * - Issue details are stored as plain text (encryption TBD)
  */
 import { supabase } from '@lib/supabase';
-import { insertMessage } from '@features/chat/helpers/flowHelpers';
 import type { ActionExecutionParams, ActionExecutionResult } from '@features/chat/types';
+import { ChatEndService } from '../../services/ChatEndService';
 
 export async function createInquiry(params: ActionExecutionParams): Promise<ActionExecutionResult> {
   const { actionNode, context, customerId, sessionId } = params;
@@ -128,12 +128,60 @@ export async function createInquiry(params: ActionExecutionParams): Promise<Acti
     ts: Date.now(),
   });
 
-  await insertMessage({
-    sessionId,
-    text: successText,
-    role: 'printy',
-    nodeId: actionNode.action,
-  });
+  // ✅ FIX: Don't insert message here - JsonbFlowProcessor caller will handle it
+  // This prevents duplicate messages in the database
 
   return { messages };
+}
+
+/**
+ * Action handler: end_customer_chat
+ *
+ * Ends a customer's chat session using the unified ChatEndService.
+ * This ensures consistent behavior across all end chat operations.
+ *
+ * @param params.actionNode - The action node from the flow definition
+ * @param params.context - Current session context
+ * @param params.customerId - Customer ending the chat
+ * @param params.sessionId - Current chat session ID
+ *
+ * @returns ActionExecutionResult with end chat message
+ */
+export async function endCustomerChat(params: ActionExecutionParams): Promise<ActionExecutionResult> {
+  const { context, customerId, sessionId } = params;
+  const messages: Array<{ id: string; role: 'printy'; text: string; ts: number }> = [];
+
+  try {
+    // Use the unified service to end the chat
+    const result = await ChatEndService.endChatSession({
+      sessionId,
+      userId: customerId,
+      userType: 'customer',
+      endMessage: ChatEndService.DEFAULT_END_MESSAGE
+    });
+
+    if (!result.success) {
+      console.error('Failed to end customer chat:', result.error);
+      messages.push({
+        id: crypto.randomUUID(),
+        role: 'printy',
+        text: "I'm having trouble ending the chat. Please try again.",
+        ts: Date.now(),
+      });
+      return { messages };
+    }
+
+    // Success message - this will be added by the service, so we don't need to add another
+    return { messages };
+
+  } catch (error) {
+    console.error('Error in endCustomerChat:', error);
+    messages.push({
+      id: crypto.randomUUID(),
+      role: 'printy',
+      text: "Something went wrong. Please try again.",
+      ts: Date.now(),
+    });
+    return { messages };
+  }
 }

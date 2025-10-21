@@ -36,7 +36,6 @@
  * - Displays price in PHP currency format
  */
 
-import { insertMessage } from '@features/chat/helpers/flowHelpers';
 import { fetchOrderDetails } from '@features/chat/helpers/orderDetailsHelper';
 import {
   withErrorHandling,
@@ -54,7 +53,7 @@ export async function displayOrderPrice(
   return withErrorHandling(
     'display_order_price',
     async () => {
-      const { actionNode, context, sessionId } = params;
+      const { actionNode, context, sessionId: _sessionId } = params;
 
       const config = actionNode.action_config as any;
       const orderIdKey = config?.order_id_key || 'order_id';
@@ -102,12 +101,8 @@ export async function displayOrderPrice(
         },
       ];
 
-      await insertMessage({
-        sessionId,
-        text: priceText,
-        role: 'printy',
-        nodeId: actionNode.action,
-      });
+      // ✅ FIX: Don't insert message here - JsonbFlowProcessor caller will handle it
+      // This prevents duplicate messages in the database
 
       return {
         messages,

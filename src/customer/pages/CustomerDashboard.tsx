@@ -1,6 +1,6 @@
 // Supabase client for auth and database queries
 import { supabase } from '@lib/supabase';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 // Customer chat UI and types
 import { CustomerChatPanel } from '@features/chat/components/layouts';
@@ -125,6 +125,9 @@ const CustomerDashboard: React.FC = () => {
     setActiveId,
     setConversations,
   } = useCustomerConversations();
+
+  // Memoize toast instance to prevent re-creating array on every render
+  const toastInstance = useMemo(() => [toasts, toast] as [any, any], [toasts, toast]);
 
   // Chat conversation state/actions provided by useCustomerConversations
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -356,6 +359,9 @@ const CustomerDashboard: React.FC = () => {
             hideInput={
               conversations.find(c => c.id === activeId)?.status === 'ended'
             }
+            toast={toastInstance}
+            sessionId={activeId}
+            conversationId={activeId}
           />
         </div>
       ) : (

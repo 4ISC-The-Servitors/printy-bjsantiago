@@ -1,15 +1,17 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import type {
   ChatMessage,
   QuickReply,
   ChatRole,
 } from '@features/chat/types/chat';
 import { JsonbFlowProcessor } from '@features/chat/services/JsonbFlowProcessor';
+import { ChatEndService } from '@features/chat/services/ChatEndService';
 import { getFlowDefinition } from '@features/chat/api/jsonbChatFlowApi';
 import { useAdmin } from '@admin/hooks/AdminContext';
 import { useInquiryActions } from './useInquiryActions';
 import { useAdminConversations } from './useAdminConversations';
 import { ChatDatabaseService } from '@features/chat/services/ChatDatabaseService';
+import { useChatLoadingToast } from '@features/chat/hooks/shared/useChatLoadingToast';
 import {
   editSavedSpecs,
   sendQuoteProposal,
@@ -66,6 +68,7 @@ export const useAdminChat = (): UseAdminChatReturn => {
   const [viewingHistorical, setViewingHistorical] = useState<boolean>(false);
   const { clearSelected } = useAdmin();
   const [dbSessionId, setDbSessionId] = useState<string | null>(null);
+  const { showConversationSwitchToast, clearLoadingToasts } = useChatLoadingToast();
 
   // Helper: append Printy messages gradually with typing indicator
   // Set skipDelay=true for admin flows to show messages instantly
@@ -116,7 +119,7 @@ export const useAdminChat = (): UseAdminChatReturn => {
     return 'Admin Chat';
   };
 
-  const endChatWithDelay = () => {
+  const endChatWithDelay = async () => {
     // If viewing an already-ended conversation, just close the panel
     const existing = currentConversationId
       ? conversations.find(c => c.id === currentConversationId)
@@ -140,33 +143,131 @@ export const useAdminChat = (): UseAdminChatReturn => {
       return;
     }
 
-    const endMessage = {
-      id: crypto.randomUUID(),
-      role: 'printy' as const,
-      text: 'Thank you for chatting with Printy! Have a great day. 👋',
-      ts: Date.now(),
-    };
-    setMessages(prev => [...prev, endMessage]);
-    if (currentConversationId)
-      addConvMessage('printy', endMessage.text, currentConversationId);
-    setQuickReplies([]);
-    setTimeout(() => {
-      if (currentConversationId) {
-        endConversation(currentConversationId);
+    // Use ChatEndService to ensure consistent end messages across admin and customer
+    if (currentConversationId && dbSessionId) {
+      try {
+        const { data: userData } = await supabase.auth.getUser();
+        const adminId = userData?.user?.id;
+
+        if (adminId) {
+          // End the chat using the unified service
+          const result = await ChatEndService.endChatSession({
+            sessionId: dbSessionId,
+            userId: adminId,
+            userType: 'admin',
+            conversationId: currentConversationId
+          });
+
+          if (result.success) {
+            // Fetch the end message from database to show it in UI
+            const { fetchSessionMessagesV2 } = await import('@features/chat/api/jsonbChatFlowApi');
+            const messages = await fetchSessionMessagesV2(dbSessionId);
+            const lastMessage = messages[messages.length - 1];
+
+            if (lastMessage) {
+              const endMessage = {
+                id: lastMessage.id,
+                role: 'printy' as const,
+                text: lastMessage.text,
+                ts: lastMessage.ts,
+              };
+              setMessages(prev => [...prev, endMessage]);
+              if (currentConversationId)
+                addConvMessage('printy', endMessage.text, currentConversationId);
+            }
+
+            setQuickReplies([]);
+
+            // Close after a delay
+            setTimeout(() => {
+              if (currentConversationId) {
+                endConversation(currentConversationId);
+                setCurrentConversationId(null);
+              }
+              setDbSessionId(null);
+              setReadOnly(false);
+              setChatOpen(false);
+              setMessages([]);
+              // Dispatch event for notification visibility
+              window.dispatchEvent(new CustomEvent('admin-chat-closed'));
+            }, 2000);
+          }
+        }
+      } catch (error) {
+        console.error('Error ending admin chat:', error);
+        // Fallback: just close
+        setChatOpen(false);
+        setMessages([]);
+        setQuickReplies([]);
         setCurrentConversationId(null);
-      }
-      // End DB-backed session if any
-      if (dbSessionId) {
-        void ChatDatabaseService.endSession(dbSessionId);
         setDbSessionId(null);
       }
-      setReadOnly(false);
+    } else {
+      // No database session, just close
       setChatOpen(false);
       setMessages([]);
-      // Dispatch event for notification visibility
-      window.dispatchEvent(new CustomEvent('admin-chat-closed'));
-    }, 2000);
+      setQuickReplies([]);
+      setCurrentConversationId(null);
+      setReadOnly(false);
+    }
   };
+
+  const endChat = useCallback(async (conversationIdParam?: string, targetSessionId?: string) => {
+    const targetConversationId = conversationIdParam || currentConversationId;
+    const currentSessionId = targetSessionId || dbSessionId;
+
+    if (!targetConversationId || !currentSessionId) return;
+
+    try {
+      // Get current admin user
+      const { data: userData } = await supabase.auth.getUser();
+      const adminId = userData?.user?.id;
+
+      if (!adminId) {
+        console.error('Admin not authenticated');
+        return;
+      }
+
+      // Use the unified service - this adds the end message to the database
+      const result = await ChatEndService.endChatSession({
+        sessionId: currentSessionId,
+        userId: adminId,
+        userType: 'admin',
+        conversationId: targetConversationId
+      });
+
+      if (result.success) {
+        // Update local state
+        const existing = conversations.find(c => c.id === targetConversationId);
+
+        if (existing) {
+          // Note: We don't have setConversations in this hook, but we can update the conversation via endConversation
+          endConversation(targetConversationId);
+        }
+
+        // Clear active conversation if it's the one being ended
+        if (targetConversationId === currentConversationId) {
+          setCurrentConversationId(null);
+          setDbSessionId(null);
+        }
+
+        // Add the end message to the UI immediately
+        const endMessage: ChatMessage = {
+          id: crypto.randomUUID(),
+          role: 'printy',
+          text: "This conversation has been ended by the administrator.",
+          ts: Date.now(),
+        };
+        setMessages(prev => [...prev, endMessage]);
+        setQuickReplies([]);
+        setReadOnly(true);
+      } else {
+        console.error('Failed to end chat:', result.error);
+      }
+    } catch (error) {
+      console.error('Error ending chat:', error);
+    }
+  }, [currentConversationId, dbSessionId, conversations, endConversation]);
 
   const handleChatOpen = () => {
     setReadOnly(false);
@@ -292,9 +393,11 @@ export const useAdminChat = (): UseAdminChatReturn => {
           refreshTickets: refreshOrders,
         };
       } else if (nextTopic === 'quotes') {
+        // ✅ FIX: Don't include quotes array in context to prevent metadata bloat
+        // The quotes array is only needed in UI, not in database metadata
         context = {
           conversationId: orderId,
-          quotes: orders,
+          // quotes: orders, // REMOVED - causes 100KB+ metadata bloat
           // Bridge quotes flow updates to Supabase
           updateQuote: async (conversationId: string, updates: any) => {
             try {
@@ -605,33 +708,42 @@ export const useAdminChat = (): UseAdminChatReturn => {
 
   // Open an existing conversation in read-only if ended; do not start a new flow
   const handleShowConversation = async (conversationId: string) => {
+    const conv = conversations.find(c => c.id === conversationId);
+    if (!conv) return;
+
+    // Show conversation switching toast
+    showConversationSwitchToast(conv.title || 'Chat Conversation');
+
     setChatOpen(true);
     setCurrentConversationId(conversationId);
-    const conv = conversations.find(c => c.id === conversationId);
-    if (conv) {
-      if (conv.status === 'ended') {
-        // For ended conversations, load historical messages from database
-        setViewingHistorical(true);
-        setReadOnly(true);
-        setQuickReplies([]);
-        setDbSessionId(conversationId);
 
-        try {
-          const historicalMessages =
-            await loadHistoricalMessages(conversationId);
-          setMessages(historicalMessages);
-        } catch (error) {
-          console.error('Failed to load historical messages:', error);
-          setMessages([]);
-        }
-      } else {
-        // For active conversations, use existing messages
-        setViewingHistorical(false);
-        setReadOnly(false);
-        setMessages((conv.messages as any).slice());
-        setQuickReplies([]);
+    if (conv.status === 'ended') {
+      // For ended conversations, load historical messages from database
+      setViewingHistorical(true);
+      setReadOnly(true);
+      setQuickReplies([]);
+      setDbSessionId(conversationId);
+
+      try {
+        const historicalMessages =
+          await loadHistoricalMessages(conversationId);
+        setMessages(historicalMessages);
+      } catch (error) {
+        console.error('Failed to load historical messages:', error);
+        setMessages([]);
       }
+    } else {
+      // For active conversations, use existing messages
+      setViewingHistorical(false);
+      setReadOnly(false);
+      setMessages((conv.messages as any).slice());
+      setQuickReplies([]);
     }
+
+    // Clear the toast after a short delay to indicate loading completion
+    setTimeout(() => {
+      clearLoadingToasts();
+    }, 1500);
   };
 
   const handleSendMessage = (text: string) => {
@@ -645,14 +757,15 @@ export const useAdminChat = (): UseAdminChatReturn => {
     setMessages(prev => [...prev, userMsg]);
     if (currentConversationId)
       addConvMessage('user', text, currentConversationId);
-    // Persist admin's message to chat_messages for all admin chats
-    if (dbSessionId) {
-      void ChatDatabaseService.insertMessage({
-        sessionId: dbSessionId,
-        text,
-        role: 'admin',
-      });
-    }
+    // ✅ FIX: Don't insert message here - JsonbFlowProcessor will handle it
+    // This prevents duplicate admin messages in the database
+    // if (dbSessionId) {
+    //   void ChatDatabaseService.insertMessage({
+    //     sessionId: dbSessionId,
+    //     text,
+    //     role: 'admin',
+    //   });
+    // }
     setIsTyping(true);
 
     // Intercepts for pending actions
@@ -930,14 +1043,15 @@ export const useAdminChat = (): UseAdminChatReturn => {
     setMessages(prev => [...prev, userMsg]);
     if (currentConversationId)
       addConvMessage('user', val, currentConversationId);
-    // Persist admin quick-reply selection to DB for all admin chats
-    if (dbSessionId) {
-      void ChatDatabaseService.insertMessage({
-        sessionId: dbSessionId,
-        text: val,
-        role: 'printy',
-      });
-    }
+    // ✅ FIX: Don't insert message here - JsonbFlowProcessor will handle it
+    // This prevents duplicate quick reply messages in the database
+    // if (dbSessionId) {
+    //   void ChatDatabaseService.insertMessage({
+    //     sessionId: dbSessionId,
+    //     text: val,
+    //     role: 'printy',
+    //   });
+    // }
     setIsTyping(true);
 
     // Drive JSONB flow for quick replies
@@ -1014,6 +1128,8 @@ export const useAdminChat = (): UseAdminChatReturn => {
     handleSendMessage,
     handleQuickReply,
     readOnly,
+    dbSessionId,
+    currentConversationId,
   };
 };
 

@@ -47,7 +47,6 @@
  */
 
 import { supabase } from '@lib/supabase';
-import { insertMessage } from '@features/chat/helpers/flowHelpers';
 import {
   fetchCompleteQuoteDetails,
   formatQuoteDetailsForAdmin,
@@ -104,12 +103,8 @@ export async function displayQuoteDetailsAdmin(
         },
       ];
 
-      await insertMessage({
-        sessionId,
-        text: detailsText,
-        role: 'printy',
-        nodeId: actionNode.action,
-      });
+      // ✅ FIX: Don't insert message here - JsonbFlowProcessor caller will handle it
+      // This prevents duplicate messages in the database
 
       // Store simple flags for downstream nodes
       const { data: currentSession } = await supabase

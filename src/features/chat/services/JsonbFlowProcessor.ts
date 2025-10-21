@@ -860,7 +860,8 @@ export class JsonbFlowProcessor {
       ts: number;
     }> = [];
 
-    // Show action message only if it's not empty (handle both string and potential array cases)
+    // ✅ FIX: Add action node message to messages array but DON'T insert to DB here
+    // The caller (processInput/startFlow) will handle DB insertion to avoid duplicates
     if (
       actionNode.message &&
       typeof actionNode.message === 'string' &&
@@ -872,13 +873,6 @@ export class JsonbFlowProcessor {
         role: 'printy',
         text: actionNode.message,
         ts: Date.now(),
-      });
-
-      await insertMessage({
-        sessionId,
-        text: actionNode.message,
-        role: 'printy',
-        nodeId: actionNode.action,
       });
     } else {
       console.log('[JsonbFlowProcessor] No node message (empty or not string)');

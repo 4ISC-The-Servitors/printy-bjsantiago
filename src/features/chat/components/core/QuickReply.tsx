@@ -1,10 +1,15 @@
 import React from 'react';
 import type { QuickReply } from '@features/chat/types';
+import { ChatEndService } from '@features/chat/services/ChatEndService';
+import { auth } from '@lib/supabase';
 
 interface QuickReplyGridProps {
   replies: QuickReply[];
   onQuickReply?: (value: string) => void;
   onEndChat?: () => void;
+  userRole?: 'admin' | 'customer';
+  sessionId?: string;
+  conversationId?: string;
 }
 
 /**
@@ -15,6 +20,9 @@ export const QuickReplyGrid: React.FC<QuickReplyGridProps> = ({
   replies,
   onQuickReply,
   onEndChat,
+  userRole,
+  sessionId,
+  conversationId,
 }) => {
   const endLabels = new Set([
     'end',
@@ -25,13 +33,51 @@ export const QuickReplyGrid: React.FC<QuickReplyGridProps> = ({
     'done',
   ]);
 
+  const handleEndChat = async () => {
+    if (!sessionId || !userRole) {
+      // Fallback to legacy behavior if no session info provided
+      onEndChat?.();
+      return;
+    }
+
+    try {
+      // Get current user
+      const { data: userData } = await auth.getUser();
+      const userId = userData?.user?.id;
+
+      if (!userId) {
+        console.error('User not authenticated');
+        return;
+      }
+
+      // Use the unified service - this adds the end message to the database
+      const result = await ChatEndService.endChatSession({
+        sessionId,
+        userId,
+        userType: userRole,
+        conversationId,
+        endMessage: userRole === 'admin'
+          ? "This conversation has been ended by the administrator."
+          : ChatEndService.DEFAULT_END_MESSAGE
+      });
+
+      if (result.success) {
+        onEndChat?.();
+      } else {
+        console.error('Failed to end chat:', result.error);
+      }
+    } catch (error) {
+      console.error('Error ending chat from quick reply:', error);
+    }
+  };
+
   return (
     <div className="flex flex-wrap gap-3 mt-3 ml-6 sm:gap-3 sm:ml-8">
       {replies.map((reply, index) => {
         const isEnd = endLabels.has(reply.label.trim().toLowerCase());
         const handleClick = () => {
           if (isEnd) {
-            onEndChat?.();
+            void handleEndChat();
           } else {
             onQuickReply?.(reply.value);
           }

@@ -37,7 +37,6 @@
  * - Follows same pattern as displayQRCodeDetails for image URLs
  */
 
-import { insertMessage } from '@features/chat/helpers/flowHelpers';
 import { fetchOrderDetails } from '@features/chat/helpers/orderDetailsHelper';
 import {
   withErrorHandling,
@@ -55,7 +54,7 @@ export async function displayPaymentProof(
   return withErrorHandling(
     'display_payment_proof',
     async () => {
-      const { actionNode, context, sessionId } = params;
+      const { actionNode, context, sessionId: _sessionId } = params;
 
       const config = actionNode.action_config as any;
       const orderIdKey = config?.order_id_key || 'order_id';
@@ -118,12 +117,8 @@ export async function displayPaymentProof(
         },
       ];
 
-      await insertMessage({
-        sessionId,
-        text: paymentProofText,
-        role: 'printy',
-        nodeId: actionNode.action,
-      });
+      // ✅ FIX: Don't insert message here - JsonbFlowProcessor caller will handle it
+      // This prevents duplicate messages in the database
 
       return {
         messages,
