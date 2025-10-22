@@ -7,6 +7,10 @@
   # Ignore built assets from secrets scanning (client bundle legitimately contains public keys)
   SECRETS_SCAN_OMIT_PATHS = "dist/**"
 
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"

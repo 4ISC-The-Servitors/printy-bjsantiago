@@ -281,30 +281,17 @@ export const quoteActions = async (params: {
   supabaseUrl?: string;
   accessToken?: string;
 }) => {
-  // This is a placeholder implementation that would need to be connected to actual backend functions
-  // For now, return mock responses to prevent the white screen issue
-  switch (params.action) {
-    case 'show-specs':
-      return {
-        quote_id: params.quote_id,
-        status: 'active',
-        spec: {},
-        quoted_price: params.quoted_price || 0
-      };
-
-    case 'edit-specs':
-      return { success: true };
-
-    case 'propose-quote':
-      return { success: true };
-
-    case 'send-for-approval':
-      return { success: true };
-
-    case 'place-order':
-      return { success: true };
-
-    default:
-      throw new Error(`Unknown action: ${params.action}`);
+  // Call Netlify function; pass through user JWT for RLS
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (params.accessToken) headers['Authorization'] = `Bearer ${params.accessToken}`;
+  const res = await fetch('/api/quote-actions', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(params),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`quote-actions error ${res.status}: ${text}`);
   }
+  return await res.json();
 };

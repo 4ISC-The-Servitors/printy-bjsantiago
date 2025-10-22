@@ -78,3 +78,5 @@ forContext/
 .cursor/
 .claude/
 chatFlows/
+# Local Netlify folder
+.netlify
