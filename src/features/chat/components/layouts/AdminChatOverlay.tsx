@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { X, Minus } from 'lucide-react';
 import { Button, Text } from '@shared/components';
-import { MessageGroup, TypingIndicator, ChatInput, ReadOnlyOverlay } from '../core';
+import { MessageGroup, TypingIndicator, ChatInput } from '../core';
 import { ChatEndService } from '@features/chat/services/ChatEndService';
 import { useChatLoadingToast } from '@features/chat/hooks/shared/useChatLoadingToast';
 import type { ChatMessage, QuickReply } from '@features/chat/types';
@@ -268,16 +268,17 @@ export const AdminChatOverlay: React.FC<AdminChatOverlayProps> = ({
             />
           ))}
           {isTyping && <TypingIndicator />}
-
-          {/* ReadOnlyOverlay - sticky positioned to bottom of scroll container */}
-          {readOnly && (
-            <ReadOnlyOverlay />
-          )}
         </div>
 
-        {/* Input */}
-        {!readOnly && (
-          <div className="border-t border-neutral-200 shrink-0">
+        {/* Footer */}
+        <div className="border-t border-neutral-200 shrink-0">
+          {readOnly ? (
+            <div className="bg-neutral-50 p-3 text-center">
+              <span className="text-sm text-neutral-500">
+                This conversation has ended but you can view messages.
+              </span>
+            </div>
+          ) : (
             <ChatInput
               value={input}
               onChange={setInput}
@@ -286,8 +287,8 @@ export const AdminChatOverlay: React.FC<AdminChatOverlayProps> = ({
               showAttach={false}
               disabled={readOnly}
             />
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );

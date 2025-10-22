@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { MessageGroup, TypingIndicator, ChatInput } from '@features/chat/components/core';
+import React, { useEffect, useRef, useMemo } from 'react';
+import { MessageGroup, TypingIndicator } from '@features/chat/components/core';
 import type { ChatMessage, QuickReply } from '@features/chat/types/chat';
 
 interface GuestChatPanelProps {
@@ -22,16 +22,11 @@ interface GuestChatPanelProps {
  */
 export const GuestChatPanel: React.FC<GuestChatPanelProps> = ({
   messages,
-  onSend,
   isTyping = false,
-  onAttachFiles,
   quickReplies,
   onQuickReply,
-  inputPlaceholder = 'Type a message...',
   onEndChat,
-  showAttach = true,
 }) => {
-  const [input, setInput] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Group messages by role
@@ -77,13 +72,6 @@ export const GuestChatPanel: React.FC<GuestChatPanelProps> = ({
     }
   }, [messages, isTyping]);
 
-  const handleSubmit = () => {
-    const text = input.trim();
-    if (!text) return;
-    onSend(text);
-    setInput('');
-  };
-
   return (
     <div className="w-full relative h-96 max-h-96 flex flex-col bg-white border border-neutral-200 rounded-lg">
       {/* Messages */}
@@ -101,18 +89,6 @@ export const GuestChatPanel: React.FC<GuestChatPanelProps> = ({
           />
         ))}
         {isTyping && <TypingIndicator />}
-      </div>
-
-      {/* Input */}
-      <div className="border-t border-neutral-200 shrink-0">
-        <ChatInput
-          value={input}
-          onChange={setInput}
-          onSubmit={handleSubmit}
-          placeholder={inputPlaceholder}
-          showAttach={showAttach}
-          onAttachFiles={onAttachFiles}
-        />
       </div>
     </div>
   );

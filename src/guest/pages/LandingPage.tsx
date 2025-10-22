@@ -8,25 +8,16 @@ import {
   type QuickReply,
   type ChatRole,
 } from '@features/chat/types/chat';
-// TODO: Migrate guest flows to JSONB system
-// import { guestFlows as flows } from '../chatLogic/guest';
-const flows: Record<string, any> = {}; // Temporary placeholder until guest flows are migrated
+import { supabase } from '@lib/supabase';
+import type { FlowDefinition } from '@features/chat/types/flow';
 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [isTyping, setIsTyping] = React.useState(false);
   const [quickReplies, setQuickReplies] = React.useState<QuickReply[]>([]);
-  const [currentFlow, setCurrentFlow] = React.useState<{
-    id: string;
-    title: string;
-    initial: (ctx: unknown) => { text: string }[];
-    respond: (
-      ctx: unknown,
-      input: string
-    ) => Promise<{ messages: { text: string }[]; quickReplies?: string[] }>;
-    quickReplies: () => string[];
-  } | null>(null);
+  const [currentFlow, setCurrentFlow] = React.useState<FlowDefinition | null>(null);
+  const [currentNodeId, setCurrentNodeId] = React.useState<string>('');
   const [chatTitle, setChatTitle] = React.useState<string>('Chat');
   const [inputPlaceholder, setInputPlaceholder] =
     React.useState('Type a message...');
@@ -37,42 +28,82 @@ const LandingPage: React.FC = () => {
     });
   };
 
-  const initializeFlow = (flowKey: 'about' | 'faqs' | 'place-order') => {
-    const flow = flows[flowKey];
-    if (!flow) return;
-    setCurrentFlow(flow as any);
-    setChatTitle(flow.title);
-    setIsChatOpen(true);
+  const initializeFlow = async (flowKey: 'about' | 'faqs' | 'place-order') => {
     setIsTyping(true);
     setMessages([]);
     setQuickReplies([]);
-    const initialMessages = flow.initial({});
-    const botMessages: ChatMessage[] = initialMessages.map(
-      (msg: { text: string }) => ({
-        id: crypto.randomUUID(),
-        role: 'printy' as ChatRole,
-        text: msg.text,
-        ts: Date.now(),
-      })
-    );
-    setMessages(botMessages);
-    const replies = flow
-      .quickReplies()
-      .map((label: string, index: number) => ({
-        id: `qr-${index}`,
-        label,
-        value: label,
-      }));
-    setQuickReplies(replies);
-    setInputPlaceholder('Type a message...');
-    setIsTyping(false);
-    document
-      .getElementById('chat-section')
-      ?.scrollIntoView({ behavior: 'smooth' });
+    
+    try {
+      // Map flow keys to database flow IDs
+      const flowIdMap: Record<string, string> = {
+        'about': 'guest-about-us',
+        'faqs': 'guest-faqs',
+        'place-order': 'guest-place-order' // This would need to be created separately
+      };
+      
+      const flowId = flowIdMap[flowKey];
+      if (!flowId) {
+        console.error('Unknown flow key:', flowKey);
+        setIsTyping(false);
+        return;
+      }
+      
+      // Fetch flow definition from database
+      const { data: flowData, error } = await supabase
+        .from('chat_flows_v2')
+        .select('flow_definition')
+        .eq('flow_id', flowId)
+        .eq('flow_owner', 'guest')
+        .single();
+      
+      if (error || !flowData) {
+        console.error('Error fetching flow:', error);
+        setIsTyping(false);
+        return;
+      }
+      
+      const flowDefinition = flowData.flow_definition as FlowDefinition;
+      setCurrentFlow(flowDefinition);
+      setChatTitle(flowDefinition.title);
+      setCurrentNodeId(flowDefinition.initial_node);
+      
+      // Process initial node
+      const initialNode = flowDefinition.nodes[flowDefinition.initial_node];
+      if (initialNode && initialNode.type === 'message') {
+        const botMessage: ChatMessage = {
+          id: crypto.randomUUID(),
+          role: 'printy',
+          text: initialNode.message as string,
+          ts: Date.now(),
+        };
+        setMessages([botMessage]);
+        
+        // Set quick replies from initial node options
+        if (initialNode.options) {
+          const replies = initialNode.options.map((option, index) => ({
+            id: `qr-${index}`,
+            label: option.label,
+            value: option.label,
+          }));
+          setQuickReplies(replies);
+        }
+      }
+      
+      setIsChatOpen(true);
+      setInputPlaceholder('Type a message...');
+      setIsTyping(false);
+      document
+        .getElementById('chat-section')
+        ?.scrollIntoView({ behavior: 'smooth' });
+        
+    } catch (error) {
+      console.error('Error initializing flow:', error);
+      setIsTyping(false);
+    }
   };
 
   const handleSend = async (text: string) => {
-    if (!currentFlow) return;
+    if (!currentFlow || !currentNodeId) return;
 
     const userMessage: ChatMessage = {
       id: crypto.randomUUID(),
@@ -86,40 +117,76 @@ const LandingPage: React.FC = () => {
     setQuickReplies([]);
 
     try {
-      const response = await currentFlow.respond({}, text);
-      const newBotMessages: ChatMessage[] = response.messages.map(
-        (m: { text: string }) => ({
-          id: crypto.randomUUID(),
-          role: 'printy',
-          text: m.text,
-          ts: Date.now(),
-        })
-      );
-      setMessages(prev => [...prev, ...newBotMessages]);
-      const replies = (response.quickReplies ?? []).map(
-        (label: string, index: number) => ({
-          id: `qr-${index}`,
-          label,
-          value: label,
-        })
-      );
-      setQuickReplies(replies);
-      setInputPlaceholder('Type a message...');
-      setIsTyping(false);
-
-      // If guest is in place-order flow, redirect on auth choices
-      const normalized = text.trim().toLowerCase();
-      if (currentFlow?.id === 'guest_place_order') {
-        if (normalized.includes('sign up')) {
-          navigate('/auth/signup');
-        } else if (
-          normalized.includes('already have an account') ||
-          normalized.includes('sign in')
-        ) {
-          navigate('/auth/signin');
+      // Find matching option in current node
+      const currentNode = currentFlow.nodes[currentNodeId];
+      if (currentNode && currentNode.type === 'message' && currentNode.options) {
+        const selectedOption = currentNode.options.find(option => 
+          option.label.toLowerCase() === text.trim().toLowerCase()
+        );
+        
+        if (selectedOption) {
+          // Move to next node
+          const nextNodeId = selectedOption.next;
+          if (nextNodeId) {
+            setCurrentNodeId(nextNodeId);
+            const nextNode = currentFlow.nodes[nextNodeId];
+            
+            if (nextNode) {
+              if (nextNode.type === 'message') {
+                const botMessage: ChatMessage = {
+                  id: crypto.randomUUID(),
+                  role: 'printy',
+                  text: nextNode.message as string,
+                  ts: Date.now(),
+                };
+                setMessages(prev => [...prev, botMessage]);
+                
+                // Set quick replies for next node
+                if (nextNode.options) {
+                  const replies = nextNode.options.map((option, index) => ({
+                    id: `qr-${index}`,
+                    label: option.label,
+                    value: option.label,
+                  }));
+                  setQuickReplies(replies);
+                }
+              } else if (nextNode.type === 'end') {
+                const endMessage: ChatMessage = {
+                  id: crypto.randomUUID(),
+                  role: 'printy',
+                  text: nextNode.message as string,
+                  ts: Date.now(),
+                };
+                setMessages(prev => [...prev, endMessage]);
+                setQuickReplies([]);
+              }
+            }
+          }
+        } else {
+          // No matching option found
+          const errorMessage: ChatMessage = {
+            id: crypto.randomUUID(),
+            role: 'printy',
+            text: 'Please choose one of the available options.',
+            ts: Date.now(),
+          };
+          setMessages(prev => [...prev, errorMessage]);
+          
+          // Restore quick replies for current node
+          if (currentNode.options) {
+            const replies = currentNode.options.map((option, index) => ({
+              id: `qr-${index}`,
+              label: option.label,
+              value: option.label,
+            }));
+            setQuickReplies(replies);
+          }
         }
       }
-    } catch {
+      
+      setIsTyping(false);
+    } catch (error) {
+      console.error('Error processing message:', error);
       setIsTyping(false);
     }
   };
@@ -145,6 +212,7 @@ const LandingPage: React.FC = () => {
     setIsChatOpen(false);
     setMessages([]);
     setCurrentFlow(null);
+    setCurrentNodeId('');
     setChatTitle('Chat');
     setInputPlaceholder('Type a message...');
   };
