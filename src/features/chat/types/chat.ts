@@ -5,6 +5,7 @@ export interface ChatMessage {
   role: ChatRole;
   text: string;
   ts: number;
+  isHistorical?: boolean; // Indicates if this is a pre-existing message from database
 }
 
 export interface QuickReply {

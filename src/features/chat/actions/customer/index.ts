@@ -24,6 +24,8 @@ import { processPaymentProofUpload } from './processPaymentProofUpload';
 import { fetchDenialReason } from './fetchDenialReason';
 import { reuploadPaymentProof } from './reuploadPaymentProof';
 import { cancelOrder } from './cancelOrder';
+import { fetchTicketDetails, sendCustomerReply, resolveTicket } from './trackTicket';
+import { showCustomerOrders } from './showCustomerOrders';
 
 /**
  * Registry of all available action handlers
@@ -49,6 +51,10 @@ export const actionHandlers: Record<string, ActionHandler> = {
   fetch_denial_reason: fetchDenialReason,
   reupload_payment_proof: reuploadPaymentProof,
   cancel_order: cancelOrder,
+  fetch_ticket_details: fetchTicketDetails,
+  send_customer_reply: sendCustomerReply,
+  resolve_ticket: resolveTicket,
+  show_customer_orders: showCustomerOrders,
 };
 
 /**
@@ -75,4 +81,8 @@ export {
   fetchDenialReason,
   reuploadPaymentProof,
   cancelOrder,
+  fetchTicketDetails,
+  sendCustomerReply,
+  resolveTicket,
+  showCustomerOrders,
 };

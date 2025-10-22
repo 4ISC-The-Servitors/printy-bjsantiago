@@ -16,4 +16,8 @@ create table public.chat_messages_v2 (
   )
 ) TABLESPACE pg_default;
 
+create index IF not exists idx_chat_messages_v2_session_sent on public.chat_messages_v2 using btree (session_id, sent_at desc) TABLESPACE pg_default;
+
+create index IF not exists idx_chat_messages_v2_session_sender on public.chat_messages_v2 using btree (session_id, sender_role) TABLESPACE pg_default;
+
 create index IF not exists idx_messages_v2_session on public.chat_messages_v2 using btree (session_id, sent_at) TABLESPACE pg_default;

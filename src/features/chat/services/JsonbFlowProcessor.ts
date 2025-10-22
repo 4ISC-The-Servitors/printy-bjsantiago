@@ -565,6 +565,29 @@ export class JsonbFlowProcessor {
       }
     }
 
+    // ✅ FIX: Handle quick reply selections from action results
+    // This handles cases where actions return dynamic quick replies (like show_customer_orders)
+    if (currentNode.type === 'action' && userInput) {
+      console.log('[ProcessInput] Checking for action quick reply selection:', userInput);
+
+      // Check if this input matches any quick reply that would have been returned by an action
+      // We look for order IDs in the format ORD-XXXXXX or special values like 'no_order'
+      const isOrderSelection = /^ORD-\d+$/.test(userInput) || userInput === 'no_order';
+
+      if (isOrderSelection) {
+        console.log('[ProcessInput] Detected order quick reply selection:', userInput);
+
+        // Store the order selection in context
+        stateManager.updateContext({
+          order_id: userInput
+        });
+
+        // Move to create_ticket node
+        stateManager.setCurrentNode('create_ticket');
+        console.log('[ProcessInput] Moving to create_ticket node for order:', userInput);
+      }
+    }
+
     // Move to next node if specified (for input nodes)
     if (
       currentNode.type === 'message' &&
@@ -582,8 +605,9 @@ export class JsonbFlowProcessor {
     }
 
     // Execute action if the next node is an action node
+    let actionResult: any = null;
     if (nextNode.type === 'action') {
-      const actionResult = await this.executeAction({
+      actionResult = await this.executeAction({
         actionNode: nextNode as ActionNode,
         sessionId,
         customerId,
@@ -607,8 +631,16 @@ export class JsonbFlowProcessor {
         stateManager.updateContext(actionResult.context);
       }
 
-      // Move to next node after action
-      if (nextNode.next) {
+      // Move to next node after action, but only if action was successful
+      // Check if any error messages indicate validation failure that should prevent advancement
+      const hasValidationErrors = actionResult.messages.some((msg: any) =>
+        msg.text.includes('was not found') ||
+        msg.text.includes('Please provide a valid') ||
+        msg.text.includes('Try again later') ||
+        msg.text.includes("Couldn't create")
+      );
+
+      if (nextNode.next && !hasValidationErrors) {
         // ✅ OPTIMIZED: Use context from action result via stateManager
         // The action result already contains any context updates, no need for additional query
         stateManager.setCurrentNode(nextNode.next);
@@ -635,6 +667,10 @@ export class JsonbFlowProcessor {
             nodeId: stateManager.getCurrentNodeId(),
           });
         }
+      } else if (hasValidationErrors) {
+        // ✅ FIX: If validation failed, go back to the previous input node for retry
+        // The current node was the input node before advancing to the action
+        stateManager.setCurrentNode(currentNodeId);
       }
     } else if (nextNode.type === 'conditional') {
       // Handle conditional node
@@ -824,7 +860,33 @@ export class JsonbFlowProcessor {
     // Get updated node for quick replies
     const finalNodeId = stateManager.getCurrentNodeId();
     const finalNode = flowDefinition.nodes[finalNodeId];
-    const quickReplies = buildQuickReplies(finalNode);
+    let quickReplies = buildQuickReplies(finalNode);
+
+    // ✅ FIX: Include quick replies from action results if available
+    // This allows actions to provide dynamic quick replies (like order selection)
+    if (nextNode.type === 'action' && actionResult && actionResult.quickReplies) {
+      // Use action quick replies if available
+      // Check if action has validation errors or if the action is designed to provide quick replies
+      const hasValidationErrors = actionResult.messages.some((msg: any) =>
+        msg.text.includes('was not found') ||
+        msg.text.includes('Please provide a valid') ||
+        msg.text.includes('Try again later') ||
+        msg.text.includes("Couldn't create")
+      );
+
+      // Use action quick replies if:
+      // 1. There are validation errors (stay on same node for retry)
+      // 2. Action has no next node (designed for interaction)
+      // 3. Action is specifically designed to show quick replies (like show_customer_orders)
+      const shouldUseActionQuickReplies =
+        hasValidationErrors ||
+        !nextNode.next ||
+        nextNode.action === 'show_customer_orders';
+
+      if (shouldUseActionQuickReplies) {
+        quickReplies = actionResult.quickReplies;
+      }
+    }
 
     return {
       messages: responses,
@@ -860,7 +922,8 @@ export class JsonbFlowProcessor {
       ts: number;
     }> = [];
 
-    // Show action message only if it's not empty (handle both string and potential array cases)
+    // ✅ FIX: Add action node message to messages array but DON'T insert to DB here
+    // The caller (processInput/startFlow) will handle DB insertion to avoid duplicates
     if (
       actionNode.message &&
       typeof actionNode.message === 'string' &&
@@ -872,13 +935,6 @@ export class JsonbFlowProcessor {
         role: 'printy',
         text: actionNode.message,
         ts: Date.now(),
-      });
-
-      await insertMessage({
-        sessionId,
-        text: actionNode.message,
-        role: 'printy',
-        nodeId: actionNode.action,
       });
     } else {
       console.log('[JsonbFlowProcessor] No node message (empty or not string)');
@@ -899,28 +955,50 @@ export class JsonbFlowProcessor {
         context,
       });
 
-      // Execute the handler
-      const result = await handler({
-        actionNode,
-        sessionId,
-        customerId,
-        context,
-      });
+      try {
+        // Execute the handler
+        const result = await handler({
+          actionNode,
+          sessionId,
+          customerId,
+          context,
+        });
 
-      console.log(
-        '[JsonbFlowProcessor] Action result messages:',
-        result.messages.length
-      );
-      console.log(
-        '[JsonbFlowProcessor] Action result context:',
-        result.context
-      );
-      messages.push(...result.messages);
+        console.log(
+          '[JsonbFlowProcessor] Action result messages:',
+          result.messages.length
+        );
+        console.log(
+          '[JsonbFlowProcessor] Action result context:',
+          result.context
+        );
+        messages.push(...result.messages);
 
-      // ✅ FIX: Return context updates from action results
-      // This ensures conditional nodes can evaluate context set by actions
-      if (result.context) {
-        return { messages, context: result.context };
+        // ✅ FIX: Return context updates and quick replies from action results
+        // This ensures conditional nodes can evaluate context set by actions
+        // and quick replies from actions are displayed to the user
+        if (result.context || result.quickReplies) {
+          const returnData: any = { messages };
+          if (result.context) {
+            returnData.context = result.context;
+          }
+          if (result.quickReplies) {
+            returnData.quickReplies = result.quickReplies;
+          }
+          return returnData;
+        }
+      } catch (error) {
+        console.error(
+          '[JsonbFlowProcessor] Error executing action handler:',
+          actionNode.action,
+          error
+        );
+        messages.push({
+          id: crypto.randomUUID(),
+          role: 'printy',
+          text: `An error occurred while processing your request. Please try again.`,
+          ts: Date.now(),
+        });
       }
     } else {
       // Unknown action

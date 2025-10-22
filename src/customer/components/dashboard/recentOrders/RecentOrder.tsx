@@ -105,7 +105,11 @@ const RecentOrder: React.FC<RecentOrderProps> = ({ recentOrder }) => {
         {/* Action buttons */}
         <div className="pt-2">
           {isAwaitingPayment && (
-            <PayNowButton orderId={recentOrder.id} total={recentOrder.total} />
+            <PayNowButton
+              orderId={recentOrder.id}
+              displayId={recentOrder.displayId}
+              total={recentOrder.total}
+            />
           )}
           {isReuploadPayment && (
             <ReuploadPaymentButton

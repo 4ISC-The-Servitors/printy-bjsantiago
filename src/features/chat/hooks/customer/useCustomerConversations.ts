@@ -5,8 +5,9 @@
  */
 import { useCallback, useState } from 'react';
 import { useConversationState } from '@features/chat/hooks/shared/useConversationState';
-import { auth } from '@lib/supabase';
+import { auth, supabase } from '@lib/supabase';
 import { JsonbFlowProcessor } from '@features/chat/services/JsonbFlowProcessor';
+import { ChatEndService } from '@features/chat/services/ChatEndService';
 import {
   getFlowDefinition,
   fetchSessionMessagesV2,
@@ -53,13 +54,8 @@ export function useCustomerConversations() {
           ctx,
         });
 
-        // Normalize legacy IDs to JSONB flow IDs
-        const resolvedFlowId =
-          flowId === 'track-ticket'
-            ? 'customer-track-ticket'
-            : flowId === 'track-quote'
-              ? 'track-quote'
-              : flowId;
+        // Use the flow ID as-is since track-ticket already exists in the database
+        const resolvedFlowId = flowId;
 
         console.log(
           '[useCustomerConversations] Resolved flow ID:',
@@ -100,6 +96,27 @@ export function useCustomerConversations() {
         });
 
         console.log('[useCustomerConversations] Flow started, result:', result);
+
+        // ✅ Phase 1 Fix: Save title to database for persistence across refreshes
+        // Fetch existing metadata to merge with new title
+        const { data: existingSession } = await supabase
+          .from('chat_sessions_v2')
+          .select('metadata')
+          .eq('session_id', result.sessionId)
+          .single();
+
+        await supabase
+          .from('chat_sessions_v2')
+          .update({
+            metadata: {
+              ...(existingSession?.metadata || {}),
+              title,  // Save the display title
+              context: ctx || {},
+            }
+          })
+          .eq('session_id', result.sessionId);
+
+        console.log('[useCustomerConversations] Title saved to database:', title);
 
         // Map messages to ChatMessage format
         const mappedMessages: ChatMessage[] = result.messages.map(m => ({
@@ -306,46 +323,61 @@ export function useCustomerConversations() {
     [handleSend, endChatWithSequence]
   );
 
-  const endChat = useCallback(async () => {
-    if (!activeId || !sessionId) return;
+  const endChat = useCallback(async (conversationId?: string, targetSessionId?: string) => {
+    const currentConversationId = conversationId || activeId;
+    const currentSessionId = targetSessionId || sessionId;
+
+    if (!currentConversationId || !currentSessionId) return;
 
     try {
-      // End the session in the database
-      await import('@features/chat/api/jsonbChatFlowApi').then(api =>
-        api.endSessionV2(sessionId)
-      );
+      // Get current user
+      const { data: userData } = await auth.getUser();
+      const userId = userData?.user?.id;
 
-      // Refresh messages from database
-      const fetched = await fetchSessionMessagesV2(sessionId);
-      const mappedFetched: ChatMessage[] = fetched.map(m => ({
-        id: m.id,
-        role: mapRole(m.role as any),
-        text: m.text,
-        ts: m.ts,
-      }));
-      setMessages(mappedFetched);
-      setConversations(prev =>
-        prev.map(c =>
-          c.id === activeId
-            ? {
-                ...c,
-                messages: mappedFetched,
-                status: 'ended' as const,
-              }
-            : c
-        )
-      );
+      if (!userId) {
+        console.error('User not authenticated');
+        return;
+      }
+
+      // Use the unified service - this adds the end message to the database
+      const result = await ChatEndService.endChatSession({
+        sessionId: currentSessionId,
+        userId,
+        userType: 'customer',
+        conversationId: currentConversationId
+      });
+
+      if (result.success) {
+        // Update local state
+        setConversations(prev =>
+          prev.map(conv =>
+            conv.id === currentConversationId
+              ? { ...conv, status: 'ended' as const, updated_at: new Date().toISOString() }
+              : conv
+          )
+        );
+
+        // Keep chat open so user can see the end message
+        // Don't setActiveId(null) here - let user see the message first
+
+        // Refresh messages to show the end message from database
+        const fetched = await fetchSessionMessagesV2(currentSessionId);
+        const mappedFetched: ChatMessage[] = fetched.map(m => ({
+          id: m.id,
+          role: mapRole(m.role as any),
+          text: m.text,
+          ts: m.ts,
+        }));
+        setMessages(mappedFetched);
+        setQuickReplies([]);
+      } else {
+        console.error('Failed to end chat:', result.error);
+      }
     } catch (error) {
-      console.error('Failed to end chat:', error);
+      console.error('Error ending chat:', error);
     }
 
-    setQuickReplies([]);
-
-    // Keep chat open briefly so user sees closing message, then return to dashboard
-    window.setTimeout(() => {
-      setActiveId(null);
-      setMessages([] as any);
-    }, 1500);
+    // Don't automatically close the chat - let user manually close it after seeing the end message
   }, [
     activeId,
     sessionId,
@@ -365,6 +397,10 @@ export function useCustomerConversations() {
       setIsTyping(true);
 
       try {
+        // Check actual session status from database
+        const isSessionEnded = await ChatEndService.isSessionEnded(id);
+        const actualStatus = isSessionEnded ? 'ended' : 'active';
+
         // Fetch messages from database
         const fetched = await fetchSessionMessagesV2(id);
         const mappedMessages: ChatMessage[] = fetched.map(m => ({
@@ -372,17 +408,22 @@ export function useCustomerConversations() {
           role: mapRole(m.role as any),
           text: m.text,
           ts: m.ts,
+          isHistorical: true // Mark all loaded messages as historical to prevent typing animations
         }));
 
         setMessages(mappedMessages);
 
-        // Update conversation with fetched messages
+        // Update conversation with fetched messages and correct status
         setConversations(prev =>
-          prev.map(c => (c.id === id ? { ...c, messages: mappedMessages } : c))
+          prev.map(c => (c.id === id ? {
+            ...c,
+            messages: mappedMessages,
+            status: actualStatus as 'active' | 'ended'
+          } : c))
         );
 
-        // Set quick replies based on conversation status
-        if (conv.status === 'active') {
+        // Set quick replies based on actual database status
+        if (actualStatus === 'active') {
           setQuickReplies([
             { id: 'qr-end', label: 'End Chat', value: 'End Chat' },
           ]);

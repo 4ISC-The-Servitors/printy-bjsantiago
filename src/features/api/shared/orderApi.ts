@@ -1,3 +1,5 @@
+// to be deprecated or rewritten
+
 import { supabase } from '@lib/supabase';
 
 export type OrderData = {

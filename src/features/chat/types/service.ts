@@ -27,6 +27,12 @@ export interface ActionExecutionParams {
   context: SessionContext;
 }
 
+export interface QuickReply {
+  label: string;
+  value: string;
+  next: string;
+}
+
 export interface ActionExecutionResult {
   messages: Array<{
     id: string;
@@ -35,6 +41,7 @@ export interface ActionExecutionResult {
     ts: number;
   }>;
   context?: Partial<SessionContext>;
+  quickReplies?: QuickReply[];
 }
 
 export type ActionHandler = (

@@ -38,6 +38,12 @@ create index IF not exists idx_inquiries_session_id on public.inquiries using bt
 create trigger set_ticket_display_id BEFORE INSERT on inquiries for EACH row
 execute FUNCTION generate_ticket_display_id ();
 
+create trigger trigger_ticket_notifications
+after INSERT
+or
+update on inquiries for EACH row
+execute FUNCTION notify_ticket_events ();
+
 create trigger update_inquiries_updated_at BEFORE
 update on inquiries for EACH row
 execute FUNCTION update_inquiries_updated_at_column ();

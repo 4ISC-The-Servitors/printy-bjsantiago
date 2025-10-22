@@ -1,22 +1,12 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { Outlet } from 'react-router-dom';
 import { AdminLayout } from '@admin/components/shared/layouts';
-import { AdminProvider, type SelectedItem } from '@admin/hooks/AdminContext';
+import { AdminProvider } from '@admin/hooks/AdminContext';
 import { AdminConversationsProvider } from '@admin/hooks/useAdminConversations';
 
 const AdminRoot: React.FC = () => {
-  const [selected, setSelected] = useState<SelectedItem[]>([]);
-
   const adminContextValue = useMemo(
     () => ({
-      selected,
-      addSelected: (item: SelectedItem) =>
-        setSelected(prev =>
-          prev.find(i => i.id === item.id) ? prev : [...prev, item]
-        ),
-      removeSelected: (id: string) =>
-        setSelected(prev => prev.filter(i => i.id !== id)),
-      clearSelected: () => setSelected([]),
       openChat: () => {
         window.dispatchEvent(new CustomEvent('admin-chat-open'));
       },
@@ -42,7 +32,7 @@ const AdminRoot: React.FC = () => {
         );
       },
     }),
-    [selected]
+    []
   );
 
   return (

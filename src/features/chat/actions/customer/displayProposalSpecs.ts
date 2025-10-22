@@ -17,7 +17,6 @@
  * @returns ActionExecutionResult with formatted proposal specs message
  */
 import { supabase } from '@lib/supabase';
-import { insertMessage } from '@features/chat/helpers/flowHelpers';
 import type {
   ActionExecutionParams,
   ActionExecutionResult,
@@ -26,7 +25,7 @@ import type {
 export async function displayProposalSpecs(
   params: ActionExecutionParams
 ): Promise<ActionExecutionResult> {
-  const { actionNode, context, sessionId } = params;
+  const { actionNode, context, sessionId: _sessionId } = params;
   const messages: Array<{
     id: string;
     role: 'printy';
@@ -123,13 +122,8 @@ export async function displayProposalSpecs(
         ts: Date.now(),
       });
 
-      // Save the proposal specs message to the database
-      await insertMessage({
-        sessionId,
-        text: proposalText,
-        role: 'printy',
-        nodeId: actionNode.action,
-      });
+      // ✅ FIX: Don't insert message here - JsonbFlowProcessor caller will handle it
+      // This prevents duplicate messages in the database
     } else {
       const noProposalText =
         'Your quote request is being reviewed by our admin team. We will send you a detailed proposal with pricing soon.';
@@ -141,12 +135,8 @@ export async function displayProposalSpecs(
         ts: Date.now(),
       });
 
-      await insertMessage({
-        sessionId,
-        text: noProposalText,
-        role: 'printy',
-        nodeId: actionNode.action,
-      });
+      // ✅ FIX: Don't insert message here - JsonbFlowProcessor caller will handle it
+      // This prevents duplicate messages in the database
     }
   } catch (error) {
     console.error('Error displaying proposal specs:', error);

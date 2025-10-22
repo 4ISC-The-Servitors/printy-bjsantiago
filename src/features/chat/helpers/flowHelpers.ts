@@ -90,18 +90,40 @@ export async function updateSessionMetadata(
 }
 
 /**
- * End a session
+ * End a session using ChatEndService for consistent end messages
+ * This supersedes any "end" nodes in chat flows
  */
 export async function endSession(sessionId: string): Promise<void> {
-  const { error } = await supabase
-    .from('chat_sessions_v2')
-    .update({
-      status: 'ended',
-      ended_at: new Date().toISOString(),
-    })
-    .eq('session_id', sessionId);
+  try {
+    // Get session details to determine user type
+    const { data: session, error: sessionError } = await supabase
+      .from('chat_sessions_v2')
+      .select('customer_id, metadata, flow_id')
+      .eq('session_id', sessionId)
+      .single();
 
-  if (error) {
+    if (sessionError || !session) {
+      console.error('Failed to fetch session for ending:', sessionError);
+      return;
+    }
+
+    // Determine user type based on flow_id or metadata
+    const isAdminFlow = session.flow_id?.startsWith('admin-') || session.metadata?.admin_chat === true;
+    const userType = isAdminFlow ? 'admin' : 'customer';
+    const userId = session.customer_id; // Both admin and customer IDs are stored here
+
+    // Use ChatEndService to ensure consistent end messages across all flows
+    const { ChatEndService } = await import('@features/chat/services/ChatEndService');
+    const result = await ChatEndService.endChatSession({
+      sessionId,
+      userId,
+      userType,
+    });
+
+    if (!result.success) {
+      console.error('ChatEndService failed to end session:', result.error);
+    }
+  } catch (error) {
     console.error('Failed to end session:', error);
   }
 }

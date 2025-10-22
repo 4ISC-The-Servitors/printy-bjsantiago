@@ -26,7 +26,7 @@ export interface AdminLayoutProps {
  * Manages chat state, navigation, and logout
  */
 export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
-  const { isMobile, isMobileOrTablet } = useDeviceUtils();
+  const { isMobileOrTablet } = useDeviceUtils();
   const navigate = useNavigate();
   const [toasts, toast] = useToast();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -45,6 +45,8 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     handleQuickReply,
     endChatWithDelay,
     readOnly,
+    dbSessionId,
+    currentConversationId,
   } = useAdminChat();
 
   // Listen for admin-chat-open custom events from ticket cards
@@ -168,7 +170,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       {/* Notification Bell - Fixed Position for all admin pages */}
       <Notification />
 
-      {isMobile ? (
+      {isMobileOrTablet ? (
         <MobileLayout
           {...commonProps}
           chatOverlay={
@@ -182,6 +184,9 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
               onQuickReply={handleQuickReply}
               onEndChat={endChatWithDelay}
               readOnly={readOnly}
+              toast={[toasts, toast]}
+              sessionId={dbSessionId || undefined}
+              conversationId={currentConversationId || undefined}
             />
           }
         >
@@ -206,6 +211,8 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
               onQuickReply={handleQuickReply}
               onEndChat={endChatWithDelay}
               readOnly={readOnly}
+              sessionId={dbSessionId || undefined}
+              toast={[toasts, toast]}
             />
           }
         >

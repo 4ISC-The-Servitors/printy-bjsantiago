@@ -40,8 +40,9 @@
  * - Issue details are stored as plain text (encryption TBD)
  */
 import { supabase } from '@lib/supabase';
-import { insertMessage } from '@features/chat/helpers/flowHelpers';
 import type { ActionExecutionParams, ActionExecutionResult } from '@features/chat/types';
+import { ChatEndService } from '../../services/ChatEndService';
+import { insertMessageV2 } from '@features/chat/api/jsonbChatFlowApi';
 
 export async function createInquiry(params: ActionExecutionParams): Promise<ActionExecutionResult> {
   const { actionNode, context, customerId, sessionId } = params;
@@ -50,9 +51,11 @@ export async function createInquiry(params: ActionExecutionParams): Promise<Acti
   const config = actionNode.action_config as any;
   const typeKey = config.type_key || 'inquiry_type';
   const detailsKey = config.details_key || 'issue_details';
+  const orderIdKey = config.order_id_key || 'order_id';
 
   const inquiryType = String(context[typeKey] || 'other');
   const issueDetails = String(context[detailsKey] || '');
+  const orderDisplayId = context[orderIdKey] || null;
 
   if (!issueDetails) {
     messages.push({
@@ -64,15 +67,32 @@ export async function createInquiry(params: ActionExecutionParams): Promise<Acti
     return { messages };
   }
 
-  // Create inquiry directly - let database auto-generate display_id
+  // If customer provided an order display_id (from quick reply selection), get the actual order UUID
+  let actualOrderId = null;
+  if (orderDisplayId && orderDisplayId !== 'no_order') {
+    const { data: orderData } = await supabase
+      .from('orders')
+      .select('order_id')
+      .eq('display_id', orderDisplayId)
+      .eq('customer_id', customerId) // Get order that belongs to this customer
+      .single();
+
+    if (orderData) {
+      actualOrderId = orderData.order_id;
+    }
+    // No need for validation error since we're only showing customer's own orders via quick replies
+  }
+  // If orderDisplayId is 'no_order', the issue is not related to a specific order - proceed without linking
+
+  // Create inquiry in v2 table - let database auto-generate display_id
   const { data: inquiryData, error } = await supabase
-    .from('inquiries')
+    .from('inquiries_v2')
     .insert({
       customer_id: customerId,
       inquiry_type: inquiryType,
-      inquiry_message_enc: issueDetails, // Store as plain text for now
       inquiry_status: 'new',
-      session_id: sessionId,  // ✅ Set FK directly
+      session_id: sessionId,
+      order_id: actualOrderId, // Store actual order UUID if found
     })
     .select('inquiry_id, display_id')
     .single();
@@ -106,20 +126,35 @@ export async function createInquiry(params: ActionExecutionParams): Promise<Acti
     displayId = inquiryId;
   }
 
+  // Store issue details in chat_messages_v2 for conversation history using proper encryption
+  await insertMessageV2({
+    sessionId,
+    text: issueDetails,
+    role: 'customer',
+    nodeId: 'collect_details',
+  });
+
   // Update session with inquiry_id FK and metadata
   await supabase
     .from('chat_sessions_v2')
     .update({
-      inquiry_id: inquiryId,  // ✅ Set FK
+      inquiry_id: inquiryId,
       metadata: {
         ...context,
-        inquiry_id: inquiryId,  // Keep in metadata for backward compat
+        inquiry_id: inquiryId,
+        title: `Issue: ${inquiryType}`,
+        issue_preview: issueDetails.substring(0, 100), // Store preview for quick display
       } as any,
     })
     .eq('session_id', sessionId);
 
   // Success message matching issueTicketFlow.ts
   let successText = `Your support ticket has been created! Here is your Ticket ID: ${displayId}\n\nOur team will review your issue and get back to you as soon as possible. You can track the status of your ticket in your dashboard.\n\nWe appreciate your patience!`;
+  
+  // Add order information if successfully linked
+  if (orderDisplayId && actualOrderId) {
+    successText = `Your support ticket has been created and linked to Order ${orderDisplayId}! Here is your Ticket ID: ${displayId}\n\nOur team will review your issue and get back to you as soon as possible. You can track the status of your ticket in your dashboard.\n\nWe appreciate your patience!`;
+  }
 
   messages.push({
     id: crypto.randomUUID(),
@@ -128,12 +163,60 @@ export async function createInquiry(params: ActionExecutionParams): Promise<Acti
     ts: Date.now(),
   });
 
-  await insertMessage({
-    sessionId,
-    text: successText,
-    role: 'printy',
-    nodeId: actionNode.action,
-  });
+  // ✅ FIX: Don't insert message here - JsonbFlowProcessor caller will handle it
+  // This prevents duplicate messages in the database
 
   return { messages };
+}
+
+/**
+ * Action handler: end_customer_chat
+ *
+ * Ends a customer's chat session using the unified ChatEndService.
+ * This ensures consistent behavior across all end chat operations.
+ *
+ * @param params.actionNode - The action node from the flow definition
+ * @param params.context - Current session context
+ * @param params.customerId - Customer ending the chat
+ * @param params.sessionId - Current chat session ID
+ *
+ * @returns ActionExecutionResult with end chat message
+ */
+export async function endCustomerChat(params: ActionExecutionParams): Promise<ActionExecutionResult> {
+  const { customerId, sessionId } = params;
+  const messages: Array<{ id: string; role: 'printy'; text: string; ts: number }> = [];
+
+  try {
+    // Use the unified service to end the chat
+    const result = await ChatEndService.endChatSession({
+      sessionId,
+      userId: customerId,
+      userType: 'customer',
+      endMessage: 'Thank you for chatting with us. Have a great day!'
+    });
+
+    if (!result.success) {
+      console.error('Failed to end customer chat:', result.error);
+      messages.push({
+        id: crypto.randomUUID(),
+        role: 'printy',
+        text: "I'm having trouble ending the chat. Please try again.",
+        ts: Date.now(),
+      });
+      return { messages };
+    }
+
+    // Success message - this will be added by the service, so we don't need to add another
+    return { messages };
+
+  } catch (error) {
+    console.error('Error in endCustomerChat:', error);
+    messages.push({
+      id: crypto.randomUUID(),
+      role: 'printy',
+      text: "Something went wrong. Please try again.",
+      ts: Date.now(),
+    });
+    return { messages };
+  }
 }

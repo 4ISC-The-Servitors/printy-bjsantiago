@@ -60,7 +60,8 @@ const RecentQuotes: React.FC<RecentQuotesProps> = ({ recentQuote }) => {
         <div className="pt-2">
           <TrackQuoteButton 
             conversationId={recentQuote.id} 
-            subject={recentQuote.displayId} 
+            subject={recentQuote.displayId}
+            status={recentQuote.status}
           />
         </div>
       </div>

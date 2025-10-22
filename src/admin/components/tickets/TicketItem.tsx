@@ -1,6 +1,6 @@
 import React from 'react';
 import { Badge, Button } from '@admin/components/shared';
-import { getTicketStatusBadgeVariant } from '@admin/utils/statusColors';
+import { getTicketStatusBadgeVariant } from '@shared/utils/statusColors';
 import { formatTicketStatus } from '@shared/utils/statusFormatter';
 import {
   formatOrderDateDesktop,
@@ -23,7 +23,8 @@ interface Ticket {
   customer_type?: string | null;
   received_at?: string | null;
   updated_at?: string | null;
-  resolution_comments?: string | null;
+  order_id?: string | null;
+  session_id?: string | null;
   customer?: {
     first_name?: string | null;
     last_name?: string | null;
