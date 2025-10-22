@@ -8,5 +8,3 @@ export type { TypingIndicatorProps } from './TypingIndicator';
 
 export { ChatInput } from './ChatInput';
 export type { ChatInputProps } from './ChatInput';
-
-export { ReadOnlyOverlay } from './ReadOnlyOverlay';

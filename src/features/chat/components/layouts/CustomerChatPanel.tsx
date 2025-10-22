@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { X, Minus } from 'lucide-react';
 import { Button, Text } from '@shared/components';
-import { MessageGroup, TypingIndicator, ChatInput, ReadOnlyOverlay } from '../core';
+import { MessageGroup, TypingIndicator, ChatInput } from '../core';
 import { useChatLoadingToast } from '@features/chat/hooks/shared/useChatLoadingToast';
 import type { ChatMessage, QuickReply } from '@features/chat/types';
 
@@ -259,27 +259,30 @@ export const CustomerChatPanel: React.FC<CustomerChatPanelProps> = ({
           />
         ))}
         {isTyping && <TypingIndicator />}
-
-        {/* ReadOnlyOverlay - sticky positioned to bottom of scroll container */}
-        {readOnly && (
-          <ReadOnlyOverlay />
-        )}
       </div>
 
-      {/* Input */}
-      {!hideInput && !readOnly && (
-        <div className="border-t border-neutral-200 shrink-0">
-          <ChatInput
-            value={input}
-            onChange={setInput}
-            onSubmit={handleSubmit}
-            placeholder="Type a message..."
-            showAttach={!!onAttachFiles}
-            onAttachFiles={onAttachFiles}
-            disabled={readOnly}
-          />
-        </div>
-      )}
+      {/* Footer */}
+      <div className="border-t border-neutral-200 shrink-0">
+        {readOnly ? (
+          <div className="bg-neutral-50 p-3 text-center">
+            <span className="text-sm text-neutral-500">
+              This conversation has ended but you can view messages.
+            </span>
+          </div>
+        ) : (
+          !hideInput && (
+            <ChatInput
+              value={input}
+              onChange={setInput}
+              onSubmit={handleSubmit}
+              placeholder="Type a message..."
+              showAttach={!!onAttachFiles}
+              onAttachFiles={onAttachFiles}
+              disabled={readOnly}
+            />
+          )
+        )}
+      </div>
     </div>
   );
 };
