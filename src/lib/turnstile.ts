@@ -310,17 +310,28 @@ export async function assertHumanTurnstile(action: string) {
   dbg('token acquired length', token?.length ?? 0);
   // Call Netlify Function instead of Supabase Edge Function, with one retry on duplicate/timeout
   const verifyOnce = async (tok: string) => {
-    const resp = await fetch('/api/verify-turnstile', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token: tok, action }),
-    });
-    try {
-      const json = (await resp.json()) as { ok?: boolean; data?: Record<string, unknown> };
-      return { ok: Boolean(json?.ok), respOk: resp.ok, json } as { ok: boolean; respOk: boolean; json: any };
-    } catch {
-      return { ok: false, respOk: resp.ok, json: null } as { ok: boolean; respOk: boolean; json: any };
+    // Try /api first; if 404, fallback to direct /.netlify/functions path
+    const endpoints = ['/api/verify-turnstile', '/.netlify/functions/verify-turnstile'];
+    for (const url of endpoints) {
+      try {
+        const resp = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: tok, action }),
+        });
+        // If 404, try the next endpoint
+        if (resp.status === 404) continue;
+        try {
+          const json = (await resp.json()) as { ok?: boolean; data?: Record<string, unknown> };
+          return { ok: Boolean(json?.ok), respOk: resp.ok, json } as { ok: boolean; respOk: boolean; json: any };
+        } catch {
+          return { ok: false, respOk: resp.ok, json: null } as { ok: boolean; respOk: boolean; json: any };
+        }
+      } catch {
+        // ignore and try next
+      }
     }
+    return { ok: false, respOk: false, json: null } as { ok: boolean; respOk: boolean; json: any };
   };
 
   let result = await verifyOnce(token);

@@ -15,11 +15,14 @@ export async function generateWithCohere(
   forceJson = false,
   modelOverride?: string
 ): Promise<any> {
-  const res = await fetch('/api/llm-chat', {
+  // Try /api first; if 404 (redirect missing), fallback to direct Netlify path
+  const tryFetch = async (url: string) => fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ messages, forceJson, model: modelOverride }),
   });
+  let res = await tryFetch('/api/llm-chat');
+  if (res.status === 404) res = await tryFetch('/.netlify/functions/llm-chat');
   
   if (!res.ok) {
     const errorText = await res.text();
