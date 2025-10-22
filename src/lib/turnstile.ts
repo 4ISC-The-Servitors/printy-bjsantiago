@@ -114,8 +114,6 @@ export async function getTurnstileToken(action: string) {
   return token;
 }
 
-import { supabase } from './supabase';
-
 export async function renderInlineTurnstile(
   containerId: string,
   action: string,
