@@ -32,6 +32,13 @@
  * ```
  */
 
+/**
+ * Action handler: reject_quote_proposal
+ *
+ * Rejects a quote proposal by updating the database status to 'Rejected'.
+ * This action immediately updates both quote_proposals and quotes tables.
+ */
+
 import { supabase } from '@lib/supabase';
 import type {
   ActionExecutionParams,
@@ -70,7 +77,6 @@ export async function rejectQuoteProposal(
       '[rejectQuoteProposal] conversationId looks like quote_id, finding session_id...'
     );
 
-    // Query quotes table to get the session_id for this quote
     const { data: quoteData } = await supabase
       .from('quotes')
       .select('session_id')
@@ -96,6 +102,26 @@ export async function rejectQuoteProposal(
   }
 
   try {
+    // Resolve customer_id from session FIRST
+    const { data: sessionRow } = await supabase
+      .from('chat_sessions_v2')
+      .select('customer_id')
+      .eq('session_id', conversationId)
+      .single();
+
+    const actingCustomerId = sessionRow?.customer_id || params.customerId || null;
+
+    if (!actingCustomerId) {
+      console.error('[rejectQuoteProposal] Could not resolve customer_id');
+      messages.push({
+        id: crypto.randomUUID(),
+        role: 'printy',
+        text: 'Error identifying customer. Please try again.',
+        ts: Date.now(),
+      });
+      return { messages };
+    }
+
     // Update quote_proposals status to 'rejected'
     const { error: proposalError } = await supabase
       .from('quote_proposals')
@@ -116,12 +142,20 @@ export async function rejectQuoteProposal(
       return { messages };
     }
 
-    // Update quotes status to 'rejected'
+    // Update quotes status to 'rejected' with updated_by
+    console.log(
+      '[rejectQuoteProposal] Updating quotes for session_id:',
+      conversationId,
+      'with customer_id:',
+      actingCustomerId
+    );
+
     const { error: quoteError } = await supabase
       .from('quotes')
       .update({
         status: 'rejected',
         updated_at: new Date().toISOString(),
+        updated_by: actingCustomerId, // CRITICAL: This ensures notify_quote_events detects customer action
       })
       .eq('session_id', conversationId);
 
@@ -138,7 +172,9 @@ export async function rejectQuoteProposal(
 
     console.log(
       '[RejectQuote] Quote proposal rejected for conversation:',
-      conversationId
+      conversationId,
+      'by customer:',
+      actingCustomerId
     );
 
     // Return empty messages - the flow processor will handle the confirmation message

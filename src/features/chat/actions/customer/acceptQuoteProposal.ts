@@ -69,7 +69,6 @@ export async function acceptQuoteProposal(
       '[acceptQuoteProposal] conversationId looks like quote_id, finding session_id...'
     );
 
-    // Query quotes table to get the session_id for this quote
     const { data: quoteData } = await supabase
       .from('quotes')
       .select('session_id')
@@ -99,6 +98,26 @@ export async function acceptQuoteProposal(
       '[acceptQuoteProposal] Updating quote_proposals for session_id:',
       conversationId
     );
+
+    // Resolve customer_id from session FIRST
+    const { data: sessionRow } = await supabase
+      .from('chat_sessions_v2')
+      .select('customer_id')
+      .eq('session_id', conversationId)
+      .single();
+
+    const actingCustomerId = sessionRow?.customer_id || params.customerId || null;
+
+    if (!actingCustomerId) {
+      console.error('[acceptQuoteProposal] Could not resolve customer_id');
+      messages.push({
+        id: crypto.randomUUID(),
+        role: 'printy',
+        text: 'Error identifying customer. Please try again.',
+        ts: Date.now(),
+      });
+      return { messages };
+    }
 
     // Update quote_proposals status to 'accepted'
     const { data: proposalData, error: proposalError } = await supabase
@@ -141,10 +160,12 @@ export async function acceptQuoteProposal(
       return { messages };
     }
 
-    // Update quotes status to 'accepted'
+    // Update quotes status to 'accepted' with updated_by
     console.log(
       '[acceptQuoteProposal] Updating quotes for session_id:',
-      conversationId
+      conversationId,
+      'with customer_id:',
+      actingCustomerId
     );
 
     const { data: quoteData, error: quoteError } = await supabase
@@ -152,6 +173,7 @@ export async function acceptQuoteProposal(
       .update({
         status: 'accepted',
         updated_at: new Date().toISOString(),
+        updated_by: actingCustomerId, // CRITICAL: This ensures notify_quote_events detects customer action
       })
       .eq('session_id', conversationId)
       .select();
@@ -160,6 +182,7 @@ export async function acceptQuoteProposal(
       data: quoteData,
       error: quoteError,
       count: quoteData?.length,
+      updated_by: actingCustomerId,
     });
 
     if (quoteError) {
@@ -177,6 +200,11 @@ export async function acceptQuoteProposal(
       console.warn(
         '[acceptQuoteProposal] No quotes found for session_id:',
         conversationId
+      );
+    } else {
+      console.log(
+        '[acceptQuoteProposal] Successfully updated quote with status=accepted and updated_by=',
+        actingCustomerId
       );
     }
 

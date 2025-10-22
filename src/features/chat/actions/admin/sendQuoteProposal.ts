@@ -53,6 +53,13 @@
  * - Customer can view proposal in their quote details flow
  */
 
+/**
+ * Action handler: send_quote_proposal
+ *
+ * Sends the latest saved specification as a formal proposal to the customer.
+ * Creates a proposal record and updates quote status to indicate proposal sent.
+ */
+
 import { supabase } from '@lib/supabase';
 import type {
   ActionExecutionParams,
@@ -62,7 +69,7 @@ import type {
 export async function sendQuoteProposal(
   params: ActionExecutionParams
 ): Promise<ActionExecutionResult> {
-  const { actionNode, context } = params;
+  const { actionNode, context, customerId } = params;
   const messages: Array<{
     id: string;
     role: 'printy';
@@ -72,8 +79,6 @@ export async function sendQuoteProposal(
 
   const config = actionNode.action_config as any;
   const conversationIdKey = config.conversation_id_key || 'session_id';
-  // Note: conversationId here refers to the CUSTOMER's quote session (ask-quote flow),
-  // NOT the admin's chat session (admin-quote-propose flow)
   const conversationId = String(context[conversationIdKey] || '').trim();
 
   if (!conversationId) {
@@ -81,6 +86,36 @@ export async function sendQuoteProposal(
       id: crypto.randomUUID(),
       role: 'printy',
       text: 'Missing conversation ID. Cannot send proposal.',
+      ts: Date.now(),
+    });
+    return { messages };
+  }
+
+  // Verify admin is sending this
+  if (!customerId) {
+    console.error('[sendQuoteProposal] No customerId provided');
+    messages.push({
+      id: crypto.randomUUID(),
+      role: 'printy',
+      text: 'Error: Could not identify sender. Please try again.',
+      ts: Date.now(),
+    });
+    return { messages };
+  }
+
+  // Verify the sender is an admin
+  const { data: senderData } = await supabase
+    .from('customer')
+    .select('customer_type')
+    .eq('customer_id', customerId)
+    .single();
+
+  if (!senderData || !['admin', 'superadmin'].includes(senderData.customer_type)) {
+    console.error('[sendQuoteProposal] Non-admin attempting to send proposal');
+    messages.push({
+      id: crypto.randomUUID(),
+      role: 'printy',
+      text: 'Error: Only admins can send proposals.',
       ts: Date.now(),
     });
     return { messages };
@@ -170,12 +205,18 @@ export async function sendQuoteProposal(
     return { messages };
   }
 
-  // Update quote status in quotes table
+  // Update quote status in quotes table with admin's customer_id
+  console.log(
+    '[sendQuoteProposal] Updating quote status with admin customer_id:',
+    customerId
+  );
+
   const { error: quoteUpdateError } = await supabase
     .from('quotes')
     .update({
       status: 'spec_proposed',
       updated_at: new Date().toISOString(),
+      updated_by: customerId, // CRITICAL: Admin's customer_id for notify_quote_events
     })
     .eq('session_id', conversationId);
 
@@ -183,6 +224,11 @@ export async function sendQuoteProposal(
     console.error(
       '[sendQuoteProposal] Error updating quote status:',
       quoteUpdateError
+    );
+  } else {
+    console.log(
+      '[sendQuoteProposal] Successfully updated quote with updated_by=',
+      customerId
     );
   }
 
