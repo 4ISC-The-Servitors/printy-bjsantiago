@@ -85,7 +85,7 @@ const topicConfig: Record<
   aboutUs: {
     label: 'About Us',
     icon: <Info className="w-6 h-6" />,
-    flowId: 'about',
+    flowId: 'about-us',
     description: 'Learn about B.J. Santiago Inc.',
   },
   faqs: {
