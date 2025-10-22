@@ -51,14 +51,12 @@ export const QuickReplyGrid: React.FC<QuickReplyGridProps> = ({
       }
 
       // Use the unified service - this adds the end message to the database
+      // Don't pass endMessage - let ChatEndService use its default
       const result = await ChatEndService.endChatSession({
         sessionId,
         userId,
         userType: userRole,
-        conversationId,
-        endMessage: userRole === 'admin'
-          ? "This conversation has been ended by the administrator."
-          : ChatEndService.DEFAULT_END_MESSAGE
+        conversationId
       });
 
       if (result.success) {

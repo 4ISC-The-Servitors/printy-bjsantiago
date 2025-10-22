@@ -45,6 +45,7 @@ export const CustomerChatPanel: React.FC<CustomerChatPanelProps> = ({
   toast,
 }) => {
   const [input, setInput] = useState('');
+  const [showContent, setShowContent] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { showChatLoadingToast, clearLoadingToasts } = useChatLoadingToast(toast);
   const loadingToastIdRef = useRef<string | null>(null);
@@ -90,7 +91,7 @@ export const CustomerChatPanel: React.FC<CustomerChatPanelProps> = ({
     try {
       // Store in localStorage
       const existing = JSON.parse(localStorage.getItem('recentChatSessions') || '[]');
-      const updated = [session, ...existing.filter(s => s.conversationId !== session.conversationId)].slice(0, 10);
+      const updated = [session, ...existing.filter((s: any) => s.conversationId !== session.conversationId)].slice(0, 10);
       localStorage.setItem('recentChatSessions', JSON.stringify(updated));
     } catch (error) {
       console.error('Failed to save recent session:', error);
@@ -141,37 +142,52 @@ export const CustomerChatPanel: React.FC<CustomerChatPanelProps> = ({
     }
   }, [messages, isTyping]);
 
-  // Show loading toast when chat panel mounts (first load)
-  // Use a ref to track if we've already shown a toast for this sessionId
-  const lastSessionIdRef = useRef<string | null>(null);
+  // Show loading toast FIRST, then delay showing the actual chat
+  // Track if this is the initial render with a sessionId
+  const hasShownInitialToast = useRef(false);
 
   useEffect(() => {
-    if (sessionId && lastSessionIdRef.current !== sessionId) {
+    if (sessionId && !hasShownInitialToast.current) {
+      // Reset content visibility
+      setShowContent(false);
+
       // Clear any existing toasts first
       clearLoadingToasts();
 
-      // Show loading toast for customer chat
+      // Show loading toast immediately for customer chat
       loadingToastIdRef.current = showChatLoadingToast({
         userType: 'customer',
         conversationTitle: title,
       });
 
-      // Update the last session ID to prevent duplicate toasts
-      lastSessionIdRef.current = sessionId;
+      // Mark that we've shown the initial toast
+      hasShownInitialToast.current = true;
 
-      // Clear toast after a delay to simulate loading completion
-      const timer = setTimeout(() => {
+      // Delay showing the actual chat panel to let toast appear first
+      const showTimer = setTimeout(() => {
+        setShowContent(true);
+      }, 600); // Show chat after 600ms
+
+      // Clear toast after total delay
+      const clearTimer = setTimeout(() => {
         if (loadingToastIdRef.current) {
           clearLoadingToasts();
           loadingToastIdRef.current = null;
         }
-      }, 1500); // 1.5 second loading indicator
+      }, 2000); // Clear toast after 2s total
 
       return () => {
-        clearTimeout(timer);
+        clearTimeout(showTimer);
+        clearTimeout(clearTimer);
       };
+    } else if (sessionId) {
+      // Session already processed, show content immediately
+      setShowContent(true);
+    } else {
+      // Reset when no session
+      hasShownInitialToast.current = false;
     }
-  }, [sessionId, title]); // Remove showChatLoadingToast and clearLoadingToasts from deps
+  }, [sessionId, title, showChatLoadingToast, clearLoadingToasts, toast]);
 
   // Clear toasts when component unmounts
   useEffect(() => {
@@ -188,8 +204,10 @@ export const CustomerChatPanel: React.FC<CustomerChatPanelProps> = ({
     setInput('');
   };
 
+  if (!showContent) return null;
+
   return (
-    <div className="h-full flex flex-col bg-white" data-chat-active="true">
+    <div className="h-full flex flex-col bg-white animate-in fade-in duration-300" data-chat-active="true">
       {/* Header */}
       <div className="p-4 border-b border-neutral-200 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">

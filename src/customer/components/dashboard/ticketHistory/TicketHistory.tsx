@@ -92,7 +92,7 @@ const TicketHistory: React.FC = () => {
           subject: ticket.inquiry_type,
           description: undefined, // No description field available in inquiries table
           resolvedAt: undefined, // Resolved_at column doesn't exist in inquiries table
-          assignedTo: ticket.assigned_to,
+          assignedTo: undefined, // assigned_to field not available in inquiries table
         }));
 
         setTickets(ticketList);

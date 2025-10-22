@@ -7,7 +7,7 @@
 import { useState, useCallback } from 'react';
 import { JsonbFlowProcessor } from '@features/chat/services/JsonbFlowProcessor';
 import { getFlowDefinition, fetchSessionMessagesV2 } from '@features/chat/api/jsonbChatFlowApi';
-import { auth } from '@lib/supabase';
+import { auth, supabase } from '@lib/supabase';
 
 interface Message {
   id: string;
@@ -219,7 +219,7 @@ export function useJsonbFlowConversations() {
     if (conv.flowId && !conv.flowId.includes('legacy')) {
       try {
         // First check if this is an ended session
-        const { data: session } = await auth.supabase
+        const { data: session } = await supabase
           .from('chat_sessions_v2')
           .select('status')
           .eq('session_id', id)
@@ -228,10 +228,10 @@ export function useJsonbFlowConversations() {
         const isEnded = session?.status === 'ended';
 
         // Load messages from database with proper typing indicator handling
-        const { data: messages } = await fetchSessionMessagesV2(id);
+        const messages = await fetchSessionMessagesV2(id);
 
         // Mark messages as historical to prevent typing indicators
-        const historicalMessages: Message[] = (messages || []).map(msg => ({
+        const historicalMessages: Message[] = (messages || []).map((msg: any) => ({
           id: msg.id,
           role: msg.role as 'customer' | 'admin' | 'printy',
           text: msg.text,

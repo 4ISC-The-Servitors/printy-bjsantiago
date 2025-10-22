@@ -9,13 +9,16 @@ export interface ChatLoadingToastOptions {
 export const useChatLoadingToast = (externalToast?: [any, any]) => {
   const toast = externalToast || useToast();
   const activeToastIds = useRef<Set<string>>(new Set());
+  // Store the toast methods in a ref to prevent recreation on every render
+  const toastMethodsRef = useRef(toast[1]);
+  toastMethodsRef.current = toast[1];
 
   const showChatLoadingToast = useCallback((options: ChatLoadingToastOptions) => {
     const { userType, conversationTitle } = options;
 
     // Clear any existing loading toasts for this user type
     activeToastIds.current.forEach(id => {
-      toast[1].remove(id);
+      toastMethodsRef.current.remove(id);
       activeToastIds.current.delete(id);
     });
 
@@ -27,22 +30,22 @@ export const useChatLoadingToast = (externalToast?: [any, any]) => {
       ? `Loading "${conversationTitle}" conversation`
       : 'Please wait while we load your conversation';
 
-    const toastId = toast[1].info(title, message, {
+    const toastId = toastMethodsRef.current.info(title, message, {
       duration: 0, // Don't auto-dismiss - will be cleared when chat loads
     });
 
     activeToastIds.current.add(toastId);
     return toastId;
-  }, [toast]);
+  }, []);
 
   const showConversationSwitchToast = useCallback((conversationTitle: string) => {
     // Clear any existing loading toasts
     activeToastIds.current.forEach(id => {
-      toast[1].remove(id);
+      toastMethodsRef.current.remove(id);
       activeToastIds.current.delete(id);
     });
 
-    const toastId = toast[1].info(
+    const toastId = toastMethodsRef.current.info(
       'Switching conversations...',
       `Loading "${conversationTitle}" conversation`,
       {
@@ -52,19 +55,19 @@ export const useChatLoadingToast = (externalToast?: [any, any]) => {
 
     activeToastIds.current.add(toastId);
     return toastId;
-  }, [toast]);
+  }, []);
 
   const clearLoadingToasts = useCallback(() => {
     activeToastIds.current.forEach(id => {
-      toast[1].remove(id);
+      toastMethodsRef.current.remove(id);
     });
     activeToastIds.current.clear();
-  }, [toast]);
+  }, []);
 
   const clearSpecificToast = useCallback((toastId: string) => {
-    toast[1].remove(toastId);
+    toastMethodsRef.current.remove(toastId);
     activeToastIds.current.delete(toastId);
-  }, [toast]);
+  }, []);
 
   return {
     showChatLoadingToast,

@@ -4,7 +4,6 @@ import { Button, Text } from '@shared/components';
 import { MessageGroup, TypingIndicator, ChatInput, ReadOnlyOverlay } from '../core';
 import { ChatEndService } from '@features/chat/services/ChatEndService';
 import { useChatLoadingToast } from '@features/chat/hooks/shared/useChatLoadingToast';
-import { auth } from '@lib/supabase';
 import type { ChatMessage, QuickReply } from '@features/chat/types';
 
 export interface AdminChatOverlayProps {
@@ -44,8 +43,9 @@ export const AdminChatOverlay: React.FC<AdminChatOverlayProps> = ({
 }) => {
   const [input, setInput] = useState('');
   const [minimized, setMinimized] = useState(false);
+  const [showContent, setShowContent] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const { showChatLoadingToast, clearLoadingToasts, showConversationSwitchToast } = useChatLoadingToast(toast);
+  const { showChatLoadingToast, clearLoadingToasts } = useChatLoadingToast(toast);
   const loadingToastIdRef = useRef<string | null>(null);
 
   const handleClose = async () => {
@@ -101,48 +101,58 @@ export const AdminChatOverlay: React.FC<AdminChatOverlayProps> = ({
     try {
       // Store in localStorage or context
       const existing = JSON.parse(localStorage.getItem('recentChatSessions') || '[]');
-      const updated = [session, ...existing.filter(s => s.conversationId !== session.conversationId)].slice(0, 10);
+      const updated = [session, ...existing.filter((s: any) => s.conversationId !== session.conversationId)].slice(0, 10);
       localStorage.setItem('recentChatSessions', JSON.stringify(updated));
     } catch (error) {
       console.error('Failed to save recent session:', error);
     }
   };
 
-  const show = open && !minimized;
+  const show = open && !minimized && showContent;
 
   // Restore from minimized when reopened
   useEffect(() => {
     if (open) setMinimized(false);
   }, [open]);
 
-  // Show loading toast when chat opens
+  // Show loading toast FIRST, then delay showing the actual chat
   useEffect(() => {
     if (open && sessionId) {
-      // Show loading toast
+      // Reset content visibility
+      setShowContent(false);
+
+      // Show loading toast immediately
       loadingToastIdRef.current = showChatLoadingToast({
         userType: 'admin',
         conversationTitle: title,
       });
 
-      // Clear toast after a delay to simulate loading completion
-      const timer = setTimeout(() => {
+      // Delay showing the actual chat overlay to let toast appear first
+      const showTimer = setTimeout(() => {
+        setShowContent(true);
+      }, 600); // Show chat after 600ms
+
+      // Clear toast after total delay
+      const clearTimer = setTimeout(() => {
         if (loadingToastIdRef.current) {
           clearLoadingToasts();
           loadingToastIdRef.current = null;
         }
-      }, 2000); // 2 second loading indicator
+      }, 2000); // Clear toast after 2s total
 
       return () => {
-        clearTimeout(timer);
+        clearTimeout(showTimer);
+        clearTimeout(clearTimer);
       };
     }
   }, [open, sessionId, title, showChatLoadingToast, clearLoadingToasts]);
 
-  // Clear toasts when component unmounts or closes
+  // Clear toasts and content when component closes
   useEffect(() => {
     if (!open) {
       clearLoadingToasts();
       loadingToastIdRef.current = null;
+      setShowContent(false);
     }
   }, [open, clearLoadingToasts]);
 

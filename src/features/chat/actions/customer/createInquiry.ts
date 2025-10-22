@@ -67,23 +67,22 @@ export async function createInquiry(params: ActionExecutionParams): Promise<Acti
     return { messages };
   }
 
-  // If customer provided an order display_id, look up the actual order_id (UUID)
+  // If customer provided an order display_id (from quick reply selection), get the actual order UUID
   let actualOrderId = null;
-  if (orderDisplayId) {
+  if (orderDisplayId && orderDisplayId !== 'no_order') {
     const { data: orderData } = await supabase
       .from('orders')
       .select('order_id')
       .eq('display_id', orderDisplayId)
-      .eq('customer_id', customerId) // Verify order belongs to this customer
+      .eq('customer_id', customerId) // Get order that belongs to this customer
       .single();
-    
+
     if (orderData) {
       actualOrderId = orderData.order_id;
-    } else {
-      // Order not found - log but continue with ticket creation
-      console.warn(`Order ${orderDisplayId} not found for customer ${customerId}`);
     }
+    // No need for validation error since we're only showing customer's own orders via quick replies
   }
+  // If orderDisplayId is 'no_order', the issue is not related to a specific order - proceed without linking
 
   // Create inquiry in v2 table - let database auto-generate display_id
   const { data: inquiryData, error } = await supabase
@@ -151,6 +150,11 @@ export async function createInquiry(params: ActionExecutionParams): Promise<Acti
 
   // Success message matching issueTicketFlow.ts
   let successText = `Your support ticket has been created! Here is your Ticket ID: ${displayId}\n\nOur team will review your issue and get back to you as soon as possible. You can track the status of your ticket in your dashboard.\n\nWe appreciate your patience!`;
+  
+  // Add order information if successfully linked
+  if (orderDisplayId && actualOrderId) {
+    successText = `Your support ticket has been created and linked to Order ${orderDisplayId}! Here is your Ticket ID: ${displayId}\n\nOur team will review your issue and get back to you as soon as possible. You can track the status of your ticket in your dashboard.\n\nWe appreciate your patience!`;
+  }
 
   messages.push({
     id: crypto.randomUUID(),

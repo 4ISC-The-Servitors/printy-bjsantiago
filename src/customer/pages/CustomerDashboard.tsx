@@ -70,7 +70,7 @@ const topicConfig: Record<
     description: 'Get a personalized quote for your printing needs',
   },
   issueTicket: {
-    label: 'Ask Quote or Assistance',
+    label: 'Ask Assistance',
     icon: <HelpCircle className="w-6 h-6" />,
     flowId: 'issue-ticket',
     description:
@@ -251,12 +251,13 @@ const CustomerDashboard: React.FC = () => {
   const { handlePaymentProofUpload } = usePaymentProofUpload();
 
   // Check if current conversation is a payment flow
+  // Matches: "Pay Order", "Payment", "Reupload Payment", etc.
+  const activeConversation = conversations.find(c => c.id === activeId);
   const isPaymentFlow =
     activeId &&
-    conversations
-      .find(c => c.id === activeId)
-      ?.title?.toLowerCase()
-      .includes('payment');
+    activeConversation &&
+    (activeConversation.title?.toLowerCase().includes('payment') ||
+     activeConversation.title?.toLowerCase().includes('pay'));
 
   // Enhanced file upload handler that uses payment proof upload for payment flows
   const handleFileUpload = useCallback(
@@ -269,13 +270,12 @@ const CustomerDashboard: React.FC = () => {
         conversations.find(c => c.id === activeId)
       );
 
-      if (isPaymentFlow) {
+      if (isPaymentFlow && activeConversation) {
         // Get order ID from payment flow context or fallback to recent order
         let orderId = recentOrder?.id;
 
         // Try to get order ID from payment flow context if available
-        const activeConversation = conversations.find(c => c.id === activeId);
-        if (activeConversation?.context?.orderId) {
+        if (activeConversation.context?.orderId) {
           orderId = activeConversation.context.orderId;
         }
 
@@ -310,9 +310,8 @@ const CustomerDashboard: React.FC = () => {
     },
     [
       isPaymentFlow,
+      activeConversation,
       recentOrder?.id,
-      conversations,
-      activeId,
       handlePaymentProofUpload,
       sendViaHook,
       handleAttachFiles,

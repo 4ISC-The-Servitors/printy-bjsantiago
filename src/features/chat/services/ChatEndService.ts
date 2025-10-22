@@ -16,7 +16,7 @@ export class ChatEndService {
    * Unified method to end chat sessions consistently
    */
   static async endChatSession(options: ChatEndServiceOptions): Promise<{ success: boolean; error?: string }> {
-    const { sessionId, userType, conversationId, endMessage } = options;
+    const { sessionId, userType, endMessage } = options;
 
     try {
       // 1. First check current session status

@@ -143,7 +143,7 @@ export async function sendQuoteProposal(
   }
 
   // Create proposal row
-  const { data: proposalData, error: proposalError } = await supabase
+  const { error: proposalError } = await supabase
     .from('quote_proposals')
     .insert({
       session_id: conversationId,

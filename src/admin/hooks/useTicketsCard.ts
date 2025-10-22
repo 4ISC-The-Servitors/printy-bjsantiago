@@ -1,22 +1,14 @@
 import { useState, useMemo } from 'react';
 import { useAdmin } from './AdminContext';
-import { useAdminTickets } from '@features/chat/hooks/admin/useAdminTickets';
+import { useTickets } from './TicketsContext';
 import useResponsivePageSize from '@shared/hooks/ui/useResponsivePageSize';
 
 export const useTicketsCard = (overridePageSize?: number) => {
   const { openChat, openChatWithTopic } = useAdmin();
   const [hoveredTicketId, setHoveredTicketId] = useState<string | null>(null);
 
-  // Use the enhanced useAdminTickets for loading state only
-  // Data will be passed as props from the parent component
-  const { 
-    loading: isLoading, 
-    error 
-  } = useAdminTickets({ 
-    page: 1, 
-    pageSize: 1, // Minimal data since we're not using it for display
-    useAdvancedFallbacks: true 
-  });
+  // Get loading state from TicketsContext instead of making a wasteful DB call
+  const { loading: isLoading, error } = useTickets();
 
   // Pagination with dynamic viewport-based calculation
   const dynamicPageSize = useResponsivePageSize({

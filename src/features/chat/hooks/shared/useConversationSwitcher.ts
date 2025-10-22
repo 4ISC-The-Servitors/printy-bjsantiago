@@ -48,10 +48,10 @@ export function useConversationSwitcher() {
         const isEnded = session?.status === 'ended';
 
         // Load messages from database
-        const { data: messages } = await fetchSessionMessagesV2(conv.session_id);
+        const messages = await fetchSessionMessagesV2(conv.session_id);
 
         // Mark messages as historical to prevent typing indicators
-        const historicalMessages: ChatMessage[] = (messages || []).map(msg => ({
+        const historicalMessages: ChatMessage[] = (messages || []).map((msg: any) => ({
           id: msg.id,
           role: mapRole(msg.role as any),
           text: msg.text,
