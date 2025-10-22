@@ -44,7 +44,7 @@ export async function showCustomerOrders(params: ActionExecutionParams): Promise
       .from('orders')
       .select('display_id, order_id, order_specs, status')
       .eq('customer_id', customerId)
-      .in('status', ['awaiting_payment', 'processing', 'verifying_payment', 'reupload_payment', 'reupload_payment_proof'])
+      .not('status', 'in', '("completed", "cancelled")')
       .order('created_at', { ascending: false })
       .limit(10); // Limit to 10 most recent orders
 
@@ -71,15 +71,15 @@ export async function showCustomerOrders(params: ActionExecutionParams): Promise
     const quickReplies: Array<{ label: string; value: string; next: string }> = [];
 
     if (orders && orders.length > 0) {
-      // Simple message asking for order selection (user already confirmed it's order-related)
+      // Simple message asking for order selection
       messages.push({
         id: crypto.randomUUID(),
         role: 'printy',
-        text: "Please select the order related to your issue:",
+        text: "Please select the order related to your issue, or choose 'My issue is not order related':",
         ts: Date.now(),
       });
 
-      // Build quick replies for order selection only
+      // Build quick replies for order selection
       orders.forEach((order) => {
         const productName = order.order_specs?.product_name || 'Unknown Product';
         const orderDisplay = `${order.display_id} - ${productName}`;
@@ -90,12 +90,19 @@ export async function showCustomerOrders(params: ActionExecutionParams): Promise
           next: 'create_ticket'
         });
       });
+
+      // Add option for non-order related issues
+      quickReplies.push({
+        label: 'My issue is not order related',
+        value: 'no_order',
+        next: 'create_ticket'
+      });
     } else {
-      // No active orders found - user said it's order-related but no orders exist
+      // No active orders found
       messages.push({
         id: crypto.randomUUID(),
         role: 'printy',
-        text: "I don't see any active orders in your account. Let's proceed with your support request.",
+        text: "I don't see any active orders in your account. That's okay - we can still help with your issue!",
         ts: Date.now(),
       });
 
