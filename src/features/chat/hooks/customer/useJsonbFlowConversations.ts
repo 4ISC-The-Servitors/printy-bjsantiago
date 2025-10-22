@@ -6,14 +6,15 @@
 
 import { useState, useCallback } from 'react';
 import { JsonbFlowProcessor } from '@features/chat/services/JsonbFlowProcessor';
-import { getFlowDefinition } from '@features/chat/api/jsonbChatFlowApi';
-import { auth } from '@lib/supabase';
+import { getFlowDefinition, fetchSessionMessagesV2 } from '@features/chat/api/jsonbChatFlowApi';
+import { auth, supabase } from '@lib/supabase';
 
 interface Message {
   id: string;
   role: 'customer' | 'admin' | 'printy';
   text: string;
   ts: number;
+  isHistorical?: boolean;
 }
 
 interface QuickReply {
@@ -207,19 +208,61 @@ export function useJsonbFlowConversations() {
   /**
    * Switch to a different conversation
    */
-  const switchConversation = useCallback((id: string) => {
+  const switchConversation = useCallback(async (id: string) => {
     const conv = conversations.find(c => c.id === id);
-    if (conv) {
-      setActiveId(id);
-      setSessionId(id);
-      setMessages(conv.messages);
-      // You would need to fetch current quick replies from the session
-      // For now, defaulting to End Chat if conversation is active
-      if (conv.status === 'active') {
-        setQuickReplies([{ id: 'qr-end', label: 'End Chat', value: 'End Chat' }]);
-      } else {
-        setQuickReplies([]);
+    if (!conv) return;
+
+    setActiveId(id);
+    setSessionId(id);
+
+    // Check if this is a v2 session-based conversation
+    if (conv.flowId && !conv.flowId.includes('legacy')) {
+      try {
+        // First check if this is an ended session
+        const { data: session } = await supabase
+          .from('chat_sessions_v2')
+          .select('status')
+          .eq('session_id', id)
+          .single();
+
+        const isEnded = session?.status === 'ended';
+
+        // Load messages from database with proper typing indicator handling
+        const messages = await fetchSessionMessagesV2(id);
+
+        // Mark messages as historical to prevent typing indicators
+        const historicalMessages: Message[] = (messages || []).map((msg: any) => ({
+          id: msg.id,
+          role: msg.role as 'customer' | 'admin' | 'printy',
+          text: msg.text,
+          ts: msg.ts,
+          isHistorical: true
+        }));
+
+        setMessages(historicalMessages);
+
+        // Set quick replies based on conversation status
+        if (conv.status === 'active' && !isEnded) {
+          setQuickReplies([{ id: 'qr-end', label: 'End Chat', value: 'End Chat' }]);
+        } else {
+          setQuickReplies([]);
+        }
+
+        // Ensure typing indicator is off for historical messages
+        setIsTyping(false);
+
+      } catch (error) {
+        console.error('Failed to load conversation messages:', error);
+        // Fallback to existing messages marked as historical
+        setMessages(conv.messages.map(m => ({ ...m, isHistorical: true })));
+        setQuickReplies(conv.status === 'active' ? [{ id: 'qr-end', label: 'End Chat', value: 'End Chat' }] : []);
+        setIsTyping(false);
       }
+    } else {
+      // Legacy conversation - use existing messages but mark as historical
+      setMessages(conv.messages.map(m => ({ ...m, isHistorical: true })));
+      setQuickReplies(conv.status === 'active' ? [{ id: 'qr-end', label: 'End Chat', value: 'End Chat' }] : []);
+      setIsTyping(false);
     }
   }, [conversations]);
 

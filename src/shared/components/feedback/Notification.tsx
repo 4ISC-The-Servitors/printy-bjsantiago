@@ -1,248 +1,173 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Bell, X, Check } from 'lucide-react';
-import { useDeviceUtils } from '@shared/hooks/ui/useResponsiveClasses';
+import React, { useState, useEffect } from 'react';
+import { supabase } from '@lib/supabase';
+import { useToast } from '@lib/useToast';
+import { useResponsiveClasses, useDeviceUtils } from '@shared/hooks/ui';
+import { useNotificationVisibility } from '@shared/hooks/ui/useNotificationVisibility';
+import { Bell } from 'lucide-react';
+import {
+  type UINotificationItem,
+  startNotificationListener,
+  fetchUserNotifications,
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
+} from './notificationUtils';
 
-export interface NotificationProps {
-  className?: string;
-}
+/**
+ * Notification Bell Component
+ * Displays notification count and handles real-time updates
+ */
+const Notification: React.FC = () => {
+  const [notifications, setNotifications] = useState<UINotificationItem[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [isOpen, setIsOpen] = useState(false);
+  const [, toast] = useToast();
+  const { textClasses, iconClasses } = useResponsiveClasses();
+  const { isMobileOrTablet } = useDeviceUtils();
+  const { isVisible } = useNotificationVisibility();
 
-interface NotificationItem {
-  id: string;
-  message: string;
-  isRead: boolean;
-  timestamp: string;
-}
+  // Get current user
+  const [user, setUser] = useState<any>(null);
 
-const Notification: React.FC<NotificationProps> = ({ className }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  // Responsive hooks
-  const { isMobile } = useDeviceUtils();
-
-  // Mock notification data
-  const [notifications, setNotifications] = useState<NotificationItem[]>([
-    {
-      id: '1',
-      message: 'You have a new ticket request',
-      isRead: false,
-      timestamp: '2 min ago'
-    },
-    {
-      id: '2',
-      message: 'You have a new ticket update',
-      isRead: false,
-      timestamp: '5 min ago'
-    },
-    {
-      id: '3',
-      message: 'You have an urgent order',
-      isRead: false,
-      timestamp: '10 min ago'
-    }
-  ]);
-
-  const unreadCount = notifications.filter(n => !n.isRead).length;
-
-  const handleMarkAsRead = (id: string) => {
-    setNotifications(prev => 
-      prev.map(notification => 
-        notification.id === id 
-          ? { ...notification, isRead: true }
-          : notification
-      )
-    );
-  };
-
-  const handleMarkAllAsRead = () => {
-    setNotifications(prev => 
-      prev.map(notification => ({ ...notification, isRead: true }))
-    );
-  };
-
-  const handleCloseNotification = (id: string) => {
-    setNotifications(prev => prev.filter(notification => notification.id !== id));
-  };
-
-  const handleCloseAll = () => {
-    setNotifications([]);
-  };
-
-  // Close dropdown when clicking outside
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsExpanded(false);
-      }
+    const getUser = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      setUser(user);
     };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    getUser();
   }, []);
 
+  useEffect(() => {
+    if (!user) return;
+
+    // Fetch initial notifications
+    const loadNotifications = async () => {
+      const items = await fetchUserNotifications(user.id);
+      setNotifications(items);
+      setUnreadCount(items.filter(item => !item.isRead).length);
+    };
+
+    loadNotifications();
+
+    // Set up real-time listener
+    const cleanup = startNotificationListener(user.id, toast, item => {
+      setNotifications(prev => [item, ...prev]);
+      if (!item.isRead) {
+        setUnreadCount(prev => prev + 1);
+      }
+    });
+
+    return cleanup;
+  }, [user]);
+
+  const handleMarkAsRead = async (id: string) => {
+    await markNotificationAsRead(id);
+    setNotifications(prev =>
+      prev.map(item => (item.id === id ? { ...item, isRead: true } : item))
+    );
+    setUnreadCount(prev => Math.max(0, prev - 1));
+  };
+
+  const handleMarkAllAsRead = async () => {
+    if (!user) return;
+    await markAllNotificationsAsRead(user.id);
+    setNotifications(prev => prev.map(item => ({ ...item, isRead: true })));
+    setUnreadCount(0);
+  };
+
+  if (!user || !isVisible) return null;
+
   return (
-    <div className={`${className ?? ''} fixed top-4 right-20 z-50`}>
-      {/* Notification Bell Button */}
+    <div
+      className="absolute top-0 right-0"
+      style={{
+        position: 'absolute',
+        top: isMobileOrTablet ? '12px' : '16px',
+        right: isMobileOrTablet ? '12px' : '16px',
+        zIndex: 999
+      }}
+    >
       <div className="relative">
         <button
-          onClick={() => setIsExpanded(!isExpanded)}
-          className={`relative flex items-center justify-center rounded-full bg-white border border-neutral-200 shadow-lg hover:shadow-xl transition-all duration-200 ${
-            isMobile 
-              ? 'w-8 h-8' 
-              : 'w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 lg:w-11 lg:h-11'
-          }`}
-          aria-label="Notifications"
+          onClick={() => setIsOpen(!isOpen)}
+          className={`relative ${isMobileOrTablet ? 'p-2' : 'p-3'} bg-white rounded-full shadow-lg border border-gray-200 hover:bg-gray-50 transition-colors`}
         >
-          <Bell className={`text-neutral-700 ${
-            isMobile 
-              ? 'w-4 h-4' 
-              : 'w-4 h-4 sm:w-5 sm:h-5 md:w-5 md:h-5 lg:w-6 lg:h-6'
-          }`} />
-          
-          {/* Unread count badge */}
+          <Bell className={`${iconClasses.small} text-gray-600`} />
           {unreadCount > 0 && (
-            <span className={`absolute -top-1 -right-1 bg-red-500 text-white rounded-full flex items-center justify-center font-medium ${
-              isMobile
-                ? 'w-4 h-4 text-xs'
-                : 'w-4 h-4 sm:w-5 sm:h-5 sm:text-xs md:w-5 md:h-5 md:text-sm lg:w-6 lg:h-6 lg:text-sm'
-            }`}>
-              {unreadCount > 9 ? '9+' : unreadCount}
+            <span
+              className={`absolute ${isMobileOrTablet ? '-top-1 -right-1 h-4 w-4 text-xs' : '-top-1 -right-1 h-5 w-5 text-xs'} bg-red-500 text-white rounded-full flex items-center justify-center`}
+            >
+              {unreadCount > 99 ? '99+' : unreadCount}
             </span>
           )}
         </button>
 
-        {/* Notification Dropdown Panel */}
-        {isExpanded && (
-          <div 
-            ref={dropdownRef}
-            className={`absolute top-full right-0 mt-2 bg-white border border-neutral-200 rounded-xl shadow-xl z-50 animate-in fade-in slide-in-from-top-2 duration-200 ${
-              isMobile 
-                ? 'w-64 p-2 space-y-2' 
-                : 'w-72 sm:w-80 md:w-96 lg:w-[28rem] p-2 sm:p-3 md:p-4 lg:p-5 space-y-2 sm:space-y-3 md:space-y-4'
-            }`}
+        {isOpen && (
+          <div
+            className={`absolute ${isMobileOrTablet ? 'right-0' : 'right-0 -translate-x-4'} top-full mt-2 ${isMobileOrTablet ? 'w-72' : 'w-80'} bg-white rounded-lg shadow-xl border border-gray-200 max-h-96 overflow-hidden`}
           >
-            {/* Header */}
-            <div className="flex items-center justify-between pb-1 sm:pb-2 border-b border-neutral-200">
-              <h3 className={`font-semibold text-neutral-900 ${
-                isMobile 
-                  ? 'text-xs' 
-                  : 'text-xs sm:text-sm md:text-base lg:text-lg'
-              }`}>
+            <div
+              className={`${isMobileOrTablet ? 'p-3' : 'p-4'} border-b border-gray-200 flex justify-between items-center`}
+            >
+              <h3
+                className={`${textClasses.heading} font-semibold text-gray-900`}
+              >
                 Notifications
               </h3>
-              <button
-                onClick={() => setIsExpanded(false)}
-                className="p-0.5 hover:bg-neutral-100 rounded-full transition-colors"
-                aria-label="Close notifications"
-              >
-                <X className={`text-neutral-500 hover:text-neutral-700 ${
-                  isMobile 
-                    ? 'w-3 h-3' 
-                    : 'w-3 h-3 sm:w-4 sm:h-4 md:w-4 md:h-4 lg:w-5 lg:h-5'
-                }`} />
-              </button>
-            </div>
-
-            {/* Notifications List */}
-            {notifications.length > 0 ? (
-              <div className="space-y-1 sm:space-y-2">
-                {notifications.map((notification) => (
-                  <div
-                    key={notification.id}
-                    className={`flex items-start gap-1 sm:gap-2 p-1.5 sm:p-2 rounded-lg border transition-colors ${
-                      notification.isRead 
-                        ? 'bg-neutral-50 border-neutral-200' 
-                        : 'bg-blue-50 border-blue-200'
-                    }`}
-                  >
-                    {/* Bullet point */}
-                    <div className={`flex-shrink-0 w-1.5 h-1.5 rounded-full mt-1 sm:mt-1.5 ${
-                      notification.isRead ? 'bg-neutral-400' : 'bg-blue-500'
-                    }`} />
-                    
-                    {/* Notification content */}
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-neutral-900 font-medium ${
-                        isMobile 
-                          ? 'text-xs' 
-                          : 'text-xs sm:text-xs md:text-sm lg:text-base'
-                      }`}>
-                        {notification.message}
-                      </p>
-                      <p className={`text-neutral-500 ${
-                        isMobile 
-                          ? 'text-xs' 
-                          : 'text-xs sm:text-xs md:text-xs lg:text-sm'
-                      }`}>
-                        {notification.timestamp}
-                      </p>
-                    </div>
-
-                    {/* Action buttons */}
-                    <div className="flex items-center gap-0.5 sm:gap-1">
-                      {!notification.isRead && (
-                        <button
-                          onClick={() => handleMarkAsRead(notification.id)}
-                          className="p-0.5 hover:bg-neutral-100 rounded-full transition-colors"
-                          aria-label="Mark as read"
-                        >
-                          <Check className={`text-green-600 ${
-                            isMobile 
-                              ? 'w-2.5 h-2.5' 
-                              : 'w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-3 md:h-3 lg:w-4 lg:h-4'
-                          }`} />
-                        </button>
-                      )}
-                      <button
-                        onClick={() => handleCloseNotification(notification.id)}
-                        className="p-0.5 hover:bg-neutral-100 rounded-full transition-colors"
-                        aria-label="Close notification"
-                      >
-                        <X className={`text-neutral-500 hover:text-neutral-700 ${
-                          isMobile 
-                            ? 'w-2.5 h-2.5' 
-                            : 'w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-3 md:h-3 lg:w-4 lg:h-4'
-                        }`} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className={`text-center py-2 sm:py-3 md:py-4 text-neutral-500 ${
-                isMobile 
-                  ? 'text-xs' 
-                  : 'text-xs sm:text-xs md:text-sm lg:text-base'
-              }`}>
-                No notifications
-              </div>
-            )}
-
-            {/* Footer Actions */}
-            {notifications.length > 0 && (
-              <div className="flex items-center justify-between pt-1 sm:pt-2 border-t border-neutral-200">
+              {unreadCount > 0 && (
                 <button
                   onClick={handleMarkAllAsRead}
-                  className={`text-green-600 hover:text-green-700 font-medium transition-colors ${
-                    isMobile 
-                      ? 'text-xs' 
-                      : 'text-xs sm:text-xs md:text-sm lg:text-sm'
-                  }`}
+                  className={`${textClasses.caption} text-blue-600 hover:text-blue-800`}
                 >
                   Mark all as read
                 </button>
-                <button
-                  onClick={handleCloseAll}
-                  className={`text-red-600 hover:text-red-700 font-medium transition-colors ${
-                    isMobile 
-                      ? 'text-xs' 
-                      : 'text-xs sm:text-xs md:text-sm lg:text-sm'
-                  }`}
+              )}
+            </div>
+            <div className="max-h-80 overflow-y-auto">
+              {notifications.length === 0 ? (
+                <div
+                  className={`${isMobileOrTablet ? 'p-3' : 'p-4'} text-center text-gray-500`}
                 >
-                  Delete all
-                </button>
-              </div>
-            )}
+                  <p className={textClasses.body}>No notifications</p>
+                </div>
+              ) : (
+                notifications.map(notification => (
+                  <div
+                    key={notification.id}
+                    className={`${isMobileOrTablet ? 'p-3' : 'p-4'} border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${
+                      !notification.isRead ? 'bg-blue-50' : ''
+                    }`}
+                    onClick={() => handleMarkAsRead(notification.id)}
+                  >
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <h4
+                          className={`${textClasses.body} font-medium text-gray-900`}
+                        >
+                          {notification.title}
+                        </h4>
+                        <p
+                          className={`${textClasses.caption} text-gray-600 mt-1`}
+                        >
+                          {notification.message}
+                        </p>
+                        <p
+                          className={`${textClasses.caption} text-gray-400 mt-2`}
+                        >
+                          {notification.timestamp}
+                        </p>
+                      </div>
+                      {!notification.isRead && (
+                        <div
+                          className={`${isMobileOrTablet ? 'w-1.5 h-1.5' : 'w-2 h-2'} bg-blue-500 rounded-full ml-2 mt-1`}
+                        ></div>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         )}
       </div>

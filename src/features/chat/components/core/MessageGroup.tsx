@@ -14,6 +14,10 @@ interface MessageGroupProps {
   onQuickReply?: (value: string) => void;
   onEndChat?: () => void;
   readOnly?: boolean; // Indicates if conversation has ended - no animation
+  isHistorical?: boolean; // Indicates if these are existing messages from database - no typing animation
+  userRole?: 'admin' | 'customer';
+  sessionId?: string;
+  conversationId?: string;
 }
 
 /**
@@ -26,6 +30,10 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({
   onQuickReply,
   onEndChat,
   readOnly = false,
+  isHistorical = false,
+  userRole,
+  sessionId,
+  conversationId,
 }) => {
   const [visibleCount, setVisibleCount] = useState(0);
   const [showTyping, setShowTyping] = useState(false);
@@ -37,8 +45,8 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({
   const isBot = messages[0]?.role === 'printy';
   const mostRecentTs = messages[messages.length - 1]?.ts ?? 0;
 
-  // Determine if we should animate (only for new messages in active conversations)
-  const shouldAnimate = isBot && !hasAnimated && !readOnly;
+  // Determine if we should animate (only for new messages in active conversations, not historical)
+  const shouldAnimate = isBot && !hasAnimated && !readOnly && !isHistorical;
 
   // Animate bot messages appearing one by one with typing indicator
   useEffect(() => {
@@ -62,8 +70,8 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({
 
   // Initialize visible count
   useEffect(() => {
-    if (!isBot || readOnly) {
-      // User messages or ended conversations - appear instantly
+    if (!isBot || readOnly || isHistorical) {
+      // User messages, ended conversations, or historical messages - appear instantly
       setVisibleCount(messages.length);
       setHasAnimated(true);
     } else if (messages.length === initialMessageCount) {
@@ -75,7 +83,7 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({
       setVisibleCount(messages.length);
       setHasAnimated(true);
     }
-  }, [messages.length, isBot, initialMessageCount, readOnly]);
+  }, [messages.length, isBot, initialMessageCount, readOnly, isHistorical]);
 
   const formatRelativeTime = (ts: number, isMostRecent: boolean): string => {
     if (isMostRecent) return formatRelativeTimeLabel(ts);
@@ -136,6 +144,9 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({
           replies={quickReplies}
           onQuickReply={onQuickReply}
           onEndChat={onEndChat}
+          userRole={userRole}
+          sessionId={sessionId}
+          conversationId={conversationId}
         />
       )}
     </div>

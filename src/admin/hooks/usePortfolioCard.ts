@@ -8,7 +8,7 @@ import {
 import { useAdmin } from '@admin/hooks/AdminContext';
 
 export const usePortfolioCard = () => {
-  const { openChat, openChatWithTopic, addSelected } = useAdmin();
+  const { openChat, openChatWithTopic } = useAdmin();
   // No artificial timers: compute data synchronously; rely on route Suspense for bundle load
   const [isLoading] = useState(false);
   const [openAllCategoryId, setOpenAllCategoryId] = useState<string | null>(
@@ -31,9 +31,6 @@ export const usePortfolioCard = () => {
   };
 
   const viewInChat = (serviceId: string) => {
-    const svc = allServices.find(s => s.id === serviceId);
-    const label = svc ? `${svc.name} (${svc.code})` : serviceId;
-    addSelected({ id: serviceId, label, type: 'service' });
     if (openChatWithTopic)
       openChatWithTopic('portfolio', serviceId, undefined, allServices);
     else openChat();

@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@lib/supabase';
 import { useToast } from '@lib/useToast';
-import { assertHumanTurnstile } from '@lib/turnstile';
 
 export interface SignUpFormData {
   email: string;
@@ -175,7 +174,6 @@ export const useSignUp = () => {
         } catch {
           // ignore, backend will enforce as well
         }
-        await assertHumanTurnstile('signup');
         const { data: authData, error: authError } = await supabase.auth.signUp(
           {
             email: formData.email,

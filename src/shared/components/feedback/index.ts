@@ -4,7 +4,11 @@
  */
 
 export { default as Notification } from './Notification';
-export type { NotificationProps } from './Notification';
+export type {
+  NotificationRecord,
+  NotificationItem,
+  UINotificationItem,
+} from './notificationUtils';
 
 export { default as Toast } from './Toast';
 export type { ToastProps } from './Toast';

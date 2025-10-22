@@ -47,7 +47,6 @@
  */
 
 import { supabase } from '@lib/supabase';
-import { insertMessage } from '@features/chat/helpers/flowHelpers';
 import {
   fetchCompleteQuoteDetails,
   formatQuoteDetailsForCustomer,
@@ -104,13 +103,8 @@ export async function displayQuoteDetails(
         },
       ];
 
-      // Save the quote details message to the database
-      await insertMessage({
-        sessionId,
-        text: quoteDetailsText,
-        role: 'printy',
-        nodeId: actionNode.action,
-      });
+      // ✅ FIX: Don't insert message here - JsonbFlowProcessor caller will handle it
+      // This prevents duplicate messages in the database
 
       // Store proposal status in context for dynamic options
       const { data: currentSession } = await supabase

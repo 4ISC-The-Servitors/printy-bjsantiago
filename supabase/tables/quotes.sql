@@ -38,6 +38,16 @@ create index IF not exists idx_quotes_status on public.quotes using btree (statu
 
 create index IF not exists idx_quotes_created_at on public.quotes using btree (created_at desc) TABLESPACE pg_default;
 
+create trigger trg_quote_created_notifications
+after INSERT on quotes for EACH row
+execute FUNCTION notify_admins_on_quote_created ();
+
+create trigger trigger_quote_notifications
+after INSERT
+or
+update on quotes for EACH row
+execute FUNCTION notify_quote_events ();
+
 create trigger update_quotes_updated_at BEFORE
 update on quotes for EACH row
 execute FUNCTION update_updated_at_column ();

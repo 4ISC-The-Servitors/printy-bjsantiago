@@ -1,9 +1,9 @@
 // Admin tickets context using real Supabase data from inquiries table
 import React, { createContext, useContext } from 'react';
-import { useAdminTickets } from './useAdminTickets';
+import { useAdminTickets } from '@features/chat/hooks/admin/useAdminTickets';
 
 // Import the AdminTicketRow type from useAdminTickets
-import type { AdminTicketRow } from './useAdminTickets';
+import type { AdminTicketRow } from '@features/chat/hooks/admin/useAdminTickets';
 
 interface TicketsContextValue {
   tickets: AdminTicketRow[];

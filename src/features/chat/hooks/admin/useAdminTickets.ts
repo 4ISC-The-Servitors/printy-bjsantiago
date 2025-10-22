@@ -4,13 +4,13 @@ import { supabase } from '@lib/supabase';
 export type AdminTicketRow = {
   inquiry_id: string;
   display_id?: string | null;
-  inquiry_message: string | null;
   inquiry_status: string | null;
   inquiry_type: string | null;
   customer_id: string | null;
   received_at: string | null;
   updated_at: string | null;
-  resolution_comments: string | null;
+  order_id?: string | null;
+  session_id?: string | null;
   customer_full_name?: string | null;
   customer_first_name?: string | null;
   customer_last_name?: string | null;
@@ -58,11 +58,11 @@ export function useAdminTickets(options: LoadInquiriesOptions = {}) {
           if (!userErr && Array.isArray(userRows)) {
             rows = userRows as any[];
           } else {
-            // Fallback B: direct read from secure view with customer join
+            // Fallback B: direct read from inquiries_v2 with customer join
             const { data: viewRows, error: viewErr } = await supabase
-              .from('inquiries_secure')
+              .from('inquiries_v2')
               .select(
-                'inquiry_id, display_id, customer_id, inquiry_type, inquiry_status, inquiry_message, resolution_comments, received_at, updated_at, customer:customer_id(first_name,last_name,customer_type)'
+                'inquiry_id, display_id, customer_id, inquiry_type, inquiry_status, received_at, updated_at, order_id, session_id, customer:customer_id(first_name,last_name,customer_type)'
               )
               .order('received_at', { ascending: false })
               .range(from, from + pageSize - 1);
@@ -83,9 +83,9 @@ export function useAdminTickets(options: LoadInquiriesOptions = {}) {
           if (Array.isArray(userRows) && userRows.length > 0) rows = userRows as any[];
           if (rows.length === 0) {
             const { data: viewRows } = await supabase
-              .from('inquiries_secure')
+              .from('inquiries_v2')
               .select(
-                'inquiry_id, display_id, customer_id, inquiry_type, inquiry_status, inquiry_message, resolution_comments, received_at, updated_at, customer:customer_id(first_name,last_name,customer_type)'
+                'inquiry_id, display_id, customer_id, inquiry_type, inquiry_status, received_at, updated_at, order_id, session_id, customer:customer_id(first_name,last_name,customer_type)'
               )
               .order('received_at', { ascending: false })
               .range(from, from + pageSize - 1);
@@ -93,11 +93,11 @@ export function useAdminTickets(options: LoadInquiriesOptions = {}) {
           }
         }
       } else {
-        // Use real inquiries table only with proper customer join
+        // Use real inquiries_v2 table only with proper customer join
         const res = await supabase
-          .from('inquiries')
+          .from('inquiries_v2')
           .select(
-            'inquiry_id,display_id,inquiry_message,inquiry_status,inquiry_type,customer_id,received_at,updated_at,resolution_comments,customer:customer_id(first_name,last_name,customer_type)'
+            'inquiry_id,display_id,inquiry_status,inquiry_type,customer_id,received_at,updated_at,order_id,session_id,customer:customer_id(first_name,last_name,customer_type)'
           )
           .order('received_at', { ascending: false })
           .range(from, from + pageSize - 1);
@@ -120,13 +120,13 @@ export function useAdminTickets(options: LoadInquiriesOptions = {}) {
         const normalizedRow = {
           inquiry_id: (row as any).inquiry_id,
           display_id: (row as any).display_id ?? null,
-          inquiry_message: (row as any).inquiry_message ?? null,
           inquiry_status: (row as any).inquiry_status ?? null,
           inquiry_type: (row as any).inquiry_type ?? null,
           customer_id: (row as any).customer_id ?? null,
           received_at: (row as any).received_at ?? null,
           updated_at: (row as any).updated_at ?? null,
-          resolution_comments: (row as any).resolution_comments ?? null,
+          order_id: (row as any).order_id ?? null,
+          session_id: (row as any).session_id ?? null,
           customer_full_name: full,
           customer_first_name: first || null,
           customer_last_name: last || null,

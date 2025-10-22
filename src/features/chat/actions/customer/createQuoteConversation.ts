@@ -38,7 +38,6 @@
  * the message insertion here.
  */
 import { supabase } from '@lib/supabase';
-import { insertMessage } from '@features/chat/helpers/flowHelpers';
 import type {
   ActionExecutionParams,
   ActionExecutionResult,
@@ -157,17 +156,8 @@ export async function createQuoteConversation(
     ts: Date.now(),
   });
 
-  try {
-    await insertMessage({
-      sessionId,
-      text: successText,
-      role: 'printy',
-      nodeId: actionNode.action,
-    });
-  } catch (error) {
-    console.error('Failed to insert success message:', error);
-    // Continue anyway - the quote was created successfully
-  }
+  // ✅ FIX: Don't insert message here - JsonbFlowProcessor caller will handle it
+  // This prevents duplicate messages in the database
 
   return { messages };
 }

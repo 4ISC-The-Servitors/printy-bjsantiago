@@ -2,7 +2,7 @@ import React from 'react';
 import { Text, Badge } from '@admin/components/shared';
 import { useAdminConversations } from '@admin/hooks/useAdminConversations';
 import { formatQuoteStatus } from '@shared/utils/statusFormatter';
-import { getQuoteStatusBadgeVariant } from '@admin/utils/statusColors';
+import { getQuoteStatusBadgeVariant } from '@shared/utils/statusColors';
 
 interface RecentChatsProps {
   onSelect?: (conversationId: string) => void;

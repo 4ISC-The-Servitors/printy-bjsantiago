@@ -17,7 +17,6 @@
  * @returns ActionExecutionResult with quoted price message
  */
 import { supabase } from '@lib/supabase';
-import { insertMessage } from '@features/chat/helpers/flowHelpers';
 import type {
   ActionExecutionParams,
   ActionExecutionResult,
@@ -26,7 +25,7 @@ import type {
 export async function displayQuotedPrice(
   params: ActionExecutionParams
 ): Promise<ActionExecutionResult> {
-  const { actionNode, context, sessionId } = params;
+  const { actionNode, context, sessionId: _sessionId } = params;
   const messages: Array<{
     id: string;
     role: 'printy';
@@ -87,13 +86,8 @@ export async function displayQuotedPrice(
         ts: Date.now(),
       });
 
-      // Save the quoted price message to the database
-      await insertMessage({
-        sessionId,
-        text: priceText,
-        role: 'printy',
-        nodeId: actionNode.action,
-      });
+      // ✅ FIX: Don't insert message here - JsonbFlowProcessor caller will handle it
+      // This prevents duplicate messages in the database
     } else {
       const noPriceText =
         'Pricing will be provided once your quote is reviewed.';
@@ -105,12 +99,8 @@ export async function displayQuotedPrice(
         ts: Date.now(),
       });
 
-      await insertMessage({
-        sessionId,
-        text: noPriceText,
-        role: 'printy',
-        nodeId: actionNode.action,
-      });
+      // ✅ FIX: Don't insert message here - JsonbFlowProcessor caller will handle it
+      // This prevents duplicate messages in the database
     }
   } catch (error) {
     console.error('Error displaying quoted price:', error);

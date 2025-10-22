@@ -6,8 +6,9 @@
  * Updated for v2 chat system using JsonbFlowProcessor
  */
 import { ChatDatabaseService } from '@features/chat/services/ChatDatabaseService';
-import { getFlowDefinition } from '@features/chat/api/jsonbChatFlowApi';
+import { getFlowDefinition, fetchSessionMessagesV2 } from '@features/chat/api/jsonbChatFlowApi';
 import { supabase } from '@lib/supabase';
+import type { ChatMessage } from '@features/chat/types/chat';
 
 export function useConversationSwitcher() {
   const switchConversation = async (
@@ -17,9 +18,10 @@ export function useConversationSwitcher() {
       flowId: string;
       status: 'active' | 'ended';
       messages: any[];
+      session_id?: string;
     }>,
     setActiveId: (id: string | null) => void,
-    setMessages: (msgs: any[]) => void,
+    setMessages: (msgs: ChatMessage[]) => void,
     setQuickReplies: (qr: any[]) => void,
     updatePlaceholder: (flowId: string, replies: any[]) => void,
     setActiveNodeId?: (id: string | null) => void
@@ -28,7 +30,64 @@ export function useConversationSwitcher() {
     if (!conv) return;
     setActiveId(conversationId);
 
-    // DB-backed flows using v2 system
+    // Helper function to map role names
+    const mapRole = (role: 'customer' | 'admin' | 'printy'): 'user' | 'printy' => {
+      return role === 'customer' ? 'user' : 'printy';
+    };
+
+    // Check if this is a v2 session-based conversation
+    if (conv.session_id) {
+      try {
+        // First check if this is an ended session
+        const { data: session } = await supabase
+          .from('chat_sessions_v2')
+          .select('status')
+          .eq('id', conv.session_id)
+          .single();
+
+        const isEnded = session?.status === 'ended';
+
+        // Load messages from database
+        const messages = await fetchSessionMessagesV2(conv.session_id);
+
+        // Mark messages as historical to prevent typing indicators
+        const historicalMessages: ChatMessage[] = (messages || []).map((msg: any) => ({
+          id: msg.id,
+          role: mapRole(msg.role as any),
+          text: msg.text,
+          ts: msg.ts,
+          isHistorical: true
+        }));
+
+        setMessages(historicalMessages);
+
+        // Set quick replies based on conversation status
+        if (conv.status === 'active' && !isEnded) {
+          // For active conversations, check if we should show "End Chat" quick reply
+          setQuickReplies([
+            { id: 'qr-end', label: 'End Chat', value: 'End Chat' },
+          ]);
+        } else {
+          // For ended conversations, no quick replies
+          setQuickReplies([]);
+        }
+
+        setActiveNodeId?.(null);
+        updatePlaceholder(conv.flowId, []);
+        return;
+
+      } catch (error) {
+        console.error('Failed to load v2 conversation:', error);
+        // Fallback to existing messages
+        setMessages(conv.messages.map(m => ({ ...m, isHistorical: true })) as ChatMessage[]);
+        setQuickReplies([]);
+        setActiveNodeId?.(null);
+        updatePlaceholder(conv.flowId, []);
+        return;
+      }
+    }
+
+    // Legacy flows using v2 system
     if (conv.flowId === 'about' || conv.flowId === 'issue-ticket') {
       // Use v2 ChatDatabaseService for message fetching
       const fetched =
@@ -38,9 +97,10 @@ export function useConversationSwitcher() {
         role: m.role as any,
         text: m.text,
         ts: m.ts,
+        isHistorical: true
       }));
       // If server yields nothing (e.g., missing table), do not blow away local conversation
-      setMessages(list.length > 0 ? list : conv.messages);
+      setMessages(list.length > 0 ? list : conv.messages.map(m => ({ ...m, isHistorical: true })) as ChatMessage[]);
 
       // For v2 flows, get session state directly from database
       try {
@@ -95,8 +155,8 @@ export function useConversationSwitcher() {
       return;
     }
 
-    // Scripted conversation
-    setMessages(conv.messages);
+    // Scripted conversation - mark as historical since we're loading existing messages
+    setMessages(conv.messages.map(m => ({ ...m, isHistorical: true })) as ChatMessage[]);
     // Let caller recompute quick replies from flow if needed
   };
 

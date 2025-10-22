@@ -2,9 +2,8 @@
 export { useAdminChat } from './useAdminChat';
 export { useAdminConversations } from './useAdminConversations';
 export { useAdminNav } from './useAdminNav';
-export { useAdminTickets } from './useAdminTickets';
-export { useInquiryActions } from './useInquiryActions';
 export { useOrdersCard } from './useOrdersCard';
+export { useQuotesCard } from './useQuotesCard';
 export { usePortfolioCard } from './usePortfolioCard';
 export { useTicketsCard } from './useTicketsCard';
 

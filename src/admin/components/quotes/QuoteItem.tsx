@@ -1,6 +1,6 @@
 import React from 'react';
 import { Badge, Button } from '@admin/components/shared';
-import { getQuoteStatusBadgeVariant } from '@admin/utils/statusColors';
+import { getQuoteStatusBadgeVariant } from '@shared/utils/statusColors';
 import { formatQuoteStatus } from '@shared/utils/statusFormatter';
 import {
   formatOrderDateDesktop,

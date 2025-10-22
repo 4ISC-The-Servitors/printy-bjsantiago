@@ -227,6 +227,8 @@ export async function getUserSessionsV2(): Promise<
     status: string;
     createdAt: number;
     currentNodeId: string | null;
+    displayTitle?: string;
+    metadata?: any;
   }>
 > {
   const { data, error } = await supabase.rpc('api_get_user_sessions_v2');
@@ -242,6 +244,8 @@ export async function getUserSessionsV2(): Promise<
     status: session.status,
     createdAt: new Date(session.created_at).getTime(),
     currentNodeId: session.current_node_id || null,
+    displayTitle: session.display_title,
+    metadata: session.metadata,
   }));
 }
 

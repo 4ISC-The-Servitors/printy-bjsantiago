@@ -1,6 +1,6 @@
 // Supabase client for auth and database queries
 import { supabase } from '@lib/supabase';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 // Customer chat UI and types
 import { CustomerChatPanel } from '@features/chat/components/layouts';
@@ -14,12 +14,7 @@ import RecentOrder from '@customer/components/dashboard/recentOrders/RecentOrder
 import RecentTickets from '@customer/components/dashboard/recentTickets/RecentTickets';
 import RecentQuotes from '@customer/components/dashboard/recentQuotes/RecentQuotes';
 // Shared UI components
-import {
-  ToastContainer,
-  Text,
-  PageLoading,
-  Notification,
-} from '@shared/components';
+import { ToastContainer, Text, PageLoading } from '@shared/components';
 import { useLogoutWithToast } from '@/auth/hooks/useLogoutWithToast';
 import { useRecentOrder } from '@customer/hooks/useRecentOrder';
 import { useRecentTicket } from '@customer/hooks/useRecentTicket';
@@ -31,6 +26,7 @@ import { usePaymentProofUpload } from '@/features/chat/hooks/customer/usePayment
 import { useDeviceUtils } from '@shared/hooks/ui';
 // Chat feature hooks
 import { useCustomerConversations } from '@features/chat/hooks/customer/useCustomerConversations';
+import { getSessionTitle } from '@features/chat/config/sessionTitleConfig';
 
 // ---------------- Types / Config ----------------
 import {
@@ -74,7 +70,7 @@ const topicConfig: Record<
     description: 'Get a personalized quote for your printing needs',
   },
   issueTicket: {
-    label: 'Ask Quote or Assistance',
+    label: 'Ask Assistance',
     icon: <HelpCircle className="w-6 h-6" />,
     flowId: 'issue-ticket',
     description:
@@ -131,6 +127,9 @@ const CustomerDashboard: React.FC = () => {
     setConversations,
   } = useCustomerConversations();
 
+  // Memoize toast instance to prevent re-creating array on every render
+  const toastInstance = useMemo(() => [toasts, toast] as [any, any], [toasts, toast]);
+
   // Chat conversation state/actions provided by useCustomerConversations
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
@@ -182,7 +181,8 @@ const CustomerDashboard: React.FC = () => {
             status,
             created_at,
             flow_id,
-            metadata
+            display_title,
+            metadata->context->display_id
           `
           )
           .order('created_at', { ascending: false })
@@ -197,7 +197,15 @@ const CustomerDashboard: React.FC = () => {
           const sessionConversations: Conversation[] = sessions.map(
             (session: any) => ({
               id: session.session_id,
-              title: session.metadata?.title || session.flow_id || 'Chat',
+              title: getSessionTitle({
+                flowId: session.flow_id,
+                metadata: {
+                  title: session.display_title,
+                  context: {
+                    display_id: session.display_id,
+                  },
+                },
+              }),
               createdAt: new Date(session.created_at).getTime(),
               messages: [], // Messages will be loaded when switching to conversation
               flowId: session.flow_id || 'about',
@@ -243,12 +251,13 @@ const CustomerDashboard: React.FC = () => {
   const { handlePaymentProofUpload } = usePaymentProofUpload();
 
   // Check if current conversation is a payment flow
+  // Matches: "Pay Order", "Payment", "Reupload Payment", etc.
+  const activeConversation = conversations.find(c => c.id === activeId);
   const isPaymentFlow =
     activeId &&
-    conversations
-      .find(c => c.id === activeId)
-      ?.title?.toLowerCase()
-      .includes('payment');
+    activeConversation &&
+    (activeConversation.title?.toLowerCase().includes('payment') ||
+     activeConversation.title?.toLowerCase().includes('pay'));
 
   // Enhanced file upload handler that uses payment proof upload for payment flows
   const handleFileUpload = useCallback(
@@ -261,13 +270,12 @@ const CustomerDashboard: React.FC = () => {
         conversations.find(c => c.id === activeId)
       );
 
-      if (isPaymentFlow) {
+      if (isPaymentFlow && activeConversation) {
         // Get order ID from payment flow context or fallback to recent order
         let orderId = recentOrder?.id;
 
         // Try to get order ID from payment flow context if available
-        const activeConversation = conversations.find(c => c.id === activeId);
-        if (activeConversation?.context?.orderId) {
+        if (activeConversation.context?.orderId) {
           orderId = activeConversation.context.orderId;
         }
 
@@ -302,9 +310,8 @@ const CustomerDashboard: React.FC = () => {
     },
     [
       isPaymentFlow,
+      activeConversation,
       recentOrder?.id,
-      conversations,
-      activeId,
       handlePaymentProofUpload,
       sendViaHook,
       handleAttachFiles,
@@ -313,7 +320,14 @@ const CustomerDashboard: React.FC = () => {
 
   const handleTopic = (key: TopicKey) => {
     const cfg = topicConfig[key];
-    initializeFlow(cfg.flowId, cfg.label);
+    // Use centralized title configuration for consistency
+    const title = getSessionTitle({
+      flowId: cfg.flowId,
+      metadata: { title: cfg.label }, // Pass topicConfig label as fallback
+    });
+    initializeFlow(cfg.flowId, title);
+    // Dispatch event for notification visibility
+    window.dispatchEvent(new CustomEvent('customer-chat-opened'));
   };
 
   // ---------------- UI ----------------
@@ -344,7 +358,11 @@ const CustomerDashboard: React.FC = () => {
             messages={messages}
             onSend={sendViaHook}
             isTyping={isTyping}
-            onBack={() => setActiveId(null)}
+            onBack={() => {
+              setActiveId(null);
+              // Dispatch event for notification visibility
+              window.dispatchEvent(new CustomEvent('customer-chat-closed'));
+            }}
             quickReplies={quickReplies}
             onQuickReply={quickReplyViaHook}
             onEndChat={endChatViaHook}
@@ -355,6 +373,9 @@ const CustomerDashboard: React.FC = () => {
             hideInput={
               conversations.find(c => c.id === activeId)?.status === 'ended'
             }
+            toast={toastInstance}
+            sessionId={activeId}
+            conversationId={activeId}
           />
         </div>
       ) : (
@@ -420,9 +441,6 @@ const CustomerDashboard: React.FC = () => {
 
   return (
     <>
-      {/* Notification Bell - Fixed Position */}
-      <Notification />
-
       {/* Desktop Layout */}
       <div className="hidden lg:block">
         <div className="h-screen bg-gradient-to-br from-neutral-50 to-brand-primary-50 flex">

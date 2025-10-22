@@ -21,6 +21,11 @@ import { displayAcceptedSpecs } from './displayAcceptedSpecs';
 import { displayBankTransferDetails } from './displayBankTransferDetails';
 import { displayQRCodeDetails } from './displayQRCodeDetails';
 import { processPaymentProofUpload } from './processPaymentProofUpload';
+import { fetchDenialReason } from './fetchDenialReason';
+import { reuploadPaymentProof } from './reuploadPaymentProof';
+import { cancelOrder } from './cancelOrder';
+import { fetchTicketDetails, sendCustomerReply, resolveTicket } from './trackTicket';
+import { showCustomerOrders } from './showCustomerOrders';
 
 /**
  * Registry of all available action handlers
@@ -43,6 +48,13 @@ export const actionHandlers: Record<string, ActionHandler> = {
   display_bank_transfer_details: displayBankTransferDetails,
   display_qr_code_details: displayQRCodeDetails,
   process_payment_proof_upload: processPaymentProofUpload,
+  fetch_denial_reason: fetchDenialReason,
+  reupload_payment_proof: reuploadPaymentProof,
+  cancel_order: cancelOrder,
+  fetch_ticket_details: fetchTicketDetails,
+  send_customer_reply: sendCustomerReply,
+  resolve_ticket: resolveTicket,
+  show_customer_orders: showCustomerOrders,
 };
 
 /**
@@ -66,4 +78,11 @@ export {
   displayBankTransferDetails,
   displayQRCodeDetails,
   processPaymentProofUpload,
+  fetchDenialReason,
+  reuploadPaymentProof,
+  cancelOrder,
+  fetchTicketDetails,
+  sendCustomerReply,
+  resolveTicket,
+  showCustomerOrders,
 };

@@ -15,7 +15,6 @@ export const useSignIn = () => {
   const [toasts, toast] = useToast();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
   const [turnstileReady, setTurnstileReady] = useState(false);
   const [formData, setFormData] = useState<SignInFormData>({
@@ -224,28 +223,6 @@ export const useSignIn = () => {
     [formData, navigate, toast]
   );
 
-  const handleGoogleSignIn = useCallback(async () => {
-    setGoogleLoading(true);
-    try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/customer`,
-          queryParams: { prompt: 'select_account' },
-        },
-      });
-      if (error) throw error;
-      if (data?.url) window.location.href = data.url;
-    } catch {
-      toast.error(
-        'Google Sign-In Failed',
-        'There was an issue signing in with Google.'
-      );
-    } finally {
-      setGoogleLoading(false);
-    }
-  }, [toast]);
-
   return {
     toasts,
     toast,
@@ -254,10 +231,8 @@ export const useSignIn = () => {
     showPassword,
     setShowPassword,
     loading,
-    googleLoading,
     isDesktop,
     turnstileReady,
     handleSubmit,
-    handleGoogleSignIn,
   };
 };

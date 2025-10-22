@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { X, Minus } from 'lucide-react';
 import { Button, Text } from '@shared/components';
 import { MessageGroup, TypingIndicator, ChatInput, ReadOnlyOverlay } from '../core';
+import { useChatLoadingToast } from '@features/chat/hooks/shared/useChatLoadingToast';
 import type { ChatMessage, QuickReply } from '@features/chat/types';
 
 export interface AdminChatDockProps {
@@ -16,6 +17,8 @@ export interface AdminChatDockProps {
   onEndChat?: () => void;
   onAttachFiles?: (files: FileList) => void;
   readOnly?: boolean;
+  sessionId?: string;
+  toast?: [any, any]; // Toast instance from parent
 }
 
 /**
@@ -34,9 +37,14 @@ export const AdminChatDock: React.FC<AdminChatDockProps> = ({
   onEndChat,
   onAttachFiles,
   readOnly = false,
+  sessionId,
+  toast,
 }) => {
   const [input, setInput] = useState('');
+  const [showContent, setShowContent] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const { showChatLoadingToast, clearLoadingToasts } = useChatLoadingToast(toast);
+  const loadingToastIdRef = useRef<string | null>(null);
 
   // Group messages by role
   const messageGroups = useMemo(() => {
@@ -73,6 +81,47 @@ export const AdminChatDock: React.FC<AdminChatDockProps> = ({
     return groups;
   }, [messages, quickReplies]);
 
+  // Show loading toast FIRST, then delay showing the actual chat
+  useEffect(() => {
+    if (open && sessionId) {
+      // Reset content visibility
+      setShowContent(false);
+
+      // Show loading toast immediately
+      loadingToastIdRef.current = showChatLoadingToast({
+        userType: 'admin',
+        conversationTitle: title,
+      });
+
+      // Delay showing the actual chat panel to let toast appear first
+      const showTimer = setTimeout(() => {
+        setShowContent(true);
+      }, 600); // Show chat after 600ms
+
+      // Clear toast after total delay
+      const clearTimer = setTimeout(() => {
+        if (loadingToastIdRef.current) {
+          clearLoadingToasts();
+          loadingToastIdRef.current = null;
+        }
+      }, 2000); // Clear toast after 2s total
+
+      return () => {
+        clearTimeout(showTimer);
+        clearTimeout(clearTimer);
+      };
+    }
+  }, [open, sessionId, title, showChatLoadingToast, clearLoadingToasts]);
+
+  // Clear toasts and content when component closes
+  useEffect(() => {
+    if (!open) {
+      clearLoadingToasts();
+      loadingToastIdRef.current = null;
+      setShowContent(false);
+    }
+  }, [open, clearLoadingToasts]);
+
   // Auto-scroll to bottom
   useEffect(() => {
     if (scrollRef.current) {
@@ -90,10 +139,10 @@ export const AdminChatDock: React.FC<AdminChatDockProps> = ({
   };
 
 
-  if (!open) return null;
+  if (!open || !showContent) return null;
 
   return (
-    <aside className="hidden lg:flex fixed right-0 top-0 bottom-0 w-[420px] bg-white border-l border-neutral-200 flex-col z-30">
+    <aside className="hidden lg:flex fixed right-0 top-0 bottom-0 w-[420px] bg-white border-l border-neutral-200 flex-col z-30 animate-in slide-in-from-right duration-300" data-admin-chat-open="true">
       {/* Header */}
       <div className="p-4 border-b border-neutral-200 flex items-center justify-between shrink-0">
         <Text variant="h3" size="lg" weight="semibold">

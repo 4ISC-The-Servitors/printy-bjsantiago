@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { X, Minus } from 'lucide-react';
 import { Button, Text } from '@shared/components';
-import { MessageGroup, TypingIndicator, ChatInput } from '../core';
+import { MessageGroup, TypingIndicator, ChatInput, ReadOnlyOverlay } from '../core';
+import { ChatEndService } from '@features/chat/services/ChatEndService';
+import { useChatLoadingToast } from '@features/chat/hooks/shared/useChatLoadingToast';
 import type { ChatMessage, QuickReply } from '@features/chat/types';
 
 export interface AdminChatOverlayProps {
@@ -15,6 +17,9 @@ export interface AdminChatOverlayProps {
   onQuickReply?: (value: string) => void;
   onEndChat?: () => void;
   readOnly?: boolean;
+  sessionId?: string;
+  conversationId?: string;
+  toast?: [any, any]; // Toast instance from parent
 }
 
 /**
@@ -32,17 +37,124 @@ export const AdminChatOverlay: React.FC<AdminChatOverlayProps> = ({
   onQuickReply,
   onEndChat,
   readOnly = false,
+  sessionId,
+  conversationId,
+  toast,
 }) => {
   const [input, setInput] = useState('');
   const [minimized, setMinimized] = useState(false);
+  const [showContent, setShowContent] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const { showChatLoadingToast, clearLoadingToasts } = useChatLoadingToast(toast);
+  const loadingToastIdRef = useRef<string | null>(null);
 
-  const show = open && !minimized;
+  const handleClose = async () => {
+    // If we don't have session info, fall back to legacy behavior
+    if (!sessionId) {
+      onClose?.();
+      return;
+    }
+
+    try {
+      // Check if session is already ended
+      const isEnded = await ChatEndService.isSessionEnded(sessionId);
+
+      if (!isEnded) {
+        // Session is active, end it using the unified service
+        // This will be handled by the parent component through the updated endChat function
+        onEndChat?.();
+      } else {
+        // Session already ended, just close the overlay
+        onClose?.();
+      }
+    } catch (error) {
+      console.error('Error handling close:', error);
+      // Fallback to legacy behavior
+      onClose?.();
+    }
+  };
+
+  const handleMinimize = () => {
+    if (!sessionId) {
+      setMinimized(true);
+      return;
+    }
+
+    // Save current conversation to recent sessions
+    const recentSession = {
+      conversationId: conversationId || '',
+      sessionId: sessionId,
+      customerName: title,
+      lastMessage: messages[messages.length - 1]?.text || '',
+      timestamp: new Date().toISOString(),
+      isMinimized: true
+    };
+
+    // Add to recent sessions
+    addToRecentSessions(recentSession);
+
+    // Minimize the overlay
+    setMinimized(true);
+  };
+
+  const addToRecentSessions = (session: any) => {
+    try {
+      // Store in localStorage or context
+      const existing = JSON.parse(localStorage.getItem('recentChatSessions') || '[]');
+      const updated = [session, ...existing.filter((s: any) => s.conversationId !== session.conversationId)].slice(0, 10);
+      localStorage.setItem('recentChatSessions', JSON.stringify(updated));
+    } catch (error) {
+      console.error('Failed to save recent session:', error);
+    }
+  };
+
+  const show = open && !minimized && showContent;
 
   // Restore from minimized when reopened
   useEffect(() => {
     if (open) setMinimized(false);
   }, [open]);
+
+  // Show loading toast FIRST, then delay showing the actual chat
+  useEffect(() => {
+    if (open && sessionId) {
+      // Reset content visibility
+      setShowContent(false);
+
+      // Show loading toast immediately
+      loadingToastIdRef.current = showChatLoadingToast({
+        userType: 'admin',
+        conversationTitle: title,
+      });
+
+      // Delay showing the actual chat overlay to let toast appear first
+      const showTimer = setTimeout(() => {
+        setShowContent(true);
+      }, 600); // Show chat after 600ms
+
+      // Clear toast after total delay
+      const clearTimer = setTimeout(() => {
+        if (loadingToastIdRef.current) {
+          clearLoadingToasts();
+          loadingToastIdRef.current = null;
+        }
+      }, 2000); // Clear toast after 2s total
+
+      return () => {
+        clearTimeout(showTimer);
+        clearTimeout(clearTimer);
+      };
+    }
+  }, [open, sessionId, title, showChatLoadingToast, clearLoadingToasts]);
+
+  // Clear toasts and content when component closes
+  useEffect(() => {
+    if (!open) {
+      clearLoadingToasts();
+      loadingToastIdRef.current = null;
+      setShowContent(false);
+    }
+  }, [open, clearLoadingToasts]);
 
   // Group messages
   const messageGroups = useMemo(() => {
@@ -98,9 +210,10 @@ export const AdminChatOverlay: React.FC<AdminChatOverlayProps> = ({
   if (!open) return null;
 
   return (
-    <div
-      className={`fixed inset-0 z-40 ${open ? 'opacity-100' : 'opacity-0 pointer-events-none'} transition-opacity duration-200`}
-    >
+      <div
+        className={`fixed inset-0 z-40 ${open ? 'opacity-100' : 'opacity-0 pointer-events-none'} transition-opacity duration-200`}
+        data-admin-chat-open="true"
+      >
       {/* Backdrop */}
       <div
         className={`absolute inset-0 bg-black/30 backdrop-blur-sm ${show ? 'opacity-100' : 'opacity-0'}`}
@@ -120,7 +233,7 @@ export const AdminChatOverlay: React.FC<AdminChatOverlayProps> = ({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setMinimized(true)}
+              onClick={handleMinimize}
               className="h-8 w-8 p-0"
               aria-label="Minimize"
             >
@@ -129,7 +242,7 @@ export const AdminChatOverlay: React.FC<AdminChatOverlayProps> = ({
             <Button
               variant="ghost"
               size="sm"
-              onClick={onClose}
+              onClick={handleClose}
               className="h-8 w-8 p-0"
               aria-label="Close"
             >
@@ -148,9 +261,18 @@ export const AdminChatOverlay: React.FC<AdminChatOverlayProps> = ({
               onQuickReply={onQuickReply}
               onEndChat={onEndChat}
               readOnly={readOnly}
+              isHistorical={group.messages[0]?.isHistorical}
+              userRole={'admin'}
+              sessionId={sessionId}
+              conversationId={conversationId}
             />
           ))}
           {isTyping && <TypingIndicator />}
+
+          {/* ReadOnlyOverlay - sticky positioned to bottom of scroll container */}
+          {readOnly && (
+            <ReadOnlyOverlay />
+          )}
         </div>
 
         {/* Input */}

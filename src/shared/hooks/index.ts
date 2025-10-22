@@ -5,8 +5,6 @@
 
 // API Hooks
 export * from '../../features/chat/hooks/customer/usePaymentMethods';
-export * from './api/useQuoteActions';
-export * from './api/useQuoteConversation';
 
 // Auth Hooks
 export * from '../../auth/hooks/useLogoutWithToast';

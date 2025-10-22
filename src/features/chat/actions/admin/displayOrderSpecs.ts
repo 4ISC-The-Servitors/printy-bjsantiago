@@ -36,7 +36,6 @@
  * - Formats specs consistently with other order display actions
  */
 
-import { insertMessage } from '@features/chat/helpers/flowHelpers';
 import {
   fetchOrderDetails,
   formatOrderSpecs,
@@ -57,7 +56,7 @@ export async function displayOrderSpecs(
   return withErrorHandling(
     'display_order_specs',
     async () => {
-      const { actionNode, context, sessionId } = params;
+      const { actionNode, context, sessionId: _sessionId } = params;
 
       const config = actionNode.action_config as any;
       const orderIdKey = config?.order_id_key || 'order_id';
@@ -112,12 +111,8 @@ export async function displayOrderSpecs(
         },
       ];
 
-      await insertMessage({
-        sessionId,
-        text: specsText,
-        role: 'printy',
-        nodeId: actionNode.action,
-      });
+      // ✅ FIX: Don't insert message here - JsonbFlowProcessor caller will handle it
+      // This prevents duplicate messages in the database
 
       return {
         messages,

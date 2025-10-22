@@ -8,7 +8,7 @@ import LogoutButton from '@customer/components/shared/sidebar/LogoutButton';
 import LogoutModal from '@customer/components/shared/sidebar/LogoutModal';
 import { Text, Badge, Button } from '@shared/components';
 import { formatTicketStatus } from '@shared/utils/statusFormatter';
-import { getTicketStatusBadgeVariant } from '@admin/utils/statusColors';
+import { getTicketStatusBadgeVariant } from '@shared/utils/statusColors';
 import { formatLongDate } from '@shared/utils/dateFormatter';
 import { formatRelativeTimeLabel } from '@shared/utils/timeFormatter';
 import { useRecentChatSessions, type ConversationLike } from '@customer/hooks/useRecentChatSessions';
@@ -45,15 +45,17 @@ const TicketHistory: React.FC = () => {
         if (!user) return;
 
         const { data, error } = await supabase
-          .from('inquiries')
+          .from('inquiries_v2')
           .select(`
             inquiry_id,
             display_id,
             inquiry_status,
             received_at,
+            updated_at,
             inquiry_type,
             customer_id,
-            assigned_to
+            order_id,
+            session_id
           `)
           .eq('customer_id', user.id)
           .order('received_at', { ascending: false });
@@ -70,8 +72,8 @@ const TicketHistory: React.FC = () => {
         if (!data || data.length === 0) {
           console.log('No tickets found for user, checking all inquiries...');
           const { data: allData, error: allError } = await supabase
-            .from('inquiries')
-            .select('inquiry_id, display_id, inquiry_status, received_at, inquiry_type, customer_id')
+            .from('inquiries_v2')
+            .select('inquiry_id, display_id, inquiry_status, received_at, updated_at, inquiry_type, customer_id, order_id, session_id')
             .order('received_at', { ascending: false })
             .limit(5);
           
@@ -90,7 +92,7 @@ const TicketHistory: React.FC = () => {
           subject: ticket.inquiry_type,
           description: undefined, // No description field available in inquiries table
           resolvedAt: undefined, // Resolved_at column doesn't exist in inquiries table
-          assignedTo: ticket.assigned_to,
+          assignedTo: undefined, // assigned_to field not available in inquiries table
         }));
 
         setTickets(ticketList);
