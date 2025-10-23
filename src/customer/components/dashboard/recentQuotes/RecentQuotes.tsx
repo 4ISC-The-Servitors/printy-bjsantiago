@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, Text, Button } from '@shared/components';
+import { useResponsiveLayout, useResponsiveClasses } from '@shared/hooks/ui';
 import type { RecentQuote } from '@shared/types/customer';
 import StatusBadge from './StatusBadge';
 import TrackQuoteButton from './TrackQuoteButton';
@@ -13,11 +14,14 @@ interface RecentQuotesProps {
 
 const RecentQuotes: React.FC<RecentQuotesProps> = ({ recentQuote }) => {
   const navigate = useNavigate();
+  const { getQuoteCardLayout } = useResponsiveLayout();
+  const { textClasses } = useResponsiveClasses();
+  const layout = getQuoteCardLayout;
   
   return (
-    <Card className="p-6">
+    <Card className="p-3 sm:p-4 md:p-5 lg:p-6">
       <div className="flex items-center justify-between mb-4">
-        <Text variant="h3" size="lg" weight="semibold">
+        <Text variant="h3" size="base" weight="semibold" className="sm:text-lg md:text-xl lg:text-2xl">
           Recent Quote
         </Text>
         <Button
@@ -30,39 +34,48 @@ const RecentQuotes: React.FC<RecentQuotesProps> = ({ recentQuote }) => {
         </Button>
       </div>
       <div className="space-y-3">
-        {/* Primary row: Display ID + Status */}
-        <div className="flex items-center justify-between">
-          <Text variant="h3" size="base" weight="medium" className="font-mono">
-            {recentQuote.displayId}
-          </Text>
-          <StatusBadge status={recentQuote.status} />
-        </div>
-        
-        {/* Tertiary row: Important dates */}
-        <div className="flex flex-col gap-1">
-          <div className="flex justify-between">
-            <Text variant="p" size="xs" color="muted">Created:</Text>
-            <Text variant="p" size="xs" color="muted">{formatLongDate(recentQuote.createdAt)}</Text>
+        {/* Row 1: Quote ID | Status */}
+        <div className={layout.structure.row1}>
+          <div className={layout.leftSection}>
+            <div className={`flex items-center ${layout.elementGap} min-w-0`}>
+              <span className={`${layout.orderId} font-mono`}>
+                {recentQuote.displayId}
+              </span>
+            </div>
           </div>
-          <div className="flex justify-between">
-            <Text variant="p" size="xs" color="muted">Updated:</Text>
-            <Text variant="p" size="xs" color="muted">{formatRelativeTimeLabel(recentQuote.updatedAt)}</Text>
+          <div className={layout.badgeContainer}>
+            <StatusBadge status={recentQuote.status} />
+          </div>
+        </div>
+
+        {/* Row 2: Action */}
+        <div className={layout.structure.row2}>
+          <div className={layout.leftSection} />
+          <div className={layout.rightSection}>
+            <TrackQuoteButton 
+              conversationId={recentQuote.id} 
+              subject={recentQuote.displayId}
+              status={recentQuote.status}
+            />
+          </div>
+        </div>
+
+        {/* Row 3: Dates (stacked) */}
+        <div className="mt-1">
+          <div className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}>
+            <span className="font-medium">Created:</span>
+            <span className="truncate">{formatLongDate(recentQuote.createdAt)}</span>
+          </div>
+          <div className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}>
+            <span className="font-medium">Updated:</span>
+            <span className="truncate">{formatRelativeTimeLabel(recentQuote.updatedAt)}</span>
           </div>
           {recentQuote.endedAt && (
-            <div className="flex justify-between">
-              <Text variant="p" size="xs" color="muted">Ended:</Text>
-              <Text variant="p" size="xs" color="muted">{formatLongDate(recentQuote.endedAt)}</Text>
+            <div className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}>
+              <span className="font-medium">Ended:</span>
+              <span className="truncate">{formatLongDate(recentQuote.endedAt)}</span>
             </div>
           )}
-        </div>
-        
-        {/* Action button */}
-        <div className="pt-2">
-          <TrackQuoteButton 
-            conversationId={recentQuote.id} 
-            subject={recentQuote.displayId}
-            status={recentQuote.status}
-          />
         </div>
       </div>
     </Card>

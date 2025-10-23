@@ -1,10 +1,10 @@
 // Customer Components Barrel Export
 
 // Account Settings - Desktop
-export { default as DesktopNotificationPreferences } from './accountSettings/desktop/NotificationPreferences';
-export { default as DesktopProfileOverviewCard } from './accountSettings/desktop/ProfileOverviewCard';
-export { default as DesktopSecuritySettings } from './accountSettings/desktop/SecuritySettings';
-export { default as DesktopPersonalInfoForm } from './accountSettings/desktop/PersonalInfoForm';
+export { default as DesktopNotificationPreferences } from './accountSettings/NotificationPreferences';
+export { default as DesktopProfileOverviewCard } from './accountSettings/ProfileOverviewCard';
+export { default as DesktopSecuritySettings } from './accountSettings/SecuritySettings';
+export { default as DesktopPersonalInfoForm } from './accountSettings/PersonalInfoForm';
 
 // Account Settings - Mobile
 // Note: Mobile settings components are placeholders (empty files)

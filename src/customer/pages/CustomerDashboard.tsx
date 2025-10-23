@@ -3,12 +3,14 @@ import { supabase } from '@lib/supabase';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 // Customer chat UI and types
-import { CustomerChatPanel } from '@features/chat/components/layouts';
+import { CustomerChatPanel, CustomerChatOverlay } from '@features/chat/components/layouts';
 import type { ConversationItem } from '@features/chat/hooks/shared/useConversationState';
 // Sidebar and dashboard widgets
 import SidebarPanel from '@customer/components/shared/sidebar/SidebarPanel';
 import LogoutButton from '@customer/components/shared/sidebar/LogoutButton';
 import LogoutModal from '@customer/components/shared/sidebar/LogoutModal';
+import MobileSidebarMenu from '@customer/components/shared/sidebar/MobileSidebarMenu';
+import MobileSidebarTrigger from '@customer/components/shared/sidebar/MobileSidebarTrigger';
 import ChatCards from '@customer/components/dashboard/chatCards/ChatCards';
 import RecentOrder from '@customer/components/dashboard/recentOrders/RecentOrder';
 import RecentTickets from '@customer/components/dashboard/recentTickets/RecentTickets';
@@ -132,6 +134,7 @@ const CustomerDashboard: React.FC = () => {
 
   // Chat conversation state/actions provided by useCustomerConversations
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   // Remove artificial timers; rely on data-fetch loading states
 
@@ -151,6 +154,37 @@ const CustomerDashboard: React.FC = () => {
     };
     getCustomerId();
   }, []);
+
+  // Check for pending session ID from localStorage and open conversation
+  useEffect(() => {
+    const pendingSessionId = localStorage.getItem('pendingSessionId');
+    console.log('Dashboard: Checking for pending session ID:', pendingSessionId);
+    console.log('Dashboard: switchConversationHook available:', !!switchConversationHook);
+    console.log('Dashboard: conversations loaded:', conversations.length);
+    
+    if (pendingSessionId && switchConversationHook) {
+      console.log('Dashboard: Opening session:', pendingSessionId);
+      
+      // Check if conversation exists in current list
+      const existingConversation = conversations.find(c => c.id === pendingSessionId);
+      
+      if (existingConversation) {
+        console.log('Dashboard: Conversation found in list, switching...');
+        // Clear the pending session ID
+        localStorage.removeItem('pendingSessionId');
+        // Switch to the conversation
+        switchConversationHook(pendingSessionId);
+      } else if (conversations.length > 0) {
+        // Conversations have loaded but the specific one isn't found
+        console.log('Dashboard: Conversations loaded but specific conversation not found, clearing pending session ID');
+        localStorage.removeItem('pendingSessionId');
+      } else {
+        console.log('Dashboard: Conversation not found in list, waiting for conversations to load...');
+        // Don't clear the pending session ID yet, wait for conversations to load
+        // The effect will run again when conversations.length changes
+      }
+    }
+  }, [switchConversationHook, conversations.length, conversations]);
 
   const { data: recentQuote, loading: loadingRecentQuote } =
     useRecentQuote(customerId);
@@ -352,32 +386,55 @@ const CustomerDashboard: React.FC = () => {
       {isLoading ? (
         <PageLoading variant="dashboard" />
       ) : activeId ? (
-        <div className="h-full">
-          <CustomerChatPanel
-            title={conversations.find(c => c.id === activeId)?.title || 'Chat'}
-            messages={messages}
-            onSend={sendViaHook}
-            isTyping={isTyping}
-            onBack={() => {
-              setActiveId(null);
-              // Dispatch event for notification visibility
-              window.dispatchEvent(new CustomEvent('customer-chat-closed'));
-            }}
-            quickReplies={quickReplies}
-            onQuickReply={quickReplyViaHook}
-            onEndChat={endChatViaHook}
-            onAttachFiles={handleFileUpload}
-            readOnly={
-              conversations.find(c => c.id === activeId)?.status === 'ended'
-            }
-            hideInput={
-              conversations.find(c => c.id === activeId)?.status === 'ended'
-            }
-            toast={toastInstance}
-            sessionId={activeId}
-            conversationId={activeId}
-          />
-        </div>
+        <>
+          {/* Desktop/Laptop chat panel */}
+          <div className="hidden lg:block h-full">
+            <CustomerChatPanel
+              title={conversations.find(c => c.id === activeId)?.title || 'Chat'}
+              messages={messages}
+              onSend={sendViaHook}
+              isTyping={isTyping}
+              onBack={() => {
+                setActiveId(null);
+                window.dispatchEvent(new CustomEvent('customer-chat-closed'));
+              }}
+              quickReplies={quickReplies}
+              onQuickReply={quickReplyViaHook}
+              onEndChat={endChatViaHook}
+              onAttachFiles={handleFileUpload}
+              readOnly={
+                conversations.find(c => c.id === activeId)?.status === 'ended'
+              }
+              hideInput={
+                conversations.find(c => c.id === activeId)?.status === 'ended'
+              }
+              toast={toastInstance}
+              sessionId={activeId}
+              conversationId={activeId}
+            />
+          </div>
+
+          {/* Mobile/Tablet chat overlay */}
+          <div className="lg:hidden">
+            <CustomerChatOverlay
+              open={!!activeId}
+              onClose={() => setActiveId(null)}
+              title={conversations.find(c => c.id === activeId)?.title || 'Chat'}
+              messages={messages}
+              isTyping={isTyping}
+              quickReplies={quickReplies}
+              onSend={sendViaHook}
+              onQuickReply={quickReplyViaHook}
+              onEndChat={endChatViaHook}
+              readOnly={
+                conversations.find(c => c.id === activeId)?.status === 'ended'
+              }
+              sessionId={activeId}
+              conversationId={activeId}
+              toast={toastInstance}
+            />
+          </div>
+        </>
       ) : (
         <div className="p-8 overflow-y-auto">
           <div className="max-w-6xl mx-auto w-full">
@@ -395,44 +452,48 @@ const CustomerDashboard: React.FC = () => {
               </Text>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
-              <RecentOrder
-                recentOrder={
-                  recentOrder ?? {
-                    id: '—',
-                    displayId: 'NO-ORDER',
-                    title: 'No recent order',
-                    status: 'none',
-                    createdAt: Date.now(),
-                    updatedAt: Date.now(),
+            <div className="grid grid-cols-1 lg:grid-cols-[720px_1fr] xl:grid-cols-[820px_1fr] gap-6 mb-10 items-start">
+              <div className="space-y-6">
+                <RecentOrder
+                  recentOrder={
+                    recentOrder ?? {
+                      id: '—',
+                      displayId: 'NO-ORDER',
+                      title: 'No recent order',
+                      status: 'none',
+                      createdAt: Date.now(),
+                      updatedAt: Date.now(),
+                    }
                   }
-                }
-              />
-              <RecentTickets
-                recentTicket={
-                  recentTicket ?? {
-                    id: '—',
-                    displayId: 'NO-TICKET',
-                    subject: 'No recent ticket',
-                    status: 'none',
-                    createdAt: Date.now(),
-                    updatedAt: Date.now(),
+                />
+                <RecentTickets
+                  recentTicket={
+                    recentTicket ?? {
+                      id: '—',
+                      displayId: 'NO-TICKET',
+                      subject: 'No recent ticket',
+                      status: 'none',
+                      createdAt: Date.now(),
+                      updatedAt: Date.now(),
+                    }
                   }
-                }
-              />
-              <RecentQuotes
-                recentQuote={
-                  recentQuote ?? {
-                    id: '—',
-                    displayId: 'NO-QUOTE',
-                    status: 'active',
-                    createdAt: Date.now(),
-                    updatedAt: Date.now(),
+                />
+                <RecentQuotes
+                  recentQuote={
+                    recentQuote ?? {
+                      id: '—',
+                      displayId: 'NO-QUOTE',
+                      status: 'active',
+                      createdAt: Date.now(),
+                      updatedAt: Date.now(),
+                    }
                   }
-                }
-              />
+                />
+              </div>
+              <div>
+                <ChatCards onSelect={key => handleTopic(key as TopicKey)} />
+              </div>
             </div>
-            <ChatCards onSelect={key => handleTopic(key as TopicKey)} />
           </div>
         </div>
       )}
@@ -456,14 +517,38 @@ const CustomerDashboard: React.FC = () => {
 
       {/* Mobile Layout */}
       <div className="lg:hidden">
-        <div className="h-screen bg-gradient-to-br from-neutral-50 to-brand-primary-50 flex">
-          {/* Compact left rail (mobile) */}
-          <div className="fixed left-0 top-0 bottom-0 w-16 bg-white border-r border-neutral-200 z-50">
-            {sidebar}
-          </div>
+        <div className="h-screen bg-gradient-to-br from-neutral-50 to-brand-primary-50 flex flex-col">
+          {/* Header with fixed burger menu */}
+          <header className="bg-white/80 backdrop-blur border-b border-neutral-200 px-4 py-3 flex items-center justify-between shrink-0">
+            <MobileSidebarTrigger onOpen={() => setShowMobileMenu(true)} />
+            <div className="w-10" />
+          </header>
 
-          {/* Main content with left offset for rail */}
-          <main className="flex-1 flex flex-col pl-16 h-full w-full">
+          {/* Mobile sidebar overlay */}
+          {showMobileMenu && (
+            <div className="fixed inset-0 z-50 bg-black/20" onClick={() => setShowMobileMenu(false)}>
+              <div className="absolute left-0 top-0 bottom-0 w-80 max-w-[85%] bg-white" onClick={e => e.stopPropagation()}>
+                <MobileSidebarMenu
+                  onClose={() => setShowMobileMenu(false)}
+                  onViewAllChats={() => {
+                    setShowMobileMenu(false);
+                    navigate('/customer/chats');
+                  }}
+                  onAccount={() => {
+                    setShowMobileMenu(false);
+                    navigate('/customer/account');
+                  }}
+                  onLogout={async () => {
+                    setShowMobileMenu(false);
+                    await logout('/auth/signin');
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Main content */}
+          <main className="flex-1 flex flex-col h-full w-full px-4 py-4">
             {content}
           </main>
         </div>

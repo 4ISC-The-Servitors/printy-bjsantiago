@@ -1,12 +1,15 @@
 import React from 'react';
 import { Badge } from '@shared/components';
 import { formatTicketStatus } from '@shared/utils';
+import { useResponsiveBadge } from '@shared/hooks/ui';
 
 interface StatusBadgeProps {
   status: string;
 }
 
 const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
+  const { getStatusBadgeClasses } = useResponsiveBadge();
+
   const getVariant = (s: string):
     | 'default'
     | 'primary'
@@ -26,7 +29,7 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
   };
 
   return (
-    <Badge variant={getVariant(status)} size="md" className="text-sm font-semibold">
+    <Badge variant={getVariant(status)} size="md" className={getStatusBadgeClasses('standard')}>
       {formatTicketStatus(status)}
     </Badge>
   );

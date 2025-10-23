@@ -142,23 +142,6 @@ const SecuritySettings: React.FC<SecuritySettingsProps> = ({
             </div>
           </div>
         )}
-
-        <div className="pt-4 border-t border-neutral-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <Text variant="span" weight="medium">
-                Two-Factor Authentication
-              </Text>
-              <Text variant="p" className="text-neutral-600">
-                Add an extra layer of security to your account
-              </Text>
-            </div>
-            <Button variant="warning" threeD>
-              Enable 2FA
-            </Button>
-            {/* TODO(BACKEND): Implement 2FA setup flow */}
-          </div>
-        </div>
       </div>
       <Modal
         isOpen={confirmOpen}

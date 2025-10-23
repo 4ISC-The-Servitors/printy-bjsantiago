@@ -1,15 +1,18 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import SidebarPanel from '@customer/components/shared/sidebar/SidebarPanel';
-import LogoutButton from '@customer/components/shared/sidebar/LogoutButton';
 import LogoutModal from '@customer/components/shared/sidebar/LogoutModal';
+import MobileSidebarMenu from '@customer/components/shared/sidebar/MobileSidebarMenu';
+import MobileSidebarTrigger from '@customer/components/shared/sidebar/MobileSidebarTrigger';
 import Header from '@customer/components/chatHistory/Header';
-import Filters from '@customer/components/chatHistory/Filters';
 import ConversationList from '@customer/components/chatHistory/ConversationList';
-import { Text } from '@shared/components';
+import { Text, Pagination } from '@shared/components';
+import { useResponsivePageSize } from '@shared/hooks/ui/useResponsivePageSize';
 import type { ChatMessage } from '@features/chat/types/chat';
 import { getUserSessionsV2 } from '@features/chat/api/jsonbChatFlowApi';
 import { getSessionTitle } from '@features/chat/config/sessionTitleConfig';
+import useGenericSearchFilter from '@shared/hooks/ui/useGenericSearchFilter';
+import { Search, Filter } from '@shared/components/forms';
+import type { FilterConfig } from '@shared/types/filters';
 
 interface Conversation {
   id: string;
@@ -21,10 +24,31 @@ interface Conversation {
 
 const ChatHistory: React.FC = () => {
   const navigate = useNavigate();
-  const [query, setQuery] = useState('');
-  const [status, setStatus] = useState<string>('');
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [page, setPage] = useState(1);
+
+  // Responsive page size for conversations
+  const pageSize = useResponsivePageSize({
+    useDynamicCalculation: true,
+    itemHeight: 80, // Approximate height of ConversationItem
+    itemSpacing: 8, // space-y-2 = 8px between items
+    headerOffset: 240, // Header + search/filter + pagination
+    footerOffset: 80, // Bottom padding
+    minItems: 3,
+    maxItems: 15,
+    breakpoints: {
+      phone: 3,
+      tablet: 5,
+      desktop: 8,
+    },
+  });
+
+  // Auto-close mobile menu on route change
+  useEffect(() => {
+    setShowMobileMenu(false);
+  }, [navigate]);
 
   // Responsive layout helper
   const [, setIsDesktop] = useState(false);
@@ -48,27 +72,51 @@ const ChatHistory: React.FC = () => {
     };
   }, []);
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return conversations.filter(c => {
-      const matchesQuery = q
-        ? c.title.toLowerCase().includes(q) ||
-          (c.messages[c.messages.length - 1]?.text || '')
-            .toLowerCase()
-            .includes(q)
-        : true;
-      const matchesStatus = status
-        ? c.status === (status as 'active' | 'ended')
-        : true;
-      return matchesQuery && matchesStatus;
-    });
-  }, [conversations, query, status]);
+  // Shared search/filter config
+  const filterConfig: FilterConfig = {
+    statusOptions: [
+      { value: 'active', label: 'Active' },
+      { value: 'ended', label: 'Ended' },
+    ],
+    showDateRange: true,
+    showStatusFilter: true,
+    showRoleFilter: false,
+  };
+
+  const {
+    search,
+    setSearch,
+    filter,
+    setFilter,
+    filteredItems,
+  } = useGenericSearchFilter<Conversation>({
+    items: conversations,
+    searchFields: ['title'],
+    dateField: 'createdAt',
+    filterConfig,
+    statusField: 'status',
+  });
+
+  // Paginated conversations from filtered items
+  const paginatedConversations = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredItems.slice(start, start + pageSize);
+  }, [filteredItems, page, pageSize]);
+
+  // Reset page when filters/search change or when exceeding max pages
+  useEffect(() => {
+    setPage(1);
+  }, [search, filter]);
+
+  useEffect(() => {
+    const maxPage = Math.max(1, Math.ceil(filteredItems.length / pageSize));
+    if (page > maxPage) setPage(maxPage);
+  }, [filteredItems.length, pageSize, page]);
 
   const openConversation = (id: string) => {
-    // Ask dashboard to open this session, then navigate there
-    window.dispatchEvent(
-      new CustomEvent('customer-open-session', { detail: { sessionId: id } })
-    );
+    // Store session ID in localStorage and navigate
+    console.log('ChatHistory: Opening conversation:', id);
+    localStorage.setItem('pendingSessionId', id);
     navigate('/customer');
   };
 
@@ -104,51 +152,64 @@ const ChatHistory: React.FC = () => {
   }, []);
 
   return (
-    <div className="h-screen bg-gradient-to-br from-neutral-50 to-brand-primary-50 flex">
-      {/* Sidebar placements using the same pattern as Dashboard */}
-      <div className="hidden lg:flex w-64 bg-white border-r border-neutral-200 flex-col">
-        <SidebarPanel
-          conversations={conversations as any}
-          activeId={null}
-          onSwitchConversation={openConversation}
-          onNavigateToAccount={() => navigate('/customer/account')}
-          bottomActions={
-            <LogoutButton onClick={() => setShowLogoutModal(true)} />
-          }
-        />
-      </div>
-      <div className="lg:hidden fixed left-0 top-0 bottom-0 w-16 bg-white border-r border-neutral-200 z-50">
-        <SidebarPanel
-          conversations={conversations as any}
-          activeId={null}
-          onSwitchConversation={openConversation}
-          onNavigateToAccount={() => navigate('/customer/account')}
-          bottomActions={
-            <LogoutButton onClick={() => setShowLogoutModal(true)} />
-          }
-        />
+    <div className="h-screen bg-gradient-to-br from-neutral-50 to-brand-primary-50 flex flex-col">
+      {/* Mobile header with burger */}
+      <div className="lg:hidden flex flex-col">
+        <header className="bg-white/80 backdrop-blur border-b border-neutral-200 px-4 py-3 flex items-center justify-between shrink-0">
+          <MobileSidebarTrigger onOpen={() => setShowMobileMenu(true)} />
+          <div className="w-10" />
+        </header>
+        {showMobileMenu && (
+          <div className="fixed inset-0 z-50 bg-black/20" onClick={() => setShowMobileMenu(false)}>
+            <div className="absolute left-0 top-0 bottom-0 w-80 max-w-[85%] bg-white" onClick={e => e.stopPropagation()}>
+              <MobileSidebarMenu
+                onClose={() => setShowMobileMenu(false)}
+                onViewAllChats={() => setShowMobileMenu(false)}
+                onAccount={() => { setShowMobileMenu(false); navigate('/customer/account'); }}
+                onLogout={() => { setShowMobileMenu(false); navigate('/auth/signin'); }}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Main content */}
-      <main className="flex-1 flex flex-col pl-16 lg:pl-0">
-        <div className="p-8 overflow-y-auto">
+      {/* Main content - full screen */}
+      <main className="flex-1 flex flex-col overflow-hidden">
+        <div className="p-4 sm:p-6 lg:p-8 overflow-y-auto flex-1">
           <div className="max-w-6xl mx-auto w-full">
             <Header
               subtitle="View all your past conversations with Printy"
               onBack={() => navigate('/customer')}
             />
-            <Filters
-              query={query}
-              onQueryChange={setQuery}
-              status={status}
-              onStatusChange={setStatus}
-              onClear={() => {
-                setQuery('');
-                setStatus('');
-              }}
-            />
 
-            {filtered.length === 0 ? (
+            {/* Search + Filter */}
+            <div className="grid grid-cols-1 gap-3 mb-4">
+              <Search
+                value={search}
+                onChange={setSearch}
+                placeholder="Search conversations..."
+                size="md"
+              />
+              <Filter
+                value={filter}
+                onChange={setFilter}
+                filterConfig={filterConfig}
+                showResultCount
+                resultCount={filteredItems.length}
+              />
+            </div>
+
+            {/* Pagination header */}
+            <div className="flex items-center justify-center px-1 py-1">
+              <Pagination
+                page={page}
+                pageSize={pageSize}
+                total={filteredItems.length}
+                onPageChange={setPage}
+              />
+            </div>
+
+            {filteredItems.length === 0 ? (
               <div className="text-center py-12">
                 <Text variant="p" size="base" color="muted">
                   No conversations found.
@@ -156,7 +217,7 @@ const ChatHistory: React.FC = () => {
               </div>
             ) : (
               <ConversationList
-                conversations={filtered}
+                conversations={paginatedConversations}
                 onOpen={openConversation}
               />
             )}

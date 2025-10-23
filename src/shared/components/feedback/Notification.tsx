@@ -10,7 +10,7 @@ import {
   fetchUserNotifications,
   markNotificationAsRead,
   markAllNotificationsAsRead,
-} from './notificationUtils';
+} from '../../utils/notificationUtils';
 
 /**
  * Notification Bell Component

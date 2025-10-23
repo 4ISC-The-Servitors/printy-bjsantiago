@@ -1,5 +1,6 @@
 import React from 'react';
 import { Button } from '@shared/components';
+import { useResponsiveButton } from '@shared/hooks/ui';
 
 interface ReuploadPaymentButtonProps {
   orderId: string;
@@ -12,6 +13,7 @@ const ReuploadPaymentButton: React.FC<ReuploadPaymentButtonProps> = ({
   displayId,
   total,
 }) => {
+  const { getChatButtonClasses } = useResponsiveButton();
   const onClick = () => {
     const event = new CustomEvent('customer-open-reupload-payment-chat', {
       detail: { orderId, displayId, total },
@@ -19,7 +21,7 @@ const ReuploadPaymentButton: React.FC<ReuploadPaymentButtonProps> = ({
     window.dispatchEvent(event);
   };
   return (
-    <Button variant="primary" size="sm" threeD onClick={onClick}>
+    <Button variant="primary" className={getChatButtonClasses('sm')} threeD onClick={onClick}>
       Reupload Payment
     </Button>
   );

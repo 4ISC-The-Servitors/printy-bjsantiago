@@ -6,6 +6,7 @@ import StatusBadge from './StatusBadge';
 import TrackTicketButton from './TrackTicketButton';
 import { formatLongDate } from '@shared/utils/dateFormatter';
 import { formatRelativeTimeLabel } from '@shared/utils/timeFormatter';
+import { useResponsiveLayout, useResponsiveClasses } from '@shared/hooks/ui';
 
 interface RecentTicketsProps {
   recentTicket: RecentTicketType;
@@ -13,11 +14,14 @@ interface RecentTicketsProps {
 
 const RecentTickets: React.FC<RecentTicketsProps> = ({ recentTicket }) => {
   const navigate = useNavigate();
+  const { getTicketCardLayout } = useResponsiveLayout();
+  const { textClasses } = useResponsiveClasses();
+  const layout = getTicketCardLayout;
   
   return (
-    <Card className="p-6">
+    <Card className="p-3 sm:p-4 md:p-5 lg:p-6">
       <div className="flex items-center justify-between mb-4">
-        <Text variant="h3" size="lg" weight="semibold">
+        <Text variant="h3" size="base" weight="semibold" className="sm:text-lg md:text-xl lg:text-2xl">
           Recent Ticket
         </Text>
         <Button
@@ -30,46 +34,54 @@ const RecentTickets: React.FC<RecentTicketsProps> = ({ recentTicket }) => {
         </Button>
       </div>
       <div className="space-y-3">
-        {/* Primary row: Display ID + Status */}
-        <div className="flex items-center justify-between">
-          <Text variant="h4" size="base" weight="medium" className="font-mono">
-            {recentTicket.displayId}
-          </Text>
-          <StatusBadge status={recentTicket.status} />
-        </div>
-        
-        {/* Secondary row: Subject */}
-        <Text variant="p" size="sm" color="muted" className="line-clamp-2">
-          {recentTicket.subject}
-        </Text>
-        
-        {/* Tertiary row: Important dates */}
-        <div className="flex flex-col gap-1">
-          <div className="flex justify-between">
-            <Text variant="p" size="xs" color="muted">Created:</Text>
-            <Text variant="p" size="xs" color="muted">{formatLongDate(recentTicket.createdAt)}</Text>
+        {/* Row 1: Ticket ID • Subject | Status */}
+        <div className={layout.structure.row1}>
+          <div className={layout.leftSection}>
+            <div className={`flex items-center ${layout.elementGap} min-w-0`}>
+              <span className={`${layout.orderId} font-mono`}>
+                {recentTicket.displayId}
+              </span>
+              {recentTicket.subject ? (
+                <>
+                  <span className="text-neutral-400">•</span>
+                  <span className={layout.productName}>{recentTicket.subject}</span>
+                </>
+              ) : null}
+            </div>
           </div>
-          <div className="flex justify-between">
-            <Text variant="p" size="xs" color="muted">Updated:</Text>
-            <Text variant="p" size="xs" color="muted">{formatRelativeTimeLabel(recentTicket.updatedAt)}</Text>
+          <div className={layout.badgeContainer}>
+            <StatusBadge status={recentTicket.status} />
+          </div>
+        </div>
+
+        {/* Row 2: Secondary info | Action */}
+        <div className={layout.structure.row2}>
+          <div className={layout.leftSection} />
+          <div className={layout.rightSection}>
+            <TrackTicketButton 
+              inquiryId={recentTicket.id} 
+              subject={recentTicket.subject}
+              status={recentTicket.status}
+            />
+          </div>
+        </div>
+
+        {/* Row 3: Dates (stacked) */}
+        <div className="mt-1">
+          <div className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}>
+            <span className="font-medium">Created:</span>
+            <span className="truncate">{formatLongDate(recentTicket.createdAt)}</span>
+          </div>
+          <div className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}>
+            <span className="font-medium">Updated:</span>
+            <span className="truncate">{formatRelativeTimeLabel(recentTicket.updatedAt)}</span>
           </div>
           {recentTicket.resolvedAt && (
-            <div className="flex justify-between">
-              <Text variant="p" size="xs" color="muted">Resolved:</Text>
-              <Text variant="p" size="xs" color="muted">{formatLongDate(recentTicket.resolvedAt)}</Text>
+            <div className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}>
+              <span className="font-medium">Resolved:</span>
+              <span className="truncate">{formatLongDate(recentTicket.resolvedAt)}</span>
             </div>
           )}
-        </div>
-        
-        {/* Priority if available */}
-        
-        {/* Action button */}
-        <div className="pt-2">
-          <TrackTicketButton 
-            inquiryId={recentTicket.id} 
-            subject={recentTicket.subject}
-            status={recentTicket.status}
-          />
         </div>
       </div>
     </Card>

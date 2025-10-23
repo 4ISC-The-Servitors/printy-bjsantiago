@@ -1,5 +1,6 @@
 import React from 'react';
 import { Button } from '@shared/components';
+import { useResponsiveButton } from '@shared/hooks/ui';
 
 interface TrackTicketButtonProps {
   inquiryId: string;
@@ -8,6 +9,7 @@ interface TrackTicketButtonProps {
 }
 
 const TrackTicketButton: React.FC<TrackTicketButtonProps> = ({ inquiryId, subject, status }) => {
+  const { getChatButtonClasses } = useResponsiveButton();
   // Hide button if ticket is resolved or closed
   if (status === 'resolved' || status === 'closed') {
     return null;
@@ -21,7 +23,7 @@ const TrackTicketButton: React.FC<TrackTicketButtonProps> = ({ inquiryId, subjec
   };
   
   return (
-    <Button variant="primary" size="sm" threeD onClick={onClick}>
+    <Button variant="primary" className={getChatButtonClasses('sm')} threeD onClick={onClick}>
       Track Ticket
     </Button>
   );
