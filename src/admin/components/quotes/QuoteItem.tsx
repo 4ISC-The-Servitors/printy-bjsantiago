@@ -5,7 +5,7 @@ import { formatQuoteStatus } from '@shared/utils/statusFormatter';
 import {
   formatOrderDateDesktop,
   formatOrderDateTablet,
-  formatOrderDateMobile
+  formatOrderDateMobile,
 } from '@shared/utils/dateFormatter';
 import { formatRelativeTimeLabel } from '@shared/utils/timeFormatter';
 import { MessageSquare } from 'lucide-react';
@@ -29,30 +29,31 @@ export const QuoteItem: React.FC<QuoteItemProps> = ({
   // Get responsive layout classes
   const { getQuoteCardLayout } = useResponsiveLayout();
   const layout = getQuoteCardLayout;
-  
+
   // Get display ID with fallback to UUID
   const displayId = quote.display_id || quote.id;
-  
+
   // Format dates responsively
   const createdDateDesktop = formatOrderDateDesktop(quote.created_at);
   const createdDateTablet = formatOrderDateTablet(quote.created_at);
   const createdDateMobile = formatOrderDateMobile(quote.created_at);
-  
+
   // Use ended_at if status is 'ended', otherwise use updated_at
   const isEnded = quote.status === 'ended';
-  const lastActionDate = isEnded && quote.ended_at ? quote.ended_at : quote.updated_at;
+  const lastActionDate =
+    isEnded && quote.ended_at ? quote.ended_at : quote.updated_at;
   const lastActionLabel = isEnded ? 'Ended' : 'Updated';
-  
+
   // For "Updated" dates, use relative time format; for "Ended" dates, use regular date format
   const useRelativeTime = !isEnded && lastActionDate;
-  
-  const lastActionDateDesktop = useRelativeTime 
+
+  const lastActionDateDesktop = useRelativeTime
     ? formatRelativeTimeLabel(lastActionDate)
     : formatOrderDateDesktop(lastActionDate);
-  const lastActionDateTablet = useRelativeTime 
+  const lastActionDateTablet = useRelativeTime
     ? formatRelativeTimeLabel(lastActionDate)
     : formatOrderDateTablet(lastActionDate);
-  const lastActionDateMobile = useRelativeTime 
+  const lastActionDateMobile = useRelativeTime
     ? formatRelativeTimeLabel(lastActionDate)
     : formatOrderDateMobile(lastActionDate);
 
@@ -69,7 +70,7 @@ export const QuoteItem: React.FC<QuoteItemProps> = ({
             <span className={layout.orderId}>{displayId}</span>
           </div>
         </div>
-        
+
         <div className={layout.badgeContainer}>
           <Badge
             variant={getQuoteStatusBadgeVariant(quote.status)}
@@ -85,7 +86,7 @@ export const QuoteItem: React.FC<QuoteItemProps> = ({
         <div className={layout.leftSection}>
           <span className={layout.customerName}>{quote.customer_name}</span>
         </div>
-        
+
         <div className="text-right">
           <div className={layout.amount}>{quote.quoted_amount}</div>
         </div>
@@ -95,16 +96,19 @@ export const QuoteItem: React.FC<QuoteItemProps> = ({
       <div className={layout.structure.row3}>
         <div className={layout.dates}>
           <span className="hidden lg:inline">
-            Created: {createdDateDesktop} • {lastActionLabel}: {lastActionDateDesktop}
+            Created: {createdDateDesktop} • {lastActionLabel}:{' '}
+            {lastActionDateDesktop}
           </span>
           <span className="hidden sm:inline lg:hidden">
-            Created: {createdDateTablet} • {lastActionLabel}: {lastActionDateTablet}
+            Created: {createdDateTablet} • {lastActionLabel}:{' '}
+            {lastActionDateTablet}
           </span>
           <span className="sm:hidden">
-            Created: {createdDateMobile} • {lastActionLabel}: {lastActionDateMobile}
+            Created: {createdDateMobile} • {lastActionLabel}:{' '}
+            {lastActionDateMobile}
           </span>
         </div>
-        
+
         <Button
           variant="secondary"
           size="sm"

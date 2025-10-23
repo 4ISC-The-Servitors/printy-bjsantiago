@@ -29,7 +29,12 @@ const CustomerMobileSidebarMenu: React.FC<CustomerMobileSidebarMenuProps> = ({
             <Bot className="w-6 h-6" />
           </div>
           <div>
-            <Text variant="h3" size="lg" weight="bold" className="text-brand-primary">
+            <Text
+              variant="h3"
+              size="lg"
+              weight="bold"
+              className="text-brand-primary"
+            >
               Printy
             </Text>
             <Text variant="p" size="xs" color="muted">
@@ -51,7 +56,11 @@ const CustomerMobileSidebarMenu: React.FC<CustomerMobileSidebarMenuProps> = ({
       {/* Chats */}
       <div className="px-3 pt-2 shrink-0">
         {onViewAllChats && (
-          <Button variant="ghost" onClick={onViewAllChats} className="w-full justify-start px-3 py-3 h-auto">
+          <Button
+            variant="ghost"
+            onClick={onViewAllChats}
+            className="w-full justify-start px-3 py-3 h-auto"
+          >
             <MessageSquare className="w-5 h-5 mr-3 text-neutral-700" />
             <Text variant="p" size="base" weight="medium">
               Chats
@@ -64,14 +73,22 @@ const CustomerMobileSidebarMenu: React.FC<CustomerMobileSidebarMenuProps> = ({
 
       {/* Bottom actions */}
       <div className="p-3 pb-[72px] space-y-2">
-        <Button variant="ghost" onClick={onAccount} className="w-full justify-start px-3 py-3 h-auto">
+        <Button
+          variant="ghost"
+          onClick={onAccount}
+          className="w-full justify-start px-3 py-3 h-auto"
+        >
           <User className="w-5 h-5 mr-3 text-neutral-700" />
           <Text variant="p" size="base" weight="medium">
             Account
           </Text>
         </Button>
 
-        <Button variant="ghost" onClick={onLogout} className="w-full justify-start px-3 py-3 h-auto">
+        <Button
+          variant="ghost"
+          onClick={onLogout}
+          className="w-full justify-start px-3 py-3 h-auto"
+        >
           <LogOut className="w-5 h-5 mr-3 text-neutral-700" />
           <Text variant="p" size="base" weight="medium">
             Logout
@@ -83,5 +100,3 @@ const CustomerMobileSidebarMenu: React.FC<CustomerMobileSidebarMenuProps> = ({
 };
 
 export default CustomerMobileSidebarMenu;
-
-

@@ -24,7 +24,7 @@ type LoadInquiriesOptions = {
 
 export function useAdminTickets(options: LoadInquiriesOptions = {}) {
   const { page = 1, pageSize = 10, useAdvancedFallbacks = false } = options;
-  
+
   const [tickets, setTickets] = useState<AdminTicketRow[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -35,7 +35,7 @@ export function useAdminTickets(options: LoadInquiriesOptions = {}) {
     setLoading(true);
     setError(null);
     const from = (page - 1) * pageSize;
-    
+
     try {
       let rows: any[] = [];
 
@@ -80,7 +80,8 @@ export function useAdminTickets(options: LoadInquiriesOptions = {}) {
             'api_inquiries_for_user',
             { p_limit: pageSize, p_offset: from }
           );
-          if (Array.isArray(userRows) && userRows.length > 0) rows = userRows as any[];
+          if (Array.isArray(userRows) && userRows.length > 0)
+            rows = userRows as any[];
           if (rows.length === 0) {
             const { data: viewRows } = await supabase
               .from('inquiries_v2')
@@ -101,22 +102,29 @@ export function useAdminTickets(options: LoadInquiriesOptions = {}) {
           )
           .order('received_at', { ascending: false })
           .range(from, from + pageSize - 1);
-          
+
         if (res.error) throw res.error;
-        
-        rows = res.data as any[] || [];
+
+        rows = (res.data as any[]) || [];
         console.debug(
           '[useAdminTickets] table: inquiries, rows:',
           rows.length,
-          'Sample row:', rows[0]
+          'Sample row:',
+          rows[0]
         );
       }
 
       const normalized: AdminTicketRow[] = (rows || []).map(row => {
-        const first = (row as any).customer_first_name || (row as any).customer?.first_name || '';
-        const last = (row as any).customer_last_name || (row as any).customer?.last_name || '';
+        const first =
+          (row as any).customer_first_name ||
+          (row as any).customer?.first_name ||
+          '';
+        const last =
+          (row as any).customer_last_name ||
+          (row as any).customer?.last_name ||
+          '';
         const full = `${first} ${last}`.trim() || null;
-        
+
         const normalizedRow = {
           inquiry_id: (row as any).inquiry_id,
           display_id: (row as any).display_id ?? null,
@@ -131,18 +139,21 @@ export function useAdminTickets(options: LoadInquiriesOptions = {}) {
           customer_first_name: first || null,
           customer_last_name: last || null,
         } as AdminTicketRow;
-        
+
         // Debug first row
         if (rows.indexOf(row) === 0) {
-          console.debug('[useAdminTickets] Normalized first row:', normalizedRow);
+          console.debug(
+            '[useAdminTickets] Normalized first row:',
+            normalizedRow
+          );
         }
-        
+
         return normalizedRow;
       });
-      
+
       setTickets(normalized);
       setHasMore(normalized.length === pageSize);
-      
+
       if (!activeId && normalized.length > 0) {
         setActiveId(normalized[0].inquiry_id);
       }
@@ -182,14 +193,14 @@ export function useAdminTickets(options: LoadInquiriesOptions = {}) {
     [tickets, activeId]
   );
 
-  return { 
-    tickets, 
-    active, 
-    activeId, 
-    setActiveId, 
-    loading, 
-    error, 
+  return {
+    tickets,
+    active,
+    activeId,
+    setActiveId,
+    loading,
+    error,
     hasMore,
-    reload: loadInquiries 
+    reload: loadInquiries,
   };
 }

@@ -35,7 +35,7 @@ export class ProfileService {
   static async getProfile(customerId: string): Promise<CustomerProfile | null> {
     try {
       console.log('Fetching profile for customer ID:', customerId);
-      
+
       // Check if Supabase is available
       if (!supabase) {
         console.warn('Supabase client not available, returning null');
@@ -45,22 +45,30 @@ export class ProfileService {
       // Simple query to get basic customer data first
       const { data: customerData, error: customerError } = await supabase
         .from('customer')
-        .select('customer_id, first_name, last_name, contact_no, email_address, customer_type, location_id')
+        .select(
+          'customer_id, first_name, last_name, contact_no, email_address, customer_type, location_id'
+        )
         .eq('customer_id', customerId)
         .maybeSingle();
 
       if (customerError) {
         console.error('Error fetching customer data:', customerError);
-        
+
         // Check if it's a network error
-        if (customerError.message.includes('Failed to fetch') || 
-            customerError.message.includes('NetworkError') ||
-            customerError.message.includes('TypeError')) {
-          console.warn('Network error detected, returning null to allow fallback');
+        if (
+          customerError.message.includes('Failed to fetch') ||
+          customerError.message.includes('NetworkError') ||
+          customerError.message.includes('TypeError')
+        ) {
+          console.warn(
+            'Network error detected, returning null to allow fallback'
+          );
           return null;
         }
-        
-        throw new Error(`Failed to fetch customer data: ${customerError.message}`);
+
+        throw new Error(
+          `Failed to fetch customer data: ${customerError.message}`
+        );
       }
 
       if (!customerData) {
@@ -89,7 +97,8 @@ export class ProfileService {
           // Use Supabase nested selects to traverse relations
           const { data: joined, error: joinedError } = await supabase
             .from('location')
-            .select(`
+            .select(
+              `
               bldg_name,
               bldg_num,
               zip_code,
@@ -122,7 +131,8 @@ export class ProfileService {
                   )
                 )
               )
-            `)
+            `
+            )
             .eq('location_id', customerData.location_id)
             .maybeSingle();
 
@@ -152,7 +162,8 @@ export class ProfileService {
               province_name: province?.province_name ?? '',
               region_name: region?.region_name ?? '',
               // Prefer explicit location.zip_code then zipcode.zip_code
-              zip_code: (j?.zip_code ?? j?.zipcode?.zip_code ?? '')?.toString?.() ?? ''
+              zip_code:
+                (j?.zip_code ?? j?.zipcode?.zip_code ?? '')?.toString?.() ?? '',
             };
           }
         } catch (e) {
@@ -174,17 +185,20 @@ export class ProfileService {
       return profile;
     } catch (error) {
       console.error('Error in ProfileService.getProfile:', error);
-      
+
       // Check if it's a network error
-      if (error instanceof Error && (
-        error.message.includes('Failed to fetch') ||
-        error.message.includes('NetworkError') ||
-        error.message.includes('TypeError')
-      )) {
-        console.warn('Network error detected, returning null to allow fallback');
+      if (
+        error instanceof Error &&
+        (error.message.includes('Failed to fetch') ||
+          error.message.includes('NetworkError') ||
+          error.message.includes('TypeError'))
+      ) {
+        console.warn(
+          'Network error detected, returning null to allow fallback'
+        );
         return null;
       }
-      
+
       throw error; // Re-throw other errors
     }
   }

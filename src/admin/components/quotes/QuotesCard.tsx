@@ -13,14 +13,8 @@ export interface QuotesCardProps {
 const QuotesCard: React.FC<QuotesCardProps> = ({ filteredQuotes }) => {
   // All hooks must be called unconditionally before any early returns
   useResponsiveLayout();
-  const {
-    isLoading,
-    page,
-    setPage,
-    pageSize,
-    setHoveredQuoteId,
-    viewInChat,
-  } = useQuotesCard();
+  const { isLoading, page, setPage, pageSize, setHoveredQuoteId, viewInChat } =
+    useQuotesCard();
 
   // Calculate paginated display quotes from filtered quotes
   const start = (page - 1) * pageSize;
@@ -66,7 +60,9 @@ const QuotesCard: React.FC<QuotesCardProps> = ({ filteredQuotes }) => {
           ) : (
             <div className="text-center py-12 text-neutral-500">
               <p className="text-lg font-medium">No quotes found</p>
-              <p className="text-sm mt-1">Try adjusting your search or filters</p>
+              <p className="text-sm mt-1">
+                Try adjusting your search or filters
+              </p>
             </div>
           )}
         </div>

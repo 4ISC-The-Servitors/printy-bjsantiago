@@ -2,8 +2,10 @@ import React, { useMemo, useCallback } from 'react';
 import type { ChatMessage } from '@features/chat/types/chat';
 import { Bot } from 'lucide-react';
 import { Badge } from '@shared/components';
-import { formatLongDate } from '@shared/utils/dateFormatter';
+import { formatShortDate } from '@shared/utils/dateFormatter';
 import { formatShortTime } from '@shared/utils/timeFormatter';
+import { getChatStatusBadgeVariant } from '@shared/utils/statusColors';
+import { formatChatStatus } from '@shared/utils';
 import useResponsiveListItems from '@shared/hooks/ui/useResponsiveListItems';
 
 interface Conversation {
@@ -43,17 +45,23 @@ const RecentChats: React.FC<RecentChatsProps> = ({
   }, []);
 
   // Dynamically limit the number of items based on available height in the scroll area
-  const maxVisible = useResponsiveListItems(
-    stableGetContainerHeight,
-    { itemHeight: 60, min: 3, max: 20, observeEl: stableObserveEl }
-  );
+  const maxVisible = useResponsiveListItems(stableGetContainerHeight, {
+    itemHeight: 60,
+    min: 3,
+    max: 20,
+    observeEl: stableObserveEl,
+  });
 
-  const items = useMemo(() => conversations.slice(0, maxVisible), [conversations, maxVisible]);
+  const items = useMemo(
+    () => conversations.slice(0, maxVisible),
+    [conversations, maxVisible]
+  );
 
   // NOW we can do conditional rendering
   if (!conversations || conversations.length === 0) {
     // If the user is authenticated, there may be history loading; show a hint
-    const hasUser = typeof window !== 'undefined' && !!localStorage.getItem('sb-uid');
+    const hasUser =
+      typeof window !== 'undefined' && !!localStorage.getItem('sb-uid');
     return (
       <div className="px-2 py-2 text-xs text-neutral-500">
         No recent chats yet{hasUser ? ' • Loading chats...' : ''}
@@ -81,13 +89,18 @@ const RecentChats: React.FC<RecentChatsProps> = ({
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 mb-0.5">
-                <div className="font-semibold text-sm truncate">{c.title}</div>
-                <Badge variant={c.status === 'active' ? 'success' : 'error'} size="sm">
-                  {c.status === 'active' ? 'Active' : 'Ended'}
+                <div className="font-semibold device-text-body text-lg truncate">
+                  {c.title}
+                </div>
+                <Badge
+                  variant={getChatStatusBadgeVariant(c.status)}
+                  size="sm"
+                >
+                  {formatChatStatus(c.status)}
                 </Badge>
               </div>
-              <div className="text-xs text-neutral-500">
-                {formatLongDate(c.createdAt)} • {formatShortTime(c.createdAt)}
+              <div className="device-text-caption text-neutral-500">
+                {formatShortDate(c.createdAt)} • {formatShortTime(c.createdAt)}
               </div>
             </div>
           </div>
@@ -98,5 +111,3 @@ const RecentChats: React.FC<RecentChatsProps> = ({
 };
 
 export default RecentChats;
-
-

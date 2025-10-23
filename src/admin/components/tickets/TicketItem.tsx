@@ -5,7 +5,7 @@ import { formatTicketStatus } from '@shared/utils/statusFormatter';
 import {
   formatOrderDateDesktop,
   formatOrderDateTablet,
-  formatOrderDateMobile
+  formatOrderDateMobile,
 } from '@shared/utils/dateFormatter';
 import { formatRelativeTimeLabel } from '@shared/utils/timeFormatter';
 import { MessageSquare } from 'lucide-react';
@@ -47,40 +47,57 @@ export const TicketItem: React.FC<TicketItemProps> = ({
     display_id: ticket.display_id,
     received_at: ticket.received_at,
     updated_at: ticket.updated_at,
-    inquiry_status: ticket.inquiry_status
+    inquiry_status: ticket.inquiry_status,
   });
 
   // Get responsive layout classes
   const { getTicketCardLayout } = useResponsiveLayout();
   const layout = getTicketCardLayout;
-  
+
   // Show Urgent badge for valued customers
-  const showUrgentBadge = ticket.customer_type === 'valued' || ticket.customer?.customer_type === 'valued';
-  
+  const showUrgentBadge =
+    ticket.customer_type === 'valued' ||
+    ticket.customer?.customer_type === 'valued';
+
   // Get display ID with fallback to UUID
   const displayId = ticket.display_id || ticket.inquiry_id;
-  
+
   // Format customer name - check multiple possible data structures
-  const customerName = ticket.customer_full_name || 
-    (ticket.first_name && ticket.last_name ? `${ticket.first_name} ${ticket.last_name}` : 
-    (ticket.customer?.first_name && ticket.customer?.last_name ? `${ticket.customer.first_name} ${ticket.customer.last_name}` : 'Customer'));
-  
+  const customerName =
+    ticket.customer_full_name ||
+    (ticket.first_name && ticket.last_name
+      ? `${ticket.first_name} ${ticket.last_name}`
+      : ticket.customer?.first_name && ticket.customer?.last_name
+        ? `${ticket.customer.first_name} ${ticket.customer.last_name}`
+        : 'Customer');
+
   // Format inquiry type for display
   const inquiryType = ticket.inquiry_type || 'General Inquiry';
-  
+
   // Format both received and updated dates responsively
-  const receivedDateDesktop = ticket.received_at ? formatOrderDateDesktop(ticket.received_at) : '—';
-  const receivedDateTablet = ticket.received_at ? formatOrderDateTablet(ticket.received_at) : '—';
-  const receivedDateMobile = ticket.received_at ? formatOrderDateMobile(ticket.received_at) : '—';
-  
+  const receivedDateDesktop = ticket.received_at
+    ? formatOrderDateDesktop(ticket.received_at)
+    : '—';
+  const receivedDateTablet = ticket.received_at
+    ? formatOrderDateTablet(ticket.received_at)
+    : '—';
+  const receivedDateMobile = ticket.received_at
+    ? formatOrderDateMobile(ticket.received_at)
+    : '—';
+
   // Use relative time format for updated dates
-  const updatedDateDesktop = ticket.updated_at ? formatRelativeTimeLabel(ticket.updated_at) : '—';
-  const updatedDateTablet = ticket.updated_at ? formatRelativeTimeLabel(ticket.updated_at) : '—';
-  const updatedDateMobile = ticket.updated_at ? formatRelativeTimeLabel(ticket.updated_at) : '—';
+  const updatedDateDesktop = ticket.updated_at
+    ? formatRelativeTimeLabel(ticket.updated_at)
+    : '—';
+  const updatedDateTablet = ticket.updated_at
+    ? formatRelativeTimeLabel(ticket.updated_at)
+    : '—';
+  const updatedDateMobile = ticket.updated_at
+    ? formatRelativeTimeLabel(ticket.updated_at)
+    : '—';
 
   return (
     <div className={`group ${layout.container}`}>
-
       {/* Row 1: Ticket ID + Type | Status Badges */}
       <div className={layout.structure.row1}>
         <div className={layout.leftSection}>
@@ -90,13 +107,10 @@ export const TicketItem: React.FC<TicketItemProps> = ({
             <span className={layout.productName}>{inquiryType}</span>
           </div>
         </div>
-        
+
         <div className={layout.badgeContainer}>
           {showUrgentBadge && (
-            <Badge 
-              variant="error" 
-              className={layout.urgentBadge}
-            >
+            <Badge variant="error" className={layout.urgentBadge}>
               Urgent
             </Badge>
           )}
@@ -114,7 +128,7 @@ export const TicketItem: React.FC<TicketItemProps> = ({
         <div className={layout.leftSection}>
           <span className={layout.customerName}>{customerName}</span>
         </div>
-        
+
         <div className="flex items-center gap-2 sm:gap-3 md:gap-4 shrink-0">
           <Button
             variant="secondary"
@@ -147,7 +161,9 @@ export const TicketItem: React.FC<TicketItemProps> = ({
           <span className="sm:hidden">
             Received: {receivedDateMobile}
             {ticket.updated_at && ticket.updated_at !== ticket.received_at && (
-              <span className="ml-1 text-xs">• Updated:  {updatedDateMobile}</span>
+              <span className="ml-1 text-xs">
+                • Updated: {updatedDateMobile}
+              </span>
             )}
           </span>
         </div>

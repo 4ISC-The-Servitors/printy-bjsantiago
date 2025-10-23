@@ -49,9 +49,7 @@
  */
 
 import { supabase } from '@lib/supabase';
-import {
-  withErrorHandling,
-} from '@features/chat/helpers/errorHandling';
+import { withErrorHandling } from '@features/chat/helpers/errorHandling';
 import type {
   ActionExecutionParams,
   ActionExecutionResult,

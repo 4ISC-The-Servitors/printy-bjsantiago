@@ -41,7 +41,7 @@ export type {
   SeoMetadata,
   FileUpload,
   SearchResult,
-  SearchFilters
+  SearchFilters,
 } from './types';
 
 // Re-export specialized types

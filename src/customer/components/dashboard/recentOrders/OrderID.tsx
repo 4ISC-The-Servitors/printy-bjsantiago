@@ -7,11 +7,15 @@ interface OrderIDProps {
 }
 
 const OrderID: React.FC<OrderIDProps> = ({ id, displayId }) => (
-  <Text variant="p" size="base" color="muted" weight="medium" className="leading-6">
+  <Text
+    variant="p"
+    size="base"
+    color="muted"
+    weight="medium"
+    className="leading-6"
+  >
     {displayId || id}
   </Text>
 );
 
 export default OrderID;
-
-

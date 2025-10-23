@@ -38,30 +38,43 @@
  */
 
 import { supabase } from '@lib/supabase';
-import type { ActionExecutionParams, ActionExecutionResult } from '@features/chat/types';
+import type {
+  ActionExecutionParams,
+  ActionExecutionResult,
+} from '@features/chat/types';
 
-export async function checkExistingSpecs(params: ActionExecutionParams): Promise<ActionExecutionResult> {
+export async function checkExistingSpecs(
+  params: ActionExecutionParams
+): Promise<ActionExecutionResult> {
   const { actionNode, context } = params;
 
   const config = (actionNode.action_config as any) || {};
   const conversationIdKey = config.conversation_id_key || 'session_id';
   const conversationId = String(context[conversationIdKey] || '').trim();
 
-  const messages: Array<{ id: string; role: 'printy'; text: string; ts: number }> = [];
+  const messages: Array<{
+    id: string;
+    role: 'printy';
+    text: string;
+    ts: number;
+  }> = [];
 
   if (!conversationId) {
-    messages.push({ 
-      id: crypto.randomUUID(), 
-      role: 'printy', 
-      text: 'Missing conversation ID. Cannot check existing specifications.', 
-      ts: Date.now() 
+    messages.push({
+      id: crypto.randomUUID(),
+      role: 'printy',
+      text: 'Missing conversation ID. Cannot check existing specifications.',
+      ts: Date.now(),
     });
     return { messages };
   }
 
   try {
     // Check for existing specs
-    console.log('[checkExistingSpecs] Checking for existing specs for session_id:', conversationId);
+    console.log(
+      '[checkExistingSpecs] Checking for existing specs for session_id:',
+      conversationId
+    );
     const { data: existingSpecs, error: specError } = await supabase
       .from('quote_specs')
       .select('spec_id, created_at, spec_data')
@@ -71,11 +84,11 @@ export async function checkExistingSpecs(params: ActionExecutionParams): Promise
 
     if (specError) {
       console.error('[checkExistingSpecs] Error fetching specs:', specError);
-      messages.push({ 
-        id: crypto.randomUUID(), 
-        role: 'printy', 
-        text: 'Error checking existing specifications. Please try again.', 
-        ts: Date.now() 
+      messages.push({
+        id: crypto.randomUUID(),
+        role: 'printy',
+        text: 'Error checking existing specifications. Please try again.',
+        ts: Date.now(),
       });
       return { messages };
     }
@@ -85,31 +98,32 @@ export async function checkExistingSpecs(params: ActionExecutionParams): Promise
 
     // Store the result in context for the flow to use
     context.has_existing_specs = hasExistingSpecs;
-    context.existing_spec_id = hasExistingSpecs ? existingSpecs[0].spec_id : null;
+    context.existing_spec_id = hasExistingSpecs
+      ? existingSpecs[0].spec_id
+      : null;
 
     if (hasExistingSpecs) {
-      messages.push({ 
-        id: crypto.randomUUID(), 
-        role: 'printy', 
-        text: 'I found existing specifications for this quote. What would you like to do?', 
-        ts: Date.now() 
+      messages.push({
+        id: crypto.randomUUID(),
+        role: 'printy',
+        text: 'I found existing specifications for this quote. What would you like to do?',
+        ts: Date.now(),
       });
     } else {
-      messages.push({ 
-        id: crypto.randomUUID(), 
-        role: 'printy', 
-        text: 'No existing specifications found. Choose how to prepare the specifications.', 
-        ts: Date.now() 
+      messages.push({
+        id: crypto.randomUUID(),
+        role: 'printy',
+        text: 'No existing specifications found. Choose how to prepare the specifications.',
+        ts: Date.now(),
       });
     }
-
   } catch (error: any) {
     console.error('[checkExistingSpecs] Unexpected error:', error);
-    messages.push({ 
-      id: crypto.randomUUID(), 
-      role: 'printy', 
-      text: `Error checking specifications: ${error?.message || 'Unknown error'}`, 
-      ts: Date.now() 
+    messages.push({
+      id: crypto.randomUUID(),
+      role: 'printy',
+      text: `Error checking specifications: ${error?.message || 'Unknown error'}`,
+      ts: Date.now(),
     });
   }
 

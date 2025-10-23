@@ -20,7 +20,10 @@ export const displayQRCodeDetails: ActionHandler = async () => {
       .order('display_order', { ascending: true });
 
     if (error) {
-      console.error('[displayQRCodeDetails] Error fetching QR code methods:', error);
+      console.error(
+        '[displayQRCodeDetails] Error fetching QR code methods:',
+        error
+      );
       messages.push({
         id: crypto.randomUUID(),
         role: 'printy',
@@ -42,7 +45,7 @@ export const displayQRCodeDetails: ActionHandler = async () => {
 
     // Create message with QR code details
     let messageText = 'Here are our QR codes for payment:\n\n';
-    
+
     qrMethods.forEach(method => {
       messageText += `${method.label}\n`;
       // Include image URL in message text so MessageBubble can render it

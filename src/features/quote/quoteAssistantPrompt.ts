@@ -32,8 +32,12 @@ OUTPUT: JSON only, no prose.
 }
 `;
 
-export function buildConversationPrompt(messages: Array<{role: string; text: string}>): string {
-  const history = messages.map(m => `${m.role.toUpperCase()}: ${m.text}`).join('\n\n');
+export function buildConversationPrompt(
+  messages: Array<{ role: string; text: string }>
+): string {
+  const history = messages
+    .map(m => `${m.role.toUpperCase()}: ${m.text}`)
+    .join('\n\n');
   return `${QUOTE_ASSISTANT_SYSTEM_PROMPT}\n\nCONVERSATION:\n${history}`;
 }
 

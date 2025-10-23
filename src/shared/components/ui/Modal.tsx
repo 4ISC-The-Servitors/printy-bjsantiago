@@ -101,7 +101,7 @@ const ModalHeader: React.FC<ModalHeaderProps> = ({
   onClose,
 }) => {
   return (
-    <div className="flex items-center justify-between p-6 pb-4">
+    <div className="flex items-center justify-between device-spacing-component pb-4">
       <div className="flex-1">{children}</div>
       {showCloseButton && (
         <Button
@@ -119,7 +119,7 @@ const ModalHeader: React.FC<ModalHeaderProps> = ({
 };
 
 const ModalBody: React.FC<ModalBodyProps> = ({ children }) => {
-  return <div className="px-6 pb-4">{children}</div>;
+  return <div className="device-spacing-component pb-4">{children}</div>;
 };
 
 const ModalFooter: React.FC<ModalFooterProps> = ({
@@ -128,7 +128,7 @@ const ModalFooter: React.FC<ModalFooterProps> = ({
 }) => {
   return (
     <div
-      className={`flex items-center justify-end gap-3 p-6 pt-4 ${className}`}
+      className={`flex items-center justify-end gap-3 device-spacing-component pt-4 ${className}`}
     >
       {children}
     </div>

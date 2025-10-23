@@ -30,6 +30,7 @@ The codebase currently has **three competing chat/messaging systems** running in
 3. **Quote System** - `quote_conversations`, `quote_messages` (separate messaging for quotes)
 
 This fragmentation causes:
+
 - Unclear table relationships between inquiries, quotes, orders, and chat sessions
 - Difficulty implementing admin/customer chat flows
 - Mixed logic across the codebase
@@ -38,6 +39,7 @@ This fragmentation causes:
 ### Solution Overview
 
 **Phased consolidation** around the **V2 JSONB-based system** (`chat_sessions_v2`, `chat_messages_v2`, `chat_flows_v2`) while:
+
 - Preserving legacy tables temporarily for safety
 - Adding proper foreign key relationships
 - Refactoring existing JSONB chat flow code
@@ -66,23 +68,27 @@ The chat system migration has been successfully executed through Phases 1-4, est
 ### Phase-by-Phase Achievements
 
 #### ✅ **Phase 1: Foreign Key Infrastructure (100% Complete)**
+
 - **5 migrations applied** (059-063)
 - **Complete bidirectional relationship chain** established
 - **Data type mismatches resolved**
 - **Migration infrastructure established**
 
 #### ✅ **Phase 2: Data Migration Excellence (100% Complete)**
+
 - **2 migrations applied** (064-065)
 - **100% data consistency** achieved between FK columns and JSONB metadata
 - **Performance optimized** with indexed FK lookups
 
 #### ✅ **Phase 3: Code Architecture Modernization (100% Complete)**
+
 - **1 migration applied** (066)
 - **JsonbFlowProcessor enhanced** with FK support
 - **Action handlers updated** for bidirectional relationships
 - **Old flow driver system deprecated** with comprehensive audit
 
 #### ✅ **Phase 4: quote_conversations Deprecation (100% Complete)**
+
 - **0 migrations needed** (tables already removed)
 - **Code references updated** to reflect current architecture
 - **System verified** as fully unified around chat_sessions_v2
@@ -90,6 +96,7 @@ The chat system migration has been successfully executed through Phases 1-4, est
 ### Technical Architecture State
 
 #### Database Schema
+
 ```sql
 -- Current FK Relationships (All Verified Working)
 inquiries.session_id → chat_sessions_v2.session_id ✅
@@ -100,6 +107,7 @@ orders_duplicate.quote_id → quotes.quote_id ✅
 ```
 
 #### Code Architecture
+
 - **Unified conversation interface** via `JsonbFlowProcessor`
 - **Comprehensive query patterns** via `sessionQueries.ts`
 - **All hooks updated** to use FK-based relationships
@@ -108,12 +116,14 @@ orders_duplicate.quote_id → quotes.quote_id ✅
 ### Business Impact
 
 #### Developer Experience Improvements
+
 - **60-80% performance improvement** in conversation queries
 - **Simplified code patterns** with clear relationship paths
 - **Single source of truth** for all conversation types
 - **Comprehensive documentation** and migration guides
 
 #### System Reliability
+
 - **Zero downtime** during all migration phases
 - **Complete rollback capability** preserved throughout
 - **Data integrity enforced** through proper FK constraints
@@ -122,17 +132,20 @@ orders_duplicate.quote_id → quotes.quote_id ✅
 ### Current Production Readiness
 
 #### Ready for Immediate Use
+
 - ✅ All database relationships properly established
 - ✅ All code updated and tested
 - ✅ Performance improvements realized
 - ✅ Documentation comprehensive and up-to-date
 
 #### Optional Phase 5 Available
+
 - **Legacy table cleanup** (chat_sessions non-v2, if exists)
-- **Table renaming** (remove _v2 suffixes, if desired)
+- **Table renaming** (remove \_v2 suffixes, if desired)
 - **Final documentation updates**
 
 ### Migration Statistics
+
 ```
 Total Migrations Applied: 8 (059-066)
 Database Tables Modified: 4 (inquiries, chat_sessions_v2, quotes, orders_duplicate)
@@ -144,6 +157,7 @@ Documentation Created: 2 comprehensive guides + updated migration plan
 ### Next Steps
 
 **Phase 5: Cleanup and Final Consolidation** (Optional - System Production Ready)
+
 - Risk level: LOW (foundation solid)
 - Focus: Cosmetic cleanup and legacy removal
 - Timeline: 1-2 weeks (if desired)
@@ -159,6 +173,7 @@ Documentation Created: 2 comprehensive guides + updated migration plan
 #### Tables Currently in Production
 
 **V2 System (Active):**
+
 ```
 chat_flows_v2
   ├─ flow_id (TEXT, PK)
@@ -185,6 +200,7 @@ chat_messages_v2
 ```
 
 **Quote System (Parallel):**
+
 ```
 quote_conversations
   ├─ conversation_id (UUID, PK)
@@ -199,6 +215,7 @@ quote_messages
 ```
 
 **Inquiry System:**
+
 ```
 inquiries
   ├─ inquiry_id (UUID, PK)
@@ -208,6 +225,7 @@ inquiries
 ```
 
 **Quote System:**
+
 ```
 quotes
   ├─ quote_id (UUID, PK)
@@ -229,6 +247,7 @@ quotes
 #### Current JSONB Flow System
 
 **Strengths:**
+
 - ✅ Well-documented in `docs_guide/JSONB_CHAT_FLOW_SYSTEM.md`
 - ✅ Clean TypeScript types in `src/chatFlows/types.ts`
 - ✅ Modular `JsonbFlowProcessor` service
@@ -236,6 +255,7 @@ quotes
 - ✅ Support for customer and admin flows
 
 **Implementation Files:**
+
 ```
 src/
   chatFlows/
@@ -258,6 +278,7 @@ src/
 #### Mixed Logic Problems
 
 **Problem 1: Dual Storage for Quotes**
+
 ```typescript
 // In chat_sessions_v2.metadata:
 metadata: {
@@ -275,15 +296,17 @@ quote_conversations.quote_id → (no FK!)
 ```
 
 **Problem 2: Inquiry Linking via JSONB**
+
 ```typescript
 // inquiries has NO session_id column
 // chat_sessions_v2.metadata stores inquiry_id in JSONB
 metadata: {
-  inquiry_id: "uuid-here"  // Should be proper FK!
+  inquiry_id: 'uuid-here'; // Should be proper FK!
 }
 ```
 
 **Problem 3: Functions Reference Non-Existent Tables**
+
 ```sql
 -- From 036_link_inquiries_to_chat_sessions.sql
 -- This function references chat_sessions (non-v2), which doesn't exist in /tables/!
@@ -304,12 +327,14 @@ CREATE FUNCTION api_get_or_create_inquiry_session(p_inquiry_id uuid)
 **Impact:** Impossible to determine which system to use for new features.
 
 **Current State:**
+
 - Migrations reference `chat_sessions` (non-v2)
 - `/tables/` only has `chat_sessions_v2`
 - `quote_conversations` is a third parallel system
 - No clear deprecation path
 
 **Why This Blocks Development:**
+
 - Admin chat implementation: Which table to query?
 - Customer inquiry chat: Use chat_sessions_v2 or create new inquiry-specific table?
 - Quote conversations: Use chat_sessions_v2 or quote_conversations?
@@ -319,6 +344,7 @@ CREATE FUNCTION api_get_or_create_inquiry_session(p_inquiry_id uuid)
 **Impact:** Cannot reliably join inquiries → chat sessions → quotes.
 
 **Current State:**
+
 ```sql
 -- What exists:
 quotes.session_id → chat_sessions_v2.session_id ✅
@@ -330,6 +356,7 @@ chat_sessions_v2.quote_id → ❌ NO COLUMN
 ```
 
 **Why This Blocks Development:**
+
 ```typescript
 // Current approach (FRAGILE):
 const session = await supabase
@@ -351,6 +378,7 @@ const inquiryId = session.metadata.inquiry_id; // Stored in JSONB!
 **Impact:** Foreign key constraint cannot be properly established.
 
 **Current State:**
+
 ```sql
 -- quote_orders.sql
 quote_orders.order_id VARCHAR ❌
@@ -360,6 +388,7 @@ orders_duplicate.order_id UUID ✅
 ```
 
 **Why This Blocks Development:**
+
 - Can't create proper FK constraint
 - Data integrity not enforced
 - Queries break or return wrong results
@@ -369,6 +398,7 @@ orders_duplicate.order_id UUID ✅
 #### Issue #4: Legacy Inquiry Status Values
 
 **Current State:**
+
 ```sql
 -- inquiries.sql constraint includes:
 'open'::text,        -- LEGACY
@@ -383,6 +413,7 @@ orders_duplicate.order_id UUID ✅
 #### Issue #5: Quote vs Quote_Conversations Duplication
 
 **Current State:**
+
 - `quotes` table exists with proper FKs
 - `quote_conversations` table exists as separate system
 - Both track quote status identically
@@ -428,6 +459,7 @@ customer (1) ──────┬─────── (N) inquiries
 ### Key Changes
 
 **1. Add Proper Foreign Keys**
+
 ```sql
 -- Bidirectional inquiry ↔ chat_sessions_v2
 ALTER TABLE inquiries
@@ -446,6 +478,7 @@ ALTER TABLE orders_duplicate
 ```
 
 **2. Eliminate quote_conversations System**
+
 ```sql
 -- Step 1: Migrate data from quote_conversations → chat_sessions_v2
 -- Step 2: Migrate quote_messages → chat_messages_v2
@@ -453,6 +486,7 @@ ALTER TABLE orders_duplicate
 ```
 
 **3. Fix Data Type Mismatches**
+
 ```sql
 -- Fix quote_orders
 ALTER TABLE quote_orders
@@ -460,6 +494,7 @@ ALTER TABLE quote_orders
 ```
 
 **4. Consolidate Inquiry Status**
+
 ```sql
 -- Remove legacy statuses from constraint
 -- Create inquiry_status_transitions table for state machine
@@ -469,6 +504,7 @@ ALTER TABLE quote_orders
 ### Code Architecture (After Migration)
 
 **Single Conversation Interface:**
+
 ```typescript
 // All conversations use the same hook
 import { useJsonbFlowConversations } from '@features/chat/hooks';
@@ -481,20 +517,23 @@ await startFlow('ask-quote', 'Request Quote');
 
 // Admin replies to inquiry
 await startFlow('admin-reply-inquiry', 'Reply to Ticket', {
-  inquiry_id: 'uuid-here'
+  inquiry_id: 'uuid-here',
 });
 ```
 
 **Unified Query Pattern:**
+
 ```typescript
 // Get all customer conversations (inquiries + quotes + general)
 const sessions = await supabase
   .from('chat_sessions_v2')
-  .select(`
+  .select(
+    `
     *,
     inquiry:inquiries!inquiry_id(inquiry_id, display_id, inquiry_status),
     quote:quotes!quote_id(quote_id, display_id, status)
-  `)
+  `
+  )
   .eq('customer_id', userId)
   .order('created_at', { ascending: false });
 
@@ -515,11 +554,13 @@ const sessions = await supabase
 **Tasks:**
 
 1. **Create Feature Branch**
+
    ```bash
    git checkout -b chat-system-consolidation
    ```
 
 2. **Backup Production Data**
+
    ```sql
    -- Export current tables
    pg_dump -t chat_sessions_v2 > backup_chat_sessions_v2.sql
@@ -529,6 +570,7 @@ const sessions = await supabase
    ```
 
 3. **Create Migration Tracking Table**
+
    ```sql
    CREATE TABLE migration_log (
      log_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -546,12 +588,14 @@ const sessions = await supabase
    - Load sample data
 
 **Deliverables:**
+
 - ✅ Feature branch created
 - ✅ Production data backed up
 - ✅ Testing environment ready
 - ✅ Migration log table created
 
 **Validation:**
+
 - Run full test suite on main branch (all passing)
 - Verify backup can be restored
 - Confirm Supabase branch is accessible
@@ -563,6 +607,7 @@ const sessions = await supabase
 **Goal:** Add proper foreign key relationships WITHOUT dropping any existing tables.
 
 **Why This First:**
+
 - Non-destructive changes
 - Enables proper joins immediately
 - Existing code continues to work
@@ -597,6 +642,7 @@ VALUES ('phase_1', 'add_inquiry_session_fk', 'completed',
 ```
 
 **Validation:**
+
 ```sql
 -- Verify column exists
 SELECT column_name, data_type, is_nullable
@@ -668,6 +714,7 @@ VALUES ('phase_1', 'add_chat_session_foreign_keys', 'completed',
 ```
 
 **Validation:**
+
 ```sql
 -- Verify columns exist
 SELECT column_name, data_type, is_nullable
@@ -716,6 +763,7 @@ VALUES ('phase_1', 'fix_quote_orders_data_type', 'completed',
 ```
 
 **Validation:**
+
 ```sql
 -- Verify data type changed
 SELECT column_name, data_type
@@ -770,6 +818,7 @@ VALUES ('phase_1', 'add_orders_quote_fk', 'completed',
 ```
 
 **Validation:**
+
 ```sql
 -- Verify columns and constraints exist
 SELECT c.column_name, c.data_type, tc.constraint_name
@@ -783,6 +832,7 @@ WHERE c.table_name = 'orders_duplicate'
 ```
 
 **Phase 1 Deliverables:**
+
 - ✅ inquiries.session_id column added with FK
 - ✅ chat_sessions_v2.inquiry_id column added with FK
 - ✅ chat_sessions_v2.quote_id column added with FK
@@ -792,6 +842,7 @@ WHERE c.table_name = 'orders_duplicate'
 - ✅ All migrations logged
 
 **Phase 1 Testing:**
+
 ```sql
 -- Test full relationship chain
 SELECT
@@ -845,6 +896,7 @@ LIMIT 5;
    - Full rollback capability preserved
 
 **Current Database State:**
+
 - 48 inquiries records (0 currently linked to sessions - ready for Phase 2 migration)
 - 68 chat_sessions_v2 records (ready for Phase 2 data migration)
 - All relationships properly defined via FK constraints
@@ -883,6 +935,7 @@ LIMIT 5;
    - Migration plan adjusted to reflect actual current state
 
 **Current Database State After Phase 2:**
+
 - 68 chat_sessions_v2 records (5 now have quote_id FK populated)
 - 48 inquiries records (ready for future inquiry → session links)
 - 5 quotes records (all properly linked to sessions via FKs)
@@ -890,6 +943,7 @@ LIMIT 5;
 - Full bidirectional relationship chain: inquiries ↔ chat_sessions_v2 ↔ quotes
 
 **Validation Results:**
+
 - All quote links show "MATCH" status between FK and existing relationships
 - Migration log shows both Phase 2 operations completed successfully
 - Zero orphaned or inconsistent records detected
@@ -931,7 +985,11 @@ LIMIT 5;
 
 ```typescript
 // New unified query patterns
-import { getUserSessions, getInquiryWithSession, getQuoteWithSession } from '@features/chat/api/sessionQueries';
+import {
+  getUserSessions,
+  getInquiryWithSession,
+  getQuoteWithSession,
+} from '@features/chat/api/sessionQueries';
 
 // Get all user conversations with relationships
 const sessions = await getUserSessions(userId);
@@ -943,6 +1001,7 @@ const inquiry = await getInquiryWithSession(inquiryId);
 ```
 
 **Validation Results:**
+
 - ✅ Database functions using FK columns instead of JSONB metadata lookups
 - ✅ JsonbFlowProcessor supports FK-based session creation
 - ✅ Action handlers maintain bidirectional relationships
@@ -951,12 +1010,14 @@ const inquiry = await getInquiryWithSession(inquiryId);
 - ✅ Backward compatibility maintained (metadata still contains IDs)
 
 **Technical Benefits Achieved:**
+
 - Query performance improved from JSONB lookups to indexed FK joins
 - Data integrity enforced through proper FK constraints
 - Simplified query patterns with clear relationship paths
 - Unified interface for all conversation types (inquiries, quotes, general)
 
 **Current Database State After Phase 3:**
+
 - 68 chat_sessions_v2 records (with FK columns ready for use)
 - 48 inquiries records (ready for FK linking when sessions are created)
 - 5 quotes records (ready for FK linking when sessions are created)
@@ -995,18 +1056,21 @@ const inquiry = await getInquiryWithSession(inquiryId);
    - No active code uses quote_conversations system
 
 **Key Findings During Phase 4:**
+
 - **quote_conversations system was already deprecated** in previous phases
 - Current system already uses unified `chat_sessions_v2` approach correctly
 - No data migration needed since tables don't exist
 - All quote flows working through unified conversation system
 
 **Current System State After Phase 4:**
+
 - All quote conversations use `chat_sessions_v2` with proper FK relationships
 - `quotes` table serves as admin tracking interface linked to sessions
 - No remaining functional dependencies on quote_conversations system
 - Clean separation between customer chat sessions and admin quote management
 
 **Validation Results:**
+
 - ✅ No quote_conversations table exists in database
 - ✅ All quote creation uses `createQuoteConversation.ts` action handler
 - ✅ Quote sessions stored in `chat_sessions_v2` with `quote_id` FK
@@ -1039,14 +1103,14 @@ const inquiry = await getInquiryWithSession(inquiryId);
 2. **Orders Table Cleanup:**
    - Dropped old `orders` table (legacy VARCHAR-based order_id, 27 records)
    - Renamed `orders_duplicate` to `orders`
-   - Updated constraint names to remove "_duplicate" suffix:
+   - Updated constraint names to remove "\_duplicate" suffix:
      - `idx_orders_duplicate_customer_id` → `idx_orders_customer_id`
      - `idx_orders_duplicate_status` → `idx_orders_status`
      - `idx_orders_duplicate_quote_id` → `idx_orders_quote_id`
    - New `orders` table contains 8 records with proper UUID order_id
 
 3. **Table Naming Decision:**
-   - **Decided to keep _v2 suffix** for `chat_sessions_v2`, `chat_messages_v2`, `chat_flows_v2`
+   - **Decided to keep \_v2 suffix** for `chat_sessions_v2`, `chat_messages_v2`, `chat_flows_v2`
    - Reasoning: System is production-ready and renaming would require extensive code updates
    - Current naming is clear and functional, no technical benefit to renaming
 
@@ -1057,6 +1121,7 @@ const inquiry = await getInquiryWithSession(inquiryId);
    - All data integrity preserved
 
 **Validation Results:**
+
 - ✅ All legacy chat tables dropped successfully
 - ✅ `orders` table exists with UUID order_id schema
 - ✅ `orders_duplicate` table successfully renamed to `orders`
@@ -1067,6 +1132,7 @@ const inquiry = await getInquiryWithSession(inquiryId);
 - ✅ Migration logs updated with all Phase 5 operations
 
 **Current Production Database State:**
+
 ```
 Active Chat System Tables:
 - chat_sessions_v2 (69 records) - ✅ Core conversation sessions
@@ -1080,6 +1146,7 @@ Business Logic Tables:
 ```
 
 **Migration Statistics Summary:**
+
 ```
 Total Migrations Applied: 10 (059-071)
 Legacy Tables Dropped: 7 (old chat system)
@@ -1090,6 +1157,7 @@ System Downtime: Zero
 ```
 
 **Final Architecture Achievement:**
+
 - **Single unified conversation system** - chat_sessions_v2 serves all chat types
 - **Clean bidirectional relationships** - Proper FKs between inquiries, sessions, quotes, orders
 - **Eliminated all legacy systems** - No more dual storage or deprecated tables
@@ -1098,7 +1166,7 @@ System Downtime: Zero
 
 **Current Status:** ✅ **MIGRATION COMPLETE** - **PRODUCTION READY**
 **Next Steps:** None required - system is fully migrated and operational
-**Future Considerations:** Optional _v2 table renaming (cosmetic only)
+**Future Considerations:** Optional \_v2 table renaming (cosmetic only)
 
 ---
 
@@ -1115,6 +1183,7 @@ The chat system migration has been successfully executed through Phases 1-3, est
 ### Key Achievements
 
 #### ✅ **Phase 1: Foreign Key Infrastructure (100% Complete)**
+
 - **5 migrations applied** (059-063)
 - **Complete bidirectional relationship chain** established:
   - `inquiries.session_id` ↔ `chat_sessions_v2.session_id`
@@ -1126,6 +1195,7 @@ The chat system migration has been successfully executed through Phases 1-3, est
 - **Migration infrastructure established** with comprehensive logging
 
 #### ✅ **Phase 2: Data Migration Excellence (100% Complete)**
+
 - **2 migrations applied** (064-065)
 - **100% data consistency** achieved between FK columns and JSONB metadata
 - **5 quote-to-session relationships** migrated and verified
@@ -1134,6 +1204,7 @@ The chat system migration has been successfully executed through Phases 1-3, est
 - **Performance optimized** with indexed FK lookups replacing JSONB searches
 
 #### ✅ **Phase 3: Code Architecture Modernization (100% Complete)**
+
 - **1 migration applied** (066) - Database functions updated
 - **JsonbFlowProcessor enhanced** to support FK-based session creation
 - **Action handlers updated** to maintain bidirectional relationships
@@ -1147,6 +1218,7 @@ The chat system migration has been successfully executed through Phases 1-3, est
 ### Technical Architecture Improvements
 
 #### Database Schema State
+
 ```sql
 -- Current FK Relationships (All Verified Working)
 inquiries.session_id → chat_sessions_v2.session_id ✅
@@ -1157,14 +1229,20 @@ orders_duplicate.quote_id → quotes.quote_id ✅
 ```
 
 #### Query Performance Optimization
+
 - **Before:** JSONB metadata lookups (slow, non-indexable)
 - **After:** Indexed FK column joins (fast, efficient)
 - **Result:** 60-80% improvement in conversation retrieval queries
 
 #### Code Architecture Enhancements
+
 ```typescript
 // New Unified Query Pattern
-import { getUserSessions, getCustomerInquiries, getCustomerQuotes } from '@features/chat/api/sessionQueries';
+import {
+  getUserSessions,
+  getCustomerInquiries,
+  getCustomerQuotes,
+} from '@features/chat/api/sessionQueries';
 
 // Single source of truth for all conversation types
 const sessions = await getUserSessions(userId);
@@ -1182,6 +1260,7 @@ const result = await JsonbFlowProcessor.startFlow({
 ### Audit Results & Validation
 
 #### Data Integrity Verification
+
 - **68 chat_sessions_v2 records** - All properly structured
 - **48 inquiries records** - Ready for FK linking
 - **5 quotes records** - All properly linked via FKs
@@ -1189,6 +1268,7 @@ const result = await JsonbFlowProcessor.startFlow({
 - **Zero orphaned records** detected
 
 #### Code Migration Audit
+
 - **useAdminChat.ts** ✅ Already using JsonbFlowProcessor
 - **useConversationController.ts** ✅ Deprecated with migration warnings
 - **startConversation.ts** ✅ Deprecated with migration examples
@@ -1198,6 +1278,7 @@ const result = await JsonbFlowProcessor.startFlow({
 - **All flow driver files** ✅ Deprecated with clear warnings
 
 #### Flow Testing Results
+
 - **Customer flows** (ask-quote, issue-ticket, payment-upload) ✅ Ready
 - **Admin flows** (reply-inquiry, send-quote-proposal) ✅ Ready
 - **TypeScript compilation** ✅ Minor type issues noted but non-blocking
@@ -1221,12 +1302,14 @@ const result = await JsonbFlowProcessor.startFlow({
 ### Current System State
 
 #### Ready for Production
+
 - All database migrations applied successfully
 - Code architecture modernized and tested
 - Performance improvements realized
 - Developer experience enhanced
 
 #### Migration Statistics
+
 ```
 Total Migrations Applied: 8 (059-066)
 Database Tables Modified: 4 (inquiries, chat_sessions_v2, quotes, orders_duplicate)
@@ -1238,6 +1321,7 @@ Documentation Created: 2 comprehensive guides
 ### Next Phase Prepared
 
 **Phase 4: Deprecate quote_conversations System**
+
 - System is fully prepared to handle quote_conversations deprecation
 - All quote conversations already properly routed through chat_sessions_v2
 - Migration path clear and tested
@@ -1266,6 +1350,7 @@ Documentation Created: 2 comprehensive guides
 **Goal:** Move inquiry_id and quote_id from `metadata` JSONB to proper FK columns.
 
 **Why This Phase:**
+
 - Makes existing relationships explicit
 - Enables efficient querying with indexes
 - Maintains backward compatibility (JSONB data stays as backup)
@@ -1317,6 +1402,7 @@ VALUES ('phase_2', 'migrate_inquiry_metadata', 'completed',
 ```
 
 **Validation:**
+
 ```sql
 -- Check for data consistency
 SELECT
@@ -1369,6 +1455,7 @@ VALUES ('phase_2', 'migrate_quote_metadata_corrected', 'completed',
 ```
 
 **Validation:**
+
 ```sql
 -- Check quote links
 SELECT
@@ -1386,6 +1473,7 @@ LIMIT 20;
 ```
 
 **Phase 2 Deliverables:**
+
 - ✅ inquiry_id migrated from metadata to FK column
 - ✅ inquiries.session_id reverse links created
 - ✅ quote_id migrated from metadata to FK column
@@ -1393,6 +1481,7 @@ LIMIT 20;
 - ✅ Migrations logged
 
 **Phase 2 Rollback:**
+
 ```sql
 -- If needed, clear FK columns and rely on metadata again
 UPDATE chat_sessions_v2 SET inquiry_id = NULL;
@@ -1407,6 +1496,7 @@ UPDATE chat_sessions_v2 SET quote_id = NULL;
 **Goal:** Update database functions and application code to use new FK columns instead of JSONB metadata.
 
 **Why This Phase:**
+
 - Makes queries more efficient
 - Uses proper indexes instead of JSONB lookups
 - Maintains backward compatibility during transition
@@ -1554,6 +1644,7 @@ VALUES ('phase_3', 'update_database_functions', 'completed',
 ```
 
 **Validation:**
+
 ```sql
 -- Test inquiry session creation
 SELECT api_get_or_create_inquiry_session(
@@ -1639,7 +1730,7 @@ export async function createInquiry(params: ActionHandlerParams) {
       inquiry_type: inquiryType,
       inquiry_message_enc: encryptMessage(issueDetails),
       order_id: orderId,
-      session_id: sessionId,  // ✅ Set FK directly
+      session_id: sessionId, // ✅ Set FK directly
     })
     .select('inquiry_id, display_id')
     .single();
@@ -1652,7 +1743,7 @@ export async function createInquiry(params: ActionHandlerParams) {
   const { error: sessionError } = await supabase
     .from('chat_sessions_v2')
     .update({
-      inquiry_id: inquiry.inquiry_id  // ✅ Set FK
+      inquiry_id: inquiry.inquiry_id, // ✅ Set FK
     })
     .eq('session_id', sessionId);
 
@@ -1675,12 +1766,14 @@ export async function createInquiry(params: ActionHandlerParams) {
 **Goal:** Remove all references to the old FlowDriver, ScriptedFlowDriver, and DatabaseFlowDriver systems, fully committing to the JSONB flow architecture.
 
 **Why This Task:**
+
 - Eliminates confusion about which flow system to use
 - Removes dead code and maintenance burden
 - Forces all flows to use the unified JSONB system
 - Prevents developers from accidentally using old patterns
 
 **Files to Deprecate/Remove:**
+
 ```
 src/features/chat/adapters/
   ├─ FlowDriver.ts              # Base interface (OLD)
@@ -1695,6 +1788,7 @@ src/chatLogic/                  # Old scripted flows directory
 **Audit Findings:**
 
 Files with references to old flow drivers:
+
 1. `src/features/chat/hooks/customer/useCustomerConversations.ts` - ✅ Already migrated (commented out)
 2. `src/admin/hooks/useAdminChat.ts` - Needs migration
 3. `src/features/chat/hooks/shared/useConversationController.ts` - Should be deprecated
@@ -1706,7 +1800,8 @@ Files with references to old flow drivers:
 **Step 1: Audit and Document Current Usage**
 
 Create audit checklist:
-```typescript
+
+````typescript
 // Create docs_guide/OLD_FLOW_DRIVER_AUDIT.md
 /**
  * OLD FLOW DRIVER DEPRECATION AUDIT
@@ -1760,13 +1855,14 @@ Create audit checklist:
  * await endSessionV2(sessionId);
  * ```
  */
-```
+````
 
 **Step 2: Migrate Remaining Files**
 
 For each file using old flow drivers:
 
 **File: `src/admin/hooks/useAdminChat.ts`**
+
 ```typescript
 // BEFORE:
 import { DatabaseFlowDriver } from '@features/chat/adapters/DatabaseFlowDriver';
@@ -1781,6 +1877,7 @@ import { getFlowDefinition } from '@features/chat/api/jsonbChatFlowApi';
 **File: `src/features/chat/hooks/shared/useConversationController.ts`**
 
 Option 1: Deprecate entirely if it only wraps old flow drivers
+
 ```typescript
 // Add deprecation notice at top of file
 /**
@@ -1810,6 +1907,7 @@ Option 2: Refactor to use JsonbFlowProcessor internally (if widely used)
 Add deprecation warnings to old flow driver files:
 
 **File: `src/features/chat/adapters/FlowDriver.ts`**
+
 ```typescript
 /**
  * @deprecated LEGACY SYSTEM - DO NOT USE
@@ -1826,6 +1924,7 @@ export interface FlowDriver {
 ```
 
 **File: `src/features/chat/adapters/ScriptedFlowDriver.ts`**
+
 ```typescript
 /**
  * @deprecated LEGACY SYSTEM - DO NOT USE
@@ -1844,6 +1943,7 @@ export interface FlowDriver {
 ```
 
 **File: `src/features/chat/adapters/DatabaseFlowDriver.ts`**
+
 ```typescript
 /**
  * @deprecated LEGACY SYSTEM - DO NOT USE
@@ -1882,6 +1982,7 @@ If `src/chatLogic/customer/index.ts` and `src/chatLogic/admin/index.ts` exist:
 ### OLD FLOW DRIVER DEPRECATION CHECKLIST
 
 #### Code Migration
+
 - [ ] Audit all files importing FlowDriver, ScriptedFlowDriver, or DatabaseFlowDriver
 - [ ] Update useAdminChat.ts to use JsonbFlowProcessor
 - [ ] Update useConversationController.ts (deprecate or refactor)
@@ -1892,18 +1993,21 @@ If `src/chatLogic/customer/index.ts` and `src/chatLogic/admin/index.ts` exist:
 - [ ] Add deprecation warnings to all old flow driver files
 
 #### Testing
+
 - [ ] Test all customer flows (ask-quote, issue-ticket, payment-upload)
 - [ ] Test all admin flows (reply-inquiry, send-quote-proposal)
 - [ ] Verify no runtime errors from old flow driver imports
 - [ ] Verify all flows execute via JsonbFlowProcessor
 
 #### Documentation
+
 - [ ] Create OLD_FLOW_DRIVER_AUDIT.md
 - [ ] Document migration path for each old pattern
 - [ ] Add comments linking to migration plan
 ```
 
 **Validation:**
+
 ```bash
 # Search for any remaining imports of old flow drivers
 grep -r "FlowDriver\|ScriptedFlowDriver\|DatabaseFlowDriver" src/ --include="*.ts" --include="*.tsx"
@@ -1912,6 +2016,7 @@ grep -r "FlowDriver\|ScriptedFlowDriver\|DatabaseFlowDriver" src/ --include="*.t
 ```
 
 **Phase 3 Task 3.4 Deliverables:**
+
 - ✅ All code migrated from old flow drivers to JsonbFlowProcessor
 - ✅ Deprecation warnings added to old flow driver files
 - ✅ OLD_FLOW_DRIVER_AUDIT.md created
@@ -1933,7 +2038,8 @@ import { supabase } from '@lib/supabase';
 export async function getUserSessions(userId: string) {
   const { data, error } = await supabase
     .from('chat_sessions_v2')
-    .select(`
+    .select(
+      `
       session_id,
       flow_id,
       status,
@@ -1952,7 +2058,8 @@ export async function getUserSessions(userId: string) {
         status,
         total_price
       )
-    `)
+    `
+    )
     .eq('customer_id', userId)
     .order('created_at', { ascending: false });
 
@@ -1977,14 +2084,16 @@ export async function getUserSessions(userId: string) {
 export async function getInquiryWithSession(inquiryId: string) {
   const { data, error } = await supabase
     .from('inquiries')
-    .select(`
+    .select(
+      `
       *,
       session:chat_sessions_v2!session_id(
         session_id,
         status,
         metadata
       )
-    `)
+    `
+    )
     .eq('inquiry_id', inquiryId)
     .single();
 
@@ -1994,14 +2103,16 @@ export async function getInquiryWithSession(inquiryId: string) {
 export async function getQuoteWithSession(quoteId: string) {
   const { data, error } = await supabase
     .from('quotes')
-    .select(`
+    .select(
+      `
       *,
       session:chat_sessions_v2!session_id(
         session_id,
         status,
         metadata
       )
-    `)
+    `
+    )
     .eq('quote_id', quoteId)
     .single();
 
@@ -2010,6 +2121,7 @@ export async function getQuoteWithSession(quoteId: string) {
 ```
 
 **Phase 3 Deliverables:**
+
 - ✅ Database functions updated to use FK columns
 - ✅ JsonbFlowProcessor updated to set FK columns
 - ✅ Action handlers updated to maintain FKs
@@ -2018,6 +2130,7 @@ export async function getQuoteWithSession(quoteId: string) {
 - ✅ Tests updated
 
 **Phase 3 Testing:**
+
 ```typescript
 // Test inquiry creation flow
 const { sessionId } = await JsonbFlowProcessor.startFlow({
@@ -2049,7 +2162,8 @@ import { supabase } from '@lib/supabase';
 export async function getUserSessions(userId: string) {
   const { data, error } = await supabase
     .from('chat_sessions_v2')
-    .select(`
+    .select(
+      `
       session_id,
       flow_id,
       status,
@@ -2068,7 +2182,8 @@ export async function getUserSessions(userId: string) {
         status,
         total_price
       )
-    `)
+    `
+    )
     .eq('customer_id', userId)
     .order('created_at', { ascending: false });
 
@@ -2093,14 +2208,16 @@ export async function getUserSessions(userId: string) {
 export async function getInquiryWithSession(inquiryId: string) {
   const { data, error } = await supabase
     .from('inquiries')
-    .select(`
+    .select(
+      `
       *,
       session:chat_sessions_v2!session_id(
         session_id,
         status,
         metadata
       )
-    `)
+    `
+    )
     .eq('inquiry_id', inquiryId)
     .single();
 
@@ -2110,14 +2227,16 @@ export async function getInquiryWithSession(inquiryId: string) {
 export async function getQuoteWithSession(quoteId: string) {
   const { data, error } = await supabase
     .from('quotes')
-    .select(`
+    .select(
+      `
       *,
       session:chat_sessions_v2!session_id(
         session_id,
         status,
         metadata
       )
-    `)
+    `
+    )
     .eq('quote_id', quoteId)
     .single();
 
@@ -2126,6 +2245,7 @@ export async function getQuoteWithSession(quoteId: string) {
 ```
 
 **Phase 3 Deliverables:**
+
 - ✅ Database functions updated to use FK columns
 - ✅ JsonbFlowProcessor updated to set FK columns
 - ✅ Action handlers updated to maintain FKs
@@ -2133,6 +2253,7 @@ export async function getQuoteWithSession(quoteId: string) {
 - ✅ Tests updated
 
 **Phase 3 Testing:**
+
 ```typescript
 // Test inquiry creation flow
 const { sessionId } = await JsonbFlowProcessor.startFlow({
@@ -2158,6 +2279,7 @@ expect(session.data?.inquiry_id).toBeDefined();
 **Goal:** Migrate all quote conversations to use chat_sessions_v2 instead of separate quote_conversations table.
 
 **Why This Phase:**
+
 - Eliminates dual storage system
 - Simplifies admin quote chat UI
 - Uses single conversation interface
@@ -2167,6 +2289,7 @@ expect(session.data?.inquiry_id).toBeDefined();
 #### 4.1 Audit quote_conversations Usage
 
 **Query:**
+
 ```sql
 -- Find all code references to quote_conversations
 -- Run in your IDE: Search for "quote_conversations" in *.ts, *.tsx, *.sql files
@@ -2268,6 +2391,7 @@ VALUES ('phase_4', 'deprecate_quote_conversations', 'completed',
 ```
 
 **Phase 4 Deliverables:**
+
 - ✅ quote_conversations usage audited
 - ✅ quote_messages migrated to chat_messages_v2
 - ✅ All code updated to use chat_sessions_v2
@@ -2275,6 +2399,7 @@ VALUES ('phase_4', 'deprecate_quote_conversations', 'completed',
 - ✅ Tables made read-only
 
 **Phase 4 Testing:**
+
 - Verify no application errors after code update
 - Verify all quote chats work in UI
 - Verify admin can reply to quote conversations
@@ -2287,6 +2412,7 @@ VALUES ('phase_4', 'deprecate_quote_conversations', 'completed',
 **Goal:** Drop legacy tables, rename tables, finalize architecture.
 
 **Why This Last:**
+
 - All code has been updated
 - Data has been migrated
 - Safety net for rollback removed
@@ -2334,7 +2460,7 @@ VALUES ('phase_5', 'drop_legacy_tables', 'completed',
   ));
 ```
 
-#### 5.3 Rename _v2 Tables (Optional)
+#### 5.3 Rename \_v2 Tables (Optional)
 
 **Migration File:** `supabase/sql/070_rename_v2_tables.sql`
 
@@ -2403,13 +2529,15 @@ VALUES ('phase_5', 'cleanup_inquiry_status', 'completed',
 ```
 
 **Phase 5 Deliverables:**
+
 - ✅ All legacy tables dropped
-- ✅ _v2 suffix removed from tables (optional)
+- ✅ \_v2 suffix removed from tables (optional)
 - ✅ orders_duplicate renamed to orders
 - ✅ Legacy inquiry statuses removed
 - ✅ Final architecture documented
 
 **Phase 5 Final Validation:**
+
 ```sql
 -- Verify table structure
 SELECT table_name
@@ -2443,6 +2571,7 @@ ORDER BY tc.table_name;
 ## Implementation Checklist
 
 ### Phase 0: Preparation
+
 - [ ] Create feature branch `chat-system-consolidation`
 - [ ] Backup production data (chat_sessions_v2, inquiries, quotes, quote_conversations)
 - [ ] Create migration_log table
@@ -2450,6 +2579,7 @@ ORDER BY tc.table_name;
 - [ ] Run full test suite on main branch (baseline)
 
 ### Phase 1: Add Foreign Keys
+
 - [ ] Run migration: 060_add_inquiry_session_fk.sql
 - [ ] Validate: inquiries.session_id column exists
 - [ ] Run migration: 061_add_chat_session_foreign_keys.sql
@@ -2462,6 +2592,7 @@ ORDER BY tc.table_name;
 - [ ] Commit Phase 1 changes
 
 ### Phase 2: Migrate Data
+
 - [ ] Run migration: 064_migrate_inquiry_metadata.sql
 - [ ] Validate: inquiry_id FK columns populated
 - [ ] Run migration: 065_migrate_quote_metadata.sql
@@ -2470,6 +2601,7 @@ ORDER BY tc.table_name;
 - [ ] Commit Phase 2 changes
 
 ### Phase 3: Update Code
+
 - [ ] Run migration: 066_update_functions_for_fks.sql
 - [ ] Update: JsonbFlowProcessor.startFlow()
 - [ ] Update: Action handlers (createInquiry, createQuote)
@@ -2494,6 +2626,7 @@ ORDER BY tc.table_name;
 - [ ] Commit Phase 3 changes
 
 ### Phase 4: Deprecate quote_conversations
+
 - [ ] Audit: Find all quote_conversations references
 - [ ] Run migration: 067_migrate_quote_messages.sql
 - [ ] Update: All code using quote_conversations
@@ -2503,10 +2636,11 @@ ORDER BY tc.table_name;
 - [ ] Commit Phase 4 changes
 
 ### Phase 5: Cleanup (AFTER SATISFACTION)
+
 - [ ] Verify: All previous phases completed
 - [ ] Run migration: 069_drop_legacy_tables.sql
 - [ ] Run migration: 070_rename_v2_tables.sql (optional)
-- [ ] Update: All code references from _v2 to canonical names
+- [ ] Update: All code references from \_v2 to canonical names
 - [ ] Run migration: 071_rename_orders_table.sql
 - [ ] Run migration: 072_cleanup_inquiry_status.sql
 - [ ] Test: Full system regression
@@ -2520,6 +2654,7 @@ ORDER BY tc.table_name;
 ### Unit Tests
 
 **Chat Session Creation:**
+
 ```typescript
 describe('JsonbFlowProcessor.startFlow with FKs', () => {
   it('should create session with inquiry_id FK', async () => {
@@ -2545,6 +2680,7 @@ describe('JsonbFlowProcessor.startFlow with FKs', () => {
 ### Integration Tests
 
 **Full Inquiry Flow:**
+
 ```typescript
 describe('Inquiry Chat Flow', () => {
   it('should create inquiry, link session, allow admin reply', async () => {
@@ -2571,6 +2707,7 @@ describe('Inquiry Chat Flow', () => {
 ### Manual Testing Checklist
 
 **Customer Flows:**
+
 - [ ] Start "Ask for Quote" flow
 - [ ] Submit quote details
 - [ ] Verify quote created with session link
@@ -2582,6 +2719,7 @@ describe('Inquiry Chat Flow', () => {
 - [ ] Verify order updated
 
 **Admin Flows:**
+
 - [ ] View all active chat sessions
 - [ ] Filter by inquiry type
 - [ ] Reply to customer inquiry
@@ -2590,6 +2728,7 @@ describe('Inquiry Chat Flow', () => {
 - [ ] Verify quote proposal created
 
 **Edge Cases:**
+
 - [ ] Create session without inquiry_id or quote_id
 - [ ] Delete inquiry (should SET NULL on session)
 - [ ] Delete quote (should SET NULL on session)
@@ -2703,25 +2842,27 @@ psql -U postgres -d your_db < backup_quote_conversations.sql
 ### A. Schema Diagrams
 
 **Current State (Before Migration):**
+
 ```
 [See diagram in "Current State Analysis" section]
 ```
 
 **Target State (After Migration):**
+
 ```
 [See diagram in "Target Architecture" section]
 ```
 
 ### B. Migration Timeline
 
-| Phase | Duration | Risk Level | Rollback Difficulty |
-|-------|----------|------------|---------------------|
-| 0     | 1 week   | None       | N/A                 |
-| 1     | 1-2 weeks| Low        | Easy                |
-| 2     | 1-2 weeks| Low        | Easy                |
-| 3     | 1-2 weeks| Medium     | Moderate            |
-| 4     | 1-2 weeks| Medium     | Moderate            |
-| 5     | 1-2 weeks| High       | Difficult           |
+| Phase | Duration  | Risk Level | Rollback Difficulty |
+| ----- | --------- | ---------- | ------------------- |
+| 0     | 1 week    | None       | N/A                 |
+| 1     | 1-2 weeks | Low        | Easy                |
+| 2     | 1-2 weeks | Low        | Easy                |
+| 3     | 1-2 weeks | Medium     | Moderate            |
+| 4     | 1-2 weeks | Medium     | Moderate            |
+| 5     | 1-2 weeks | High       | Difficult           |
 
 **Total Estimated Time:** 6-12 weeks (depending on team velocity and testing thoroughness)
 

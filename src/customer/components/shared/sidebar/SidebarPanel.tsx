@@ -46,23 +46,37 @@ const SidebarPanel: React.FC<SidebarPanelProps> = ({
         </div>
       </div>
 
-      <div className="flex-1 px-3">
-        <div className="mb-2">
+      <div className="flex-1 px-3 min-h-0 flex flex-col">
+        <div className="mb-2 shrink-0">
           <div className="flex items-center justify-between px-2">
-            <Text variant="h3" size="sm" weight="semibold" className="text-neutral-700">
+            <Text
+              variant="h3"
+              size="sm"
+              weight="semibold"
+              className="text-neutral-700"
+            >
               Recent Chats
             </Text>
-            <ViewAllChat onClick={() => window.location.assign('/customer/chats')} />
+            <ViewAllChat
+              onClick={() => window.location.assign('/customer/chats')}
+            />
           </div>
           <div className="mt-2 border-t border-neutral-200" />
         </div>
-        {/* Fixed recent chats area; compute how many items fit in the available height */}
-        <div ref={listContainerRef} className="overflow-hidden recent-chats-area" style={{ height: 'calc(80% - 0px)' }}>
+        {/* Recent chats area - flexible height that fills available space */}
+        <div
+          ref={listContainerRef}
+          className="flex-1 overflow-hidden recent-chats-area min-h-0"
+        >
           <RecentChats
             conversations={conversations as any}
             activeId={activeId}
             onSwitchConversation={onSwitchConversation}
-            getContainerHeight={() => listContainerRef.current ? listContainerRef.current.getBoundingClientRect().height : 0}
+            getContainerHeight={() =>
+              listContainerRef.current
+                ? listContainerRef.current.getBoundingClientRect().height
+                : 0
+            }
           />
         </div>
       </div>
@@ -76,5 +90,3 @@ const SidebarPanel: React.FC<SidebarPanelProps> = ({
 };
 
 export default SidebarPanel;
-
-

@@ -75,26 +75,28 @@ const CardHeader: React.FC<{ title?: string; subtitle?: string }> = ({
   title,
   subtitle,
 }) => (
-  <div className="p-6 pb-4">
+  <div className="device-spacing-component pb-4">
     {title && <CardTitle>{title}</CardTitle>}
     {subtitle && <CardSubtitle>{subtitle}</CardSubtitle>}
   </div>
 );
 
 const CardTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <h3 className="text-lg font-semibold text-neutral-900">{children}</h3>
+  <h3 className="device-text-heading font-semibold text-neutral-900">
+    {children}
+  </h3>
 );
 
 const CardSubtitle: React.FC<{ children: React.ReactNode }> = ({
   children,
-}) => <p className="mt-1 text-sm text-neutral-600">{children}</p>;
+}) => <p className="mt-1 device-text-caption text-neutral-600">{children}</p>;
 
 const CardContent: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="p-6">{children}</div>
+  <div className="device-spacing-component">{children}</div>
 );
 
 const CardFooter: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="p-6 pt-4">{children}</div>
+  <div className="device-spacing-component pt-4">{children}</div>
 );
 
 const CardActions: React.FC<{ children: React.ReactNode }> = ({ children }) => (

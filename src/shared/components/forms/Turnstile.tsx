@@ -13,7 +13,7 @@ const Turnstile: React.FC<TurnstileProps> = ({
   action,
   onError,
   className = '',
-  appearance = 'always'
+  appearance = 'always',
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -35,13 +35,14 @@ const Turnstile: React.FC<TurnstileProps> = ({
 
         // Render the Turnstile widget
         await renderInlineTurnstile(containerId, action, appearance);
-        
+
         if (isMounted) {
           setIsLoading(false);
         }
       } catch (err) {
         if (isMounted) {
-          const errorMessage = err instanceof Error ? err.message : 'Failed to load Turnstile';
+          const errorMessage =
+            err instanceof Error ? err.message : 'Failed to load Turnstile';
           setError(errorMessage);
           setIsLoading(false);
           onError?.(err instanceof Error ? err : new Error(errorMessage));

@@ -4,7 +4,10 @@ import type { AdminQuoteRow } from './useAdminQuotes';
 
 interface QuotesContextValue {
   quotes: AdminQuoteRow[];
-  updateQuote: (conversationId: string, updates: Partial<AdminQuoteRow>) => void;
+  updateQuote: (
+    conversationId: string,
+    updates: Partial<AdminQuoteRow>
+  ) => void;
   refreshQuotes: () => void;
   loading: boolean;
   error: string | null;
@@ -31,13 +34,15 @@ export const QuotesProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   return (
-    <QuotesContext.Provider value={{ 
-      quotes, 
-      updateQuote, 
-      refreshQuotes, 
-      loading, 
-      error 
-    }}>
+    <QuotesContext.Provider
+      value={{
+        quotes,
+        updateQuote,
+        refreshQuotes,
+        loading,
+        error,
+      }}
+    >
       {children}
     </QuotesContext.Provider>
   );

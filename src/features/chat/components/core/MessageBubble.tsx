@@ -32,26 +32,29 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   useEffect(() => {
     const processImageUrls = async () => {
       const processed = await Promise.all(
-        imageUrls.map(async (url) => {
+        imageUrls.map(async url => {
           if (url.startsWith('supabase://payment-proofs/')) {
             try {
               // Extract the file path from the supabase:// URL
               const filePath = url.replace('supabase://payment-proofs/', '');
-              
-              console.log('Attempting to create signed URL for file path:', filePath);
+
+              console.log(
+                'Attempting to create signed URL for file path:',
+                filePath
+              );
               console.log('Full URL:', url);
-              
+
               // Get signed URL for the private file
               const { data, error } = await supabase.storage
                 .from('payment-proofs')
                 .createSignedUrl(filePath, 3600); // 1 hour expiry
-              
+
               if (error) {
                 console.error('Error creating signed URL:', error);
                 console.error('File path that failed:', filePath);
                 return url; // Fallback to original URL
               }
-              
+
               console.log('Successfully created signed URL for:', filePath);
               return data.signedUrl;
             } catch (error) {

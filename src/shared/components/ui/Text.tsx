@@ -75,17 +75,17 @@ Text.displayName = 'Text';
 
 const getSizeClasses = (size: TextProps['size']) =>
   ({
-    xs: 'text-xs',
-    sm: 'text-sm',
-    base: 'text-base',
-    lg: 'text-lg',
-    xl: 'text-xl',
-    '2xl': 'text-2xl',
-    '3xl': 'text-3xl',
-    '4xl': 'text-4xl',
-    '5xl': 'text-5xl',
-    '6xl': 'text-6xl',
-    '7xl': 'text-7xl',
+    xs: 'device-text-caption',
+    sm: 'device-text-caption',
+    base: 'device-text-body',
+    lg: 'device-text-body',
+    xl: 'device-text-heading',
+    '2xl': 'device-text-heading',
+    '3xl': 'device-text-hero',
+    '4xl': 'device-text-hero',
+    '5xl': 'device-text-display',
+    '6xl': 'device-text-display',
+    '7xl': 'device-text-display',
   })[size || 'base'];
 
 const getWeightClasses = (weight: TextProps['weight']) =>

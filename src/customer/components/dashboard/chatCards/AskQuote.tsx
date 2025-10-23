@@ -15,10 +15,10 @@ const AskQuote: React.FC<CardProps> = ({ onClick }) => {
       <div className="w-12 h-12 rounded-lg bg-green-50 text-green-600 flex items-center justify-center mb-4 group-hover:bg-green-600 group-hover:text-white transition-colors">
         <Calculator className="w-6 h-6" />
       </div>
-      <Text variant="h3" size="xl" weight="semibold" className="mb-2">
+      <Text variant="h3" size="lg" weight="semibold" className="mb-2">
         Ask Quote
       </Text>
-      <Text variant="p" size="sm" color="muted">
+      <Text variant="p" size="xs" color="muted">
         Get a personalized quote for your printing needs
       </Text>
     </button>

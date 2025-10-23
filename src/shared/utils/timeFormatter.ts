@@ -24,33 +24,33 @@ export function formatRelativeTimeLabel(
       input instanceof Date ? input.getTime() : new Date(input).getTime();
     const diffMs = Math.max(0, now - ts);
     const diffMin = Math.floor(diffMs / 60000);
-    
+
     // Minutes
     if (diffMin <= 0) return 'Just now';
     if (diffMin === 1) return '1 min ago';
     if (diffMin < 60) return `${diffMin} mins ago`;
-    
+
     // Hours
     const diffHr = Math.floor(diffMin / 60);
     if (diffHr === 1) return '1 hr ago';
     if (diffHr < 24) return `${diffHr} hrs ago`;
-    
+
     // Days
     const diffDays = Math.floor(diffHr / 24);
     if (diffDays === 1) return '1 day ago';
     if (diffDays < 7) return `${diffDays} days ago`;
-    
+
     // Weeks
     const diffWeeks = Math.floor(diffDays / 7);
     if (diffWeeks === 1) return '1 week ago';
     if (diffWeeks < 5) return `${diffWeeks} weeks ago`;
-    
+
     // Beyond 30 days (approximately 4.3 weeks), return formatted date
     const date = new Date(ts);
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
-      day: 'numeric'
+      day: 'numeric',
     });
   } catch {
     return '';

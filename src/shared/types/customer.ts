@@ -35,7 +35,6 @@ export interface RecentActivityProps {
   recentTicket: RecentTicket;
 }
 
-
 // Dashboard action cards and content types (migrated from customer/dashboard/_shared/types.ts)
 export interface ActionCardConfig {
   label: string;
@@ -55,4 +54,3 @@ export interface DashboardContentProps {
   recentTicket: RecentTicket | null;
   onTopicSelect: (key: string) => void;
 }
-

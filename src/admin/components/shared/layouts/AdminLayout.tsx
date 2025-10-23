@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Modal, Text, Button, ToastContainer } from '@admin/components/shared';
-import { Notification } from '@shared/components';
 import { SpecEditorModal } from '../../quotes/SpecEditorModal';
 import { X } from 'lucide-react';
 import { useDeviceUtils } from '@shared/hooks/ui';
@@ -167,9 +166,6 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
 
   return (
     <div className="relative" style={{ minHeight: '100vh' }}>
-      {/* Notification Bell - Fixed Position for all admin pages */}
-      <Notification />
-
       {isMobileOrTablet ? (
         <MobileLayout
           {...commonProps}

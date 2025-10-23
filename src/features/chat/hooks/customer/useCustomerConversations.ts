@@ -110,13 +110,16 @@ export function useCustomerConversations() {
           .update({
             metadata: {
               ...(existingSession?.metadata || {}),
-              title,  // Save the display title
+              title, // Save the display title
               context: ctx || {},
-            }
+            },
           })
           .eq('session_id', result.sessionId);
 
-        console.log('[useCustomerConversations] Title saved to database:', title);
+        console.log(
+          '[useCustomerConversations] Title saved to database:',
+          title
+        );
 
         // Map messages to ChatMessage format
         const mappedMessages: ChatMessage[] = result.messages.map(m => ({
@@ -323,69 +326,76 @@ export function useCustomerConversations() {
     [handleSend, endChatWithSequence]
   );
 
-  const endChat = useCallback(async (conversationId?: string, targetSessionId?: string) => {
-    const currentConversationId = conversationId || activeId;
-    const currentSessionId = targetSessionId || sessionId;
+  const endChat = useCallback(
+    async (conversationId?: string, targetSessionId?: string) => {
+      const currentConversationId = conversationId || activeId;
+      const currentSessionId = targetSessionId || sessionId;
 
-    if (!currentConversationId || !currentSessionId) return;
+      if (!currentConversationId || !currentSessionId) return;
 
-    try {
-      // Get current user
-      const { data: userData } = await auth.getUser();
-      const userId = userData?.user?.id;
+      try {
+        // Get current user
+        const { data: userData } = await auth.getUser();
+        const userId = userData?.user?.id;
 
-      if (!userId) {
-        console.error('User not authenticated');
-        return;
+        if (!userId) {
+          console.error('User not authenticated');
+          return;
+        }
+
+        // Use the unified service - this adds the end message to the database
+        const result = await ChatEndService.endChatSession({
+          sessionId: currentSessionId,
+          userId,
+          userType: 'customer',
+          conversationId: currentConversationId,
+        });
+
+        if (result.success) {
+          // Update local state
+          setConversations(prev =>
+            prev.map(conv =>
+              conv.id === currentConversationId
+                ? {
+                    ...conv,
+                    status: 'ended' as const,
+                    updated_at: new Date().toISOString(),
+                  }
+                : conv
+            )
+          );
+
+          // Keep chat open so user can see the end message
+          // Don't setActiveId(null) here - let user see the message first
+
+          // Refresh messages to show the end message from database
+          const fetched = await fetchSessionMessagesV2(currentSessionId);
+          const mappedFetched: ChatMessage[] = fetched.map(m => ({
+            id: m.id,
+            role: mapRole(m.role as any),
+            text: m.text,
+            ts: m.ts,
+          }));
+          setMessages(mappedFetched);
+          setQuickReplies([]);
+        } else {
+          console.error('Failed to end chat:', result.error);
+        }
+      } catch (error) {
+        console.error('Error ending chat:', error);
       }
 
-      // Use the unified service - this adds the end message to the database
-      const result = await ChatEndService.endChatSession({
-        sessionId: currentSessionId,
-        userId,
-        userType: 'customer',
-        conversationId: currentConversationId
-      });
-
-      if (result.success) {
-        // Update local state
-        setConversations(prev =>
-          prev.map(conv =>
-            conv.id === currentConversationId
-              ? { ...conv, status: 'ended' as const, updated_at: new Date().toISOString() }
-              : conv
-          )
-        );
-
-        // Keep chat open so user can see the end message
-        // Don't setActiveId(null) here - let user see the message first
-
-        // Refresh messages to show the end message from database
-        const fetched = await fetchSessionMessagesV2(currentSessionId);
-        const mappedFetched: ChatMessage[] = fetched.map(m => ({
-          id: m.id,
-          role: mapRole(m.role as any),
-          text: m.text,
-          ts: m.ts,
-        }));
-        setMessages(mappedFetched);
-        setQuickReplies([]);
-      } else {
-        console.error('Failed to end chat:', result.error);
-      }
-    } catch (error) {
-      console.error('Error ending chat:', error);
-    }
-
-    // Don't automatically close the chat - let user manually close it after seeing the end message
-  }, [
-    activeId,
-    sessionId,
-    setConversations,
-    setMessages,
-    setQuickReplies,
-    setActiveId,
-  ]);
+      // Don't automatically close the chat - let user manually close it after seeing the end message
+    },
+    [
+      activeId,
+      sessionId,
+      setConversations,
+      setMessages,
+      setQuickReplies,
+      setActiveId,
+    ]
+  );
 
   const handleSwitchConversation = useCallback(
     async (id: string) => {
@@ -408,18 +418,22 @@ export function useCustomerConversations() {
           role: mapRole(m.role as any),
           text: m.text,
           ts: m.ts,
-          isHistorical: true // Mark all loaded messages as historical to prevent typing animations
+          isHistorical: true, // Mark all loaded messages as historical to prevent typing animations
         }));
 
         setMessages(mappedMessages);
 
         // Update conversation with fetched messages and correct status
         setConversations(prev =>
-          prev.map(c => (c.id === id ? {
-            ...c,
-            messages: mappedMessages,
-            status: actualStatus as 'active' | 'ended'
-          } : c))
+          prev.map(c =>
+            c.id === id
+              ? {
+                  ...c,
+                  messages: mappedMessages,
+                  status: actualStatus as 'active' | 'ended',
+                }
+              : c
+          )
         );
 
         // Set quick replies based on actual database status

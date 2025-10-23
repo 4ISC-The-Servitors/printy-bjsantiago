@@ -15,7 +15,7 @@ export const processPaymentProofUpload: ActionHandler = async ({
 
   try {
     const orderId = context.order_id;
-    
+
     if (!orderId) {
       messages.push({
         id: crypto.randomUUID(),
@@ -28,15 +28,17 @@ export const processPaymentProofUpload: ActionHandler = async ({
 
     // Get payment proof URL from context (passed by UI after file upload)
     let paymentProofUrl = context.payment_proof_url;
-    
+
     // If no URL in context, check if user input contains a URL
     if (!paymentProofUrl && context.user_input) {
-      const urlMatch = context.user_input.match(/(https?:\/\/[^\s]+|supabase:\/\/[^\s]+)/);
+      const urlMatch = context.user_input.match(
+        /(https?:\/\/[^\s]+|supabase:\/\/[^\s]+)/
+      );
       if (urlMatch) {
         paymentProofUrl = urlMatch[1];
       }
     }
-    
+
     if (!paymentProofUrl) {
       messages.push({
         id: crypto.randomUUID(),
@@ -64,7 +66,7 @@ export const processPaymentProofUpload: ActionHandler = async ({
       });
       return { messages };
     }
-    
+
     // Update order with payment proof URL and change status to verifying_payment
     const { error: updateError } = await supabase
       .from('orders')
@@ -72,12 +74,15 @@ export const processPaymentProofUpload: ActionHandler = async ({
         payment_proof: paymentProofUrl,
         status: 'verifying_payment',
         payment_proof_uploaded_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .eq('order_id', orderId);
 
     if (updateError) {
-      console.error('[processPaymentProofUpload] Error updating order:', updateError);
+      console.error(
+        '[processPaymentProofUpload] Error updating order:',
+        updateError
+      );
       messages.push({
         id: crypto.randomUUID(),
         role: 'printy',
@@ -90,7 +95,9 @@ export const processPaymentProofUpload: ActionHandler = async ({
     // Don't add success message here - let the payment_uploaded node handle it
     // This prevents duplicate messages
 
-    console.log('[processPaymentProofUpload] Payment proof processed successfully');
+    console.log(
+      '[processPaymentProofUpload] Payment proof processed successfully'
+    );
     return { messages };
   } catch (error) {
     console.error('[processPaymentProofUpload] Error:', error);

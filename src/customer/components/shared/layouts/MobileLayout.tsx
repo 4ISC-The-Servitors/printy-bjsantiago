@@ -17,9 +17,7 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({ sidebar, children }) => {
       <main className="flex-1 flex flex-col pl-16 lg:pl-0 h-full w-full">
         {/* Mobile content spacing and container sizing */}
         <div className="p-4 overflow-y-auto">
-          <div className="w-full device-container">
-            {children}
-          </div>
+          <div className="w-full device-container">{children}</div>
         </div>
       </main>
     </div>
@@ -27,5 +25,3 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({ sidebar, children }) => {
 };
 
 export default MobileLayout;
-
-

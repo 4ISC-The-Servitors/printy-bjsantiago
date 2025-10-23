@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import type { Session, User, AuthChangeEvent } from '@supabase/supabase-js';
 import { supabase } from '@lib/supabase';
 
@@ -34,7 +40,7 @@ const AuthContext = createContext<AuthContextValue>({
   session: null,
   user: null,
   role: undefined,
-  refresh: async () => {}
+  refresh: async () => {},
 });
 
 async function fetchRoleForUser(user: User | null): Promise<Role | undefined> {
@@ -46,15 +52,19 @@ async function fetchRoleForUser(user: User | null): Promise<Role | undefined> {
       .eq('customer_id', user.id)
       .maybeSingle();
     const dbRole = (data?.customer_type as Role | undefined) || undefined;
-    const metaRole = (user.user_metadata?.role as Role | undefined) || undefined;
+    const metaRole =
+      (user.user_metadata?.role as Role | undefined) || undefined;
     return (dbRole || metaRole || 'regular') as Role;
   } catch {
-    const metaRole = (user.user_metadata?.role as Role | undefined) || undefined;
+    const metaRole =
+      (user.user_metadata?.role as Role | undefined) || undefined;
     return (metaRole || 'regular') as Role;
   }
 }
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [state, setState] = useState<AuthState>({
     loading: true,
     session: null,
@@ -89,14 +99,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     load();
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
-      setState(s => ({ ...s, loading: true }));
-      (async () => {
-        const user = session?.user ?? null;
-        const role = await fetchRoleForUser(user);
-        if (mounted) setState({ loading: false, session: session ?? null, user, role });
-      })();
-    });
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event: AuthChangeEvent, session: Session | null) => {
+        setState(s => ({ ...s, loading: true }));
+        (async () => {
+          const user = session?.user ?? null;
+          const role = await fetchRoleForUser(user);
+          if (mounted)
+            setState({ loading: false, session: session ?? null, user, role });
+        })();
+      }
+    );
 
     return () => {
       mounted = false;
@@ -115,11 +128,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setState({ loading: false, session, user, role });
   };
 
-  const value = useMemo<AuthContextValue>(() => ({ ...state, refresh }), [state]);
+  const value = useMemo<AuthContextValue>(
+    () => ({ ...state, refresh }),
+    [state]
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => useContext(AuthContext);
-
-

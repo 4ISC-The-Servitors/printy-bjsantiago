@@ -16,7 +16,6 @@ export { default as DesktopPersonalInfoForm } from './accountSettings/PersonalIn
 export { default as ConversationList } from './chatHistory/ConversationList';
 export { default as ConversationItem } from './chatHistory/ConversationItem';
 export { default as ChatHistoryHeader } from './chatHistory/Header';
-export { default as ChatHistoryFilters } from './chatHistory/Filters';
 
 // Dashboard - Chat Cards
 export { default as ChatCardsFAQs } from './dashboard/chatCards/FAQs';
@@ -25,7 +24,6 @@ export { default as ChatCardsAskAssistance } from './dashboard/chatCards/AskAssi
 export { default as ChatCardsAskQuote } from './dashboard/chatCards/AskQuote';
 export { default as ChatCardsAboutUs } from './dashboard/chatCards/AboutUs';
 export { default as ChatCards } from './dashboard/chatCards/ChatCards';
-export { default as ChatCardsTrackATicket } from './dashboard/chatCards/TrackATicket';
 export { default as ChatCardsPlaceAnOrder } from './dashboard/chatCards/PlaceAnOrder';
 
 // Dashboard - Recent Orders

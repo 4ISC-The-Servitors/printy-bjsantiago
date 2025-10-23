@@ -3,10 +3,7 @@ import MessageBubble from './MessageBubble';
 import { QuickReplyGrid } from './QuickReply';
 import TypingIndicator from './TypingIndicator';
 import type { ChatMessage, QuickReply } from '@features/chat/types';
-import {
-  formatShortTime,
-  formatRelativeTimeLabel,
-} from '@shared/utils';
+import { formatShortTime, formatRelativeTimeLabel } from '@shared/utils';
 
 interface MessageGroupProps {
   messages: ChatMessage[];
@@ -55,7 +52,10 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({
       setShowTyping(true);
 
       // Hide typing indicator and show next message after delay
-      const typingDelay = Math.min(500 + (messages[visibleCount]?.text?.length || 0) * 10, 2000);
+      const typingDelay = Math.min(
+        500 + (messages[visibleCount]?.text?.length || 0) * 10,
+        2000
+      );
       const timer = setTimeout(() => {
         setShowTyping(false);
         setVisibleCount(prev => prev + 1);
@@ -109,7 +109,8 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({
   };
 
   // Get visible messages (for bot animation or show all if already animated)
-  const visibleMessages = (isBot && shouldAnimate) ? messages.slice(0, visibleCount) : messages;
+  const visibleMessages =
+    isBot && shouldAnimate ? messages.slice(0, visibleCount) : messages;
 
   return (
     <div className={`space-y-2 ${isBot ? 'text-left' : 'text-right'}`}>
@@ -139,19 +140,21 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({
       {isBot && shouldAnimate && showTyping && <TypingIndicator />}
 
       {/* Quick Replies for bot messages - show when all messages are visible or animation is done */}
-      {isBot && quickReplies && quickReplies.length > 0 && (hasAnimated || visibleCount >= messages.length) && (
-        <QuickReplyGrid
-          replies={quickReplies}
-          onQuickReply={onQuickReply}
-          onEndChat={onEndChat}
-          userRole={userRole}
-          sessionId={sessionId}
-          conversationId={conversationId}
-        />
-      )}
+      {isBot &&
+        quickReplies &&
+        quickReplies.length > 0 &&
+        (hasAnimated || visibleCount >= messages.length) && (
+          <QuickReplyGrid
+            replies={quickReplies}
+            onQuickReply={onQuickReply}
+            onEndChat={onEndChat}
+            userRole={userRole}
+            sessionId={sessionId}
+            conversationId={conversationId}
+          />
+        )}
     </div>
   );
 };
-
 
 export default MessageGroup;

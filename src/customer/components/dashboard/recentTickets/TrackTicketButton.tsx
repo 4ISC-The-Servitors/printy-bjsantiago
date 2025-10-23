@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button } from '@shared/components';
-import { useResponsiveButton } from '@shared/hooks/ui';
+import { MessageSquare } from 'lucide-react';
 
 interface TrackTicketButtonProps {
   inquiryId: string;
@@ -8,8 +8,11 @@ interface TrackTicketButtonProps {
   status: string;
 }
 
-const TrackTicketButton: React.FC<TrackTicketButtonProps> = ({ inquiryId, subject, status }) => {
-  const { getChatButtonClasses } = useResponsiveButton();
+const TrackTicketButton: React.FC<TrackTicketButtonProps> = ({
+  inquiryId,
+  subject,
+  status,
+}) => {
   // Hide button if ticket is resolved or closed
   if (status === 'resolved' || status === 'closed') {
     return null;
@@ -21,9 +24,15 @@ const TrackTicketButton: React.FC<TrackTicketButtonProps> = ({ inquiryId, subjec
     });
     window.dispatchEvent(event);
   };
-  
+
   return (
-    <Button variant="primary" className={getChatButtonClasses('sm')} threeD onClick={onClick}>
+    <Button
+      variant="primary"
+      className="device-btn-primary"
+      threeD
+      onClick={onClick}
+    >
+      <MessageSquare className="w-4 h-4" />
       Track Ticket
     </Button>
   );

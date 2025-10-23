@@ -181,7 +181,6 @@ const PortfolioCard: React.FC = () => {
           ))}
         </div>
       </Card>
-
     </div>
   );
 };

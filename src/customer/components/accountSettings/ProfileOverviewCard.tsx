@@ -23,15 +23,14 @@ const ProfileOverviewCard: React.FC<ProfileOverviewCardProps> = ({
         <div className="w-full">
           <Text
             variant="h3"
-            size="xl"
+            className="device-text-heading text-center md:text-left"
             weight="semibold"
-            className="text-center md:text-left"
           >
             {displayName}
           </Text>
           <Text
             variant="p"
-            className="text-neutral-600 mt-1 text-center md:text-left"
+            className="device-text-body text-neutral-600 mt-1 text-center md:text-left"
           >
             {email}
           </Text>

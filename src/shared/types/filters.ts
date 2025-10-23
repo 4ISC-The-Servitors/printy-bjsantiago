@@ -11,7 +11,7 @@ export interface FilterValue {
   statuses: string[];
   roles?: string[];
   dateFrom?: string; // yyyy-mm-dd
-  dateTo?: string;   // yyyy-mm-dd
+  dateTo?: string; // yyyy-mm-dd
 }
 
 export interface FilterConfig {
@@ -26,7 +26,7 @@ export interface FilterConfig {
 export const ORDER_STATUS_OPTIONS: FilterOption[] = [
   { value: 'awaiting_payment', label: 'Awaiting Payment' },
   { value: 'verifying_payment', label: 'Verifying Payment' },
-  { value: 'reupload_payment_proof', label: 'Reupload Payment Proof' },
+  { value: 'reupload_payment', label: 'Reupload Payment' },
   { value: 'processing', label: 'Processing' },
   { value: 'for_delivery', label: 'For Delivery' },
   { value: 'for_pickup', label: 'For Pickup' },
@@ -45,7 +45,7 @@ export const QUOTE_STATUS_OPTIONS: FilterOption[] = [
 
 // Enhanced Ticket Status Options (with better context)
 export const TICKET_STATUS_OPTIONS: FilterOption[] = [
-  { value: 'new', label: 'New Request' },
+  { value: 'new', label: 'New' },
   { value: 'under_review', label: 'Under Review' },
   { value: 'pending_customer_reply', label: 'Pending Customer Reply' },
   { value: 'pending_admin_reply', label: 'Pending Admin Reply' },
@@ -67,21 +67,21 @@ export const FILTER_CONFIGS = {
     showStatusFilter: true,
     showRoleFilter: false,
   } as FilterConfig,
-  
+
   quotes: {
     statusOptions: QUOTE_STATUS_OPTIONS,
     showDateRange: true,
     showStatusFilter: true,
     showRoleFilter: false,
   } as FilterConfig,
-  
+
   tickets: {
     statusOptions: TICKET_STATUS_OPTIONS,
     showDateRange: true,
     showStatusFilter: true,
     showRoleFilter: false,
   } as FilterConfig,
-  
+
   customers: {
     roleOptions: CUSTOMER_ROLE_OPTIONS,
     showDateRange: true,

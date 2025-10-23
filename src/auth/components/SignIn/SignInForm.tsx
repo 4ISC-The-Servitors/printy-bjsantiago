@@ -73,7 +73,7 @@ const SignInForm: React.FC<Props> = ({
         </Input>
       </div>
 
-        {/* Inline Cloudflare Turnstile container (visible under password) */}
+      {/* Inline Cloudflare Turnstile container (visible under password) */}
       <div className="pt-1">
         <div id="turnstile-signin" />
       </div>

@@ -41,30 +41,43 @@
 
 import { supabase } from '@lib/supabase';
 import { openSpecEditor } from '@features/quote/specEditorEvents';
-import type { ActionExecutionParams, ActionExecutionResult } from '@features/chat/types';
+import type {
+  ActionExecutionParams,
+  ActionExecutionResult,
+} from '@features/chat/types';
 
-export async function editSavedSpecs(params: ActionExecutionParams): Promise<ActionExecutionResult> {
+export async function editSavedSpecs(
+  params: ActionExecutionParams
+): Promise<ActionExecutionResult> {
   const { actionNode, context, sessionId } = params;
 
   const config = (actionNode.action_config as any) || {};
   const conversationIdKey = config.conversation_id_key || 'session_id';
   const conversationId = String(context[conversationIdKey] || '').trim();
 
-  const messages: Array<{ id: string; role: 'printy'; text: string; ts: number }> = [];
+  const messages: Array<{
+    id: string;
+    role: 'printy';
+    text: string;
+    ts: number;
+  }> = [];
 
   if (!conversationId) {
-    messages.push({ 
-      id: crypto.randomUUID(), 
-      role: 'printy', 
-      text: 'Missing conversation ID for spec editor.', 
-      ts: Date.now() 
+    messages.push({
+      id: crypto.randomUUID(),
+      role: 'printy',
+      text: 'Missing conversation ID for spec editor.',
+      ts: Date.now(),
     });
     return { messages };
   }
 
   try {
     // Load latest saved spec for this customer quote session
-    console.log('[editSavedSpecs] Fetching latest spec for customer quote session_id:', conversationId);
+    console.log(
+      '[editSavedSpecs] Fetching latest spec for customer quote session_id:',
+      conversationId
+    );
     const { data: existingSpecs, error: specError } = await supabase
       .from('quote_specs')
       .select('*')
@@ -72,19 +85,19 @@ export async function editSavedSpecs(params: ActionExecutionParams): Promise<Act
       .order('created_at', { ascending: false })
       .limit(1);
 
-    console.log('[editSavedSpecs] Query result:', { 
-      found: existingSpecs?.length || 0, 
+    console.log('[editSavedSpecs] Query result:', {
+      found: existingSpecs?.length || 0,
       error: specError,
-      sessionId: conversationId 
+      sessionId: conversationId,
     });
 
     if (specError) {
       console.error('[editSavedSpecs] Error fetching specs:', specError);
-      messages.push({ 
-        id: crypto.randomUUID(), 
-        role: 'printy', 
-        text: 'Error loading saved specifications. Please try again.', 
-        ts: Date.now() 
+      messages.push({
+        id: crypto.randomUUID(),
+        role: 'printy',
+        text: 'Error loading saved specifications. Please try again.',
+        ts: Date.now(),
       });
       return { messages };
     }
@@ -96,7 +109,9 @@ export async function editSavedSpecs(params: ActionExecutionParams): Promise<Act
       console.log('[editSavedSpecs] Loaded existing spec data:', specData);
     } else {
       // Fallback to empty spec if no saved data found
-      console.log('[editSavedSpecs] No saved specs found, using empty template');
+      console.log(
+        '[editSavedSpecs] No saved specs found, using empty template'
+      );
       specData = {
         product_name: '',
         service_code: '',
@@ -124,20 +139,19 @@ export async function editSavedSpecs(params: ActionExecutionParams): Promise<Act
       sessionId,
     });
 
-    messages.push({ 
-      id: crypto.randomUUID(), 
-      role: 'printy', 
-      text: 'Opening specification editor with saved data...', 
-      ts: Date.now() 
+    messages.push({
+      id: crypto.randomUUID(),
+      role: 'printy',
+      text: 'Opening specification editor with saved data...',
+      ts: Date.now(),
     });
-
   } catch (error: any) {
     console.error('[editSavedSpecs] Unexpected error:', error);
-    messages.push({ 
-      id: crypto.randomUUID(), 
-      role: 'printy', 
-      text: `Error loading specifications: ${error?.message || 'Unknown error'}`, 
-      ts: Date.now() 
+    messages.push({
+      id: crypto.randomUUID(),
+      role: 'printy',
+      text: `Error loading specifications: ${error?.message || 'Unknown error'}`,
+      ts: Date.now(),
     });
   }
 

@@ -29,7 +29,7 @@ const Pagination: React.FC<PaginationProps> = ({
 
   return (
     <div className={`flex items-center justify-center ${className ?? ''}`}>
-      <div className="inline-flex items-center h-9 mt-1">
+      <div className="inline-flex items-center device-btn-primary mt-1">
         <Button
           variant="ghost"
           size="sm"

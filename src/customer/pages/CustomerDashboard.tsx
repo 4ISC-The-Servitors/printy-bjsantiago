@@ -1,22 +1,23 @@
 // Supabase client for auth and database queries
 import { supabase } from '@lib/supabase';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 // Customer chat UI and types
-import { CustomerChatPanel, CustomerChatOverlay } from '@features/chat/components/layouts';
+import {
+  CustomerChatPanel,
+  CustomerChatOverlay,
+} from '@features/chat/components/layouts';
 import type { ConversationItem } from '@features/chat/hooks/shared/useConversationState';
 // Sidebar and dashboard widgets
+import ResponsivePageLayout from '@customer/components/shared/layouts/ResponsivePageLayout';
 import SidebarPanel from '@customer/components/shared/sidebar/SidebarPanel';
 import LogoutButton from '@customer/components/shared/sidebar/LogoutButton';
 import LogoutModal from '@customer/components/shared/sidebar/LogoutModal';
-import MobileSidebarMenu from '@customer/components/shared/sidebar/MobileSidebarMenu';
-import MobileSidebarTrigger from '@customer/components/shared/sidebar/MobileSidebarTrigger';
+import DashboardGrid from '@customer/components/dashboard/DashboardGrid';
 import ChatCards from '@customer/components/dashboard/chatCards/ChatCards';
-import RecentOrder from '@customer/components/dashboard/recentOrders/RecentOrder';
-import RecentTickets from '@customer/components/dashboard/recentTickets/RecentTickets';
-import RecentQuotes from '@customer/components/dashboard/recentQuotes/RecentQuotes';
+import RecentCard from '@customer/components/dashboard/RecentCard';
 // Shared UI components
 import { ToastContainer, Text, PageLoading } from '@shared/components';
+import Notification from '@shared/components/feedback/Notification';
 import { useLogoutWithToast } from '@/auth/hooks/useLogoutWithToast';
 import { useRecentOrder } from '@customer/hooks/useRecentOrder';
 import { useRecentTicket } from '@customer/hooks/useRecentTicket';
@@ -34,7 +35,6 @@ import { getSessionTitle } from '@features/chat/config/sessionTitleConfig';
 import {
   ShoppingCart,
   HelpCircle,
-  TicketIcon,
   Info,
   MessageSquare,
   Settings,
@@ -44,7 +44,6 @@ type TopicKey =
   | 'placeOrder'
   | 'askQuote'
   | 'issueTicket'
-  | 'trackTicket'
   | 'servicesOffered'
   | 'aboutUs'
   | 'faqs';
@@ -78,12 +77,6 @@ const topicConfig: Record<
     description:
       'Ask for a quote before ordering or report an issue with an existing order',
   },
-  trackTicket: {
-    label: 'Track a Ticket',
-    icon: <TicketIcon className="w-6 h-6" />,
-    flowId: 'track-ticket',
-    description: 'Check the status of your tickets',
-  },
   aboutUs: {
     label: 'About Us',
     icon: <Info className="w-6 h-6" />,
@@ -110,9 +103,9 @@ type Conversation = ConversationItem;
 // 1) In-memory scripted flows (e.g., payment)
 // 2) Database-backed flow for 'About Us' using chat_flow tables
 const CustomerDashboard: React.FC = () => {
-  const navigate = useNavigate();
   const { logout, toasts, toast } = useLogoutWithToast();
   const { isMobileOrTablet } = useDeviceUtils();
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const {
     messages,
@@ -130,11 +123,10 @@ const CustomerDashboard: React.FC = () => {
   } = useCustomerConversations();
 
   // Memoize toast instance to prevent re-creating array on every render
-  const toastInstance = useMemo(() => [toasts, toast] as [any, any], [toasts, toast]);
-
-  // Chat conversation state/actions provided by useCustomerConversations
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const toastInstance = useMemo(
+    () => [toasts, toast] as [any, any],
+    [toasts, toast]
+  );
 
   // Remove artificial timers; rely on data-fetch loading states
 
@@ -158,16 +150,24 @@ const CustomerDashboard: React.FC = () => {
   // Check for pending session ID from localStorage and open conversation
   useEffect(() => {
     const pendingSessionId = localStorage.getItem('pendingSessionId');
-    console.log('Dashboard: Checking for pending session ID:', pendingSessionId);
-    console.log('Dashboard: switchConversationHook available:', !!switchConversationHook);
+    console.log(
+      'Dashboard: Checking for pending session ID:',
+      pendingSessionId
+    );
+    console.log(
+      'Dashboard: switchConversationHook available:',
+      !!switchConversationHook
+    );
     console.log('Dashboard: conversations loaded:', conversations.length);
-    
+
     if (pendingSessionId && switchConversationHook) {
       console.log('Dashboard: Opening session:', pendingSessionId);
-      
+
       // Check if conversation exists in current list
-      const existingConversation = conversations.find(c => c.id === pendingSessionId);
-      
+      const existingConversation = conversations.find(
+        c => c.id === pendingSessionId
+      );
+
       if (existingConversation) {
         console.log('Dashboard: Conversation found in list, switching...');
         // Clear the pending session ID
@@ -176,10 +176,14 @@ const CustomerDashboard: React.FC = () => {
         switchConversationHook(pendingSessionId);
       } else if (conversations.length > 0) {
         // Conversations have loaded but the specific one isn't found
-        console.log('Dashboard: Conversations loaded but specific conversation not found, clearing pending session ID');
+        console.log(
+          'Dashboard: Conversations loaded but specific conversation not found, clearing pending session ID'
+        );
         localStorage.removeItem('pendingSessionId');
       } else {
-        console.log('Dashboard: Conversation not found in list, waiting for conversations to load...');
+        console.log(
+          'Dashboard: Conversation not found in list, waiting for conversations to load...'
+        );
         // Don't clear the pending session ID yet, wait for conversations to load
         // The effect will run again when conversations.length changes
       }
@@ -291,7 +295,7 @@ const CustomerDashboard: React.FC = () => {
     activeId &&
     activeConversation &&
     (activeConversation.title?.toLowerCase().includes('payment') ||
-     activeConversation.title?.toLowerCase().includes('pay'));
+      activeConversation.title?.toLowerCase().includes('pay'));
 
   // Enhanced file upload handler that uses payment proof upload for payment flows
   const handleFileUpload = useCallback(
@@ -364,25 +368,20 @@ const CustomerDashboard: React.FC = () => {
     window.dispatchEvent(new CustomEvent('customer-chat-opened'));
   };
 
-  // ---------------- UI ----------------
-  const sidebar = (
-    <SidebarPanel
-      conversations={conversations}
-      activeId={activeId}
-      onSwitchConversation={switchConversationHook}
-      onNavigateToAccount={() => navigate('/customer/account')}
-      bottomActions={
-        <LogoutButton
-          onClick={() => {
-            setShowLogoutModal(true);
-          }}
-        />
-      }
-    />
-  );
+  const handleLogout = () => {
+    setShowLogoutModal(true);
+  };
 
-  const content = (
+  const confirmLogout = async () => {
+    setShowLogoutModal(false);
+    await logout('/auth/signin');
+  };
+
+  // ---------------- UI ----------------
+  const dashboardContent = (
     <>
+      {/* Notification Bell - Fixed Position for dashboard only */}
+      <Notification />
       {isLoading ? (
         <PageLoading variant="dashboard" />
       ) : activeId ? (
@@ -390,11 +389,17 @@ const CustomerDashboard: React.FC = () => {
           {/* Desktop/Laptop chat panel */}
           <div className="hidden lg:block h-full">
             <CustomerChatPanel
-              title={conversations.find(c => c.id === activeId)?.title || 'Chat'}
+              title={
+                conversations.find(c => c.id === activeId)?.title || 'Chat'
+              }
               messages={messages}
               onSend={sendViaHook}
               isTyping={isTyping}
               onBack={() => {
+                setActiveId(null);
+                window.dispatchEvent(new CustomEvent('customer-chat-closed'));
+              }}
+              onMinimize={() => {
                 setActiveId(null);
                 window.dispatchEvent(new CustomEvent('customer-chat-closed'));
               }}
@@ -419,7 +424,9 @@ const CustomerDashboard: React.FC = () => {
             <CustomerChatOverlay
               open={!!activeId}
               onClose={() => setActiveId(null)}
-              title={conversations.find(c => c.id === activeId)?.title || 'Chat'}
+              title={
+                conversations.find(c => c.id === activeId)?.title || 'Chat'
+              }
               messages={messages}
               isTyping={isTyping}
               quickReplies={quickReplies}
@@ -436,140 +443,154 @@ const CustomerDashboard: React.FC = () => {
           </div>
         </>
       ) : (
-        <div className="p-8 overflow-y-auto">
-          <div className="max-w-6xl mx-auto w-full">
-            <div className="text-center space-y-1 mb-8">
-              <Text
-                variant="h1"
-                size="4xl"
-                weight="bold"
-                className="text-brand-primary"
-              >
-                How can I help you today?
-              </Text>
-              <Text variant="p" size="base" color="muted">
-                Check recent activity or start a new chat
-              </Text>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-[720px_1fr] xl:grid-cols-[820px_1fr] gap-6 mb-10 items-start">
-              <div className="space-y-6">
-                <RecentOrder
-                  recentOrder={
-                    recentOrder ?? {
-                      id: '—',
-                      displayId: 'NO-ORDER',
-                      title: 'No recent order',
-                      status: 'none',
-                      createdAt: Date.now(),
-                      updatedAt: Date.now(),
-                    }
-                  }
-                />
-                <RecentTickets
-                  recentTicket={
-                    recentTicket ?? {
-                      id: '—',
-                      displayId: 'NO-TICKET',
-                      subject: 'No recent ticket',
-                      status: 'none',
-                      createdAt: Date.now(),
-                      updatedAt: Date.now(),
-                    }
-                  }
-                />
-                <RecentQuotes
-                  recentQuote={
-                    recentQuote ?? {
-                      id: '—',
-                      displayId: 'NO-QUOTE',
-                      status: 'active',
-                      createdAt: Date.now(),
-                      updatedAt: Date.now(),
-                    }
-                  }
-                />
-              </div>
-              <div>
-                <ChatCards onSelect={key => handleTopic(key as TopicKey)} />
-              </div>
-            </div>
+        <div className="w-full">
+          <div className="text-center space-y-1 mb-6 sm:mb-8">
+            <Text
+              variant="h1"
+              className="device-text-heading text-brand-primary"
+              size="xl"
+              weight="extrabold"
+            >
+              How can I help you today?
+            </Text>
+            <Text variant="p" className="device-text-body text-neutral-600">
+              Check recent activity or start a new chat
+            </Text>
           </div>
+
+          <DashboardGrid
+            recentCard={
+              <RecentCard
+                orderData={recentOrder}
+                ticketData={recentTicket}
+                quoteData={recentQuote}
+                onTopicSelect={key => handleTopic(key as TopicKey)}
+              />
+            }
+            chatCards={
+              <ChatCards
+                onSelect={(key: string) => handleTopic(key as TopicKey)}
+              />
+            }
+          />
         </div>
       )}
     </>
   );
 
+  // When chat is active, render without ResponsivePageLayout to avoid extra containers
+  if (activeId) {
+    return (
+      <div className="h-screen bg-gradient-to-br from-neutral-50 to-brand-primary-50 flex">
+        {/* Desktop Sidebar (>= lg) */}
+        <aside className="hidden lg:flex w-64 xl:w-80 bg-white border-r border-neutral-200 flex-col">
+          <SidebarPanel
+            conversations={conversations}
+            activeId={activeId}
+            onSwitchConversation={id => {
+              setActiveId(id);
+              window.dispatchEvent(
+                new CustomEvent('customer-open-session', {
+                  detail: { sessionId: id },
+                })
+              );
+            }}
+            onNavigateToAccount={() => {
+              window.location.href = '/customer/account';
+            }}
+            bottomActions={<LogoutButton onClick={handleLogout} />}
+          />
+        </aside>
+
+        {/* Main Content Area - Chat Panel/Overlay */}
+        <main className="flex-1 flex flex-col overflow-hidden">
+          {isMobileOrTablet ? (
+            <CustomerChatOverlay
+              open={!!activeId}
+              onClose={() => setActiveId(null)}
+              title={
+                conversations.find(c => c.id === activeId)?.title || 'Chat'
+              }
+              messages={messages}
+              isTyping={isTyping}
+              quickReplies={quickReplies}
+              onSend={sendViaHook}
+              onQuickReply={quickReplyViaHook}
+              onEndChat={endChatViaHook}
+              readOnly={
+                conversations.find(c => c.id === activeId)?.status === 'ended'
+              }
+              sessionId={activeId}
+              conversationId={activeId}
+              toast={toastInstance}
+            />
+          ) : (
+            <CustomerChatPanel
+              title={
+                conversations.find(c => c.id === activeId)?.title || 'Chat'
+              }
+              messages={messages}
+              onSend={sendViaHook}
+              isTyping={isTyping}
+              onBack={() => {
+                setActiveId(null);
+                window.dispatchEvent(new CustomEvent('customer-chat-closed'));
+              }}
+              onMinimize={() => {
+                setActiveId(null);
+                window.dispatchEvent(new CustomEvent('customer-chat-closed'));
+              }}
+              quickReplies={quickReplies}
+              onQuickReply={quickReplyViaHook}
+              onEndChat={endChatViaHook}
+              onAttachFiles={handleFileUpload}
+              readOnly={
+                conversations.find(c => c.id === activeId)?.status === 'ended'
+              }
+              hideInput={
+                conversations.find(c => c.id === activeId)?.status === 'ended'
+              }
+              toast={toastInstance}
+              sessionId={activeId}
+              conversationId={activeId}
+            />
+          )}
+        </main>
+
+        <ToastContainer
+          toasts={toasts}
+          onRemoveToast={id => toast.remove(id)}
+          position={isMobileOrTablet ? 'top-center' : 'bottom-right'}
+        />
+
+        {/* Logout Modal */}
+        <LogoutModal
+          isOpen={showLogoutModal}
+          onClose={() => setShowLogoutModal(false)}
+          onConfirm={confirmLogout}
+        />
+      </div>
+    );
+  }
+
+  // Normal dashboard view with ResponsivePageLayout
   return (
     <>
-      {/* Desktop Layout */}
-      <div className="hidden lg:block">
-        <div className="h-screen bg-gradient-to-br from-neutral-50 to-brand-primary-50 flex">
-          {/* Sidebar (desktop) */}
-          <aside className="w-64 bg-white border-r border-neutral-200">
-            {sidebar}
-          </aside>
-
-          {/* Main Content */}
-          <main className="flex-1 flex flex-col">{content}</main>
-        </div>
-      </div>
-
-      {/* Mobile Layout */}
-      <div className="lg:hidden">
-        <div className="h-screen bg-gradient-to-br from-neutral-50 to-brand-primary-50 flex flex-col">
-          {/* Header with fixed burger menu */}
-          <header className="bg-white/80 backdrop-blur border-b border-neutral-200 px-4 py-3 flex items-center justify-between shrink-0">
-            <MobileSidebarTrigger onOpen={() => setShowMobileMenu(true)} />
-            <div className="w-10" />
-          </header>
-
-          {/* Mobile sidebar overlay */}
-          {showMobileMenu && (
-            <div className="fixed inset-0 z-50 bg-black/20" onClick={() => setShowMobileMenu(false)}>
-              <div className="absolute left-0 top-0 bottom-0 w-80 max-w-[85%] bg-white" onClick={e => e.stopPropagation()}>
-                <MobileSidebarMenu
-                  onClose={() => setShowMobileMenu(false)}
-                  onViewAllChats={() => {
-                    setShowMobileMenu(false);
-                    navigate('/customer/chats');
-                  }}
-                  onAccount={() => {
-                    setShowMobileMenu(false);
-                    navigate('/customer/account');
-                  }}
-                  onLogout={async () => {
-                    setShowMobileMenu(false);
-                    await logout('/auth/signin');
-                  }}
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Main content */}
-          <main className="flex-1 flex flex-col h-full w-full px-4 py-4">
-            {content}
-          </main>
-        </div>
-      </div>
-
-      {/* Logout Modal */}
-      <LogoutModal
-        isOpen={showLogoutModal}
-        onClose={() => {
-          setShowLogoutModal(false);
-        }}
-        onConfirm={async () => {
-          setShowLogoutModal(false);
-          await logout('/auth/signin');
-        }}
-      />
+      <ResponsivePageLayout showSidebar={true}>
+        {dashboardContent}
+      </ResponsivePageLayout>
 
       <ToastContainer
         toasts={toasts}
         onRemoveToast={id => toast.remove(id)}
         position={isMobileOrTablet ? 'top-center' : 'bottom-right'}
+      />
+
+      {/* Logout Modal */}
+      <LogoutModal
+        isOpen={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        onConfirm={confirmLogout}
       />
     </>
   );

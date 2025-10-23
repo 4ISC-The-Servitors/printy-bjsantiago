@@ -1,5 +1,4 @@
 import React from 'react';
-import { Notification } from '@shared/components';
 
 export interface CustomerLayoutProps {
   children: React.ReactNode;
@@ -12,8 +11,6 @@ export interface CustomerLayoutProps {
 export const CustomerLayout: React.FC<CustomerLayoutProps> = ({ children }) => {
   return (
     <div className="relative" style={{ minHeight: '100vh' }}>
-      {/* Notification Bell - Fixed Position for all customer pages */}
-      <Notification />
       {children}
     </div>
   );

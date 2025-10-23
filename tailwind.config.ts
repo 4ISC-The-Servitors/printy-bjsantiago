@@ -54,16 +54,8 @@ export default {
         },
       },
       fontFamily: {
-        heading: ['Fraunces', 'Georgia', 'Times New Roman', 'serif'],
-        body: [
-          'Space Grotesk',
-          '-apple-system',
-          'BlinkMacSystemFont',
-          'Segoe UI',
-          'Roboto',
-          'sans-serif',
-        ],
-        mono: ['JetBrains Mono', 'Consolas', 'Courier New', 'monospace'],
+        heading: ['Fraunces', 'serif'],
+        body: ['Space Grotesk', 'sans-serif'],
       },
       fontSize: {
         xs: ['0.75rem', { lineHeight: '1.25' }], // 12px

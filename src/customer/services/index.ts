@@ -1,1 +1,5 @@
-export { ProfileService, type CustomerProfile, type UpdateProfileData } from './profileService';
+export {
+  ProfileService,
+  type CustomerProfile,
+  type UpdateProfileData,
+} from './profileService';

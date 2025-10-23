@@ -6,7 +6,10 @@
  * Updated for v2 chat system using JsonbFlowProcessor
  */
 import { ChatDatabaseService } from '@features/chat/services/ChatDatabaseService';
-import { getFlowDefinition, fetchSessionMessagesV2 } from '@features/chat/api/jsonbChatFlowApi';
+import {
+  getFlowDefinition,
+  fetchSessionMessagesV2,
+} from '@features/chat/api/jsonbChatFlowApi';
 import { supabase } from '@lib/supabase';
 import type { ChatMessage } from '@features/chat/types/chat';
 
@@ -31,7 +34,9 @@ export function useConversationSwitcher() {
     setActiveId(conversationId);
 
     // Helper function to map role names
-    const mapRole = (role: 'customer' | 'admin' | 'printy'): 'user' | 'printy' => {
+    const mapRole = (
+      role: 'customer' | 'admin' | 'printy'
+    ): 'user' | 'printy' => {
       return role === 'customer' ? 'user' : 'printy';
     };
 
@@ -51,13 +56,15 @@ export function useConversationSwitcher() {
         const messages = await fetchSessionMessagesV2(conv.session_id);
 
         // Mark messages as historical to prevent typing indicators
-        const historicalMessages: ChatMessage[] = (messages || []).map((msg: any) => ({
-          id: msg.id,
-          role: mapRole(msg.role as any),
-          text: msg.text,
-          ts: msg.ts,
-          isHistorical: true
-        }));
+        const historicalMessages: ChatMessage[] = (messages || []).map(
+          (msg: any) => ({
+            id: msg.id,
+            role: mapRole(msg.role as any),
+            text: msg.text,
+            ts: msg.ts,
+            isHistorical: true,
+          })
+        );
 
         setMessages(historicalMessages);
 
@@ -75,11 +82,15 @@ export function useConversationSwitcher() {
         setActiveNodeId?.(null);
         updatePlaceholder(conv.flowId, []);
         return;
-
       } catch (error) {
         console.error('Failed to load v2 conversation:', error);
         // Fallback to existing messages
-        setMessages(conv.messages.map(m => ({ ...m, isHistorical: true })) as ChatMessage[]);
+        setMessages(
+          conv.messages.map(m => ({
+            ...m,
+            isHistorical: true,
+          })) as ChatMessage[]
+        );
         setQuickReplies([]);
         setActiveNodeId?.(null);
         updatePlaceholder(conv.flowId, []);
@@ -97,10 +108,17 @@ export function useConversationSwitcher() {
         role: m.role as any,
         text: m.text,
         ts: m.ts,
-        isHistorical: true
+        isHistorical: true,
       }));
       // If server yields nothing (e.g., missing table), do not blow away local conversation
-      setMessages(list.length > 0 ? list : conv.messages.map(m => ({ ...m, isHistorical: true })) as ChatMessage[]);
+      setMessages(
+        list.length > 0
+          ? list
+          : (conv.messages.map(m => ({
+              ...m,
+              isHistorical: true,
+            })) as ChatMessage[])
+      );
 
       // For v2 flows, get session state directly from database
       try {
@@ -156,7 +174,9 @@ export function useConversationSwitcher() {
     }
 
     // Scripted conversation - mark as historical since we're loading existing messages
-    setMessages(conv.messages.map(m => ({ ...m, isHistorical: true })) as ChatMessage[]);
+    setMessages(
+      conv.messages.map(m => ({ ...m, isHistorical: true })) as ChatMessage[]
+    );
     // Let caller recompute quick replies from flow if needed
   };
 

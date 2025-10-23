@@ -1,14 +1,15 @@
-import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react';
+import React, {
+  useMemo,
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+} from 'react';
 import { useNavigate } from 'react-router-dom';
 import LogoutModal from '@customer/components/shared/sidebar/LogoutModal';
 import MobileSidebarMenu from '@customer/components/shared/sidebar/MobileSidebarMenu';
 import MobileSidebarTrigger from '@customer/components/shared/sidebar/MobileSidebarTrigger';
-import {
-  Container,
-  Text,
-  ToastContainer,
-  Button,
-} from '@shared/components';
+import { Container, Text, ToastContainer, Button } from '@shared/components';
 import { useToast } from '@lib/useToast';
 import { ArrowLeft } from 'lucide-react';
 import ProfileOverviewCard from '@/customer/components/accountSettings/ProfileOverviewCard';
@@ -61,13 +62,13 @@ const AccountSettings: React.FC = () => {
 
   const fetchProfileData = useCallback(async () => {
     console.log('fetchProfileData called, user:', user);
-    
+
     // Prevent multiple simultaneous calls
     if (fetchingRef.current) {
       console.log('Already fetching, skipping...');
       return;
     }
-    
+
     if (!user?.id) {
       console.log('No user ID, setting loading to false');
       setLoading(false);
@@ -78,22 +79,28 @@ const AccountSettings: React.FC = () => {
       console.log('Starting to fetch profile data...');
       fetchingRef.current = true;
       setLoading(true);
-      
+
       // Add timeout to prevent infinite loading
-      const timeoutPromise = new Promise((_, reject) => 
+      const timeoutPromise = new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Request timeout')), 10000)
       );
-      
+
       // Fetch customer profile from Supabase with timeout
       const profilePromise = ProfileService.getProfile(user.id);
-      const profile = await Promise.race([profilePromise, timeoutPromise]) as any;
-      
+      const profile = (await Promise.race([
+        profilePromise,
+        timeoutPromise,
+      ])) as any;
+
       console.log('Profile service returned:', profile);
-      
+
       if (profile) {
-        const displayName = ProfileService.getDisplayName(profile.first_name, profile.last_name);
+        const displayName = ProfileService.getDisplayName(
+          profile.first_name,
+          profile.last_name
+        );
         const address = ProfileService.formatAddress(profile.address);
-        
+
         const userDataToSet = {
           displayName,
           email: profile.email_address,
@@ -106,7 +113,7 @@ const AccountSettings: React.FC = () => {
           lastName: profile.last_name,
           customerType: profile.customer_type,
         };
-        
+
         console.log('Setting user data:', userDataToSet);
         setUserData(userDataToSet);
       } else {
@@ -136,12 +143,15 @@ const AccountSettings: React.FC = () => {
         chatMessages: true,
         ticketUpdates: true,
       });
-      
+
       console.log('Profile data fetch completed successfully');
     } catch (error) {
       console.error('Error fetching profile data:', error);
-      toast.error('Error', `Failed to load profile data: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      
+      toast.error(
+        'Error',
+        `Failed to load profile data: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+
       // Set fallback data even on error
       setUserData({
         displayName: '',
@@ -210,7 +220,7 @@ const AccountSettings: React.FC = () => {
       if (next.email !== undefined) updateData.email_address = next.email;
 
       const success = await ProfileService.updateProfile(user.id, updateData);
-      
+
       if (success) {
         // Update local state
         setUserData(prev => ({ ...(prev as UserData), ...next }));
@@ -254,13 +264,25 @@ const AccountSettings: React.FC = () => {
           <div className="w-10" />
         </header>
         {showMobileMenu && (
-          <div className="fixed inset-0 z-50 bg-black/20" onClick={() => setShowMobileMenu(false)}>
-            <div className="absolute left-0 top-0 bottom-0 w-80 max-w-[85%] bg-white" onClick={e => e.stopPropagation()}>
+          <div
+            className="fixed inset-0 z-50 bg-black/20"
+            onClick={() => setShowMobileMenu(false)}
+          >
+            <div
+              className="absolute left-0 top-0 bottom-0 w-80 max-w-[85%] bg-white"
+              onClick={e => e.stopPropagation()}
+            >
               <MobileSidebarMenu
                 onClose={() => setShowMobileMenu(false)}
-                onViewAllChats={() => { setShowMobileMenu(false); navigate('/customer/chats'); }}
+                onViewAllChats={() => {
+                  setShowMobileMenu(false);
+                  navigate('/customer/chats');
+                }}
                 onAccount={() => setShowMobileMenu(false)}
-                onLogout={() => { setShowMobileMenu(false); navigate('/auth/signin'); }}
+                onLogout={() => {
+                  setShowMobileMenu(false);
+                  navigate('/auth/signin');
+                }}
               />
             </div>
           </div>
@@ -282,7 +304,7 @@ const AccountSettings: React.FC = () => {
               <ArrowLeft className="h-4 w-4 md:mr-2" />
               <span className="hidden md:inline">Back</span>
             </Button>
-            <Text variant="h1" size="2xl" weight="bold">
+            <Text variant="h1" size="xl" weight="bold">
               Account Settings
             </Text>
           </div>
@@ -300,7 +322,13 @@ const AccountSettings: React.FC = () => {
                     initials={initials}
                     displayName={userData.displayName}
                     email={userData.email}
-                    membership={userData.customerType === "valued" ? "Valued" : userData.customerType === "regular" ? "Regular" : "Valued"}
+                    membership={
+                      userData.customerType === 'valued'
+                        ? 'Valued'
+                        : userData.customerType === 'regular'
+                          ? 'Regular'
+                          : 'Valued'
+                    }
                   />
                 )}
 

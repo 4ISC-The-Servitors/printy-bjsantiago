@@ -9,7 +9,12 @@ import {
   FileText,
 } from 'lucide-react';
 
-export type NavRoute = 'dashboard' | 'orders' | 'tickets' | 'portfolio' | 'quotes';
+export type NavRoute =
+  | 'dashboard'
+  | 'orders'
+  | 'tickets'
+  | 'portfolio'
+  | 'quotes';
 
 export interface BottomNavbarProps {
   onNavigate: (route: NavRoute) => void;
@@ -21,9 +26,7 @@ export interface BottomNavbarProps {
  * Contains: Dashboard, Orders, Tickets, Portfolio, Quotes
  * Settings & Logout are in the collapsible sidebar
  */
-export const BottomNavbar: React.FC<BottomNavbarProps> = ({
-  onNavigate,
-}) => {
+export const BottomNavbar: React.FC<BottomNavbarProps> = ({ onNavigate }) => {
   const location = useLocation();
 
   const getActiveRoute = (): NavRoute | null => {
@@ -51,7 +54,7 @@ export const BottomNavbar: React.FC<BottomNavbarProps> = ({
     {
       id: 'tickets' as NavRoute,
       label: 'Tickets',
-      icon: Ticket,      
+      icon: Ticket,
     },
     {
       id: 'quotes' as NavRoute,
@@ -63,7 +66,6 @@ export const BottomNavbar: React.FC<BottomNavbarProps> = ({
       label: 'Portfolio',
       icon: BriefcaseBusiness,
     },
-
   ];
 
   return (

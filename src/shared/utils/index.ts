@@ -13,7 +13,7 @@ export * from './timeFormatter';
 export * from './uploadPaymentProof';
 
 export type {
-    NotificationRecord,
-    NotificationItem,
-    UINotificationItem,
-  } from './notificationUtils';
+  NotificationRecord,
+  NotificationItem,
+  UINotificationItem,
+} from './notificationUtils';

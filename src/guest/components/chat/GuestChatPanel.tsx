@@ -31,7 +31,8 @@ export const GuestChatPanel: React.FC<GuestChatPanelProps> = ({
 
   // Group messages by role
   const messageGroups = useMemo(() => {
-    const groups: { messages: ChatMessage[]; quickReplies?: QuickReply[] }[] = [];
+    const groups: { messages: ChatMessage[]; quickReplies?: QuickReply[] }[] =
+      [];
     let currentGroup: ChatMessage[] = [];
     let lastRole: 'user' | 'printy' | null = null;
 
@@ -75,10 +76,7 @@ export const GuestChatPanel: React.FC<GuestChatPanelProps> = ({
   return (
     <div className="w-full relative h-96 max-h-96 flex flex-col bg-white border border-neutral-200 rounded-lg">
       {/* Messages */}
-      <div
-        ref={scrollRef}
-        className="flex-1 overflow-y-auto p-4 space-y-4"
-      >
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4">
         {messageGroups.map((group, idx) => (
           <MessageGroup
             key={idx}

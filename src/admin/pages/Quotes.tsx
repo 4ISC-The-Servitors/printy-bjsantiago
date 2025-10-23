@@ -4,7 +4,10 @@ import { QuotesCard } from '@admin/components';
 import { Search, Filter } from '@shared/components';
 import { QuotesProvider } from '@admin/hooks/QuotesContext';
 import { useGenericSearchFilter } from '@shared/hooks/ui/useGenericSearchFilter';
-import { useResponsiveClasses, useDeviceUtils } from '@shared/hooks/ui/useResponsiveClasses';
+import {
+  useResponsiveClasses,
+  useDeviceUtils,
+} from '@shared/hooks/ui/useResponsiveClasses';
 import { FILTER_CONFIGS } from '@shared/types/filters';
 import { useAdminQuotes } from '@admin/hooks/useAdminQuotes';
 
@@ -26,7 +29,7 @@ const QuotesContent: React.FC = () => {
     items: quotesAll,
     searchFields: [
       'id',
-      'display_id', 
+      'display_id',
       'product_name',
       'customer_name',
       'customer_email',
@@ -34,7 +37,7 @@ const QuotesContent: React.FC = () => {
       'quoted_amount',
       'created_at',
       'updated_at',
-      'ended_at'
+      'ended_at',
     ],
     dateField: 'created_at',
     filterConfig: FILTER_CONFIGS.quotes,
@@ -71,9 +74,15 @@ const QuotesContent: React.FC = () => {
         </div>
 
         {/* Result Count */}
-        {(filter.statuses?.length > 0 || filter.dateFrom || filter.dateTo || search.trim()) && (
+        {(filter.statuses?.length > 0 ||
+          filter.dateFrom ||
+          filter.dateTo ||
+          search.trim()) && (
           <div className="text-sm text-neutral-600 mt-4">
-            Found <span className="font-semibold text-neutral-900">{filteredQuotes.length}</span>{' '}
+            Found{' '}
+            <span className="font-semibold text-neutral-900">
+              {filteredQuotes.length}
+            </span>{' '}
             {filteredQuotes.length === 1 ? 'quote' : 'quotes'}
           </div>
         )}

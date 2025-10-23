@@ -33,7 +33,7 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
   initialData,
   onSubmit,
   onCancel,
-  loading = false
+  loading = false,
 }) => {
   const [formData, setFormData] = useState<SpecFormData>({
     product_name: '',
@@ -51,7 +51,7 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
     notes: '',
     quoted_price: 0,
     admin_notes: '',
-    ...initialData
+    ...initialData,
   });
 
   const [materialInput, setMaterialInput] = useState('');
@@ -62,14 +62,14 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
     if (!value.trim()) return;
     setFormData(prev => ({
       ...prev,
-      [field]: [...(prev[field] as string[]), value.trim()]
+      [field]: [...(prev[field] as string[]), value.trim()],
     }));
   };
 
   const removeFromArray = (field: keyof SpecFormData, index: number) => {
     setFormData(prev => ({
       ...prev,
-      [field]: (prev[field] as string[]).filter((_, i) => i !== index)
+      [field]: (prev[field] as string[]).filter((_, i) => i !== index),
     }));
   };
 
@@ -82,15 +82,22 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
   const { getChatButtonClasses } = useResponsiveButton();
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5 md:space-y-6">
+    <form
+      onSubmit={handleSubmit}
+      className="space-y-4 sm:space-y-5 md:space-y-6"
+    >
       {/* Product Name */}
       <div>
-        <label className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}>
+        <label
+          className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}
+        >
           Product Name *
         </label>
         <Input
           value={formData.product_name}
-          onChange={(e) => setFormData(prev => ({ ...prev, product_name: e.target.value }))}
+          onChange={e =>
+            setFormData(prev => ({ ...prev, product_name: e.target.value }))
+          }
           placeholder="e.g., Business Cards, Flyers, Banners"
           required
         />
@@ -99,22 +106,30 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
       {/* Service Code & Category */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
         <div>
-          <label className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}>
+          <label
+            className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}
+          >
             Service Code
           </label>
           <Input
             value={formData.service_code || ''}
-            onChange={(e) => setFormData(prev => ({ ...prev, service_code: e.target.value }))}
+            onChange={e =>
+              setFormData(prev => ({ ...prev, service_code: e.target.value }))
+            }
             placeholder="e.g., BC-001, FL-002"
           />
         </div>
         <div>
-          <label className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}>
+          <label
+            className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}
+          >
             Category
           </label>
           <Input
             value={formData.category || ''}
-            onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
+            onChange={e =>
+              setFormData(prev => ({ ...prev, category: e.target.value }))
+            }
             placeholder="e.g., Business Cards, Marketing Materials"
           />
         </div>
@@ -122,12 +137,16 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
 
       {/* Description */}
       <div>
-        <label className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}>
+        <label
+          className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}
+        >
           Description
         </label>
         <textarea
           value={formData.description || ''}
-          onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+          onChange={e =>
+            setFormData(prev => ({ ...prev, description: e.target.value }))
+          }
           placeholder="Detailed description of the product requirements"
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-transparent"
           rows={3}
@@ -137,23 +156,34 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
       {/* Size & Quantity */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
         <div>
-          <label className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}>
+          <label
+            className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}
+          >
             Size
           </label>
           <Input
             value={formData.size || ''}
-            onChange={(e) => setFormData(prev => ({ ...prev, size: e.target.value }))}
+            onChange={e =>
+              setFormData(prev => ({ ...prev, size: e.target.value }))
+            }
             placeholder="e.g., 3.5in x 2in, A4, 24in x 36in"
           />
         </div>
         <div>
-          <label className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}>
+          <label
+            className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}
+          >
             Quantity
           </label>
           <Input
             type="number"
             value={formData.quantity || 1}
-            onChange={(e) => setFormData(prev => ({ ...prev, quantity: parseInt(e.target.value) || 1 }))}
+            onChange={e =>
+              setFormData(prev => ({
+                ...prev,
+                quantity: parseInt(e.target.value) || 1,
+              }))
+            }
             min="1"
           />
         </div>
@@ -161,15 +191,17 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
 
       {/* Materials */}
       <div>
-        <label className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}>
+        <label
+          className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}
+        >
           Materials
         </label>
         <div className="flex gap-2 mb-2">
           <Input
             value={materialInput}
-            onChange={(e) => setMaterialInput(e.target.value)}
+            onChange={e => setMaterialInput(e.target.value)}
             placeholder="Add material (e.g., Cardstock, Vinyl)"
-            onKeyPress={(e) => {
+            onKeyPress={e => {
               if (e.key === 'Enter') {
                 e.preventDefault();
                 addToArray('materials', materialInput);
@@ -210,27 +242,33 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
 
       {/* Color */}
       <div>
-        <label className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}>
+        <label
+          className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}
+        >
           Color
         </label>
         <Input
           value={formData.color || ''}
-          onChange={(e) => setFormData(prev => ({ ...prev, color: e.target.value }))}
+          onChange={e =>
+            setFormData(prev => ({ ...prev, color: e.target.value }))
+          }
           placeholder="e.g., Full Color, Black & White, PMS 286"
         />
       </div>
 
       {/* Finishing */}
       <div>
-        <label className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}>
+        <label
+          className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}
+        >
           Finishing
         </label>
         <div className="flex gap-2 mb-2">
           <Input
             value={finishingInput}
-            onChange={(e) => setFinishingInput(e.target.value)}
+            onChange={e => setFinishingInput(e.target.value)}
             placeholder="Add finishing option (e.g., Glossy, Matte, UV Coating)"
-            onKeyPress={(e) => {
+            onKeyPress={e => {
               if (e.key === 'Enter') {
                 e.preventDefault();
                 addToArray('finishing', finishingInput);
@@ -272,22 +310,30 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
       {/* Artwork & Deadline */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
         <div>
-          <label className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}>
+          <label
+            className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}
+          >
             Artwork
           </label>
           <Input
             value={formData.artwork || ''}
-            onChange={(e) => setFormData(prev => ({ ...prev, artwork: e.target.value }))}
+            onChange={e =>
+              setFormData(prev => ({ ...prev, artwork: e.target.value }))
+            }
             placeholder="e.g., Customer provided, Design needed"
           />
         </div>
         <div>
-          <label className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}>
+          <label
+            className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}
+          >
             Deadline
           </label>
           <Input
             value={formData.deadline || ''}
-            onChange={(e) => setFormData(prev => ({ ...prev, deadline: e.target.value }))}
+            onChange={e =>
+              setFormData(prev => ({ ...prev, deadline: e.target.value }))
+            }
             placeholder="e.g., 2024-01-15, ASAP, 3 days"
           />
         </div>
@@ -295,15 +341,17 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
 
       {/* Others */}
       <div>
-        <label className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}>
+        <label
+          className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}
+        >
           Additional Details
         </label>
         <div className="flex gap-2 mb-2">
           <Input
             value={otherInput}
-            onChange={(e) => setOtherInput(e.target.value)}
+            onChange={e => setOtherInput(e.target.value)}
             placeholder="Add additional detail"
-            onKeyPress={(e) => {
+            onKeyPress={e => {
               if (e.key === 'Enter') {
                 e.preventDefault();
                 addToArray('others', otherInput);
@@ -344,7 +392,9 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
 
       {/* Quote Price */}
       <div>
-        <label className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}>
+        <label
+          className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}
+        >
           Quote Price (PHP) *
         </label>
         <div className="relative">
@@ -354,7 +404,12 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
           <Input
             type="number"
             value={formData.quoted_price}
-            onChange={(e) => setFormData(prev => ({ ...prev, quoted_price: parseFloat(e.target.value) || 0 }))}
+            onChange={e =>
+              setFormData(prev => ({
+                ...prev,
+                quoted_price: parseFloat(e.target.value) || 0,
+              }))
+            }
             placeholder="0.00"
             step="0.01"
             min="0"
@@ -366,12 +421,16 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
 
       {/* Admin Notes */}
       <div>
-        <label className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}>
+        <label
+          className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}
+        >
           Admin Notes
         </label>
         <textarea
           value={formData.admin_notes || ''}
-          onChange={(e) => setFormData(prev => ({ ...prev, admin_notes: e.target.value }))}
+          onChange={e =>
+            setFormData(prev => ({ ...prev, admin_notes: e.target.value }))
+          }
           placeholder="Internal notes for this quote"
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-transparent"
           rows={3}
@@ -380,12 +439,16 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
 
       {/* Notes */}
       <div>
-        <label className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}>
+        <label
+          className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}
+        >
           Customer Notes
         </label>
         <textarea
           value={formData.notes || ''}
-          onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+          onChange={e =>
+            setFormData(prev => ({ ...prev, notes: e.target.value }))
+          }
           placeholder="Notes to include in the quote for customer"
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-transparent"
           rows={3}

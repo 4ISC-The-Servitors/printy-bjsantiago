@@ -20,5 +20,3 @@ const AccountButton: React.FC<AccountButtonProps> = ({ onClick }) => {
 };
 
 export default AccountButton;
-
-

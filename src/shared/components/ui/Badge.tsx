@@ -55,9 +55,9 @@ const getVariantClasses = (variant: BadgeProps['variant']) =>
 
 const getSizeClasses = (size: BadgeProps['size']) =>
   ({
-    sm: 'px-2 py-0.5 text-xs',
-    md: 'px-2.5 py-0.5 text-sm',
-    lg: 'px-3 py-1 text-sm',
+    sm: 'device-badge-sm',
+    md: 'device-badge-md',
+    lg: 'device-badge-lg',
   })[size || 'md'];
 
 export default Badge;

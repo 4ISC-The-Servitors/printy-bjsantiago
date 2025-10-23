@@ -4,5 +4,8 @@
  *
  * DEPRECATED: Import directly from '@features/chat/hooks/customer/useRecentChatSessions' instead
  */
-export { useRecentChatSessions, default } from '@features/chat/hooks/customer/useRecentChatSessions';
+export {
+  useRecentChatSessions,
+  default,
+} from '@features/chat/hooks/customer/useRecentChatSessions';
 export type { ConversationLike } from '@features/chat/hooks/customer/useRecentChatSessions';

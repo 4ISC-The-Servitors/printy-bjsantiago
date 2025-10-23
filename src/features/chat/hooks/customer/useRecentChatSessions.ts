@@ -18,7 +18,6 @@ export interface ConversationLike {
   icon?: React.ReactNode;
 }
 
-
 export function useRecentChatSessions(
   setConversations: (
     updater: (prev: ConversationLike[]) => ConversationLike[]
@@ -29,7 +28,7 @@ export function useRecentChatSessions(
       try {
         // Fetch from chat_sessions_v2 using the JSONB flow API
         const sessions = await getUserSessionsV2();
-        
+
         if (sessions && sessions.length > 0) {
           const mapped: ConversationLike[] = sessions.slice(0, 10).map(s => ({
             id: s.sessionId,
@@ -43,7 +42,7 @@ export function useRecentChatSessions(
             status: s.status === 'ended' ? 'ended' : 'active',
             icon: undefined,
           }));
-          
+
           setConversations(prev => {
             const existingIds = new Set(prev.map(c => c.id));
             const add = mapped.filter(c => !existingIds.has(c.id));

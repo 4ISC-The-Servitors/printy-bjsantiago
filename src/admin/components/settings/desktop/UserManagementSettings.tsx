@@ -1,5 +1,12 @@
 import React, { useState } from 'react';
-import { Card, Text, Switch, Button, Input, Modal } from '@admin/components/shared';
+import {
+  Card,
+  Text,
+  Switch,
+  Button,
+  Input,
+  Modal,
+} from '@admin/components/shared';
 import { Users, Shield, Mail, Clock, Lock } from 'lucide-react';
 import type { UserManagementSettingsData } from '../_shared/types';
 

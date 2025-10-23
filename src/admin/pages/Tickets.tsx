@@ -4,16 +4,19 @@ import { TicketsCard } from '@admin/components';
 import { Search, Filter } from '@shared/components';
 import { TicketsProvider } from '@admin/hooks/TicketsContext';
 import { useGenericSearchFilter } from '@shared/hooks/ui/useGenericSearchFilter';
-import { useResponsiveClasses, useDeviceUtils } from '@shared/hooks/ui/useResponsiveClasses';
+import {
+  useResponsiveClasses,
+  useDeviceUtils,
+} from '@shared/hooks/ui/useResponsiveClasses';
 import { FILTER_CONFIGS } from '@shared/types/filters';
 import { useAdminTickets } from '@features/chat/hooks/admin/useAdminTickets';
 
 const TicketsContent: React.FC = () => {
   // Get all tickets for search/filter (using a larger page size to get all data)
-  const { tickets: ticketsAll } = useAdminTickets({ 
-    page: 1, 
+  const { tickets: ticketsAll } = useAdminTickets({
+    page: 1,
     pageSize: 1000, // Large page size to get all tickets for client-side filtering
-    useAdvancedFallbacks: true 
+    useAdvancedFallbacks: true,
   });
 
   // Responsive hooks
@@ -38,7 +41,7 @@ const TicketsContent: React.FC = () => {
       'customer_first_name',
       'customer_last_name',
       'received_at',
-      'order_id'
+      'order_id',
     ],
     dateField: 'received_at',
     filterConfig: FILTER_CONFIGS.tickets,
@@ -75,9 +78,15 @@ const TicketsContent: React.FC = () => {
         </div>
 
         {/* Result Count */}
-        {(filter.statuses?.length > 0 || filter.dateFrom || filter.dateTo || search.trim()) && (
+        {(filter.statuses?.length > 0 ||
+          filter.dateFrom ||
+          filter.dateTo ||
+          search.trim()) && (
           <div className="text-sm text-neutral-600 mt-4">
-            Found <span className="font-semibold text-neutral-900">{filteredTickets.length}</span>{' '}
+            Found{' '}
+            <span className="font-semibold text-neutral-900">
+              {filteredTickets.length}
+            </span>{' '}
             {filteredTickets.length === 1 ? 'ticket' : 'tickets'}
           </div>
         )}

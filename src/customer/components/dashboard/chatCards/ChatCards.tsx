@@ -3,7 +3,6 @@ import ServicesOffered from './ServicesOffered';
 import PlaceAnOrder from './PlaceAnOrder';
 import AskAssistance from './AskAssistance';
 import AskQuote from './AskQuote';
-import TrackATicket from './TrackATicket';
 import AboutUs from './AboutUs';
 import FAQs from './FAQs';
 
@@ -18,7 +17,6 @@ const ChatCards: React.FC<ChatCardsProps> = ({ onSelect }) => {
       <PlaceAnOrder onClick={() => onSelect('placeOrder')} />
       <AskQuote onClick={() => onSelect('askQuote')} />
       <AskAssistance onClick={() => onSelect('issueTicket')} />
-      <TrackATicket onClick={() => onSelect('trackTicket')} />
       <AboutUs onClick={() => onSelect('aboutUs')} />
       <FAQs onClick={() => onSelect('faqs')} />
     </div>

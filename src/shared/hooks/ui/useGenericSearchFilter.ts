@@ -23,7 +23,7 @@ export function useGenericSearchFilter<T extends SearchableItem>({
   roleField = 'customer_type' as keyof T,
 }: UseGenericSearchFilterOptions<T>) {
   const [search, setSearch] = useState<string>('');
-  const [filter, setFilter] = useState<FilterValue>({ 
+  const [filter, setFilter] = useState<FilterValue>({
     statuses: [],
     roles: filterConfig.roleOptions ? [] : undefined,
   });
@@ -54,15 +54,22 @@ export function useGenericSearchFilter<T extends SearchableItem>({
     const q = search.trim().toLowerCase();
     const hasDateFrom = !!filter.dateFrom;
     const hasDateTo = !!filter.dateTo;
-    const fromTime = hasDateFrom ? new Date(filter.dateFrom as string).getTime() : undefined;
-    const toTime = hasDateTo ? new Date(filter.dateTo as string).getTime() : undefined;
+    const fromTime = hasDateFrom
+      ? new Date(filter.dateFrom as string).getTime()
+      : undefined;
+    const toTime = hasDateTo
+      ? new Date(filter.dateTo as string).getTime()
+      : undefined;
 
     return normalized
       .filter(({ raw, haystack }) => {
         // Status filter
         if (filterConfig.showStatusFilter && filter.statuses?.length) {
           const itemStatus = raw[statusField];
-          if (itemStatus && !filter.statuses.includes(itemStatus.toLowerCase())) {
+          if (
+            itemStatus &&
+            !filter.statuses.includes(itemStatus.toLowerCase())
+          ) {
             return false;
           }
         }
@@ -84,11 +91,19 @@ export function useGenericSearchFilter<T extends SearchableItem>({
 
         // Search query
         if (q && !haystack.includes(q)) return false;
-        
+
         return true;
       })
       .map(x => x.raw);
-  }, [normalized, search, filter, filterConfig, dateField, statusField, roleField]);
+  }, [
+    normalized,
+    search,
+    filter,
+    filterConfig,
+    dateField,
+    statusField,
+    roleField,
+  ]);
 
   const activeCount = useMemo(() => {
     let c = 0;
@@ -102,7 +117,7 @@ export function useGenericSearchFilter<T extends SearchableItem>({
 
   const resetAll = () => {
     setSearch('');
-    setFilter({ 
+    setFilter({
       statuses: [],
       roles: filterConfig.roleOptions ? [] : undefined,
     });

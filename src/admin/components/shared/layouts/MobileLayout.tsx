@@ -77,10 +77,14 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({
                 setSidebarOpen(false);
                 onLogout();
               }}
-              onViewAllChats={onViewAllChats ? () => {
-                setSidebarOpen(false);
-                onViewAllChats();
-              } : undefined}
+              onViewAllChats={
+                onViewAllChats
+                  ? () => {
+                      setSidebarOpen(false);
+                      onViewAllChats();
+                    }
+                  : undefined
+              }
             />
           </div>
         </>

@@ -528,8 +528,12 @@ export async function getCustomerInquiries(
     inquiryType: inquiry.inquiry_type,
     inquiryStatus: inquiry.inquiry_status,
     createdAt: new Date(inquiry.created_at).getTime(),
-    updatedAt: inquiry.updated_at ? new Date(inquiry.updated_at).getTime() : undefined,
-    resolvedAt: inquiry.resolved_at ? new Date(inquiry.resolved_at).getTime() : undefined,
+    updatedAt: inquiry.updated_at
+      ? new Date(inquiry.updated_at).getTime()
+      : undefined,
+    resolvedAt: inquiry.resolved_at
+      ? new Date(inquiry.resolved_at).getTime()
+      : undefined,
     orderId: inquiry.order_id,
   }));
 }
@@ -582,7 +586,9 @@ export async function getCustomerQuotes(
     quoteId: quote.quote_id,
     displayId: quote.display_id,
     createdAt: new Date(quote.created_at).getTime(),
-    updatedAt: quote.updated_at ? new Date(quote.updated_at).getTime() : undefined,
+    updatedAt: quote.updated_at
+      ? new Date(quote.updated_at).getTime()
+      : undefined,
     endedAt: quote.ended_at ? new Date(quote.ended_at).getTime() : undefined,
   }));
 }

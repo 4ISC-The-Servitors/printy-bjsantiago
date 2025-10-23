@@ -38,7 +38,8 @@ export async function fetchOrderDetails(
   try {
     const { data: order, error } = await supabase
       .from('orders')
-      .select(`
+      .select(
+        `
         order_id,
         display_id,
         customer_id,
@@ -55,7 +56,8 @@ export async function fetchOrderDetails(
         quote_id,
         proposal_id,
         session_id
-      `)
+      `
+      )
       .eq('order_id', orderId)
       .single();
 
@@ -152,12 +154,12 @@ export function formatOrderDetailsForAdmin(
   orderDetails: OrderDetailsData
 ): string {
   const specLines = formatOrderSpecs(orderDetails.orderSpecs);
-  
+
   let text = `Order Details:\n`;
   text += `Order ID: ${orderDetails.displayId || orderDetails.orderId}\n`;
   text += `Status: ${orderDetails.status}\n`;
   text += `Created: ${new Date(orderDetails.createdAt).toLocaleDateString()}\n\n`;
-  
+
   if (specLines.length > 0) {
     text += `Specifications:\n`;
     text += specLines.join('\n');

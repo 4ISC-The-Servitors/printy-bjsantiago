@@ -80,12 +80,12 @@ const Notification: React.FC = () => {
 
   return (
     <div
-      className="absolute top-0 right-0"
+      className="fixed top-0 right-0"
       style={{
-        position: 'absolute',
+        position: 'fixed',
         top: isMobileOrTablet ? '12px' : '16px',
         right: isMobileOrTablet ? '12px' : '16px',
-        zIndex: 999
+        zIndex: 999,
       }}
     >
       <div className="relative">

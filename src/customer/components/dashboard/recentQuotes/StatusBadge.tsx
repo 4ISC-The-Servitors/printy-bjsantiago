@@ -28,7 +28,11 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
   const { getStatusBadgeClasses } = useResponsiveBadge();
   return (
     <div>
-      <Badge variant={getVariant(status)} size="md" className={getStatusBadgeClasses('standard')}>
+      <Badge
+        variant={getVariant(status)}
+        size="md"
+        className={getStatusBadgeClasses('standard')}
+      >
         {formatQuoteStatus(status)}
       </Badge>
     </div>

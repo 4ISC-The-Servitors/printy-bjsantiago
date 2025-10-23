@@ -21,72 +21,83 @@ export interface UsePaymentProofUploadResult {
  * Hook for handling payment proof uploads
  */
 export function usePaymentProofUpload(): UsePaymentProofUploadResult {
-  const handlePaymentProofUpload = useCallback(async (
-    files: FileList,
-    orderId: string,
-    onSuccess?: (url: string) => void,
-    onError?: (error: string) => void
-  ) => {
-    const file = files?.[0];
-    if (!file) {
-      onError?.('No file selected');
-      return;
-    }
-
-    try {
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        onError?.('You must be logged in to upload payment proofs');
+  const handlePaymentProofUpload = useCallback(
+    async (
+      files: FileList,
+      orderId: string,
+      onSuccess?: (url: string) => void,
+      onError?: (error: string) => void
+    ) => {
+      const file = files?.[0];
+      if (!file) {
+        onError?.('No file selected');
         return;
       }
 
-      // Upload file to Supabase Storage
-      const uploadResult = await uploadPaymentProof(file, orderId, user.id);
-      
-      if (uploadResult.error) {
-        onError?.(uploadResult.error);
-        return;
-      }
+      try {
+        // Get current user
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) {
+          onError?.('You must be logged in to upload payment proofs');
+          return;
+        }
 
-      // Update order with payment proof URL and timestamp
-      console.log('Updating database with:', {
-        payment_proof: uploadResult.url,
-        payment_proof_uploaded_at: new Date().toISOString(),
-        status: 'verifying_payment',
-        orderId,
-        customerId: user.id
-      });
+        // Upload file to Supabase Storage
+        const uploadResult = await uploadPaymentProof(file, orderId, user.id);
 
-      const { error: updateError } = await supabase
-        .from('orders')
-        .update({
+        if (uploadResult.error) {
+          onError?.(uploadResult.error);
+          return;
+        }
+
+        // Update order with payment proof URL and timestamp
+        console.log('Updating database with:', {
           payment_proof: uploadResult.url,
           payment_proof_uploaded_at: new Date().toISOString(),
-          status: 'verifying_payment' // Update status to verifying_payment
-        })
-        .eq('order_id', orderId)  // Use order_id since useRecentOrder returns UUID
-        .eq('customer_id', user.id);
+          status: 'verifying_payment',
+          orderId,
+          customerId: user.id,
+        });
 
-      if (updateError) {
-        console.error('Error updating order with payment proof:', updateError);
-        onError?.('Failed to update order status. Please try again.');
-        return;
+        const { error: updateError } = await supabase
+          .from('orders')
+          .update({
+            payment_proof: uploadResult.url,
+            payment_proof_uploaded_at: new Date().toISOString(),
+            status: 'verifying_payment', // Update status to verifying_payment
+          })
+          .eq('order_id', orderId) // Use order_id since useRecentOrder returns UUID
+          .eq('customer_id', user.id);
+
+        if (updateError) {
+          console.error(
+            'Error updating order with payment proof:',
+            updateError
+          );
+          onError?.('Failed to update order status. Please try again.');
+          return;
+        }
+
+        console.log('Database update successful');
+
+        // Success
+        onSuccess?.(uploadResult.url);
+      } catch (error) {
+        console.error('Error uploading payment proof:', error);
+        onError?.(
+          error instanceof Error
+            ? error.message
+            : 'An unexpected error occurred'
+        );
       }
-
-      console.log('Database update successful');
-
-      // Success
-      onSuccess?.(uploadResult.url);
-      
-    } catch (error) {
-      console.error('Error uploading payment proof:', error);
-      onError?.(error instanceof Error ? error.message : 'An unexpected error occurred');
-    }
-  }, []);
+    },
+    []
+  );
 
   return {
-    handlePaymentProofUpload
+    handlePaymentProofUpload,
   };
 }
 

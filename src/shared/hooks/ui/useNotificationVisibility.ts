@@ -6,18 +6,27 @@ export function useNotificationVisibility() {
   const location = useLocation();
 
   const checkVisibility = () => {
+    // Only show notification bell on dashboard pages
+    const isDashboardPage = 
+      location.pathname === '/customer' || 
+      location.pathname.includes('/customer/dashboard');
+    
     // Hide notification bell when chat panels/docks are active
     const shouldHide =
+      // Hide on non-dashboard pages
+      !isDashboardPage ||
       // Hide on dedicated chat pages
       location.pathname.includes('/chats') ||
       // Hide when customer chat panel is active (activeId exists)
       (typeof window !== 'undefined' &&
-       (window.location.pathname.includes('/customer/dashboard') || window.location.pathname === '/customer') &&
-       document.querySelector('[data-chat-active="true"]')) ||
+        (window.location.pathname.includes('/customer/dashboard') ||
+          window.location.pathname === '/customer') &&
+        document.querySelector('[data-chat-active="true"]')) ||
       // Hide when admin chat dock is open
       (typeof window !== 'undefined' &&
-       (window.location.pathname.includes('/admin') || window.location.pathname === '/admin') &&
-       document.querySelector('[data-admin-chat-open="true"]'));
+        (window.location.pathname.includes('/admin') ||
+          window.location.pathname === '/admin') &&
+        document.querySelector('[data-admin-chat-open="true"]'));
 
     setIsVisible(!shouldHide);
   };
@@ -50,7 +59,7 @@ export function useNotificationVisibility() {
         childList: true,
         subtree: true,
         attributes: true,
-        attributeFilter: ['data-chat-active', 'data-admin-chat-open']
+        attributeFilter: ['data-chat-active', 'data-admin-chat-open'],
       });
     }
 

@@ -4,7 +4,7 @@ import { Card, Text, Button } from '@shared/components';
 import type { RecentTicket as RecentTicketType } from '@shared/types/customer';
 import StatusBadge from './StatusBadge';
 import TrackTicketButton from './TrackTicketButton';
-import { formatLongDate } from '@shared/utils/dateFormatter';
+import { formatShortDate } from '@shared/utils/dateFormatter';
 import { formatRelativeTimeLabel } from '@shared/utils/timeFormatter';
 import { useResponsiveLayout, useResponsiveClasses } from '@shared/hooks/ui';
 
@@ -17,18 +17,22 @@ const RecentTickets: React.FC<RecentTicketsProps> = ({ recentTicket }) => {
   const { getTicketCardLayout } = useResponsiveLayout();
   const { textClasses } = useResponsiveClasses();
   const layout = getTicketCardLayout;
-  
+
   return (
-    <Card className="p-3 sm:p-4 md:p-5 lg:p-6">
+    <Card className="device-spacing-component">
       <div className="flex items-center justify-between mb-4">
-        <Text variant="h3" size="base" weight="semibold" className="sm:text-lg md:text-xl lg:text-2xl">
+        <Text
+          variant="h3"
+          className="device-text-heading"
+          size="lg"
+          weight="semibold"
+        >
           Recent Ticket
         </Text>
         <Button
           variant="ghost"
-          size="sm"
+          className="device-btn-secondary text-brand-primary hover:text-brand-primary-600"
           onClick={() => navigate('/customer/tickets')}
-          className="text-brand-primary hover:text-brand-primary-600"
         >
           View all
         </Button>
@@ -38,13 +42,15 @@ const RecentTickets: React.FC<RecentTicketsProps> = ({ recentTicket }) => {
         <div className={layout.structure.row1}>
           <div className={layout.leftSection}>
             <div className={`flex items-center ${layout.elementGap} min-w-0`}>
-              <span className={`${layout.orderId} font-mono`}>
+              <span className={`${layout.orderId} device-text-fraunces`}>
                 {recentTicket.displayId}
               </span>
               {recentTicket.subject ? (
                 <>
                   <span className="text-neutral-400">•</span>
-                  <span className={layout.productName}>{recentTicket.subject}</span>
+                  <span className={layout.productName}>
+                    {recentTicket.subject}
+                  </span>
                 </>
               ) : null}
             </div>
@@ -58,8 +64,8 @@ const RecentTickets: React.FC<RecentTicketsProps> = ({ recentTicket }) => {
         <div className={layout.structure.row2}>
           <div className={layout.leftSection} />
           <div className={layout.rightSection}>
-            <TrackTicketButton 
-              inquiryId={recentTicket.id} 
+            <TrackTicketButton
+              inquiryId={recentTicket.id}
               subject={recentTicket.subject}
               status={recentTicket.status}
             />
@@ -68,18 +74,30 @@ const RecentTickets: React.FC<RecentTicketsProps> = ({ recentTicket }) => {
 
         {/* Row 3: Dates (stacked) */}
         <div className="mt-1">
-          <div className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}>
+          <div
+            className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
+          >
             <span className="font-medium">Created:</span>
-            <span className="truncate">{formatLongDate(recentTicket.createdAt)}</span>
+            <span className="truncate">
+              {formatShortDate(recentTicket.createdAt)}
+            </span>
           </div>
-          <div className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}>
+          <div
+            className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
+          >
             <span className="font-medium">Updated:</span>
-            <span className="truncate">{formatRelativeTimeLabel(recentTicket.updatedAt)}</span>
+            <span className="truncate">
+              {formatRelativeTimeLabel(recentTicket.updatedAt)}
+            </span>
           </div>
           {recentTicket.resolvedAt && (
-            <div className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}>
+            <div
+              className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
+            >
               <span className="font-medium">Resolved:</span>
-              <span className="truncate">{formatLongDate(recentTicket.resolvedAt)}</span>
+              <span className="truncate">
+                {formatShortDate(recentTicket.resolvedAt)}
+              </span>
             </div>
           )}
         </div>
@@ -89,5 +107,3 @@ const RecentTickets: React.FC<RecentTicketsProps> = ({ recentTicket }) => {
 };
 
 export default RecentTickets;
-
-

@@ -5,7 +5,6 @@
 
 export { default as Notification } from './Notification';
 
-
 export { default as Toast } from './Toast';
 export type { ToastProps } from './Toast';
 

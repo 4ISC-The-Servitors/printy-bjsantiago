@@ -5,7 +5,10 @@ import { OrdersCard } from '@admin/components';
 import { Search, Filter } from '@shared/components';
 import { OrdersProvider, useOrders } from '@admin/hooks/OrdersContext';
 import { useGenericSearchFilter } from '@shared/hooks/ui/useGenericSearchFilter';
-import { useResponsiveClasses, useDeviceUtils } from '@shared/hooks/ui/useResponsiveClasses';
+import {
+  useResponsiveClasses,
+  useDeviceUtils,
+} from '@shared/hooks/ui/useResponsiveClasses';
 import { FILTER_CONFIGS } from '@shared/types/filters';
 
 const OrdersContent: React.FC = () => {
@@ -26,7 +29,7 @@ const OrdersContent: React.FC = () => {
     items: ordersAll,
     searchFields: [
       'id',
-      'display_id', 
+      'display_id',
       'product_name',
       'customer_name',
       'status',
@@ -34,7 +37,7 @@ const OrdersContent: React.FC = () => {
       'total_amount',
       'created_at',
       'updated_at',
-      'completed_at'
+      'completed_at',
     ],
     dateField: 'created_at',
     filterConfig: FILTER_CONFIGS.orders,
@@ -72,9 +75,15 @@ const OrdersContent: React.FC = () => {
         </div>
 
         {/* Result Count */}
-        {(filter.statuses?.length > 0 || filter.dateFrom || filter.dateTo || search.trim()) && (
+        {(filter.statuses?.length > 0 ||
+          filter.dateFrom ||
+          filter.dateTo ||
+          search.trim()) && (
           <div className="text-sm text-neutral-600 mt-4">
-            Found <span className="font-semibold text-neutral-900">{filteredOrders.length}</span>{' '}
+            Found{' '}
+            <span className="font-semibold text-neutral-900">
+              {filteredOrders.length}
+            </span>{' '}
             {filteredOrders.length === 1 ? 'order' : 'orders'}
           </div>
         )}

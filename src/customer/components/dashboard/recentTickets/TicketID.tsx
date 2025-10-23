@@ -13,5 +13,3 @@ const TicketID: React.FC<TicketIDProps> = ({ id, displayId }) => (
 );
 
 export default TicketID;
-
-

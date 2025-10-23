@@ -56,7 +56,7 @@ export const QuickReplyGrid: React.FC<QuickReplyGridProps> = ({
         sessionId,
         userId,
         userType: userRole,
-        conversationId
+        conversationId,
       });
 
       if (result.success) {

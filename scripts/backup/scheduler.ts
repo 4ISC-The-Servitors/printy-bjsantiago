@@ -25,7 +25,9 @@ function startScheduler() {
     { timezone }
   );
   // Keep process alive
-  setInterval(() => { /* no-op: keep alive */ }, 1 << 30);
+  setInterval(() => {
+    /* no-op: keep alive */
+  }, 1 << 30);
 }
 
 try {
@@ -35,5 +37,3 @@ try {
 } catch {
   startScheduler();
 }
-
-

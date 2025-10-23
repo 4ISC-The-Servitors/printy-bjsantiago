@@ -45,7 +45,8 @@ export const CustomerChatOverlay: React.FC<CustomerChatOverlayProps> = ({
   const [minimized, setMinimized] = useState(false);
   const [showContent, setShowContent] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const { showChatLoadingToast, clearLoadingToasts } = useChatLoadingToast(toast);
+  const { showChatLoadingToast, clearLoadingToasts } =
+    useChatLoadingToast(toast);
   const loadingToastIdRef = useRef<string | null>(null);
 
   const handleClose = async () => {
@@ -84,8 +85,15 @@ export const CustomerChatOverlay: React.FC<CustomerChatOverlayProps> = ({
     };
 
     try {
-      const existing = JSON.parse(localStorage.getItem('recentChatSessions') || '[]');
-      const updated = [recentSession, ...existing.filter((s: any) => s.conversationId !== recentSession.conversationId)].slice(0, 10);
+      const existing = JSON.parse(
+        localStorage.getItem('recentChatSessions') || '[]'
+      );
+      const updated = [
+        recentSession,
+        ...existing.filter(
+          (s: any) => s.conversationId !== recentSession.conversationId
+        ),
+      ].slice(0, 10);
       localStorage.setItem('recentChatSessions', JSON.stringify(updated));
     } catch (error) {
       console.error('Failed to save recent session:', error);
@@ -136,7 +144,8 @@ export const CustomerChatOverlay: React.FC<CustomerChatOverlayProps> = ({
   }, [open, clearLoadingToasts]);
 
   const messageGroups = useMemo(() => {
-    const groups: { messages: ChatMessage[]; quickReplies?: QuickReply[] }[] = [];
+    const groups: { messages: ChatMessage[]; quickReplies?: QuickReply[] }[] =
+      [];
     let currentGroup: ChatMessage[] = [];
     let lastRole: 'user' | 'printy' | null = null;
 
@@ -271,5 +280,3 @@ export const CustomerChatOverlay: React.FC<CustomerChatOverlayProps> = ({
 };
 
 export default CustomerChatOverlay;
-
-

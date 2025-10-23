@@ -34,11 +34,11 @@ const buttonVariants = {
 } as const;
 
 const buttonSizes = {
-  xs: 'px-2 py-1 text-xs',
-  sm: 'px-3 py-2 text-sm',
-  md: 'px-4 py-3 text-sm',
-  lg: 'px-6 py-4 text-base',
-  xl: 'px-8 py-5 text-lg',
+  xs: 'device-btn-tertiary',
+  sm: 'device-btn-secondary',
+  md: 'device-btn-primary',
+  lg: 'device-btn-primary',
+  xl: 'device-btn-primary',
 } as const;
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(

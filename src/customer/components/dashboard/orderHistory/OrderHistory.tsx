@@ -1,21 +1,26 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
 import { supabase } from '@lib/supabase';
-import DesktopLayout from '@customer/components/shared/layouts/DesktopLayout';
-import MobileLayout from '@customer/components/shared/layouts/MobileLayout';
-import SidebarPanel from '@customer/components/shared/sidebar/SidebarPanel';
-import LogoutButton from '@customer/components/shared/sidebar/LogoutButton';
-import LogoutModal from '@customer/components/shared/sidebar/LogoutModal';
+import ResponsivePageLayout from '@customer/components/shared/layouts/ResponsivePageLayout';
+import HistoryItemCard from '@customer/components/shared/cards/HistoryItemCard';
+import {
+  Card,
+  Button,
+  Text,
+  Search,
+  Filter,
+  Pagination,
+} from '@shared/components';
+import { ArrowLeft } from 'lucide-react';
 import PayNowButton from '@customer/components/dashboard/recentOrders/PayNowButton';
 import ReuploadPaymentButton from '@customer/components/dashboard/recentOrders/ReuploadPaymentButton';
-import { Text, Badge, Button } from '@shared/components';
-import { formatOrderStatus } from '@shared/utils/statusFormatter';
-import { formatLongDate } from '@shared/utils/dateFormatter';
-import { formatRelativeTimeLabel } from '@shared/utils/timeFormatter';
+import { formatShortDate } from '@shared/utils/dateFormatter';
+import { useGenericSearchFilter } from '@shared/hooks/ui/useGenericSearchFilter';
+import { FILTER_CONFIGS } from '@shared/types/filters';
 import {
-  useRecentChatSessions,
-  type ConversationLike,
-} from '@customer/hooks/useRecentChatSessions';
+  useResponsiveClasses,
+  useDeviceUtils,
+} from '@shared/hooks/ui/useResponsiveClasses';
+import { useResponsivePageSize } from '@shared/hooks/ui/useResponsivePageSize';
 
 interface Order {
   id: string;
@@ -31,15 +36,56 @@ interface Order {
 }
 
 const OrderHistory: React.FC = () => {
-  const navigate = useNavigate();
-  const [query, setQuery] = useState('');
-  const [status, setStatus] = useState<string>('');
   const [orders, setOrders] = useState<Order[]>([]);
-  const [conversations, setConversations] = useState<ConversationLike[]>([]);
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
 
-  // Load conversations for sidebar
-  useRecentChatSessions(setConversations);
+  // Responsive hooks
+  const { spacingClasses } = useResponsiveClasses();
+  const { isMobile } = useDeviceUtils();
+
+  // Responsive page size
+  const pageSize = useResponsivePageSize({
+    itemHeight: 140, // Approximate height of an order card
+    itemSpacing: 24, // space-y-6 = 24px
+    headerOffset: 200, // Navbar + header + search/filter
+    footerOffset: 80, // Pagination height
+    minItems: 2,
+    maxItems: 20,
+    useDynamicCalculation: true,
+  });
+
+  // Search + Filter logic using generic search filter
+  const {
+    search,
+    setSearch,
+    filter,
+    setFilter,
+    filteredItems: allFilteredOrders,
+  } = useGenericSearchFilter({
+    items: orders,
+    searchFields: [
+      'id',
+      'displayId',
+      'title',
+      'status',
+      'total',
+      'createdAt',
+      'updatedAt',
+    ],
+    dateField: 'createdAt',
+    filterConfig: FILTER_CONFIGS.orders,
+    statusField: 'status',
+  });
+
+  // Pagination logic
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const paginatedOrders = allFilteredOrders.slice(startIndex, endIndex);
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, filter]);
 
   // Load orders from database
   useEffect(() => {
@@ -101,245 +147,169 @@ const OrderHistory: React.FC = () => {
     loadOrders();
   }, []);
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return orders.filter(order => {
-      const matchesQuery = q
-        ? order.title.toLowerCase().includes(q) ||
-          order.displayId.toLowerCase().includes(q) ||
-          order.status.toLowerCase().includes(q)
-        : true;
-      const matchesStatus = status ? order.status === status : true;
-      return matchesQuery && matchesStatus;
-    });
-  }, [orders, query, status]);
-
   const handleItemClick = (order: Order) => {
-    // Navigate to order details or open chat for this order
-    alert(`Order ${order.displayId} clicked`);
+    // TODO: Navigate to order details page
+    console.log('Order clicked:', order.displayId);
   };
 
-  const confirmLogout = async () => {
-    setShowLogoutModal(false);
-    navigate('/auth/signin');
+  // Build actions for each order
+  const renderOrderActions = (order: Order) => {
+    const statusLower = order.status.toLowerCase();
+
+    if (statusLower === 'awaiting_payment') {
+      return (
+        <PayNowButton
+          orderId={order.id}
+          displayId={order.displayId}
+          total={order.total}
+        />
+      );
+    }
+
+    if (statusLower === 'reupload_payment') {
+      return (
+        <ReuploadPaymentButton
+          orderId={order.id}
+          displayId={order.displayId}
+          total={order.total}
+        />
+      );
+    }
+
+    // For completed orders, we don't show any action button
+    // as per the existing button components logic
+    return null;
   };
 
-  const sidebar = (
-    <SidebarPanel
-      conversations={conversations}
-      activeId={null}
-      onSwitchConversation={(id: string) => {
-        window.dispatchEvent(
-          new CustomEvent('customer-open-session', {
-            detail: { sessionId: id },
-          })
-        );
-        navigate('/customer');
-      }}
-      onNavigateToAccount={() => navigate('/customer/account')}
-      bottomActions={<LogoutButton onClick={() => setShowLogoutModal(true)} />}
-    />
-  );
+  const buildOrderMetadata = (order: Order) => {
+    const metadata: Record<string, string> = {};
 
-  const renderOrderItem = (order: Order) => (
-    <div
-      key={order.id}
-      className="bg-white rounded-lg border border-neutral-200 p-4 hover:border-brand-primary-300 transition-colors cursor-pointer"
-      onClick={() => handleItemClick(order)}
-    >
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-2">
-            <Text
-              variant="h3"
-              size="base"
-              weight="semibold"
-              className="font-mono"
-            >
-              {order.displayId}
-            </Text>
-            <Badge variant="secondary" size="sm">
-              {formatOrderStatus(order.status)}
-            </Badge>
-          </div>
+    if (order.total) {
+      metadata.total = order.total;
+    }
 
-          <Text variant="p" size="sm" color="muted" className="mb-3">
-            {order.title}
-          </Text>
+    if (order.paymentVerifiedAt) {
+      metadata['payment verified'] = formatShortDate(order.paymentVerifiedAt);
+    }
 
-          {/* Important dates */}
-          <div className="flex flex-col gap-1 mb-3">
-            <div className="flex justify-between">
-              <Text variant="p" size="xs" color="muted">
-                Created:
-              </Text>
-              <Text variant="p" size="xs" color="muted">
-                {formatLongDate(order.createdAt)}
-              </Text>
-            </div>
-            <div className="flex justify-between">
-              <Text variant="p" size="xs" color="muted">
-                Updated:
-              </Text>
-              <Text variant="p" size="xs" color="muted">
-                {formatRelativeTimeLabel(order.updatedAt)}
-              </Text>
-            </div>
-            {order.paymentVerifiedAt && (
-              <div className="flex justify-between">
-                <Text variant="p" size="xs" color="muted">
-                  Payment Verified:
-                </Text>
-                <Text variant="p" size="xs" color="muted">
-                  {formatLongDate(order.paymentVerifiedAt)}
-                </Text>
-              </div>
-            )}
-            {order.completedAt && (
-              <div className="flex justify-between">
-                <Text variant="p" size="xs" color="muted">
-                  Completed:
-                </Text>
-                <Text variant="p" size="xs" color="muted">
-                  {formatLongDate(order.completedAt)}
-                </Text>
-              </div>
-            )}
-          </div>
+    if (order.completedAt) {
+      metadata.completed = formatShortDate(order.completedAt);
+    }
 
-          {order.total && (
-            <Text
-              variant="p"
-              size="sm"
-              weight="medium"
-              className="text-brand-primary"
-            >
-              {order.total}
-            </Text>
-          )}
-
-          {/* Action buttons */}
-          <div className="mt-3">
-            {order.status.toLowerCase() === 'awaiting_payment' && (
-              <PayNowButton
-                orderId={order.id}
-                displayId={order.displayId}
-                total={order.total}
-              />
-            )}
-            {order.status.toLowerCase() === 'reupload_payment' && (
-              <ReuploadPaymentButton
-                orderId={order.id}
-                displayId={order.displayId}
-                total={order.total}
-              />
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  const content = (
-    <>
-      {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center gap-4 mb-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate('/customer')}
-            className="text-neutral-600 hover:text-neutral-900"
-          >
-            ← Back to Dashboard
-          </Button>
-        </div>
-        <Text
-          variant="h1"
-          size="2xl"
-          weight="bold"
-          className="text-neutral-900"
-        >
-          Order History
-        </Text>
-        <Text variant="p" size="base" color="muted">
-          View all your past orders and their current status
-        </Text>
-      </div>
-
-      {/* Filters */}
-      <div className="mb-6 flex flex-col sm:flex-row gap-4">
-        <div className="flex-1">
-          <input
-            type="text"
-            placeholder="Search orders..."
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-            className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent"
-          />
-        </div>
-        <div className="sm:w-48">
-          <select
-            value={status}
-            onChange={e => setStatus(e.target.value)}
-            className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent"
-          >
-            <option value="">All Statuses</option>
-            <option value="awaiting_payment">Awaiting Payment</option>
-            <option value="reupload_payment">Reupload Payment</option>
-            <option value="processing">Processing</option>
-            <option value="completed">Completed</option>
-            <option value="cancelled">Cancelled</option>
-          </select>
-        </div>
-        {(query || status) && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              setQuery('');
-              setStatus('');
-            }}
-            className="whitespace-nowrap"
-          >
-            Clear Filters
-          </Button>
-        )}
-      </div>
-
-      {/* Orders List */}
-      {filtered.length === 0 ? (
-        <div className="text-center py-12">
-          <Text variant="p" size="base" color="muted">
-            {orders.length === 0
-              ? 'No orders found.'
-              : 'No orders match your filters.'}
-          </Text>
-        </div>
-      ) : (
-        <div className="space-y-4">{filtered.map(renderOrderItem)}</div>
-      )}
-
-      <LogoutModal
-        isOpen={showLogoutModal}
-        onClose={() => setShowLogoutModal(false)}
-        onConfirm={confirmLogout}
-      />
-    </>
-  );
+    return metadata;
+  };
 
   return (
-    <>
-      {/* Desktop Layout */}
-      <div className="hidden lg:block">
-        <DesktopLayout sidebar={sidebar}>{content}</DesktopLayout>
-      </div>
+    <ResponsivePageLayout>
+      <div className="space-y-4">
+        {/* Back to Dashboard */}
+        <div className="flex justify-start">
+          <Button
+            threeD
+            variant="ghost"
+            size="sm"
+            onClick={() => window.location.assign('/customer')}
+            className="text-neutral-600 hover:text-neutral-900"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Dashboard
+          </Button>
+        </div>
 
-      {/* Mobile Layout */}
-      <div className="lg:hidden">
-        <MobileLayout sidebar={sidebar}>{content}</MobileLayout>
+        {/* Page Title */}
+        <div>
+          <Text
+            variant="h1"
+            size="xl"
+            weight="bold"
+            className="device-text-heading text-neutral-900 mt-5 mb-5"
+          >
+            Order History
+          </Text>
+        </div>
+
+        {/* Search and Filter Section */}
+        <div className="relative mb-6 sm:mb-8">
+          {/* Filter and Search Row - Always horizontal layout with responsive spacing */}
+          <div className={`flex items-center ${spacingClasses.gap}`}>
+            {/* Filter Component - Floating mode */}
+            <div className={`${isMobile ? 'w-24' : 'w-auto'} shrink-0`}>
+              <Filter
+                value={filter}
+                onChange={v => setFilter(v)}
+                filterConfig={FILTER_CONFIGS.orders}
+                showResultCount={false}
+                resultCount={allFilteredOrders.length}
+                floating={true}
+              />
+            </div>
+
+            {/* Search Bar - Takes remaining space */}
+            <div className="flex-1 min-w-0">
+              <Search
+                value={search}
+                onChange={v => setSearch(v)}
+                placeholder="Search by order ID, product, or amount..."
+                size="lg"
+              />
+            </div>
+          </div>
+
+          {/* Result Count */}
+          {(filter.statuses?.length > 0 ||
+            filter.dateFrom ||
+            filter.dateTo ||
+            search.trim()) && (
+            <div className="text-sm text-neutral-600 mt-4">
+              Found{' '}
+              <span className="font-semibold text-neutral-900">
+                {allFilteredOrders.length}
+              </span>{' '}
+              {allFilteredOrders.length === 1 ? 'order' : 'orders'}
+            </div>
+          )}
+        </div>
+
+        {/* Pagination */}
+        {allFilteredOrders.length > pageSize && (
+          <div className="mt-6">
+            <Pagination
+              page={currentPage}
+              pageSize={pageSize}
+              total={allFilteredOrders.length}
+              onPageChange={setCurrentPage}
+            />
+          </div>
+        )}
+
+        <div className="space-y-4">
+          {paginatedOrders.map(order => (
+            <HistoryItemCard
+              key={order.id}
+              type="order"
+              displayId={order.displayId}
+              title={order.title}
+              status={order.status}
+              createdAt={order.createdAt}
+              updatedAt={order.updatedAt}
+              metadata={buildOrderMetadata(order)}
+              actions={renderOrderActions(order)}
+              onClick={() => handleItemClick(order)}
+            />
+          ))}
+        </div>
+
+        {allFilteredOrders.length === 0 && (
+          <Card className="p-8 text-center">
+            <Text variant="p" className="text-neutral-500">
+              {orders.length === 0
+                ? 'No orders found.'
+                : 'No orders match your filters.'}
+            </Text>
+          </Card>
+        )}
       </div>
-    </>
+    </ResponsivePageLayout>
   );
 };
 

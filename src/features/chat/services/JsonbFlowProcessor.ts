@@ -568,23 +568,33 @@ export class JsonbFlowProcessor {
     // ✅ FIX: Handle quick reply selections from action results
     // This handles cases where actions return dynamic quick replies (like show_customer_orders)
     if (currentNode.type === 'action' && userInput) {
-      console.log('[ProcessInput] Checking for action quick reply selection:', userInput);
+      console.log(
+        '[ProcessInput] Checking for action quick reply selection:',
+        userInput
+      );
 
       // Check if this input matches any quick reply that would have been returned by an action
       // We look for order IDs in the format ORD-XXXXXX or special values like 'no_order'
-      const isOrderSelection = /^ORD-\d+$/.test(userInput) || userInput === 'no_order';
+      const isOrderSelection =
+        /^ORD-\d+$/.test(userInput) || userInput === 'no_order';
 
       if (isOrderSelection) {
-        console.log('[ProcessInput] Detected order quick reply selection:', userInput);
+        console.log(
+          '[ProcessInput] Detected order quick reply selection:',
+          userInput
+        );
 
         // Store the order selection in context
         stateManager.updateContext({
-          order_id: userInput
+          order_id: userInput,
         });
 
         // Move to create_ticket node
         stateManager.setCurrentNode('create_ticket');
-        console.log('[ProcessInput] Moving to create_ticket node for order:', userInput);
+        console.log(
+          '[ProcessInput] Moving to create_ticket node for order:',
+          userInput
+        );
       }
     }
 
@@ -633,11 +643,12 @@ export class JsonbFlowProcessor {
 
       // Move to next node after action, but only if action was successful
       // Check if any error messages indicate validation failure that should prevent advancement
-      const hasValidationErrors = actionResult.messages.some((msg: any) =>
-        msg.text.includes('was not found') ||
-        msg.text.includes('Please provide a valid') ||
-        msg.text.includes('Try again later') ||
-        msg.text.includes("Couldn't create")
+      const hasValidationErrors = actionResult.messages.some(
+        (msg: any) =>
+          msg.text.includes('was not found') ||
+          msg.text.includes('Please provide a valid') ||
+          msg.text.includes('Try again later') ||
+          msg.text.includes("Couldn't create")
       );
 
       if (nextNode.next && !hasValidationErrors) {
@@ -864,14 +875,19 @@ export class JsonbFlowProcessor {
 
     // ✅ FIX: Include quick replies from action results if available
     // This allows actions to provide dynamic quick replies (like order selection)
-    if (nextNode.type === 'action' && actionResult && actionResult.quickReplies) {
+    if (
+      nextNode.type === 'action' &&
+      actionResult &&
+      actionResult.quickReplies
+    ) {
       // Use action quick replies if available
       // Check if action has validation errors or if the action is designed to provide quick replies
-      const hasValidationErrors = actionResult.messages.some((msg: any) =>
-        msg.text.includes('was not found') ||
-        msg.text.includes('Please provide a valid') ||
-        msg.text.includes('Try again later') ||
-        msg.text.includes("Couldn't create")
+      const hasValidationErrors = actionResult.messages.some(
+        (msg: any) =>
+          msg.text.includes('was not found') ||
+          msg.text.includes('Please provide a valid') ||
+          msg.text.includes('Try again later') ||
+          msg.text.includes("Couldn't create")
       );
 
       // Use action quick replies if:

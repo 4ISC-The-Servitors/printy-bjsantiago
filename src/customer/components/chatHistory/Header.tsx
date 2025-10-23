@@ -8,7 +8,11 @@ interface HeaderProps {
   onBack?: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ title = 'Chat History', subtitle, onBack }) => {
+const Header: React.FC<HeaderProps> = ({
+  title = 'Chat History',
+  subtitle,
+  onBack,
+}) => {
   return (
     <div className="mb-4">
       <div className="flex items-center gap-3 mb-1">
@@ -38,5 +42,3 @@ const Header: React.FC<HeaderProps> = ({ title = 'Chat History', subtitle, onBac
 };
 
 export default Header;
-
-

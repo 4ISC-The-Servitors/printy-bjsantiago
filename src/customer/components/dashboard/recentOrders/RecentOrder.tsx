@@ -6,7 +6,7 @@ import type { RecentOrder as RecentOrderType } from '@shared/types/customer';
 import StatusBadge from './StatusBadge';
 import PayNowButton from './PayNowButton';
 import ReuploadPaymentButton from './ReuploadPaymentButton';
-import { formatLongDate } from '@shared/utils/dateFormatter';
+import { formatShortDate } from '@shared/utils/dateFormatter';
 import { formatRelativeTimeLabel } from '@shared/utils/timeFormatter';
 
 interface RecentOrderProps {
@@ -25,16 +25,20 @@ const RecentOrder: React.FC<RecentOrderProps> = ({ recentOrder }) => {
   const layout = getOrderCardLayout;
 
   return (
-    <Card className="p-3 sm:p-4 md:p-5 lg:p-6">
+    <Card className="device-spacing-component">
       <div className="flex items-center justify-between mb-4">
-        <Text variant="h3" size="base" weight="semibold" className="sm:text-lg md:text-xl lg:text-2xl">
+        <Text
+          variant="h3"
+          className="device-text-heading"
+          size="lg"
+          weight="semibold"
+        >
           Recent Order
         </Text>
         <Button
           variant="ghost"
-          size="sm"
+          className="device-btn-secondary text-brand-primary hover:text-brand-primary-600"
           onClick={() => navigate('/customer/orders')}
-          className="text-brand-primary hover:text-brand-primary-600"
         >
           View all
         </Button>
@@ -45,13 +49,15 @@ const RecentOrder: React.FC<RecentOrderProps> = ({ recentOrder }) => {
         <div className={layout.structure.row1}>
           <div className={layout.leftSection}>
             <div className={`flex items-center ${layout.elementGap} min-w-0`}>
-              <span className={`${layout.orderId} font-mono`}>
+              <span className={`${layout.orderId} device-text-fraunces`}>
                 {recentOrder.displayId}
               </span>
               {recentOrder.title ? (
                 <>
                   <span className="text-neutral-400">•</span>
-                  <span className={layout.productName}>{recentOrder.title}</span>
+                  <span className={layout.productName}>
+                    {recentOrder.title}
+                  </span>
                 </>
               ) : null}
             </div>
@@ -61,50 +67,70 @@ const RecentOrder: React.FC<RecentOrderProps> = ({ recentOrder }) => {
           </div>
         </div>
 
-        {/* Row 2: Amount + Action */}
-        <div className={layout.structure.row2}>
-          <div className={layout.leftSection} />
-          <div className={layout.rightSection}>
-            {recentOrder.total && (
+        {/* Row 2: Amount only */}
+        {recentOrder.total && (
+          <div className={layout.structure.row2}>
+            <div className={layout.leftSection} />
+            <div className={layout.rightSection}>
               <div className={layout.amount}>{recentOrder.total}</div>
-            )}
-            {isAwaitingPayment && (
-              <PayNowButton
-                orderId={recentOrder.id}
-                displayId={recentOrder.displayId}
-                total={recentOrder.total}
-              />
-            )}
-            {isReuploadPayment && (
-              <ReuploadPaymentButton
-                orderId={recentOrder.id}
-                displayId={recentOrder.displayId}
-                total={recentOrder.total}
-              />
-            )}
+            </div>
           </div>
+        )}
+
+        {/* Row 3: Action buttons - bottom-right only */}
+        <div className="flex justify-end mt-3">
+          {isAwaitingPayment && (
+            <PayNowButton
+              orderId={recentOrder.id}
+              displayId={recentOrder.displayId}
+              total={recentOrder.total}
+            />
+          )}
+          {isReuploadPayment && (
+            <ReuploadPaymentButton
+              orderId={recentOrder.id}
+              displayId={recentOrder.displayId}
+              total={recentOrder.total}
+            />
+          )}
         </div>
 
-        {/* Row 3: Dates (stacked) */}
+        {/* Row 4: Dates (stacked) */}
         <div className="mt-1">
-          <div className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}>
+          <div
+            className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
+          >
             <span className="font-medium">Created:</span>
-            <span className="truncate">{formatLongDate(recentOrder.createdAt)}</span>
+            <span className="truncate">
+              {formatShortDate(recentOrder.createdAt)}
+            </span>
           </div>
-          <div className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}>
+          <div
+            className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
+          >
             <span className="font-medium">Updated:</span>
-            <span className="truncate">{formatRelativeTimeLabel(recentOrder.updatedAt)}</span>
+            <span className="truncate">
+              {formatRelativeTimeLabel(recentOrder.updatedAt)}
+            </span>
           </div>
           {recentOrder.paymentVerifiedAt && (
-            <div className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}>
+            <div
+              className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
+            >
               <span className="font-medium">Payment Verified:</span>
-              <span className="truncate">{formatLongDate(recentOrder.paymentVerifiedAt)}</span>
+              <span className="truncate">
+                {formatShortDate(recentOrder.paymentVerifiedAt)}
+              </span>
             </div>
           )}
           {recentOrder.completedAt && (
-            <div className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}>
+            <div
+              className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
+            >
               <span className="font-medium">Completed:</span>
-              <span className="truncate">{formatLongDate(recentOrder.completedAt)}</span>
+              <span className="truncate">
+                {formatShortDate(recentOrder.completedAt)}
+              </span>
             </div>
           )}
         </div>

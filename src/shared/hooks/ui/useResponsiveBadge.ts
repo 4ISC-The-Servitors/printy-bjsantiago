@@ -23,20 +23,21 @@ export function useResponsiveBadge() {
       // Compact badges - minimal padding, good for status indicators
       compact: (textSize: 'caption' | 'body' | 'heading' = 'caption') => ({
         text: `${textClasses[textSize]} ${badgeClasses.text}`,
-        padding: 'px-1 py-0.5 sm:px-1.5 sm:py-0.5'
+        padding: 'px-1 py-0.5 sm:px-1.5 sm:py-0.5',
       }),
-      
+
       // Standard badges - balanced padding, most common use
       standard: (textSize: 'caption' | 'body' | 'heading' = 'caption') => ({
         text: `${textClasses[textSize]} ${badgeClasses.text}`,
-        padding: badgeClasses.padding
+        padding: badgeClasses.padding,
       }),
-      
+
       // Spacious badges - generous padding, for prominent badges
       spacious: (textSize: 'caption' | 'body' | 'heading' = 'caption') => ({
         text: `${textClasses[textSize]} ${badgeClasses.text}`,
-        padding: 'px-2 py-1 sm:px-2.5 sm:py-1 md:px-3 md:py-1.5 lg:px-4 lg:py-2'
-      })
+        padding:
+          'px-2 py-1 sm:px-2.5 sm:py-1 md:px-3 md:py-1.5 lg:px-4 lg:py-2',
+      }),
     };
   }, [textClasses, badgeClasses]);
 
@@ -68,7 +69,7 @@ export function useResponsiveBadge() {
     getPriorityBadgeClasses,
     getCategoryBadgeClasses,
     getNotificationBadgeClasses,
-    getBadgeClasses
+    getBadgeClasses,
   };
 }
 

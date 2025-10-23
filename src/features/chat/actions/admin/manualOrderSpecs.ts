@@ -55,19 +55,34 @@
  */
 
 import { openSpecEditor } from '@features/quote/specEditorEvents';
-import type { ActionExecutionParams, ActionExecutionResult } from '@features/chat/types';
+import type {
+  ActionExecutionParams,
+  ActionExecutionResult,
+} from '@features/chat/types';
 
-export async function manualOrderSpecs(params: ActionExecutionParams): Promise<ActionExecutionResult> {
+export async function manualOrderSpecs(
+  params: ActionExecutionParams
+): Promise<ActionExecutionResult> {
   const { actionNode, context, sessionId } = params;
 
   const config = (actionNode.action_config as any) || {};
   const conversationIdKey = config.conversation_id_key || 'session_id';
   const conversationId = String(context[conversationIdKey] || '').trim();
 
-  const messages: Array<{ id: string; role: 'printy'; text: string; ts: number }> = [];
+  const messages: Array<{
+    id: string;
+    role: 'printy';
+    text: string;
+    ts: number;
+  }> = [];
 
   if (!conversationId) {
-    messages.push({ id: crypto.randomUUID(), role: 'printy', text: 'Missing conversation ID for spec editor.', ts: Date.now() });
+    messages.push({
+      id: crypto.randomUUID(),
+      role: 'printy',
+      text: 'Missing conversation ID for spec editor.',
+      ts: Date.now(),
+    });
     return { messages };
   }
 
@@ -93,7 +108,7 @@ export async function manualOrderSpecs(params: ActionExecutionParams): Promise<A
     },
     language: 'en',
   });
-  
+
   openSpecEditor({
     conversationId,
     specData: {
@@ -115,11 +130,9 @@ export async function manualOrderSpecs(params: ActionExecutionParams): Promise<A
     language: 'en',
     sessionId,
   });
-  
+
   console.log('[manualOrderSpecs] Spec editor event dispatched');
 
   // Avoid duplicating the node's own message; no extra messages returned.
   return { messages };
 }
-
-

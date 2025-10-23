@@ -36,7 +36,6 @@ export const usePortfolioCard = () => {
     else openChat();
   };
 
-
   const handleAddService = () => {
     if (openChatWithTopic) openChatWithTopic('add-service');
     else openChat();
@@ -47,9 +46,7 @@ export const usePortfolioCard = () => {
   };
 
   const toggleOfferedCategory = (categoryId: string) => {
-    setOpenOfferedCategoryId(prev =>
-      prev === categoryId ? null : categoryId
-    );
+    setOpenOfferedCategoryId(prev => (prev === categoryId ? null : categoryId));
   };
 
   return {

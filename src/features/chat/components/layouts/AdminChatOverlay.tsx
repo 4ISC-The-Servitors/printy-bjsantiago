@@ -45,7 +45,8 @@ export const AdminChatOverlay: React.FC<AdminChatOverlayProps> = ({
   const [minimized, setMinimized] = useState(false);
   const [showContent, setShowContent] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const { showChatLoadingToast, clearLoadingToasts } = useChatLoadingToast(toast);
+  const { showChatLoadingToast, clearLoadingToasts } =
+    useChatLoadingToast(toast);
   const loadingToastIdRef = useRef<string | null>(null);
 
   const handleClose = async () => {
@@ -87,7 +88,7 @@ export const AdminChatOverlay: React.FC<AdminChatOverlayProps> = ({
       customerName: title,
       lastMessage: messages[messages.length - 1]?.text || '',
       timestamp: new Date().toISOString(),
-      isMinimized: true
+      isMinimized: true,
     };
 
     // Add to recent sessions
@@ -100,8 +101,15 @@ export const AdminChatOverlay: React.FC<AdminChatOverlayProps> = ({
   const addToRecentSessions = (session: any) => {
     try {
       // Store in localStorage or context
-      const existing = JSON.parse(localStorage.getItem('recentChatSessions') || '[]');
-      const updated = [session, ...existing.filter((s: any) => s.conversationId !== session.conversationId)].slice(0, 10);
+      const existing = JSON.parse(
+        localStorage.getItem('recentChatSessions') || '[]'
+      );
+      const updated = [
+        session,
+        ...existing.filter(
+          (s: any) => s.conversationId !== session.conversationId
+        ),
+      ].slice(0, 10);
       localStorage.setItem('recentChatSessions', JSON.stringify(updated));
     } catch (error) {
       console.error('Failed to save recent session:', error);
@@ -210,10 +218,10 @@ export const AdminChatOverlay: React.FC<AdminChatOverlayProps> = ({
   if (!open) return null;
 
   return (
-      <div
-        className={`fixed inset-0 z-40 ${open ? 'opacity-100' : 'opacity-0 pointer-events-none'} transition-opacity duration-200`}
-        data-admin-chat-open="true"
-      >
+    <div
+      className={`fixed inset-0 z-40 ${open ? 'opacity-100' : 'opacity-0 pointer-events-none'} transition-opacity duration-200`}
+      data-admin-chat-open="true"
+    >
       {/* Backdrop */}
       <div
         className={`absolute inset-0 bg-black/30 backdrop-blur-sm ${show ? 'opacity-100' : 'opacity-0'}`}

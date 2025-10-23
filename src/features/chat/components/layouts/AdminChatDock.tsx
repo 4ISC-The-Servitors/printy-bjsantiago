@@ -43,7 +43,8 @@ export const AdminChatDock: React.FC<AdminChatDockProps> = ({
   const [input, setInput] = useState('');
   const [showContent, setShowContent] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const { showChatLoadingToast, clearLoadingToasts } = useChatLoadingToast(toast);
+  const { showChatLoadingToast, clearLoadingToasts } =
+    useChatLoadingToast(toast);
   const loadingToastIdRef = useRef<string | null>(null);
 
   // Group messages by role
@@ -138,11 +139,13 @@ export const AdminChatDock: React.FC<AdminChatDockProps> = ({
     setInput('');
   };
 
-
   if (!open || !showContent) return null;
 
   return (
-    <aside className="hidden lg:flex fixed right-0 top-0 bottom-0 w-[420px] bg-white border-l border-neutral-200 flex-col z-30 animate-in slide-in-from-right duration-300" data-admin-chat-open="true">
+    <aside
+      className="hidden lg:flex fixed right-0 top-0 bottom-0 w-[420px] bg-white border-l border-neutral-200 flex-col z-30 animate-in slide-in-from-right duration-300"
+      data-admin-chat-open="true"
+    >
       {/* Header */}
       <div className="p-4 border-b border-neutral-200 flex items-center justify-between shrink-0">
         <Text variant="h3" size="lg" weight="semibold">
@@ -170,9 +173,11 @@ export const AdminChatDock: React.FC<AdminChatDockProps> = ({
         </div>
       </div>
 
-
       {/* Messages */}
-      <div ref={scrollRef} className={`flex-1 overflow-y-auto p-4 space-y-4 relative`}>
+      <div
+        ref={scrollRef}
+        className={`flex-1 overflow-y-auto p-4 space-y-4 relative`}
+      >
         {messageGroups.map((group, idx) => (
           <MessageGroup
             key={idx}

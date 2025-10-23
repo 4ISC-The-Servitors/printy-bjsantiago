@@ -66,11 +66,12 @@ export function useAdminQuotes(options: LoadQuotesOptions = {}) {
 
     try {
       const from = (page - 1) * pageSize;
-      
+
       // Fetch quotes with customer information (no nested proposals; proposals are linked via session_id)
       const { data, error, count } = await supabase
         .from('quotes')
-        .select(`
+        .select(
+          `
           quote_id,
           session_id,
           customer_id,
@@ -84,7 +85,9 @@ export function useAdminQuotes(options: LoadQuotesOptions = {}) {
             last_name,
             email_address
           )
-        `, { count: 'exact' })
+        `,
+          { count: 'exact' }
+        )
         .order('updated_at', { ascending: false })
         .range(from, from + pageSize - 1);
 
@@ -97,18 +100,25 @@ export function useAdminQuotes(options: LoadQuotesOptions = {}) {
       console.debug('[useAdminQuotes] Fetched quotes:', data?.length || 0);
 
       // Build a lookup of latest proposal by session_id
-      const sessionIds: string[] = (data || []).map((q: any) => q.session_id).filter(Boolean);
+      const sessionIds: string[] = (data || [])
+        .map((q: any) => q.session_id)
+        .filter(Boolean);
       let latestBySessionId: Record<string, any> = {};
       if (sessionIds.length > 0) {
         const { data: proposalsData } = await supabase
           .from('quote_proposals')
-          .select('session_id, proposal_id, status, quoted_price, created_at, updated_at')
+          .select(
+            'session_id, proposal_id, status, quoted_price, created_at, updated_at'
+          )
           .in('session_id', sessionIds);
 
         if (Array.isArray(proposalsData)) {
           for (const p of proposalsData) {
             const existing = latestBySessionId[p.session_id];
-            const isNewer = !existing || new Date(p.created_at).getTime() > new Date(existing.created_at).getTime();
+            const isNewer =
+              !existing ||
+              new Date(p.created_at).getTime() >
+                new Date(existing.created_at).getTime();
             if (isNewer) latestBySessionId[p.session_id] = p;
           }
         }
@@ -116,21 +126,26 @@ export function useAdminQuotes(options: LoadQuotesOptions = {}) {
 
       const normalized: AdminQuoteRow[] = (data || []).map((quote: any) => {
         // Handle customer data - it might be an array or object
-        const customerData = Array.isArray(quote.customer) ? quote.customer[0] : quote.customer;
-        const customerName = customerData?.first_name && customerData?.last_name
-          ? `${customerData.first_name} ${customerData.last_name}`
-          : customerData?.first_name || customerData?.email_address || quote.customer_id;
+        const customerData = Array.isArray(quote.customer)
+          ? quote.customer[0]
+          : quote.customer;
+        const customerName =
+          customerData?.first_name && customerData?.last_name
+            ? `${customerData.first_name} ${customerData.last_name}`
+            : customerData?.first_name ||
+              customerData?.email_address ||
+              quote.customer_id;
 
         // Get latest proposal for pricing info via session_id
         const latestProposal = latestBySessionId[quote.session_id] || null;
 
         // Generate product name from display_id or quote_id
-        const productName = quote.display_id 
-          ? `Quote ${quote.display_id}` 
+        const productName = quote.display_id
+          ? `Quote ${quote.display_id}`
           : `Quote ${quote.quote_id.slice(0, 8)}`;
 
         // Format quoted amount - always use ₱ symbol
-        const quotedAmount = latestProposal 
+        const quotedAmount = latestProposal
           ? `₱${Number(latestProposal.quoted_price).toLocaleString()}`
           : 'Not quoted';
 
@@ -153,7 +168,7 @@ export function useAdminQuotes(options: LoadQuotesOptions = {}) {
           date: new Date(quote.created_at).toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'short',
-            day: 'numeric'
+            day: 'numeric',
           }),
         };
       });

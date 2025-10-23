@@ -40,13 +40,23 @@
  * - Issue details are stored as plain text (encryption TBD)
  */
 import { supabase } from '@lib/supabase';
-import type { ActionExecutionParams, ActionExecutionResult } from '@features/chat/types';
+import type {
+  ActionExecutionParams,
+  ActionExecutionResult,
+} from '@features/chat/types';
 import { ChatEndService } from '../../services/ChatEndService';
 import { insertMessageV2 } from '@features/chat/api/jsonbChatFlowApi';
 
-export async function createInquiry(params: ActionExecutionParams): Promise<ActionExecutionResult> {
+export async function createInquiry(
+  params: ActionExecutionParams
+): Promise<ActionExecutionResult> {
   const { actionNode, context, customerId, sessionId } = params;
-  const messages: Array<{ id: string; role: 'printy'; text: string; ts: number }> = [];
+  const messages: Array<{
+    id: string;
+    role: 'printy';
+    text: string;
+    ts: number;
+  }> = [];
 
   const config = actionNode.action_config as any;
   const typeKey = config.type_key || 'inquiry_type';
@@ -150,7 +160,7 @@ export async function createInquiry(params: ActionExecutionParams): Promise<Acti
 
   // Success message matching issueTicketFlow.ts
   let successText = `Your support ticket has been created! Here is your Ticket ID: ${displayId}\n\nOur team will review your issue and get back to you as soon as possible. You can track the status of your ticket in your dashboard.\n\nWe appreciate your patience!`;
-  
+
   // Add order information if successfully linked
   if (orderDisplayId && actualOrderId) {
     successText = `Your support ticket has been created and linked to Order ${orderDisplayId}! Here is your Ticket ID: ${displayId}\n\nOur team will review your issue and get back to you as soon as possible. You can track the status of your ticket in your dashboard.\n\nWe appreciate your patience!`;
@@ -182,9 +192,16 @@ export async function createInquiry(params: ActionExecutionParams): Promise<Acti
  *
  * @returns ActionExecutionResult with end chat message
  */
-export async function endCustomerChat(params: ActionExecutionParams): Promise<ActionExecutionResult> {
+export async function endCustomerChat(
+  params: ActionExecutionParams
+): Promise<ActionExecutionResult> {
   const { customerId, sessionId } = params;
-  const messages: Array<{ id: string; role: 'printy'; text: string; ts: number }> = [];
+  const messages: Array<{
+    id: string;
+    role: 'printy';
+    text: string;
+    ts: number;
+  }> = [];
 
   try {
     // Use the unified service to end the chat
@@ -192,7 +209,7 @@ export async function endCustomerChat(params: ActionExecutionParams): Promise<Ac
       sessionId,
       userId: customerId,
       userType: 'customer',
-      endMessage: 'Thank you for chatting with us. Have a great day!'
+      endMessage: 'Thank you for chatting with us. Have a great day!',
     });
 
     if (!result.success) {
@@ -208,13 +225,12 @@ export async function endCustomerChat(params: ActionExecutionParams): Promise<Ac
 
     // Success message - this will be added by the service, so we don't need to add another
     return { messages };
-
   } catch (error) {
     console.error('Error in endCustomerChat:', error);
     messages.push({
       id: crypto.randomUUID(),
       role: 'printy',
-      text: "Something went wrong. Please try again.",
+      text: 'Something went wrong. Please try again.',
       ts: Date.now(),
     });
     return { messages };

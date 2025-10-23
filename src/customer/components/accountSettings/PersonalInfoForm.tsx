@@ -72,10 +72,10 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = ({
       )}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-3">
         <div>
-          <Text variant="h3" size="lg" weight="semibold">
+          <Text variant="h3" className="device-text-heading" weight="semibold">
             Personal Information
           </Text>
-          <Text variant="p" className="text-neutral-600 mt-1">
+          <Text variant="p" className="device-text-body text-neutral-600 mt-1">
             Update your personal details and contact information
           </Text>
         </div>
@@ -98,7 +98,7 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = ({
 
       <div className="space-y-4">
         <div>
-          <Text variant="span" weight="medium">
+          <Text variant="span" className="device-text-body" weight="medium">
             Display Name
           </Text>
           {isEditing ? (
@@ -132,7 +132,7 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = ({
         </div>
 
         <div>
-          <Text variant="span" weight="medium">
+          <Text variant="span" className="device-text-body" weight="medium">
             Email Address
           </Text>
           {isEditing ? (
@@ -163,7 +163,7 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = ({
         </div>
 
         <div>
-          <Text variant="span" weight="medium">
+          <Text variant="span" className="device-text-body" weight="medium">
             Phone Number
           </Text>
           {isEditing ? (
@@ -199,7 +199,7 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = ({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Text variant="span" weight="medium">
+            <Text variant="span" className="device-text-body" weight="medium">
               Street Address
             </Text>
             {isEditing ? (
@@ -219,7 +219,7 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = ({
             )}
           </div>
           <div>
-            <Text variant="span" weight="medium">
+            <Text variant="span" className="device-text-body" weight="medium">
               City
             </Text>
             {isEditing ? (
@@ -237,7 +237,7 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = ({
             )}
           </div>
           <div>
-            <Text variant="span" weight="medium">
+            <Text variant="span" className="device-text-body" weight="medium">
               ZIP Code
             </Text>
             {isEditing ? (
@@ -276,12 +276,12 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = ({
       >
         <Card className="p-0">
           <div className="flex items-center justify-between p-6 pb-4">
-            <Text variant="h3" size="lg" weight="semibold">
+            <Text variant="h3" className="device-text-heading" weight="semibold">
               Confirm Save
             </Text>
           </div>
           <div className="px-6 pb-4">
-            <Text variant="p">
+            <Text variant="p" className="device-text-body">
               Are you sure you want to save these changes to your personal
               information?
             </Text>

@@ -10,13 +10,15 @@ const objectPath = process.env.BACKUP_OBJECT || 'db/backup.sql';
 const databaseUrl = process.env.DATABASE_URL || process.env.VITE_DATABASE_URL;
 
 if (!databaseUrl) {
-  throw new Error('Missing DATABASE_URL (or VITE_DATABASE_URL). Configure .env.backup');
+  throw new Error(
+    'Missing DATABASE_URL (or VITE_DATABASE_URL). Configure .env.backup'
+  );
 }
 
 const isWindows = process.platform === 'win32';
 const pgDumpExe = isWindows ? 'pg_dump.exe' : 'pg_dump';
 const pgDumpBin = process.env.PG_BIN
-  ? path.join(process.env.PG_BIN.replace(/\\+$/,'') as string, pgDumpExe)
+  ? path.join(process.env.PG_BIN.replace(/\\+$/, '') as string, pgDumpExe)
   : pgDumpExe;
 
 export async function runBackup(): Promise<void> {
@@ -37,7 +39,8 @@ export async function runBackup(): Promise<void> {
       if (v4 && v4.length > 0) return v4[0];
     } catch {}
     try {
-      const u = 'https://1.1.1.1/dns-query?name=' + encodeURIComponent(h) + '&type=A';
+      const u =
+        'https://1.1.1.1/dns-query?name=' + encodeURIComponent(h) + '&type=A';
       const r = await fetch(u, { headers: { accept: 'application/dns-json' } });
       if (r.ok) {
         const j: any = await r.json();
@@ -47,7 +50,8 @@ export async function runBackup(): Promise<void> {
       }
     } catch {}
     try {
-      const u = 'https://dns.google/resolve?name=' + encodeURIComponent(h) + '&type=A';
+      const u =
+        'https://dns.google/resolve?name=' + encodeURIComponent(h) + '&type=A';
       const r = await fetch(u);
       if (r.ok) {
         const j: any = await r.json();
@@ -67,22 +71,33 @@ export async function runBackup(): Promise<void> {
       env.PGHOSTADDR = hostaddr;
       console.log(`[backup] Resolved hostaddr: ${hostaddr}`);
     } else {
-      console.log('[backup] Could not resolve IPv4 hostaddr; proceeding with default resolver');
+      console.log(
+        '[backup] Could not resolve IPv4 hostaddr; proceeding with default resolver'
+      );
     }
     console.log(`[backup] Using pg_dump at: ${pgDumpBin}`);
-    const proc = spawn(pgDumpBin, args, { stdio: ['ignore', 'pipe', 'pipe'] as const, env });
+    const proc = spawn(pgDumpBin, args, {
+      stdio: ['ignore', 'pipe', 'pipe'] as const,
+      env,
+    });
 
     const chunks: Buffer[] = [];
-    proc.stdout.on('data', d => chunks.push(Buffer.isBuffer(d) ? d : Buffer.from(d)));
+    proc.stdout.on('data', d =>
+      chunks.push(Buffer.isBuffer(d) ? d : Buffer.from(d))
+    );
     proc.stderr.on('data', d => process.stderr.write(d));
 
     proc.on('error', err => reject(err));
     proc.on('close', async code => {
-      if (code !== 0) return reject(new Error(`pg_dump exited with code ${code}`));
+      if (code !== 0)
+        return reject(new Error(`pg_dump exited with code ${code}`));
       const buffer = Buffer.concat(chunks);
       const { error } = await admin.storage
         .from(bucketName)
-        .upload(objectPath, buffer, { upsert: true, contentType: 'application/sql' });
+        .upload(objectPath, buffer, {
+          upsert: true,
+          contentType: 'application/sql',
+        });
       if (error) return reject(error);
       resolve();
     });
@@ -102,5 +117,3 @@ try {
 } catch {
   // no-op if fileURLToPath not applicable
 }
-
-

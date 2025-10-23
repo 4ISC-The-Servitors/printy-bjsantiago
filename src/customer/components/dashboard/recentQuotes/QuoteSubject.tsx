@@ -8,7 +8,13 @@ interface QuoteSubjectProps {
 const QuoteSubject: React.FC<QuoteSubjectProps> = ({ subject }) => {
   return (
     <div>
-      <Text variant="p" size="sm" weight="medium" color="muted" className="mb-1">
+      <Text
+        variant="p"
+        size="sm"
+        weight="medium"
+        color="muted"
+        className="mb-1"
+      >
         Quote Request:
       </Text>
       <Text variant="p" size="base" weight="semibold" className="truncate">

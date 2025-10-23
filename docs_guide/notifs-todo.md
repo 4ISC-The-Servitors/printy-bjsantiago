@@ -508,9 +508,9 @@ end;
 $$ LANGUAGE plpgsql;
 
 -- Recreate the trigger
-CREATE TRIGGER trg_quote_proposal_updated_notifications 
-AFTER UPDATE ON quote_proposals 
-FOR EACH ROW 
+CREATE TRIGGER trg_quote_proposal_updated_notifications
+AFTER UPDATE ON quote_proposals
+FOR EACH ROW
 EXECUTE FUNCTION notify_customer_on_proposal_update();
 ```
 
@@ -583,7 +583,7 @@ RETURNS TRIGGER AS $$
 BEGIN
   -- Get order and customer info from related tables
   INSERT INTO notifications (customer_id, source_type, source_id, title, message, type, category)
-  SELECT 
+  SELECT
     o.customer_id,
     'payment',
     NEW.payment_id,
@@ -600,17 +600,17 @@ BEGIN
 
   -- Notify admins
   INSERT INTO notifications (customer_id, source_type, source_id, title, message, type, category)
-  SELECT 
-    c.customer_id, 
-    'payment', 
+  SELECT
+    c.customer_id,
+    'payment',
     NEW.payment_id,
     'Payment Event',
     'Payment for order #' || COALESCE(o.display_id, o.order_id::text) || ' status changed to "' || NEW.payment_status || '".',
-    'warning', 
+    'warning',
     'payment'
   FROM customer c
   CROSS JOIN orders o
-  WHERE c.customer_type = 'admin' 
+  WHERE c.customer_type = 'admin'
   AND o.order_id = NEW.order_id;
 
   RETURN NEW;
@@ -618,9 +618,9 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Recreate the trigger
-CREATE TRIGGER trigger_payment_notifications 
-AFTER INSERT OR UPDATE ON payments 
-FOR EACH ROW 
+CREATE TRIGGER trigger_payment_notifications
+AFTER INSERT OR UPDATE ON payments
+FOR EACH ROW
 EXECUTE FUNCTION notify_payment_events();
 
 -- Fix notify_ticket_events function
@@ -643,13 +643,13 @@ BEGIN
 
   -- Notify admins
   INSERT INTO notifications (customer_id, source_type, source_id, title, message, type, category)
-  SELECT 
-    c.customer_id, 
-    'ticket', 
+  SELECT
+    c.customer_id,
+    'ticket',
     NEW.inquiry_id,
     'Ticket Update',
     'Support ticket #' || COALESCE(NEW.display_id, NEW.inquiry_id::text) || ' status changed to "' || NEW.inquiry_status || '".',
-    'warning', 
+    'warning',
     'ticket'
   FROM customer c
   WHERE c.customer_type = 'admin';
@@ -659,9 +659,9 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Recreate the trigger
-CREATE TRIGGER trigger_ticket_notifications 
-AFTER INSERT OR UPDATE ON inquiries 
-FOR EACH ROW 
+CREATE TRIGGER trigger_ticket_notifications
+AFTER INSERT OR UPDATE ON inquiries
+FOR EACH ROW
 EXECUTE FUNCTION notify_ticket_events();
 ```
 

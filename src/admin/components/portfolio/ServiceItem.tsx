@@ -22,7 +22,6 @@ export const ServiceItem: React.FC<ServiceItemProps> = ({
   onHover,
   onViewInChat,
 }) => {
-
   return (
     <div
       className="relative flex items-center justify-between p-6 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors min-h-[80px]"
@@ -31,12 +30,7 @@ export const ServiceItem: React.FC<ServiceItemProps> = ({
     >
       <div className="flex items-center gap-4 min-w-0 flex-1">
         <div className="min-w-0 flex-1">
-          <Text
-            variant="p"
-            size="sm"
-            color="muted"
-            className="truncate"
-          >
+          <Text variant="p" size="sm" color="muted" className="truncate">
             {service.code}
           </Text>
           <Text

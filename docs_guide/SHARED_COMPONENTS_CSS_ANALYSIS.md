@@ -44,21 +44,25 @@ src/shared/components/
 ### Component Categories
 
 #### 1. UI Components (`src/shared/components/ui/`)
+
 - **Purpose**: Core reusable UI elements
 - **Pattern**: Compound components with consistent API
 - **Styling**: Mix of Tailwind classes and custom CSS classes
 
 #### 2. Layout Components (`src/shared/components/layout/`)
+
 - **Purpose**: Page structure and container components
 - **Pattern**: Responsive containers with size variants
 - **Styling**: Primarily Tailwind with custom container classes
 
 #### 3. Form Components (`src/shared/components/forms/`)
+
 - **Purpose**: Input controls and form utilities
 - **Pattern**: Controlled components with validation
 - **Styling**: Heavy use of responsive design patterns
 
 #### 4. Feedback Components (`src/shared/components/feedback/`)
+
 - **Purpose**: User notifications and feedback
 - **Pattern**: Stateful components with real-time updates
 - **Styling**: Custom CSS classes with Tailwind utilities
@@ -117,27 +121,30 @@ colors: {
 ```typescript
 fontFamily: {
   heading: ['Fraunces', 'Georgia', 'Times New Roman', 'serif'], /* I ONLY WANT FRAUNCES */
-  
+
   body: ['Space Grotesk', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'], /* I ONLY WANT SPACE GROTESK */
-  
+
   mono: ['JetBrains Mono', 'Consolas', 'Courier New', 'monospace'], /* I ONLY WANT SPACE GROTESK AND FRAUNCES */
-  
+
 }
 ```
 
 ### Custom Utilities
 
 #### Device-Responsive Classes
+
 - **Text Scaling**: `device-text-heading`, `device-text-body`, `device-text-caption`
 - **Button Scaling**: `device-btn-primary`, `device-btn-secondary`, `device-btn-tertiary`
 - **Layout Patterns**: `device-grid`, `device-container`, `device-card-item`
 
 #### 3D Effects
+
 - **Buttons**: `btn-3d` with depth shadows
 - **Containers**: `container-3d` with hover effects
 - **Inputs**: `input-3d` with focus states
 
 #### Animation System
+
 - **Transitions**: Custom duration and easing functions
 - **Keyframes**: Fade, slide, scale, spring, and morph animations
 - **Hover Effects**: Lift, glow, and transform effects
@@ -149,6 +156,7 @@ fontFamily: {
 ### CSS File Structure
 
 #### 1. `src/index.css` (1,018 lines)
+
 - **Purpose**: Global styles and Tailwind base
 - **Content**:
   - CSS custom properties (CSS variables)
@@ -159,6 +167,7 @@ fontFamily: {
   - Device-specific scaling
 
 #### 2. `src/App.css` (43 lines)
+
 - **Purpose**: Vite default styles (minimal usage)
 - **Content**: Basic app container styles
 - **Status**: Mostly unused, could be removed
@@ -173,22 +182,25 @@ The project uses CSS custom properties extensively for theming:
   --brand-primary: #4056a1;
   --brand-primary-50: #f0f4ff;
   --brand-accent: #d79922;
-  
+
   /* Neutral Colors */
   --neutral-0: #ffffff;
   --neutral-50: #fafaf9;
   /* ... complete neutral scale */
-  
+
   /* Typography */
-  --font-heading: 'Fraunces', Georgia, 'Times New Roman', serif; /* I ONLY WANT FRAUNCES */
-  
-  --font-body: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; /* I ONLY WANT SPACE GROTESK */
-  
+  --font-heading:
+    'Fraunces', Georgia, 'Times New Roman', serif; /* I ONLY WANT FRAUNCES */
+
+  --font-body:
+    'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    sans-serif; /* I ONLY WANT SPACE GROTESK */
+
   /* Spacing */
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   /* ... complete spacing scale */
-  
+
   /* Animation */
   --duration-instant: 0ms;
   --duration-fast: 100ms;
@@ -199,6 +211,7 @@ The project uses CSS custom properties extensively for theming:
 ### Component CSS Classes
 
 #### Button System
+
 ```css
 .btn {
   display: inline-flex;
@@ -228,6 +241,7 @@ The project uses CSS custom properties extensively for theming:
 ```
 
 #### Input System
+
 ```css
 .input {
   width: 100%;
@@ -243,12 +257,15 @@ The project uses CSS custom properties extensively for theming:
 ```
 
 #### Card System
+
 ```css
 .card {
   background-color: var(--neutral-0);
   border: 1px solid var(--neutral-200);
   border-radius: 0.75rem;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  box-shadow:
+    0 1px 3px 0 rgba(0, 0, 0, 0.1),
+    0 1px 2px 0 rgba(0, 0, 0, 0.06);
   transition: all var(--duration-normal) var(--ease-out);
 }
 ```
@@ -260,6 +277,7 @@ The project uses CSS custom properties extensively for theming:
 ### 1. Compound Component Pattern
 
 **Example: Card Component**
+
 ```typescript
 const Card = React.forwardRef<HTMLDivElement, CardProps>(
   ({ title, subtitle, children, hoverable = false, onClick, className, ...props }, ref) => {
@@ -284,6 +302,7 @@ Card.Actions = CardActions;
 ### 2. Responsive Design Pattern
 
 **Example: Search Component**
+
 ```typescript
 const sizeClasses = {
   sm: 'h-8 text-xs sm:h-9 sm:text-sm',
@@ -295,6 +314,7 @@ const sizeClasses = {
 ### 3. Variant-Based Styling
 
 **Example: Badge Component**
+
 ```typescript
 const getVariantClasses = (variant: BadgeProps['variant']) =>
   ({
@@ -312,6 +332,7 @@ const getVariantClasses = (variant: BadgeProps['variant']) =>
 ### 4. Custom CSS Class Integration
 
 **Example: Button Component**
+
 ```typescript
 const baseClasses = 'btn';
 const variantClasses = buttonVariants[variant];
@@ -354,27 +375,37 @@ screens: {
 ### Responsive Hooks
 
 #### `useResponsiveClasses`
+
 ```typescript
 export function useResponsiveClasses() {
-  const textClasses: ResponsiveTextClasses = useMemo(() => ({
-    caption: 'text-xs sm:text-sm md:text-base lg:text-lg',
-    body: 'text-sm sm:text-base md:text-lg lg:text-xl',
-    heading: 'text-sm sm:text-base md:text-lg lg:text-xl',
-    hero: 'text-lg sm:text-xl md:text-2xl lg:text-3xl',
-    display: 'text-xl sm:text-2xl md:text-3xl lg:text-4xl'
-  }), []);
+  const textClasses: ResponsiveTextClasses = useMemo(
+    () => ({
+      caption: 'text-xs sm:text-sm md:text-base lg:text-lg',
+      body: 'text-sm sm:text-base md:text-lg lg:text-xl',
+      heading: 'text-sm sm:text-base md:text-lg lg:text-xl',
+      hero: 'text-lg sm:text-xl md:text-2xl lg:text-3xl',
+      display: 'text-xl sm:text-2xl md:text-3xl lg:text-4xl',
+    }),
+    []
+  );
 
-  const buttonClasses: ResponsiveButtonClasses = useMemo(() => ({
-    primary: 'h-8 px-3 text-xs sm:h-9 sm:px-4 sm:text-sm md:h-10 md:px-5 md:text-base lg:h-11 lg:px-6 lg:text-lg',
-    secondary: 'h-7 px-2 text-xs sm:h-8 sm:px-3 sm:text-sm md:h-9 md:px-4 md:text-base lg:h-10 lg:px-5 lg:text-lg',
-    // ...
-  }), []);
+  const buttonClasses: ResponsiveButtonClasses = useMemo(
+    () => ({
+      primary:
+        'h-8 px-3 text-xs sm:h-9 sm:px-4 sm:text-sm md:h-10 md:px-5 md:text-base lg:h-11 lg:px-6 lg:text-lg',
+      secondary:
+        'h-7 px-2 text-xs sm:h-8 sm:px-3 sm:text-sm md:h-9 md:px-4 md:text-base lg:h-10 lg:px-5 lg:text-lg',
+      // ...
+    }),
+    []
+  );
 }
 ```
 
 ### Device-Specific Utilities
 
 #### Touch Device Optimization
+
 ```css
 @media (hover: none) and (pointer: coarse) and (min-width: 1024px) {
   .device-text-heading {
@@ -398,18 +429,20 @@ export function useResponsiveClasses() {
 ### 1. CSS Class Naming Conflicts
 
 #### Problem: Mixed Naming Conventions
+
 - **Custom CSS**: Uses kebab-case (`btn-primary`, `input-3d`)
 - **Tailwind**: Uses utility classes (`bg-blue-500`, `text-lg`)
 - **Components**: Mix both approaches inconsistently
 
 #### Examples:
+
 ```typescript
 // In Button.tsx - uses custom CSS classes
 const baseClasses = 'btn';
 const variantClasses = buttonVariants[variant]; // 'btn-primary'
 
 // In Badge.tsx - uses Tailwind classes
-const getVariantClasses = (variant) => ({
+const getVariantClasses = variant => ({
   primary: 'bg-brand-primary-100 text-brand-primary-800', // Tailwind
 });
 ```
@@ -417,11 +450,13 @@ const getVariantClasses = (variant) => ({
 ### 2. Responsive Design Inconsistencies
 
 #### Problem: Multiple Responsive Patterns
+
 - **Pattern 1**: Direct responsive classes in components
 - **Pattern 2**: Responsive hooks with predefined classes
 - **Pattern 3**: Device-specific utility classes
 
 #### Examples:
+
 ```typescript
 // Pattern 1: Direct responsive classes
 className="h-8 text-xs sm:h-9 sm:text-sm md:h-10 md:text-base"
@@ -437,11 +472,13 @@ className="device-btn-primary"
 ### 3. Color System Inconsistencies
 
 #### Problem: Multiple Color References
+
 - **CSS Variables**: `var(--brand-primary)`
 - **Tailwind Classes**: `bg-brand-primary`
 - **Direct Values**: `#4056A1`
 
 #### Examples:
+
 ```css
 /* CSS Variables */
 --brand-primary: #4056a1;
@@ -457,6 +494,7 @@ style={{ color: 'var(--brand-primary)' }} // CSS Variable
 ### 4. Spacing System Conflicts
 
 #### Problem: Multiple Spacing Systems
+
 - **Tailwind Spacing**: `p-4`, `m-2`, `gap-3`
 - **CSS Variables**: `var(--space-4)`
 - **Custom Classes**: `device-spacing-component`
@@ -464,6 +502,7 @@ style={{ color: 'var(--brand-primary)' }} // CSS Variable
 ### 5. Animation System Duplication
 
 #### Problem: Multiple Animation Approaches
+
 - **Tailwind Animations**: `animate-fade-in`, `animate-spring`
 - **CSS Keyframes**: Custom `@keyframes` definitions
 - **Component State**: JavaScript-based animations
@@ -475,15 +514,18 @@ style={{ color: 'var(--brand-primary)' }} // CSS Variable
 ### 1. Standardize CSS Class Naming
 
 #### Recommendation: Adopt Tailwind-First Approach
+
 ```typescript
 // Instead of custom CSS classes
 const baseClasses = 'btn';
 
 // Use Tailwind utilities with custom CSS for complex patterns
-const baseClasses = 'inline-flex items-center justify-center gap-2 px-4 py-2 rounded-md font-medium transition-colors';
+const baseClasses =
+  'inline-flex items-center justify-center gap-2 px-4 py-2 rounded-md font-medium transition-colors';
 ```
 
 #### Action Items:
+
 - [ ] Audit all custom CSS classes
 - [ ] Replace simple custom classes with Tailwind utilities
 - [ ] Keep only complex patterns as custom CSS (3D effects, animations)
@@ -492,6 +534,7 @@ const baseClasses = 'inline-flex items-center justify-center gap-2 px-4 py-2 rou
 ### 2. Unify Responsive Design Patterns
 
 #### Recommendation: Standardize on Responsive Hooks
+
 ```typescript
 // Create a unified responsive system
 export function useResponsiveDesign() {
@@ -507,14 +550,17 @@ export function useResponsiveDesign() {
       large: 'p-6 sm:p-8 md:p-12 lg:p-16',
     },
     buttons: {
-      primary: 'h-9 px-4 text-sm sm:h-10 sm:px-5 sm:text-base md:h-11 md:px-6 md:text-lg',
-      secondary: 'h-8 px-3 text-xs sm:h-9 sm:px-4 sm:text-sm md:h-10 md:px-5 md:text-base',
-    }
+      primary:
+        'h-9 px-4 text-sm sm:h-10 sm:px-5 sm:text-base md:h-11 md:px-6 md:text-lg',
+      secondary:
+        'h-8 px-3 text-xs sm:h-9 sm:px-4 sm:text-sm md:h-10 md:px-5 md:text-base',
+    },
   };
 }
 ```
 
 #### Action Items:
+
 - [ ] Create unified responsive design hook
 - [ ] Migrate all components to use the unified system
 - [ ] Remove duplicate responsive patterns
@@ -523,6 +569,7 @@ export function useResponsiveDesign() {
 ### 3. Consolidate Color System
 
 #### Recommendation: Use Tailwind Colors Exclusively
+
 ```typescript
 // Remove CSS variables for colors, use Tailwind config
 colors: {
@@ -541,6 +588,7 @@ className="bg-brand-primary-500 text-white"
 ```
 
 #### Action Items:
+
 - [ ] Remove color CSS variables
 - [ ] Update all components to use Tailwind color classes
 - [ ] Ensure color consistency across all components
@@ -549,6 +597,7 @@ className="bg-brand-primary-500 text-white"
 ### 4. Simplify Animation System
 
 #### Recommendation: Use Tailwind Animations with Custom Extensions
+
 ```typescript
 // In tailwind.config.ts
 animation: {
@@ -559,6 +608,7 @@ animation: {
 ```
 
 #### Action Items:
+
 - [ ] Audit all custom animations
 - [ ] Move complex animations to Tailwind config
 - [ ] Remove duplicate animation definitions
@@ -567,18 +617,22 @@ animation: {
 ### 5. Create Component Style Guide
 
 #### Recommendation: Document Component Patterns
+
 ```markdown
 ## Button Component Styling
 
 ### Base Classes
+
 - Use Tailwind utilities for basic styling
 - Apply custom CSS only for complex effects (3D, morphing)
 
 ### Responsive Design
+
 - Use `useResponsiveDesign()` hook for consistent scaling
 - Follow mobile-first approach
 
 ### Variants
+
 - Define variants in component props
 - Map variants to Tailwind classes
 - Avoid custom CSS for simple variants
@@ -587,6 +641,7 @@ animation: {
 ### 6. Implement CSS Architecture Linting
 
 #### Recommendation: Add Stylelint Rules
+
 ```json
 {
   "rules": {
@@ -602,24 +657,28 @@ animation: {
 ## Migration Strategy
 
 ### Phase 1: Audit and Document (Week 1)
+
 - [ ] Complete component audit
 - [ ] Document all custom CSS classes
 - [ ] Identify high-impact conflicts
 - [ ] Create migration timeline
 
 ### Phase 2: Standardize Core System (Week 2-3)
+
 - [ ] Implement unified responsive design hook
 - [ ] Consolidate color system
 - [ ] Standardize animation system
 - [ ] Update core components (Button, Input, Card)
 
 ### Phase 3: Migrate Components (Week 4-6)
+
 - [ ] Migrate UI components
 - [ ] Migrate layout components
 - [ ] Migrate form components
 - [ ] Migrate feedback components
 
 ### Phase 4: Cleanup and Optimization (Week 7-8)
+
 - [ ] Remove unused CSS
 - [ ] Optimize bundle size
 - [ ] Update documentation

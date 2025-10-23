@@ -44,9 +44,7 @@
  */
 
 import { supabase } from '@lib/supabase';
-import {
-  withErrorHandling,
-} from '@features/chat/helpers/errorHandling';
+import { withErrorHandling } from '@features/chat/helpers/errorHandling';
 import type {
   ActionExecutionParams,
   ActionExecutionResult,
@@ -99,7 +97,7 @@ export async function fetchDenialReason(
             role: 'printy',
             text: `Reason for denial:\n\n${denialReason}`,
             ts: Date.now(),
-        },
+          },
         ],
         context: {},
       };

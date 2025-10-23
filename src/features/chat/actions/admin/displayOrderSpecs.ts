@@ -89,7 +89,7 @@ export async function displayOrderSpecs(
 
       // Format order specifications
       const specLines = formatOrderSpecs(orderDetails.orderSpecs);
-      
+
       let specsText = `Order Specifications:\n\n`;
       if (specLines.length > 0) {
         specsText += specLines.join('\n');

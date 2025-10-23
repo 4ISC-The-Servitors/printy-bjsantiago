@@ -16,7 +16,12 @@ export { default as Input } from './Input';
 export type { InputProps } from './Input';
 
 export { default as Modal } from './Modal';
-export type { ModalProps, ModalHeaderProps, ModalBodyProps, ModalFooterProps } from './Modal';
+export type {
+  ModalProps,
+  ModalHeaderProps,
+  ModalBodyProps,
+  ModalFooterProps,
+} from './Modal';
 
 export { default as Pagination } from './Pagination';
 

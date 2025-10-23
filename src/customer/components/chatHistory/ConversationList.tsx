@@ -15,7 +15,10 @@ interface ConversationListProps {
   onOpen: (id: string) => void;
 }
 
-const ConversationList: React.FC<ConversationListProps> = ({ conversations, onOpen }) => {
+const ConversationList: React.FC<ConversationListProps> = ({
+  conversations,
+  onOpen,
+}) => {
   if (!conversations || conversations.length === 0) return null;
   return (
     <div className="space-y-2">
@@ -27,5 +30,3 @@ const ConversationList: React.FC<ConversationListProps> = ({ conversations, onOp
 };
 
 export default ConversationList;
-
-

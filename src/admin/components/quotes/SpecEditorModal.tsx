@@ -5,7 +5,6 @@ import { supabase } from '@lib/supabase';
 import { Modal } from '@admin/components/shared';
 import SpecEditorForm, { type SpecFormData } from './SpecEditorForm';
 
-
 export function SpecEditorModal() {
   const [isOpen, setIsOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -62,7 +61,9 @@ export function SpecEditorModal() {
   return (
     <Modal isOpen={isOpen} onClose={() => setIsOpen(false)} size="md">
       <div className="bg-white rounded-2xl shadow-xl border border-neutral-200 p-4 sm:p-5 md:p-6 max-h-[85vh] overflow-y-auto overscroll-contain">
-        <h2 className="text-base sm:text-lg md:text-xl font-semibold mb-3 sm:mb-4">Review Order Specifications</h2>
+        <h2 className="text-base sm:text-lg md:text-xl font-semibold mb-3 sm:mb-4">
+          Review Order Specifications
+        </h2>
 
         <SpecEditorForm
           initialData={initialFormData}
@@ -72,7 +73,7 @@ export function SpecEditorModal() {
             setSaveError(null);
             setSaveSuccess(false);
           }}
-          onSubmit={async (data) => {
+          onSubmit={async data => {
             if (!data.quoted_price) {
               setSaveError('Quoted price is required');
               return;

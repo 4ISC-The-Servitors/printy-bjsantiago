@@ -7,6 +7,7 @@
 ---
 
 ## Table of Contents
+
 1. [Problem Summary](#problem-summary)
 2. [Debugging Process](#debugging-process)
 3. [Root Causes Identified](#root-causes-identified)
@@ -18,13 +19,16 @@
 ## Problem Summary
 
 ### Symptoms
+
 Users reported duplicate messages appearing in the chat UI for:
+
 - **pay-order flow**: "Processing your cancellation..." appeared twice
 - **track-quote flow**: Quote details displayed twice
 - **ask-quote flow**: Success messages duplicated
 - **Admin flows**: Quote metadata bloat (100KB+ per session)
 
 ### Visual Evidence
+
 Screenshots showed messages appearing twice in the UI, but database queries revealed messages existed only once in `chat_messages_v2` table, indicating a **message insertion duplication bug**, not a rendering issue.
 
 ---
@@ -34,6 +38,7 @@ Screenshots showed messages appearing twice in the UI, but database queries reve
 ### Phase 1: Database Investigation
 
 **Step 1: Query the database for messages**
+
 ```sql
 SELECT * FROM chat_messages_v2
 WHERE session_id = '20fb800a-8635-417e-af90-d5fb9fb4738a'
@@ -41,6 +46,7 @@ ORDER BY sent_at;
 ```
 
 **Finding:** Two messages with identical text "Processing your cancellation..." but different `message_id` and timestamps:
+
 - Message 1: `f2794c48-e6e9-4822-af8b-d46f448faace` from node `cancel_order` at 16:55:04.248
 - Message 2: `f1d9f134-8cea-4dc0-9ff2-f79193c8b49a` from node `handle_cancel` at 16:55:04.689
 
@@ -51,12 +57,14 @@ ORDER BY sent_at;
 ### Phase 2: Flow Definition Analysis
 
 **Step 2: Examine flow definitions**
+
 ```sql
 SELECT flow_id, flow_definition FROM chat_flows_v2
 WHERE flow_id = 'pay-order';
 ```
 
 **Finding in `pay-order` flow:**
+
 ```json
 {
   "handle_cancel": {
@@ -69,6 +77,7 @@ WHERE flow_id = 'pay-order';
 ```
 
 **Critical Discovery:** The action node has BOTH:
+
 1. A `message` property on the node itself
 2. An action handler that likely also sends a message
 
@@ -150,6 +159,7 @@ for (const message of actionResult.messages) {
 ```
 
 **ROOT CAUSE IDENTIFIED:**
+
 - `executeAction` inserts message to DB
 - `executeAction` returns message in array
 - Caller receives array and inserts to DB again
@@ -168,6 +178,7 @@ grep -r "insertMessage" src/features/chat/actions/
 **Finding:** 10+ action handlers were ALSO calling `insertMessage` directly:
 
 Example from `createQuoteConversation.ts`:
+
 ```typescript
 messages.push({
   id: crypto.randomUUID(),
@@ -176,7 +187,8 @@ messages.push({
   ts: Date.now(),
 });
 
-await insertMessage({  // ❌ DUPLICATE!
+await insertMessage({
+  // ❌ DUPLICATE!
   sessionId,
   text: successText,
   role: 'printy',
@@ -187,12 +199,14 @@ return { messages };
 ```
 
 **Pattern Discovered:**
+
 1. Action handler inserts message to DB
 2. Action handler returns message in array
 3. JsonbFlowProcessor caller inserts to DB again
 4. **Result:** Another duplication!
 
 **Files affected:**
+
 - `createQuoteConversation.ts` - 1 duplicate
 - `displayOriginalRequest.ts` - 1 duplicate
 - `displayProposalSpecs.ts` - 2 duplicates
@@ -255,16 +269,19 @@ Location: `src/admin/hooks/useAdminChat.ts:294-324`
 ## Root Causes Identified
 
 ### Cause 1: Double Insert in JsonbFlowProcessor
+
 - **Location:** `JsonbFlowProcessor.ts:863-882`
 - **Issue:** `executeAction` inserted action node messages to DB AND returned them
 - **Impact:** All action node messages duplicated
 
 ### Cause 2: Direct insertMessage in Action Handlers
+
 - **Location:** 10+ action handler files
 - **Issue:** Handlers called `insertMessage` AND returned messages in array
 - **Impact:** All action result messages duplicated
 
 ### Cause 3: Metadata Bloat
+
 - **Location:** `useAdminChat.ts:297`
 - **Issue:** Entire quotes array (100KB+) saved to session metadata
 - **Impact:** Database bloat, slow queries
@@ -278,6 +295,7 @@ Location: `src/admin/hooks/useAdminChat.ts:294-324`
 **File:** `src/features/chat/services/JsonbFlowProcessor.ts`
 
 **Before:**
+
 ```typescript
 if (actionNode.message && actionNode.message.trim().length > 0) {
   messages.push({...});
@@ -292,6 +310,7 @@ if (actionNode.message && actionNode.message.trim().length > 0) {
 ```
 
 **After:**
+
 ```typescript
 if (actionNode.message && actionNode.message.trim().length > 0) {
   messages.push({...});
@@ -306,6 +325,7 @@ if (actionNode.message && actionNode.message.trim().length > 0) {
 ### Fix 2: Remove insertMessage from All Action Handlers
 
 **Files Fixed (10 total):**
+
 - ✅ `createQuoteConversation.ts`
 - ✅ `displayOriginalRequest.ts`
 - ✅ `displayProposalSpecs.ts`
@@ -320,10 +340,12 @@ if (actionNode.message && actionNode.message.trim().length > 0) {
 **Pattern Applied:**
 
 **Before:**
+
 ```typescript
 messages.push({ id: '...', role: 'printy', text: resultText, ts: Date.now() });
 
-await insertMessage({  // ❌ Remove this
+await insertMessage({
+  // ❌ Remove this
   sessionId,
   text: resultText,
   role: 'printy',
@@ -334,6 +356,7 @@ return { messages };
 ```
 
 **After:**
+
 ```typescript
 messages.push({ id: '...', role: 'printy', text: resultText, ts: Date.now() });
 
@@ -350,6 +373,7 @@ return { messages };
 **File:** `src/admin/hooks/useAdminChat.ts`
 
 **Before:**
+
 ```typescript
 } else if (nextTopic === 'quotes') {
   context = {
@@ -362,6 +386,7 @@ return { messages };
 ```
 
 **After:**
+
 ```typescript
 } else if (nextTopic === 'quotes') {
   // ✅ FIX: Don't include quotes array in context to prevent metadata bloat
@@ -380,6 +405,7 @@ return { messages };
 ### Fix 4: Code Cleanup
 
 **Removed unused imports:**
+
 ```typescript
 // ❌ Before
 import { insertMessage } from '@features/chat/helpers/flowHelpers';
@@ -389,12 +415,13 @@ import { insertMessage } from '@features/chat/helpers/flowHelpers';
 ```
 
 **Fixed unused parameter warnings:**
+
 ```typescript
 // ❌ Before
-const { actionNode, context, sessionId } = params;  // sessionId not used
+const { actionNode, context, sessionId } = params; // sessionId not used
 
 // ✅ After
-const { actionNode, context, sessionId: _sessionId } = params;  // Explicitly unused
+const { actionNode, context, sessionId: _sessionId } = params; // Explicitly unused
 ```
 
 ---
@@ -402,12 +429,15 @@ const { actionNode, context, sessionId: _sessionId } = params;  // Explicitly un
 ## Verification
 
 ### Build Status
+
 ```bash
 npm run build
 ```
+
 ✅ **Result:** Build successful, no TypeScript errors
 
 ### Test Results
+
 - ✅ No duplicate messages in pay-order flow
 - ✅ No duplicate messages in track-quote flow
 - ✅ No duplicate messages in ask-quote flow
@@ -421,12 +451,14 @@ npm run build
 ### For Future Development
 
 #### ✅ DO:
+
 1. **Return messages in array** from action handlers
 2. **Let JsonbFlowProcessor handle DB insertion** - it has centralized logic
 3. **Keep metadata lean** - only store IDs and essential flags
 4. **Test with database queries** - check `chat_messages_v2` for duplicates
 
 #### ❌ DON'T:
+
 1. **Don't call `insertMessage` in action handlers** - causes duplicates
 2. **Don't call `insertMessage` in `executeAction`** - caller handles it
 3. **Don't store UI arrays in session metadata** - causes bloat
@@ -448,6 +480,7 @@ When reviewing new action handlers:
 ### Message Flow Architecture
 
 **Correct Flow:**
+
 ```
 Action Handler
     ↓ (returns messages array)
@@ -461,6 +494,7 @@ chat_messages_v2 table
 ```
 
 **Key Principle:**
+
 > **Messages should be inserted to the database ONCE, by the JsonbFlowProcessor caller, NOT by individual action handlers.**
 
 ---
@@ -468,6 +502,7 @@ chat_messages_v2 table
 ## Debugging Tools Used
 
 ### SQL Queries
+
 ```sql
 -- Check for duplicate messages
 SELECT message_text, COUNT(*)
@@ -491,6 +526,7 @@ WHERE flow_id IN ('pay-order', 'track-quote', 'ask-quote');
 ```
 
 ### Grep Commands
+
 ```bash
 # Find all insertMessage calls
 grep -r "insertMessage" src/features/chat/actions/
@@ -503,6 +539,7 @@ grep -r "metadata.*quotes" src/admin/
 ```
 
 ### TypeScript Compilation
+
 ```bash
 # Check for type errors
 npx tsc --noEmit
@@ -516,6 +553,7 @@ npm run build
 ## Impact Summary
 
 ### Before Fix
+
 - ❌ Every action node message duplicated
 - ❌ Every action handler message duplicated
 - ❌ Admin sessions 100KB+ in size
@@ -523,6 +561,7 @@ npm run build
 - ❌ Poor user experience (confusing duplicate messages)
 
 ### After Fix
+
 - ✅ Single copy of each message in database
 - ✅ Admin sessions reduced to <1KB
 - ✅ Clean, maintainable codebase
@@ -530,6 +569,7 @@ npm run build
 - ✅ Excellent user experience
 
 ### Metrics
+
 - **10+ files modified**
 - **35+ insertMessage calls removed**
 - **90%+ reduction in admin session metadata size**
@@ -540,9 +580,11 @@ npm run build
 ## Additional Fix: Admin Chat Input Duplication (October 21, 2025)
 
 ### Issue Discovered
+
 After the initial fixes, a new type of duplication was identified in admin chat sessions where **user inputs were being duplicated**.
 
 **Example from admin-verify-payment flow:**
+
 - Admin input: "labubu v2" (denial reason)
 - First insertion: `17:44:04.304138+00`
 - Second insertion: `17:44:04.519469+00`
@@ -551,6 +593,7 @@ After the initial fixes, a new type of duplication was identified in admin chat 
 ### Root Cause Analysis
 
 **Investigation Process:**
+
 1. **Database Query**: Confirmed duplication in `chat_messages_v2` table
 2. **Code Review**: Traced duplication to `useAdminChat.ts`
 3. **Flow Analysis**: Found double insertion pattern in admin chat handling
@@ -581,11 +624,11 @@ const resp = await JsonbFlowProcessor.processInput({
 **File:** `src/admin/hooks/useAdminChat.ts`
 
 **Regular Messages Fix:**
+
 ```typescript
 // Before (caused duplication):
 setMessages(prev => [...prev, userMsg]);
-if (currentConversationId)
-  addConvMessage('user', text, currentConversationId);
+if (currentConversationId) addConvMessage('user', text, currentConversationId);
 // Persist admin's message to chat_messages for all admin chats
 if (dbSessionId) {
   void ChatDatabaseService.insertMessage({
@@ -597,13 +640,13 @@ if (dbSessionId) {
 
 // After (fixed):
 setMessages(prev => [...prev, userMsg]);
-if (currentConversationId)
-  addConvMessage('user', text, currentConversationId);
+if (currentConversationId) addConvMessage('user', text, currentConversationId);
 // ✅ FIX: Don't insert message here - JsonbFlowProcessor will handle it
 // This prevents duplicate admin messages in the database
 ```
 
 **Quick Replies Fix:**
+
 ```typescript
 // Before (caused duplication):
 // Persist admin quick-reply selection to DB for all admin chats
@@ -623,11 +666,13 @@ if (dbSessionId) {
 ### Updated Metrics
 
 **Additional Changes:**
+
 - **2 more insertion points removed** from admin chat system
 - **100% elimination of admin input duplication**
 - **Clean backreading experience** for all admin sessions
 
 **Total Impact:**
+
 - **12+ files modified** (including new fixes)
 - **37+ insertMessage calls removed** (including new fixes)
 - **100% elimination of all message duplication** (system and user inputs)
@@ -635,12 +680,15 @@ if (dbSessionId) {
 ### Verification
 
 **Build Status:**
+
 ```bash
 npm run build
 ```
+
 ✅ **Result:** Build successful, no TypeScript errors
 
 **Database Query Verification:**
+
 ```sql
 -- Check for duplicate admin inputs
 SELECT session_id, sender_role, message_text, sent_at, COUNT(*)
@@ -650,6 +698,7 @@ WHERE session_id = '47d10f7b-202b-4f81-8d2e-000724774c51'
 GROUP BY message_text, sent_at
 HAVING COUNT(*) > 1;
 ```
+
 ✅ **Result:** No duplicate admin inputs found
 
 ### Lessons Learned (Updated)

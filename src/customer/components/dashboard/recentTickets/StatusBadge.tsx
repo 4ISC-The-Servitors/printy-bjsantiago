@@ -10,7 +10,9 @@ interface StatusBadgeProps {
 const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
   const { getStatusBadgeClasses } = useResponsiveBadge();
 
-  const getVariant = (s: string):
+  const getVariant = (
+    s: string
+  ):
     | 'default'
     | 'primary'
     | 'secondary'
@@ -29,12 +31,14 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
   };
 
   return (
-    <Badge variant={getVariant(status)} size="md" className={getStatusBadgeClasses('standard')}>
+    <Badge
+      variant={getVariant(status)}
+      size="md"
+      className={getStatusBadgeClasses('standard')}
+    >
       {formatTicketStatus(status)}
     </Badge>
   );
 };
 
 export default StatusBadge;
-
-

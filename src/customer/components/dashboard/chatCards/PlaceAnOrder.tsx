@@ -12,13 +12,13 @@ const PlaceAnOrder: React.FC<CardProps> = ({ onClick }) => {
       onClick={onClick}
       className="group bg-white rounded-xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 border border-neutral-200 hover:border-brand-primary/20 hover:-translate-y-1 text-left"
     >
-      <div className="w-12 h-12 rounded-lg bg-brand-accent-50 text-brand-accent flex items-center justify-center mb-4 group-hover:bg-brand-accent group-hover:text-white transition-colors">
+      <div className="w-12 h-12 rounded-lg bg-green-50 text-green-600 flex items-center justify-center mb-4 group-hover:bg-green-600 group-hover:text-white transition-colors">
         <ShoppingCart className="w-6 h-6" />
       </div>
-      <Text variant="h3" size="xl" weight="semibold" className="mb-2">
+      <Text variant="h3" size="lg" weight="semibold" className="mb-2">
         Place an Order
       </Text>
-      <Text variant="p" size="sm" color="muted">
+      <Text variant="p" size="xs" color="muted">
         Avail B.J. Santiago's printing services
       </Text>
     </button>

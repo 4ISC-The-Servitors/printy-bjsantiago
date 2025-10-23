@@ -1,6 +1,6 @@
 import React from 'react';
 import { Text, Badge } from '@shared/components';
-import { formatLongDate } from '@shared/utils/dateFormatter';
+import { formatShortDate } from '@shared/utils/dateFormatter';
 import { formatShortTime } from '@shared/utils/timeFormatter';
 import type { ChatMessage } from '@features/chat/types/chat';
 
@@ -13,8 +13,14 @@ interface ConversationItemProps {
   onOpen: (id: string) => void;
 }
 
-const ConversationItem: React.FC<ConversationItemProps> = ({ id, title, createdAt, status, onOpen }) => {
-  const dateLabel = formatLongDate(createdAt);
+const ConversationItem: React.FC<ConversationItemProps> = ({
+  id,
+  title,
+  createdAt,
+  status,
+  onOpen,
+}) => {
+  const dateLabel = formatShortDate(createdAt);
   const timeLabel = formatShortTime(createdAt);
   return (
     <button
@@ -27,7 +33,10 @@ const ConversationItem: React.FC<ConversationItemProps> = ({ id, title, createdA
             <Text variant="h4" size="sm" weight="semibold" className="truncate">
               {title}
             </Text>
-            <Badge variant={status === 'active' ? 'success' : 'error'} size="sm">
+            <Badge
+              variant={status === 'active' ? 'success' : 'error'}
+              size="sm"
+            >
               {status === 'active' ? 'Active' : 'Ended'}
             </Badge>
           </div>
@@ -41,5 +50,3 @@ const ConversationItem: React.FC<ConversationItemProps> = ({ id, title, createdA
 };
 
 export default ConversationItem;
-
-
