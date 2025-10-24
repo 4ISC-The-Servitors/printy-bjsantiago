@@ -9,6 +9,7 @@ interface Props {
   region: string;
   province: string;
   city: string;
+  zipCode: string;
   agreeToTerms: boolean;
   onChange: (
     field:
@@ -17,7 +18,8 @@ interface Props {
       | 'barangay'
       | 'region'
       | 'province'
-      | 'city',
+      | 'city'
+      | 'zipCode',
     value: string
   ) => void;
   onToggleTerms: (checked: boolean) => void;
@@ -30,6 +32,7 @@ const Step3Address: React.FC<Props> = ({
   region,
   province,
   city,
+  zipCode,
   agreeToTerms,
   onChange,
   onToggleTerms,
@@ -164,6 +167,23 @@ const Step3Address: React.FC<Props> = ({
             </svg>
           </div>
         </div>
+      </div>
+
+      <div className="space-y-2">
+        <Input
+          label="ZIP Code"
+          type="text"
+          placeholder="Enter ZIP code"
+          value={zipCode}
+          onChange={e => onChange('zipCode', e.target.value)}
+          required
+          className="pr-12"
+          wrapperClassName="relative"
+        >
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400">
+            <MapPin className="w-5 h-5" />
+          </div>
+        </Input>
       </div>
 
       <div className="flex items-start space-x-3">
