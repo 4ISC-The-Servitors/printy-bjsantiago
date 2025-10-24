@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Text, Card } from '@shared/components';
+import { Text, Card, Pagination } from '@shared/components';
 import { supabase } from '@lib/supabase';
 import { useToast } from '@lib/useToast';
 import { useResponsiveClasses } from '@shared/hooks/ui';
+import { useResponsivePageSize } from '@shared/hooks/ui/useResponsivePageSize';
 import {
   type UINotificationItem,
   startNotificationListener,
@@ -17,6 +18,23 @@ const AdminDashboard: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [, toast] = useToast();
   const { textClasses } = useResponsiveClasses();
+
+  // Responsive pagination state
+  const [page, setPage] = useState(1);
+  const pageSize = useResponsivePageSize({
+    itemHeight: 120, // Approximate height of notification card
+    itemSpacing: 12, // space-y-3 = 12px
+    headerOffset: 200, // Navbar + header + pagination
+    footerOffset: 0, // No footer pagination
+    minItems: 3,
+    maxItems: 15,
+    useDynamicCalculation: true,
+    breakpoints: {
+      phone: 3,
+      tablet: 6,
+      desktop: 8,
+    },
+  });
 
   // Get current user
   const [user, setUser] = useState<any>(null);
@@ -71,6 +89,18 @@ const AdminDashboard: React.FC = () => {
     setUnreadCount(0);
   };
 
+  // Calculate paginated notifications
+  const start = (page - 1) * pageSize;
+  const paginatedNotifications = notifications.slice(start, start + pageSize);
+
+  // Reset to page 1 if current page exceeds available pages
+  useEffect(() => {
+    const maxPage = Math.max(1, Math.ceil(notifications.length / pageSize));
+    if (page > maxPage) {
+      setPage(maxPage);
+    }
+  }, [notifications.length, pageSize, page]);
+
   if (!user) return null;
 
   return (
@@ -122,47 +152,67 @@ const AdminDashboard: React.FC = () => {
             </Text>
           </div>
         ) : (
-          <div className="space-y-3 max-h-96 overflow-y-auto">
-            {notifications.map(notification => (
-              <div
-                key={notification.id}
-                className={`p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors ${
-                  !notification.isRead ? 'bg-blue-50 border-blue-200' : ''
-                }`}
-                onClick={() => handleMarkAsRead(notification.id)}
-              >
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
+          <>
+            {/* Pagination Header */}
+            {notifications.length > pageSize && (
+              <div className="flex items-center justify-center px-1 py-1 mb-4">
+                <Pagination
+                  page={page}
+                  pageSize={pageSize}
+                  total={notifications.length}
+                  onPageChange={setPage}
+                />
+              </div>
+            )}
+
+            {/* Notifications List */}
+            <div className="space-y-3">
+              {paginatedNotifications.map(notification => (
+                <div
+                  key={notification.id}
+                  className={`p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors ${
+                    !notification.isRead ? 'bg-blue-50 border-blue-200' : ''
+                  }`}
+                  onClick={() => handleMarkAsRead(notification.id)}
+                >
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Text
+                          variant="p"
+                          size="base"
+                          weight="medium"
+                          className="text-gray-900"
+                        >
+                          {notification.title}
+                        </Text>
+                        {!notification.isRead && (
+                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                        )}
+                      </div>
                       <Text
                         variant="p"
-                        size="base"
-                        weight="medium"
-                        className="text-gray-900"
+                        size="sm"
+                        color="muted"
+                        className="mb-2"
                       >
-                        {notification.title}
+                        {notification.message}
                       </Text>
-                      {!notification.isRead && (
-                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                      )}
-                    </div>
-                    <Text variant="p" size="sm" color="muted" className="mb-2">
-                      {notification.message}
-                    </Text>
-                    <div className="flex items-center gap-2">
-                      <Text variant="p" size="xs" color="muted">
-                        {notification.timestamp}
-                      </Text>
-                      <span className="text-xs text-gray-400">•</span>
-                      <Text variant="p" size="xs" color="muted">
-                        {notification.category}
-                      </Text>
+                      <div className="flex items-center gap-2">
+                        <Text variant="p" size="xs" color="muted">
+                          {notification.timestamp}
+                        </Text>
+                        <span className="text-xs text-gray-400">•</span>
+                        <Text variant="p" size="xs" color="muted">
+                          {notification.category}
+                        </Text>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          </>
         )}
       </Card>
     </div>
