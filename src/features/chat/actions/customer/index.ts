@@ -12,6 +12,7 @@ import { displayQuoteDetails } from './displayQuoteDetails';
 import { displayOriginalRequest } from './displayOriginalRequest';
 import { displayProposalSpecs } from './displayProposalSpecs';
 import { displayQuotedPrice } from './displayQuotedPrice';
+import { showQuoteDecisionPrompt } from './showQuoteDecisionPrompt';
 import { createQuoteConversation } from './createQuoteConversation';
 import { createInquiry } from './createInquiry';
 import { displayOrderPaymentInfo } from './displayOrderPaymentInfo';
@@ -40,6 +41,7 @@ export const actionHandlers: Record<string, ActionHandler> = {
   display_original_request: displayOriginalRequest,
   display_proposal_specs: displayProposalSpecs,
   display_quoted_price: displayQuotedPrice,
+  show_quote_decision_prompt: showQuoteDecisionPrompt,
   upload_payment_proof: uploadPaymentProof,
   accept_quote_proposal: acceptQuoteProposal,
   reject_quote_proposal: rejectQuoteProposal,
@@ -71,6 +73,7 @@ export {
   displayOriginalRequest,
   displayProposalSpecs,
   displayQuotedPrice,
+  showQuoteDecisionPrompt,
   acceptQuoteProposal,
   rejectQuoteProposal,
   createQuoteConversation,

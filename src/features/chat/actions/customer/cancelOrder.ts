@@ -97,6 +97,7 @@ export async function cancelOrder(
         .update({
           status: 'cancelled',
           updated_at: new Date().toISOString(),
+          updated_by: customerId, // Track that customer cancelled the order
         })
         .eq('order_id', orderId)
         .eq('customer_id', customerId);

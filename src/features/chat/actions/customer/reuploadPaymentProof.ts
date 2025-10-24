@@ -122,6 +122,7 @@ export async function reuploadPaymentProof(
           payment_denied_at: null,
           payment_denied_by: null,
           updated_at: new Date().toISOString(),
+          updated_by: customerId, // Track that customer reuploaded payment proof
         })
         .eq('order_id', orderId)
         .eq('customer_id', customerId);

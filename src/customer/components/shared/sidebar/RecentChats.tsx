@@ -89,7 +89,7 @@ const RecentChats: React.FC<RecentChatsProps> = ({
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 mb-0.5">
-                <div className="font-semibold device-text-body text-lg truncate">
+                <div className="font-semibold device-text-body truncate">
                   {c.title}
                 </div>
                 <Badge

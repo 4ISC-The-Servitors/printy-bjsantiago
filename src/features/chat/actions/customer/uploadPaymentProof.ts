@@ -135,6 +135,7 @@ export async function uploadPaymentProof(
       payment_proof: fileRef,
       payment_proof_uploaded_at: new Date().toISOString(),
       status: 'verifying_payment',
+      updated_by: customerId, // Track that customer uploaded payment proof
     })
     .eq('order_id', resolvedOrderId)
     .eq('customer_id', customerId);

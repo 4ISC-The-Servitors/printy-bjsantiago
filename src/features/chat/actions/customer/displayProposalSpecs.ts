@@ -74,7 +74,6 @@ export async function displayProposalSpecs(
         `
         proposal_id,
         spec_final,
-        status,
         notes,
         created_at
       `

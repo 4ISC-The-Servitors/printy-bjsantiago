@@ -133,6 +133,7 @@ export async function createOrder(
           {},
         total_amount: proposal.quoted_price,
         status: 'awaiting_payment',
+        updated_by: context['admin_user_id'], // Track that admin created the order
         // ✅ FIX: Removed admin_notes - column no longer exists in orders table
       })
       .select('order_id, display_id, total_amount, status')

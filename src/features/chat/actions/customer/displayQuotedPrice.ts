@@ -32,6 +32,11 @@ export async function displayQuotedPrice(
     text: string;
     ts: number;
   }> = [];
+  const quickReplies: Array<{
+    label: string;
+    value: string;
+    next: string;
+  }> = [];
 
   const config = actionNode.action_config as any;
   const conversationIdKey = config.conversation_id_key || 'conversation_id';
@@ -70,7 +75,7 @@ export async function displayQuotedPrice(
     // Check for proposals (using session_id)
     const { data: proposals } = await supabase
       .from('quote_proposals')
-      .select('quoted_price, status')
+      .select('quoted_price')
       .eq('session_id', conversationId)
       .order('created_at', { ascending: false })
       .limit(1);
@@ -85,9 +90,6 @@ export async function displayQuotedPrice(
         text: priceText,
         ts: Date.now(),
       });
-
-      // ✅ FIX: Don't insert message here - JsonbFlowProcessor caller will handle it
-      // This prevents duplicate messages in the database
     } else {
       const noPriceText =
         'Pricing will be provided once your quote is reviewed.';
@@ -98,9 +100,6 @@ export async function displayQuotedPrice(
         text: noPriceText,
         ts: Date.now(),
       });
-
-      // ✅ FIX: Don't insert message here - JsonbFlowProcessor caller will handle it
-      // This prevents duplicate messages in the database
     }
   } catch (error) {
     console.error('Error displaying quoted price:', error);

@@ -76,7 +76,10 @@ export async function sendAdminReply(
     );
     const { data: updateData, error: statusError } = await supabase
       .from('inquiries_v2')
-      .update({ inquiry_status: 'pending_customer_reply' })
+      .update({ 
+        inquiry_status: 'pending_customer_reply',
+        updated_by: context['admin_user_id'] // Track that admin replied to ticket
+      })
       .eq('inquiry_id', inquiryId)
       .select('inquiry_id, inquiry_status');
 

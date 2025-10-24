@@ -169,6 +169,9 @@ const AccountSettings: React.FC = () => {
         address: '',
         city: '',
         zipCode: '',
+        province: '',
+        barangay: '',
+        building: '',
         avatarUrl: '',
         firstName: '',
         lastName: '',
@@ -289,11 +292,10 @@ const AccountSettings: React.FC = () => {
               onClick={e => e.stopPropagation()}
             >
               <MobileSidebarMenu
+                conversations={[]}
+                activeId={null}
                 onClose={() => setShowMobileMenu(false)}
-                onViewAllChats={() => {
-                  setShowMobileMenu(false);
-                  navigate('/customer/chats');
-                }}
+                onSwitchConversation={() => {}}
                 onAccount={() => setShowMobileMenu(false)}
                 onLogout={() => {
                   setShowMobileMenu(false);

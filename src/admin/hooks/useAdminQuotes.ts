@@ -22,7 +22,6 @@ export interface AdminQuoteData {
   };
   proposals?: {
     proposal_id: string;
-    status: string;
     quoted_price: number;
     created_at: string;
     updated_at: string;
@@ -108,7 +107,7 @@ export function useAdminQuotes(options: LoadQuotesOptions = {}) {
         const { data: proposalsData } = await supabase
           .from('quote_proposals')
           .select(
-            'session_id, proposal_id, status, quoted_price, created_at, updated_at'
+            'session_id, proposal_id, quoted_price, created_at, updated_at'
           )
           .in('session_id', sessionIds);
 

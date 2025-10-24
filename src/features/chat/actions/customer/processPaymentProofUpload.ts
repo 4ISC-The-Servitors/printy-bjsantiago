@@ -75,6 +75,7 @@ export const processPaymentProofUpload: ActionHandler = async ({
         status: 'verifying_payment',
         payment_proof_uploaded_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
+        updated_by: customerId, // Track that customer uploaded payment proof
       })
       .eq('order_id', orderId);
 

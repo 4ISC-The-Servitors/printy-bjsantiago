@@ -67,6 +67,7 @@ export function usePaymentProofUpload(): UsePaymentProofUploadResult {
             payment_proof: uploadResult.url,
             payment_proof_uploaded_at: new Date().toISOString(),
             status: 'verifying_payment', // Update status to verifying_payment
+            updated_by: user.id, // Track that customer uploaded payment proof
           })
           .eq('order_id', orderId) // Use order_id since useRecentOrder returns UUID
           .eq('customer_id', user.id);

@@ -15,7 +15,7 @@ const ServicesOffered: React.FC<CardProps> = ({ onClick }) => {
       <div className="w-12 h-12 rounded-lg bg-green-50 text-green-600 flex items-center justify-center mb-4 group-hover:bg-green-600 group-hover:text-white transition-colors">
         <Settings className="w-6 h-6" />
       </div>
-      <Text variant="h3" size="lg" weight="semibold" className="mb-2">
+      <Text variant="h3" weight="semibold" className="device-text-heading mb-2">
         Services Offered
       </Text>
       <Text variant="p" size="xs" color="muted">

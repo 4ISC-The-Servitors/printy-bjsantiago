@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { MessageSquare, LogOut, Bot, X, User } from 'lucide-react';
+import {LogOut, Bot, X, User } from 'lucide-react';
 import { Button, Text } from '@shared/components';
 import RecentChats from './RecentChats';
 import ViewAllChat from './ViewAllChat';
@@ -19,7 +19,6 @@ export interface CustomerMobileSidebarMenuProps {
   conversations: Conversation[];
   activeId: string | null;
   onClose: () => void;
-  onViewAllChats?: () => void;
   onSwitchConversation: (id: string) => void;
   onAccount: () => void;
   onLogout: () => void;
@@ -34,7 +33,6 @@ const CustomerMobileSidebarMenu: React.FC<CustomerMobileSidebarMenuProps> = ({
   conversations,
   activeId,
   onClose,
-  onViewAllChats,
   onSwitchConversation,
   onAccount,
   onLogout,

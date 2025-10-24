@@ -52,7 +52,10 @@ export async function ticketChangeStatus(
 
   try {
     // Update inquiry status and set resolved_at if changing to resolved
-    const updateData: any = { inquiry_status: newStatus };
+    const updateData: any = { 
+      inquiry_status: newStatus,
+      updated_by: context['admin_user_id'] // Track that admin changed ticket status
+    };
     if (newStatus === 'resolved') {
       updateData.resolved_at = new Date().toISOString();
     }

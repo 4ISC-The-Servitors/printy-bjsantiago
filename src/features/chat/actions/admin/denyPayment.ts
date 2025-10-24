@@ -135,6 +135,7 @@ export async function denyPayment(
           payment_denied_at: new Date().toISOString(),
           payment_denied_by: adminUserId,
           denial_reason: denialReason, // Store denial reason in orders table for customer access
+          updated_by: adminUserId, // Track that admin denied payment
         })
         .eq('order_id', orderId);
 

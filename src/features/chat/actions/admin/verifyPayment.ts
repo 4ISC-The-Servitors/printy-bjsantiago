@@ -132,6 +132,7 @@ export async function verifyPayment(
           status: 'processing',
           payment_verified_at: new Date().toISOString(),
           payment_verified_by: adminUserId,
+          updated_by: adminUserId, // Track that admin verified payment
         })
         .eq('order_id', orderId);
 

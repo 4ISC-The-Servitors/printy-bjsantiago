@@ -103,6 +103,7 @@ export async function createInquiry(
       inquiry_status: 'new',
       session_id: sessionId,
       order_id: actualOrderId, // Store actual order UUID if found
+      updated_by: customerId, // Track that customer created the ticket
     })
     .select('inquiry_id, display_id')
     .single();

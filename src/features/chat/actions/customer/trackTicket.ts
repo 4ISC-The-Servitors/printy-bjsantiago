@@ -312,7 +312,10 @@ export async function sendCustomerReply(
     );
     const { data: updateData, error: statusError } = await supabase
       .from('inquiries_v2')
-      .update({ inquiry_status: 'pending_admin_reply' })
+      .update({ 
+        inquiry_status: 'pending_admin_reply',
+        updated_by: params.customerId // Track that customer replied to ticket
+      })
       .eq('inquiry_id', inquiryId)
       .select('inquiry_id, inquiry_status');
 
@@ -409,6 +412,7 @@ export async function resolveTicket(
       .update({
         inquiry_status: 'resolved',
         resolved_at: new Date().toISOString(),
+        updated_by: params.customerId, // Track that customer resolved the ticket
       })
       .eq('inquiry_id', inquiryId);
 

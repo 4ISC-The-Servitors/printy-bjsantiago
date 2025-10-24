@@ -15,7 +15,7 @@ const AskAssistance: React.FC<CardProps> = ({ onClick }) => {
       <div className="w-12 h-12 rounded-lg bg-brand-primary-50 text-brand-primary flex items-center justify-center mb-4 group-hover:bg-brand-primary group-hover:text-white transition-colors">
         <Bot className="w-6 h-6" />
       </div>
-      <Text variant="h3" size="lg" weight="semibold" className="mb-2">
+      <Text variant="h3" weight="semibold" className="device-text-heading mb-2">
         Ask Assistance
       </Text>
       <Text variant="p" size="xs" color="muted">
