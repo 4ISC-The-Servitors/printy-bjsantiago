@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Card, Text, Button, Input, Modal } from '@admin/components/shared';
 import { Eye, EyeOff, Shield, Key } from 'lucide-react';
 import type { SecuritySettingsProps } from '../_shared/types';
+import { usePasswordChangeDate } from '@admin/hooks/usePasswordChangeDate';
 
 const SecuritySettings: React.FC<SecuritySettingsProps> = ({
   onPasswordUpdated,
@@ -14,9 +15,26 @@ const SecuritySettings: React.FC<SecuritySettingsProps> = ({
   });
   const [pw, setPw] = useState({ current: '', next: '', confirm: '' });
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const { lastPasswordChange, isLoading: isLoadingPasswordDate, error: passwordDateError } = usePasswordChangeDate();
 
   const toggle = (k: 'current' | 'next' | 'confirm') =>
     setShow(p => ({ ...p, [k]: !p[k] }));
+
+  // Format password change date
+  const formatPasswordChangeDate = (date: Date | null): string => {
+    if (!date) return 'Never';
+    
+    const now = new Date();
+    const diffInMs = now.getTime() - date.getTime();
+    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+    
+    if (diffInDays === 0) return 'Today';
+    if (diffInDays === 1) return 'Yesterday';
+    if (diffInDays < 7) return `${diffInDays} days ago`;
+    if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} weeks ago`;
+    if (diffInDays < 365) return `${Math.floor(diffInDays / 30)} months ago`;
+    return `${Math.floor(diffInDays / 365)} years ago`;
+  };
 
   return (
     <Card className="p-6">
@@ -34,7 +52,12 @@ const SecuritySettings: React.FC<SecuritySettingsProps> = ({
               Admin Password
             </Text>
             <Text variant="p" className="text-neutral-600">
-              Last changed 30 days ago
+              {isLoadingPasswordDate 
+                ? 'Loading...' 
+                : passwordDateError 
+                  ? 'Unable to load password history'
+                  : `Last changed ${formatPasswordChangeDate(lastPasswordChange)}`
+              }
             </Text>
           </div>
           {!isChanging && (
