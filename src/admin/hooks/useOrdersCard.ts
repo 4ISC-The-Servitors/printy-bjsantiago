@@ -5,7 +5,12 @@ import useResponsivePageSize from '@shared/hooks/ui/useResponsivePageSize';
 
 export const useOrdersCard = (overridePageSize?: number) => {
   const { openChatWithTopic, openChat } = useAdmin();
-  const { orders, updateOrder, refreshOrders, loading: ordersLoading } = useOrders();
+  const {
+    orders,
+    updateOrder,
+    refreshOrders,
+    loading: ordersLoading,
+  } = useOrders();
   const [hoveredOrderId, setHoveredOrderId] = useState<string | null>(null);
 
   // Use the loading state from the orders context

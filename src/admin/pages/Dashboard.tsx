@@ -1,7 +1,78 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Text, Card } from '@shared/components';
+import { supabase } from '@lib/supabase';
+import { useToast } from '@lib/useToast';
+import { useResponsiveClasses } from '@shared/hooks/ui';
+import {
+  type UINotificationItem,
+  startNotificationListener,
+  fetchUserNotifications,
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
+} from '@shared/utils/notificationUtils';
 
 const AdminDashboard: React.FC = () => {
+  const [notifications, setNotifications] = useState<UINotificationItem[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [, toast] = useToast();
+  const { textClasses } = useResponsiveClasses();
+
+  // Get current user
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const getUser = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      setUser(user);
+    };
+    getUser();
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
+
+    // Fetch initial notifications
+    const loadNotifications = async () => {
+      setIsLoading(true);
+      const items = await fetchUserNotifications(user.id);
+      setNotifications(items);
+      setUnreadCount(items.filter(item => !item.isRead).length);
+      setIsLoading(false);
+    };
+
+    loadNotifications();
+
+    // Set up real-time listener
+    const cleanup = startNotificationListener(user.id, toast, item => {
+      setNotifications(prev => [item, ...prev]);
+      if (!item.isRead) {
+        setUnreadCount(prev => prev + 1);
+      }
+    });
+
+    return cleanup;
+  }, [user]);
+
+  const handleMarkAsRead = async (id: string) => {
+    await markNotificationAsRead(id);
+    setNotifications(prev =>
+      prev.map(item => (item.id === id ? { ...item, isRead: true } : item))
+    );
+    setUnreadCount(prev => Math.max(0, prev - 1));
+  };
+
+  const handleMarkAllAsRead = async () => {
+    if (!user) return;
+    await markAllNotificationsAsRead(user.id);
+    setNotifications(prev => prev.map(item => ({ ...item, isRead: true })));
+    setUnreadCount(0);
+  };
+
+  if (!user) return null;
+
   return (
     <div>
       <div className="mb-6">
@@ -11,17 +82,88 @@ const AdminDashboard: React.FC = () => {
           weight="bold"
           className="text-neutral-900"
         >
-          Dashboard
+          Admin Dashboard
         </Text>
         <Text variant="p" size="base" color="muted" className="mt-1">
-          Overview of your admin metrics
+          Latest notifications and updates
         </Text>
       </div>
 
-      <Card className="p-8">
-        <Text variant="p" color="muted">
-          Dashboard content coming soon...
-        </Text>
+      <Card className="p-6">
+        <div className="flex justify-between items-center mb-4">
+          <Text
+            variant="h2"
+            size="xl"
+            weight="semibold"
+            className="text-neutral-900"
+          >
+            Notifications
+          </Text>
+          {unreadCount > 0 && (
+            <button
+              onClick={handleMarkAllAsRead}
+              className={`${textClasses.caption} text-blue-600 hover:text-blue-800 font-medium`}
+            >
+              Mark all as read
+            </button>
+          )}
+        </div>
+
+        {isLoading ? (
+          <div className="text-center py-8">
+            <Text variant="p" color="muted">
+              Loading notifications...
+            </Text>
+          </div>
+        ) : notifications.length === 0 ? (
+          <div className="text-center py-8">
+            <Text variant="p" color="muted">
+              No notifications
+            </Text>
+          </div>
+        ) : (
+          <div className="space-y-3 max-h-96 overflow-y-auto">
+            {notifications.map(notification => (
+              <div
+                key={notification.id}
+                className={`p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors ${
+                  !notification.isRead ? 'bg-blue-50 border-blue-200' : ''
+                }`}
+                onClick={() => handleMarkAsRead(notification.id)}
+              >
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Text
+                        variant="p"
+                        size="base"
+                        weight="medium"
+                        className="text-gray-900"
+                      >
+                        {notification.title}
+                      </Text>
+                      {!notification.isRead && (
+                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                      )}
+                    </div>
+                    <Text variant="p" size="sm" color="muted" className="mb-2">
+                      {notification.message}
+                    </Text>
+                    <div className="flex items-center gap-2">
+                      <Text variant="p" size="xs" color="muted">
+                        {notification.timestamp}
+                      </Text>
+                      <span className="text-xs text-gray-400">•</span>
+                      <Text variant="p" size="xs" color="muted">
+                        {notification.category}
+                      </Text>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </Card>
     </div>
   );

@@ -1,4 +1,8 @@
-export type DataRetentionOption = '30_days' | '90_days' | '1_year' | 'indefinite';
+export type DataRetentionOption =
+  | '30_days'
+  | '90_days'
+  | '1_year'
+  | 'indefinite';
 
 export interface SystemPreferencesData {
   autoBackup: boolean;
@@ -19,5 +23,3 @@ export interface UserManagementSettingsData {
 export interface SecuritySettingsProps {
   onPasswordUpdated?: () => void;
 }
-
-

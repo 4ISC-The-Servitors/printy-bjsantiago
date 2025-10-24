@@ -5,7 +5,11 @@ import useResponsivePageSize from '@shared/hooks/ui/useResponsivePageSize';
 
 export const useQuotesCard = (overridePageSize?: number) => {
   const { openChatWithTopic, openChat } = useAdmin();
-  const { quotes, loading: quotesLoading, refresh: refreshQuotes } = useAdminQuotes();
+  const {
+    quotes,
+    loading: quotesLoading,
+    refresh: refreshQuotes,
+  } = useAdminQuotes();
   const [hoveredQuoteId, setHoveredQuoteId] = useState<string | null>(null);
 
   // Use the loading state from the admin quotes hook

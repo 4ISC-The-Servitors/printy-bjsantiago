@@ -118,6 +118,7 @@ const SignUp: React.FC = () => {
                 region={formData.region}
                 province={formData.province}
                 city={formData.city}
+                zipCode={formData.zipCode}
                 agreeToTerms={formData.agreeToTerms}
                 onChange={(f, v) => setField(f, v)}
                 onToggleTerms={v => setField('agreeToTerms', v)}

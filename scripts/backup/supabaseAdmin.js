@@ -7,7 +7,9 @@ const supabaseUrl = process.env.VITE_SUPABASE_URL;
 const serviceKey = process.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl || !serviceKey) {
-  throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY. Configure .env.backup.');
+  throw new Error(
+    'Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY. Configure .env.backup.'
+  );
 }
 
 export const admin = createClient(supabaseUrl, serviceKey);
@@ -19,10 +21,10 @@ export async function ensureBackupBucket(bucketName) {
   } catch {
     // continue to create
   }
-  const { error: createErr } = await admin.storage.createBucket(bucketName, { public: false });
+  const { error: createErr } = await admin.storage.createBucket(bucketName, {
+    public: false,
+  });
   if (createErr && createErr.status !== 409) {
     throw createErr;
   }
 }
-
-

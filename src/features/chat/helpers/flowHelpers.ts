@@ -108,12 +108,16 @@ export async function endSession(sessionId: string): Promise<void> {
     }
 
     // Determine user type based on flow_id or metadata
-    const isAdminFlow = session.flow_id?.startsWith('admin-') || session.metadata?.admin_chat === true;
+    const isAdminFlow =
+      session.flow_id?.startsWith('admin-') ||
+      session.metadata?.admin_chat === true;
     const userType = isAdminFlow ? 'admin' : 'customer';
     const userId = session.customer_id; // Both admin and customer IDs are stored here
 
     // Use ChatEndService to ensure consistent end messages across all flows
-    const { ChatEndService } = await import('@features/chat/services/ChatEndService');
+    const { ChatEndService } = await import(
+      '@features/chat/services/ChatEndService'
+    );
     const result = await ChatEndService.endChatSession({
       sessionId,
       userId,

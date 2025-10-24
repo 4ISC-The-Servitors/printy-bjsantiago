@@ -13,5 +13,3 @@ const Price: React.FC<PriceProps> = ({ total }) => (
 );
 
 export default Price;
-
-

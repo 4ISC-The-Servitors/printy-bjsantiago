@@ -20,7 +20,10 @@ export const displayBankTransferDetails: ActionHandler = async () => {
       .order('display_order', { ascending: true });
 
     if (error) {
-      console.error('[displayBankTransferDetails] Error fetching bank transfer methods:', error);
+      console.error(
+        '[displayBankTransferDetails] Error fetching bank transfer methods:',
+        error
+      );
       messages.push({
         id: crypto.randomUUID(),
         role: 'printy',
@@ -42,7 +45,7 @@ export const displayBankTransferDetails: ActionHandler = async () => {
 
     // Create message with bank transfer details
     let messageText = 'Here are our bank transfer details:\n\n';
-    
+
     bankTransferMethods.forEach(method => {
       messageText += `${method.label}\n`;
       // Include image URL in message text so MessageBubble can render it
@@ -57,7 +60,10 @@ export const displayBankTransferDetails: ActionHandler = async () => {
       ts: Date.now(),
     });
 
-    console.log('[displayBankTransferDetails] Returning messages:', messages.length);
+    console.log(
+      '[displayBankTransferDetails] Returning messages:',
+      messages.length
+    );
     return { messages };
   } catch (error) {
     console.error('[displayBankTransferDetails] Error:', error);

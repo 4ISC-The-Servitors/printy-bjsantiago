@@ -18,6 +18,7 @@ export interface SignUpFormData {
   province: string;
   city: string;
   region: string;
+  zipCode: string;
   agreeToTerms: boolean;
 }
 
@@ -45,6 +46,7 @@ export const useSignUp = () => {
     province: '',
     city: '',
     region: 'NCR',
+    zipCode: '',
     agreeToTerms: false,
   });
 
@@ -96,6 +98,7 @@ export const useSignUp = () => {
             !!formData.barangay &&
             !!formData.province &&
             !!formData.city &&
+            !!formData.zipCode &&
             !!formData.agreeToTerms
           );
         default:
@@ -184,15 +187,16 @@ export const useSignUp = () => {
                 first_name: formData.firstName || null,
                 last_name: formData.lastName || null,
                 phone: normalizedPhone || null,
+                gender: formData.gender || null,
+                birthday: formData.birthday || null,
                 address: {
                   region: formData.region || null,
                   province: formData.province || null,
                   city: formData.city || null,
-                  zip_code: null,
+                  zip_code: formData.zipCode || null,
                   barangay: formData.barangay || null,
                   street: formData.street || null,
-                  building_number: formData.buildingNumber || null,
-                  building_name: null,
+                  building_name: formData.buildingNumber || null,
                 },
               },
             },
@@ -206,18 +210,42 @@ export const useSignUp = () => {
           throw new Error('Email already registered');
         if (authData.session) {
           try {
-            await supabase.rpc('upsert_full_address', {
+            // Create customer record immediately after successful sign up
+            const locationId = await supabase.rpc('upsert_full_address', {
               p_region: formData.region || null,
               p_province: formData.province || null,
               p_city: formData.city || null,
-              p_zip_code: null,
+              p_zip_code: formData.zipCode || null,
               p_barangay: formData.barangay || null,
               p_street: formData.street || null,
-              p_building_number: formData.buildingNumber || null,
-              p_building_name: null,
+              p_building_number: null,
+              p_building_name: formData.buildingNumber || null,
             });
+
+            if (locationId.data && authData.user) {
+              // Insert customer record
+              const { error: customerError } = await supabase
+                .from('customer')
+                .insert({
+                  customer_id: authData.user.id,
+                  first_name: formData.firstName || null,
+                  last_name: formData.lastName || null,
+                  contact_no: normalizedPhone || null,
+                  email_address: formData.email,
+                  customer_type: 'regular',
+                  gender: formData.gender || null,
+                  birthday: formData.birthday || null,
+                  location_id: locationId.data,
+                });
+
+              if (customerError) {
+                console.error('Error creating customer record:', customerError);
+                // Don't throw error, just log it - user can still sign in
+              }
+            }
           } catch (e) {
-            console.warn('Address upsert skipped:', e);
+            console.warn('Customer creation skipped:', e);
+            // Don't throw error, just log it - user can still sign in
           }
         }
         toast.show({

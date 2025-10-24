@@ -32,11 +32,21 @@
  * ```
  */
 import { supabase } from '@lib/supabase';
-import type { ActionExecutionParams, ActionExecutionResult } from '@features/chat/types';
+import type {
+  ActionExecutionParams,
+  ActionExecutionResult,
+} from '@features/chat/types';
 
-export async function showCustomerOrders(params: ActionExecutionParams): Promise<ActionExecutionResult> {
+export async function showCustomerOrders(
+  params: ActionExecutionParams
+): Promise<ActionExecutionResult> {
   const { customerId } = params;
-  const messages: Array<{ id: string; role: 'printy'; text: string; ts: number }> = [];
+  const messages: Array<{
+    id: string;
+    role: 'printy';
+    text: string;
+    ts: number;
+  }> = [];
 
   try {
     // Query customer's active orders (not completed or cancelled)
@@ -62,13 +72,14 @@ export async function showCustomerOrders(params: ActionExecutionParams): Promise
           {
             label: 'Try Again',
             value: 'retry',
-            next: 'ask_order_id'
-          }
-        ]
+            next: 'ask_order_id',
+          },
+        ],
       };
     }
 
-    const quickReplies: Array<{ label: string; value: string; next: string }> = [];
+    const quickReplies: Array<{ label: string; value: string; next: string }> =
+      [];
 
     if (orders && orders.length > 0) {
       // Simple message asking for order selection
@@ -80,14 +91,15 @@ export async function showCustomerOrders(params: ActionExecutionParams): Promise
       });
 
       // Build quick replies for order selection
-      orders.forEach((order) => {
-        const productName = order.order_specs?.product_name || 'Unknown Product';
+      orders.forEach(order => {
+        const productName =
+          order.order_specs?.product_name || 'Unknown Product';
         const orderDisplay = `${order.display_id} - ${productName}`;
 
         quickReplies.push({
           label: orderDisplay,
           value: order.display_id,
-          next: 'create_ticket'
+          next: 'create_ticket',
         });
       });
 
@@ -95,7 +107,7 @@ export async function showCustomerOrders(params: ActionExecutionParams): Promise
       quickReplies.push({
         label: 'My issue is not order related',
         value: 'no_order',
-        next: 'create_ticket'
+        next: 'create_ticket',
       });
     } else {
       // No active orders found
@@ -109,15 +121,14 @@ export async function showCustomerOrders(params: ActionExecutionParams): Promise
       quickReplies.push({
         label: 'Continue without order',
         value: 'no_order',
-        next: 'create_ticket'
+        next: 'create_ticket',
       });
     }
 
     return {
       messages,
-      quickReplies
+      quickReplies,
     };
-
   } catch (error) {
     console.error('Error in showCustomerOrders:', error);
     messages.push({
@@ -133,9 +144,9 @@ export async function showCustomerOrders(params: ActionExecutionParams): Promise
         {
           label: 'Try Again',
           value: 'retry',
-          next: 'ask_order_id'
-        }
-      ]
+          next: 'ask_order_id',
+        },
+      ],
     };
   }
 }

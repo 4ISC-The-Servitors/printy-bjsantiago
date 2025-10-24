@@ -19,31 +19,40 @@ const consoleToTerminalPlugin = () => {
             const level = logData.level || 'log';
             const message = logData.message || '';
             const args = logData.args || [];
-            
+
             // Color coding for different log levels
             const colors = {
               error: '\x1b[31m', // Red
-              warn: '\x1b[33m',  // Yellow
-              info: '\x1b[36m',  // Cyan
-              log: '\x1b[37m',   // White
-              debug: '\x1b[90m'  // Gray
+              warn: '\x1b[33m', // Yellow
+              info: '\x1b[36m', // Cyan
+              log: '\x1b[37m', // White
+              debug: '\x1b[90m', // Gray
             };
             const reset = '\x1b[0m';
             const color = colors[level as keyof typeof colors] || colors.log;
-            
-            console.log(`${color}[${timestamp}] ${level.toUpperCase()}:${reset} ${message}`);
+
+            // Enhanced logging with more details
+            console.log(
+              `${color}[${timestamp}] [CONSOLE-TO-TERMINAL] ${level.toUpperCase()}:${reset} ${message}`
+            );
             if (args.length > 0) {
-              args.forEach((arg: any) => {
-                console.log(`${color}  ->${reset}`, typeof arg === 'object' ? JSON.stringify(arg, null, 2) : arg);
+              args.forEach((arg: any, index: number) => {
+                console.log(
+                  `${color}  [ARG ${index}]:${reset}`,
+                  typeof arg === 'object' ? JSON.stringify(arg, null, 2) : arg
+                );
               });
             }
           } catch (e) {
-            console.log('Failed to parse console log:', body);
+            console.log(
+              `[CONSOLE-TO-TERMINAL] Failed to parse console log: ${body}`
+            );
+            console.log(`[CONSOLE-TO-TERMINAL] Parse error:`, e);
           }
           res.end();
         });
       });
-    }
+    },
   };
 };
 
@@ -51,11 +60,11 @@ const consoleToTerminalPlugin = () => {
 export default defineConfig({
   plugins: [react(), tsconfigPaths(), consoleToTerminalPlugin()],
   optimizeDeps: {
-    include: ['tslib']
+    include: ['tslib'],
   },
   build: {
     rollupOptions: {
-      external: (id) => {
+      external: id => {
         // Don't externalize tslib - it should be bundled
         if (id === 'tslib') return false;
         return false;

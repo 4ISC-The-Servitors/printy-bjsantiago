@@ -61,7 +61,9 @@ const Search: React.FC<SearchProps> = ({
       <Input
         ref={inputRef as any}
         value={draft}
-        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDraft(e.target.value)}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+          setDraft(e.target.value)
+        }
         placeholder={placeholder}
         className={`pl-8 sm:pl-10 md:pl-11 pr-8 sm:pr-10 ${sizeClasses[size]}`}
         aria-label="Search orders"
@@ -84,5 +86,3 @@ const Search: React.FC<SearchProps> = ({
 };
 
 export default Search;
-
-

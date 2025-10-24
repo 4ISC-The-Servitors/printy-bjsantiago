@@ -1,80 +1,98 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import SidebarPanel from '@customer/components/shared/sidebar/SidebarPanel';
-import LogoutButton from '@customer/components/shared/sidebar/LogoutButton';
-import LogoutModal from '@customer/components/shared/sidebar/LogoutModal';
-import Header from '@customer/components/chatHistory/Header';
-import Filters from '@customer/components/chatHistory/Filters';
-import ConversationList from '@customer/components/chatHistory/ConversationList';
-import { Text } from '@shared/components';
+import ResponsivePageLayout from '@customer/components/shared/layouts/ResponsivePageLayout';
+import HistoryItemCard from '@customer/components/shared/cards/HistoryItemCard';
+import {
+  Search,
+  Filter,
+  Text,
+  Pagination,
+  Breadcrumbs,
+} from '@shared/components';
+import { useGenericSearchFilter } from '@shared/hooks/ui/useGenericSearchFilter';
+import {
+  useResponsiveClasses,
+  useDeviceUtils,
+} from '@shared/hooks/ui/useResponsiveClasses';
+import { useResponsivePageSize } from '@shared/hooks/ui/useResponsivePageSize';
 import type { ChatMessage } from '@features/chat/types/chat';
 import { getUserSessionsV2 } from '@features/chat/api/jsonbChatFlowApi';
 import { getSessionTitle } from '@features/chat/config/sessionTitleConfig';
+import type { FilterConfig } from '@shared/types/filters';
 
 interface Conversation {
   id: string;
   title: string;
   createdAt: number;
+  updatedAt: number;
   messages: ChatMessage[];
   status: 'active' | 'ended';
 }
 
 const ChatHistory: React.FC = () => {
   const navigate = useNavigate();
-  const [query, setQuery] = useState('');
-  const [status, setStatus] = useState<string>('');
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
 
-  // Responsive layout helper
-  const [, setIsDesktop] = useState(false);
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const mql = window.matchMedia('(min-width: 1024px)');
-    const handleModern = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
-    const handleLegacy = function (
-      this: MediaQueryList,
-      e: MediaQueryListEvent
-    ) {
-      setIsDesktop(e.matches);
-    };
-    setIsDesktop(mql.matches);
-    if (mql.addEventListener) mql.addEventListener('change', handleModern);
-    else (mql as MediaQueryList).addListener(handleLegacy);
-    return () => {
-      if (mql.removeEventListener)
-        mql.removeEventListener('change', handleModern);
-      else (mql as MediaQueryList).removeListener(handleLegacy);
-    };
-  }, []);
+  // Responsive hooks
+  const { spacingClasses } = useResponsiveClasses();
+  const { isMobile } = useDeviceUtils();
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return conversations.filter(c => {
-      const matchesQuery = q
-        ? c.title.toLowerCase().includes(q) ||
-          (c.messages[c.messages.length - 1]?.text || '')
-            .toLowerCase()
-            .includes(q)
-        : true;
-      const matchesStatus = status
-        ? c.status === (status as 'active' | 'ended')
-        : true;
-      return matchesQuery && matchesStatus;
-    });
-  }, [conversations, query, status]);
+  // Responsive page size
+  const pageSize = useResponsivePageSize({
+    itemHeight: 120, // Approximate height of a chat card
+    itemSpacing: 24, // space-y-6 = 24px
+    headerOffset: 200, // Navbar + header + search/filter
+    footerOffset: 80, // Pagination height
+    minItems: 2,
+    maxItems: 20,
+    useDynamicCalculation: true,
+  });
 
-  const openConversation = (id: string) => {
-    // Ask dashboard to open this session, then navigate there
-    window.dispatchEvent(
-      new CustomEvent('customer-open-session', { detail: { sessionId: id } })
-    );
-    navigate('/customer');
+  // Filter configuration for chat conversations
+  const filterConfig: FilterConfig = {
+    showDateRange: true,
+    showStatusFilter: true,
+    showRoleFilter: false,
+    statusOptions: [
+      { label: 'Active', value: 'active' },
+      { label: 'Ended', value: 'ended' },
+    ],
   };
 
-  const confirmLogout = async () => {
-    setShowLogoutModal(false);
-    navigate('/auth/signin');
+  // Use the generic search filter hook
+  const {
+    search,
+    setSearch,
+    filter,
+    setFilter,
+    filteredItems: allFilteredConversations,
+  } = useGenericSearchFilter({
+    items: conversations,
+    searchFields: ['title', 'id'],
+    dateField: 'createdAt',
+    filterConfig,
+    statusField: 'status',
+  });
+
+  // Pagination logic
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const paginatedConversations = allFilteredConversations.slice(
+    startIndex,
+    endIndex
+  );
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, filter]);
+
+  const openConversation = (id: string) => {
+    // Store session ID in localStorage and navigate
+    console.log('ChatHistory: Opening conversation:', id);
+    localStorage.setItem('pendingSessionId', id);
+    navigate('/customer');
   };
 
   // Load conversations from DB (using chat_sessions_v2)
@@ -91,6 +109,7 @@ const ChatHistory: React.FC = () => {
             },
           }),
           createdAt: s.createdAt,
+          updatedAt: s.createdAt, // getUserSessionsV2 doesn't return updatedAt, use createdAt
           messages: [],
           status: (s.status === 'ended' ? 'ended' : 'active') as
             | 'active'
@@ -104,71 +123,115 @@ const ChatHistory: React.FC = () => {
   }, []);
 
   return (
-    <div className="h-screen bg-gradient-to-br from-neutral-50 to-brand-primary-50 flex">
-      {/* Sidebar placements using the same pattern as Dashboard */}
-      <div className="hidden lg:flex w-64 bg-white border-r border-neutral-200 flex-col">
-        <SidebarPanel
-          conversations={conversations as any}
-          activeId={null}
-          onSwitchConversation={openConversation}
-          onNavigateToAccount={() => navigate('/customer/account')}
-          bottomActions={
-            <LogoutButton onClick={() => setShowLogoutModal(true)} />
-          }
-        />
-      </div>
-      <div className="lg:hidden fixed left-0 top-0 bottom-0 w-16 bg-white border-r border-neutral-200 z-50">
-        <SidebarPanel
-          conversations={conversations as any}
-          activeId={null}
-          onSwitchConversation={openConversation}
-          onNavigateToAccount={() => navigate('/customer/account')}
-          bottomActions={
-            <LogoutButton onClick={() => setShowLogoutModal(true)} />
-          }
-        />
-      </div>
-
-      {/* Main content */}
-      <main className="flex-1 flex flex-col pl-16 lg:pl-0">
-        <div className="p-8 overflow-y-auto">
-          <div className="max-w-6xl mx-auto w-full">
-            <Header
-              subtitle="View all your past conversations with Printy"
-              onBack={() => navigate('/customer')}
-            />
-            <Filters
-              query={query}
-              onQueryChange={setQuery}
-              status={status}
-              onStatusChange={setStatus}
-              onClear={() => {
-                setQuery('');
-                setStatus('');
-              }}
-            />
-
-            {filtered.length === 0 ? (
-              <div className="text-center py-12">
-                <Text variant="p" size="base" color="muted">
-                  No conversations found.
-                </Text>
-              </div>
-            ) : (
-              <ConversationList
-                conversations={filtered}
-                onOpen={openConversation}
-              />
-            )}
-          </div>
+    <ResponsivePageLayout>
+      <div className="space-y-4">
+        {/* Breadcrumbs */}
+        <div className="mb-6">
+          <Breadcrumbs
+            items={[
+              { label: 'Dashboard', path: '/customer' },
+              { label: 'Order History', path: '/customer/orders' },
+              { label: 'Quote History', path: '/customer/quotes' },
+              { label: 'Ticket History', path: '/customer/tickets' },
+              { label: 'Chat History', isActive: true },
+            ]}
+          />
         </div>
-      </main>
-      <LogoutModal
-        isOpen={showLogoutModal}
-        onClose={() => setShowLogoutModal(false)}
-        onConfirm={confirmLogout}
-      />
-    </div>
+
+        {/* Page Title */}
+        <div>
+          <Text
+            variant="h1"
+            size="xl"
+            weight="bold"
+            className="device-text-heading text-neutral-900 mt-5 mb-5"
+          >
+            Chat History
+          </Text>
+        </div>
+
+        {/* Search and Filter Section */}
+        <div className="relative mb-6 sm:mb-8">
+          {/* Filter and Search Row - Always horizontal layout with responsive spacing */}
+          <div className={`flex items-center ${spacingClasses.gap}`}>
+            {/* Filter Component - Floating mode */}
+            <div className={`${isMobile ? 'w-24' : 'w-auto'} shrink-0`}>
+              <Filter
+                value={filter}
+                onChange={v => setFilter(v)}
+                filterConfig={filterConfig}
+                showResultCount={false}
+                resultCount={allFilteredConversations.length}
+                floating={true}
+              />
+            </div>
+
+            {/* Search Bar - Takes remaining space */}
+            <div className="flex-1 min-w-0">
+              <Search
+                value={search}
+                onChange={v => setSearch(v)}
+                placeholder="Search conversations..."
+                size="lg"
+              />
+            </div>
+          </div>
+
+          {/* Result Count */}
+          {(filter.statuses?.length > 0 ||
+            filter.dateFrom ||
+            filter.dateTo ||
+            search.trim()) && (
+            <div className="text-sm text-neutral-600 mt-4">
+              Found{' '}
+              <span className="font-semibold text-neutral-900">
+                {allFilteredConversations.length}
+              </span>{' '}
+              {allFilteredConversations.length === 1
+                ? 'conversation'
+                : 'conversations'}
+            </div>
+          )}
+        </div>
+
+        {/* Pagination */}
+        {allFilteredConversations.length > pageSize && (
+          <div className="mt-6">
+            <Pagination
+              page={currentPage}
+              pageSize={pageSize}
+              total={allFilteredConversations.length}
+              onPageChange={setCurrentPage}
+            />
+          </div>
+        )}
+
+        <div className="space-y-4">
+          {paginatedConversations.map(conversation => (
+            <HistoryItemCard
+              key={conversation.id}
+              type="chat"
+              displayId={conversation.title}
+              title={''}
+              status={conversation.status}
+              createdAt={conversation.createdAt}
+              updatedAt={conversation.updatedAt}
+              onClick={() => openConversation(conversation.id)}
+            />
+          ))}
+        </div>
+
+        {allFilteredConversations.length === 0 && (
+          <div className="text-center py-12">
+            <Text variant="p" className="device-text-body text-neutral-500">
+              {conversations.length === 0
+                ? 'No conversations found.'
+                : 'No conversations match your filters.'}
+            </Text>
+          </div>
+        )}
+      </div>
+    </ResponsivePageLayout>
   );
 };
 

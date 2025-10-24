@@ -100,7 +100,7 @@ const InputField = React.forwardRef<
   <input
     ref={ref}
     className={cn(
-      'input',
+      'input device-input',
       error && 'border-error focus:border-error focus:ring-error/50',
       className
     )}

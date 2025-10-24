@@ -53,6 +53,7 @@
  * - Customer can view proposal in their quote details flow
  */
 
+import { getAdminUserId } from '@features/chat/utils/admin/getAdminUserId';
 import { supabase } from '@lib/supabase';
 import type {
   ActionExecutionParams,
@@ -143,14 +144,13 @@ export async function sendQuoteProposal(
   }
 
   // Create proposal row
-  const { error: proposalError } = await supabase
+  const { data: proposalData, error: proposalError } = await supabase
     .from('quote_proposals')
     .insert({
       session_id: conversationId,
       spec_id: latestSpec.spec_id,
       spec_final: specData,
       quoted_price: specData.quoted_price,
-      status: 'sent',
       sent_at: new Date().toISOString(),
     })
     .select('proposal_id')
@@ -170,12 +170,14 @@ export async function sendQuoteProposal(
     return { messages };
   }
 
-  // Update quote status in quotes table
+  // Update quote status and link to proposal in quotes table
   const { error: quoteUpdateError } = await supabase
     .from('quotes')
     .update({
       status: 'spec_proposed',
+      proposal_id: proposalData?.proposal_id, // Link quote to this proposal
       updated_at: new Date().toISOString(),
+      updated_by: await getAdminUserId(), // Track that admin sent quote proposal
     })
     .eq('session_id', conversationId);
 

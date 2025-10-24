@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useAdminConversations } from '@admin/hooks/useAdminConversations';
 import { Card, Text, Badge, Pagination } from '@shared/components';
-import { formatLongDate, formatShortTime } from '@shared/utils';
+import { formatShortDate, formatShortTime } from '@shared/utils';
 import { useResponsivePageSize } from '@shared/hooks/ui/useResponsivePageSize';
 
 const AdminChatsPage: React.FC = () => {
@@ -24,7 +24,9 @@ const AdminChatsPage: React.FC = () => {
     setActive(id);
     // Dispatch event to open the conversation in the chat dock
     window.dispatchEvent(
-      new CustomEvent('admin-show-conversation', { detail: { conversationId: id } })
+      new CustomEvent('admin-show-conversation', {
+        detail: { conversationId: id },
+      })
     );
   };
 
@@ -84,7 +86,7 @@ const AdminChatsPage: React.FC = () => {
                     {(lastBotMessage?.text?.length || 0) > 100 ? '...' : ''}
                   </Text>
                   <Text variant="p" size="xs" color="muted" className="mt-1">
-                    {formatLongDate(c.createdAt)} •{' '}
+                    {formatShortDate(c.createdAt)} •{' '}
                     {formatShortTime(c.createdAt)}
                   </Text>
                 </div>

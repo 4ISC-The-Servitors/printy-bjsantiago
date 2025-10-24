@@ -1,6 +1,6 @@
 /**
  * Track Ticket Actions
- * 
+ *
  * Handlers for customer ticket tracking flow:
  * - fetch_ticket_details: Load ticket and conversation history
  * - send_customer_reply: Customer responds to admin
@@ -8,23 +8,37 @@
  */
 
 import { supabase } from '@lib/supabase';
-import type { ActionExecutionParams, ActionExecutionResult } from '@features/chat/types';
-import { formatLongDate } from '@shared/utils/dateFormatter';
+import type {
+  ActionExecutionParams,
+  ActionExecutionResult,
+} from '@features/chat/types';
+import { formatShortDate } from '@shared/utils/dateFormatter';
+import { getAllAdminIds } from '@features/chat/utils/admin/getAdminUserId';
 import { insertMessageV2 } from '@features/chat/api/jsonbChatFlowApi';
 
 /**
  * Fetch ticket details and conversation history
  */
-export async function fetchTicketDetails(params: ActionExecutionParams): Promise<ActionExecutionResult> {
+export async function fetchTicketDetails(
+  params: ActionExecutionParams
+): Promise<ActionExecutionResult> {
   const { context } = params;
-  const messages: Array<{ id: string; role: 'printy'; text: string; ts: number }> = [];
+  const messages: Array<{
+    id: string;
+    role: 'printy';
+    text: string;
+    ts: number;
+  }> = [];
 
   try {
     // Get inquiry_id from context (passed from dashboard)
     const inquiryId = context?.inquiryId;
-    
+
     if (!inquiryId) {
-      console.error('[fetchTicketDetails] No inquiryId found in context:', context);
+      console.error(
+        '[fetchTicketDetails] No inquiryId found in context:',
+        context
+      );
       messages.push({
         id: crypto.randomUUID(),
         role: 'printy',
@@ -39,12 +53,17 @@ export async function fetchTicketDetails(params: ActionExecutionParams): Promise
     // Fetch inquiry details using inquiry_id from context
     const { data: inquiry, error: inquiryError } = await supabase
       .from('inquiries_v2')
-      .select('inquiry_id, display_id, inquiry_type, inquiry_status, order_id, received_at, session_id')
+      .select(
+        'inquiry_id, display_id, inquiry_type, inquiry_status, order_id, received_at, session_id'
+      )
       .eq('inquiry_id', inquiryId)
       .single();
 
     if (inquiryError) {
-      console.error('[fetchTicketDetails] Error fetching inquiry:', inquiryError);
+      console.error(
+        '[fetchTicketDetails] Error fetching inquiry:',
+        inquiryError
+      );
       messages.push({
         id: crypto.randomUUID(),
         role: 'printy',
@@ -69,10 +88,15 @@ export async function fetchTicketDetails(params: ActionExecutionParams): Promise
 
     // Fetch all messages for the original session (where the inquiry was created) using RPC for proper decryption
     const originalSessionId = inquiry.session_id;
-    console.log('[fetchTicketDetails] Fetching messages for original session:', originalSessionId);
-    
-    const { data: chatMessages, error: messagesError } = await supabase
-      .rpc('api_fetch_chat_messages_v2', { p_session_id: originalSessionId });
+    console.log(
+      '[fetchTicketDetails] Fetching messages for original session:',
+      originalSessionId
+    );
+
+    const { data: chatMessages, error: messagesError } = await supabase.rpc(
+      'api_fetch_chat_messages_v2',
+      { p_session_id: originalSessionId }
+    );
 
     if (messagesError) {
       console.error('Error fetching messages:', messagesError);
@@ -86,7 +110,7 @@ export async function fetchTicketDetails(params: ActionExecutionParams): Promise
         .select('display_id')
         .eq('order_id', inquiry.order_id)
         .single();
-      
+
       if (orderData?.display_id) {
         orderDisplayId = orderData.display_id;
       }
@@ -99,38 +123,47 @@ export async function fetchTicketDetails(params: ActionExecutionParams): Promise
     if (inquiry.order_id) {
       conversationText += `Related Order: ${orderDisplayId}\n`;
     }
-    conversationText += `Created: ${formatLongDate(inquiry.received_at)}\n\n`;
+    conversationText += `Created: ${formatShortDate(inquiry.received_at)}\n\n`;
     conversationText += `Conversation History:\n`;
     conversationText += `${'='.repeat(40)}\n\n`;
 
     // Display conversation messages
     if (chatMessages && chatMessages.length > 0) {
       // Filter to only show customer input messages and admin replies (skip system messages)
-      const relevantMessages = chatMessages.filter((msg: any) => 
-        msg.sender_role === 'customer' || // All customer messages (including replies)
-        msg.sender_role === 'admin' // Admin replies
+      const relevantMessages = chatMessages.filter(
+        (msg: any) =>
+          msg.sender_role === 'customer' || // All customer messages (including replies)
+          msg.sender_role === 'admin' // Admin replies
       );
 
-      console.log('[fetchTicketDetails] Filtered messages:', relevantMessages.length, 'out of', chatMessages.length);
+      console.log(
+        '[fetchTicketDetails] Filtered messages:',
+        relevantMessages.length,
+        'out of',
+        chatMessages.length
+      );
 
       if (relevantMessages.length > 0) {
         // Deduplicate messages by content and sender to avoid showing repeated messages
         const seenMessages = new Set<string>();
         const uniqueMessages: any[] = [];
-        
+
         for (const msg of relevantMessages) {
           console.log('[fetchTicketDetails] Processing message:', {
             message_id: msg.message_id,
             sender_role: msg.sender_role,
             message_text: msg.message_text,
-            node_id: msg.node_id
+            node_id: msg.node_id,
           });
-          
+
           // Use the decrypted message_text from RPC function
           let decryptedText = msg.message_text || '[No message content]';
-          
+
           // Handle messages that are still encrypted (show as JSON arrays)
-          if (typeof decryptedText === 'string' && decryptedText.startsWith('{"0":')) {
+          if (
+            typeof decryptedText === 'string' &&
+            decryptedText.startsWith('{"0":')
+          ) {
             try {
               // Try to manually decrypt the JSON array format
               const jsonData = JSON.parse(decryptedText);
@@ -141,24 +174,27 @@ export async function fetchTicketDetails(params: ActionExecutionParams): Promise
               continue;
             }
           }
-          
-          console.log('[fetchTicketDetails] Using decrypted message:', decryptedText);
+
+          console.log(
+            '[fetchTicketDetails] Using decrypted message:',
+            decryptedText
+          );
 
           // Create a unique key for deduplication (sender + content)
           const messageKey = `${msg.sender_role}:${decryptedText}`;
-          
+
           // Only add if we haven't seen this exact message before
           if (!seenMessages.has(messageKey)) {
             seenMessages.add(messageKey);
             uniqueMessages.push({ ...msg, decryptedText });
           }
         }
-        
+
         // Display unique messages
         for (const msg of uniqueMessages) {
-          const timeAgo = formatLongDate(msg.sent_at);
+          const timeAgo = formatShortDate(msg.sent_at);
           const sender = msg.sender_role === 'customer' ? 'You' : 'Admin';
-          
+
           conversationText += `${sender} (${timeAgo}):\n${msg.decryptedText}\n\n`;
         }
       } else {
@@ -191,9 +227,16 @@ export async function fetchTicketDetails(params: ActionExecutionParams): Promise
 /**
  * Send customer reply to admin
  */
-export async function sendCustomerReply(params: ActionExecutionParams): Promise<ActionExecutionResult> {
+export async function sendCustomerReply(
+  params: ActionExecutionParams
+): Promise<ActionExecutionResult> {
   const { context } = params;
-  const messages: Array<{ id: string; role: 'printy'; text: string; ts: number }> = [];
+  const messages: Array<{
+    id: string;
+    role: 'printy';
+    text: string;
+    ts: number;
+  }> = [];
 
   const customerReply = String(context['customer_reply'] || '');
 
@@ -229,7 +272,10 @@ export async function sendCustomerReply(params: ActionExecutionParams): Promise<
       .single();
 
     if (!inquiry?.session_id) {
-      console.error('[sendCustomerReply] No session_id found for inquiry:', inquiryId);
+      console.error(
+        '[sendCustomerReply] No session_id found for inquiry:',
+        inquiryId
+      );
       messages.push({
         id: crypto.randomUUID(),
         role: 'printy',
@@ -261,10 +307,16 @@ export async function sendCustomerReply(params: ActionExecutionParams): Promise<
     }
 
     // Update inquiry status to pending_admin_reply using inquiry_id
-    console.log('[sendCustomerReply] Updating inquiry status to pending_admin_reply for inquiry_id:', inquiryId);
+    console.log(
+      '[sendCustomerReply] Updating inquiry status to pending_admin_reply for inquiry_id:',
+      inquiryId
+    );
     const { data: updateData, error: statusError } = await supabase
       .from('inquiries_v2')
-      .update({ inquiry_status: 'pending_admin_reply' })
+      .update({
+        inquiry_status: 'pending_admin_reply',
+        updated_by: params.customerId, // Track that customer replied to ticket
+      })
       .eq('inquiry_id', inquiryId)
       .select('inquiry_id, inquiry_status');
 
@@ -273,10 +325,90 @@ export async function sendCustomerReply(params: ActionExecutionParams): Promise<
     } else {
       console.log('[sendCustomerReply] Status update result:', updateData);
       if (updateData && updateData.length > 0) {
-        console.log('[sendCustomerReply] Status updated successfully to:', updateData[0].inquiry_status);
+        console.log(
+          '[sendCustomerReply] Status updated successfully to:',
+          updateData[0].inquiry_status
+        );
       } else {
-        console.error('[sendCustomerReply] No rows were updated - inquiry_id might not exist or no permission');
+        console.error(
+          '[sendCustomerReply] No rows were updated - inquiry_id might not exist or no permission'
+        );
       }
+    }
+
+    // Create notifications for admins about customer reply
+    console.log(
+      '[sendCustomerReply] Starting notification creation process...'
+    );
+    try {
+      // Get customer name for the notification
+      const { data: customerData } = await supabase
+        .from('customer')
+        .select('first_name, last_name')
+        .eq('customer_id', params.customerId)
+        .single();
+
+      const customerName = customerData
+        ? `${customerData.first_name || ''} ${customerData.last_name || ''}`.trim() ||
+          'Customer'
+        : 'Customer';
+
+      console.log('[sendCustomerReply] Got customer name:', customerName);
+
+      // Get ticket display_id for notification
+      const { data: ticketData } = await supabase
+        .from('inquiries_v2')
+        .select('display_id')
+        .eq('inquiry_id', inquiryId)
+        .single();
+
+      const ticketDisplayId =
+        ticketData?.display_id || inquiryId?.substring(0, 8);
+
+      // Get all admin users
+      const adminIds = await getAllAdminIds();
+      console.log('[sendCustomerReply] Got admin IDs:', adminIds);
+
+      if (adminIds.length > 0) {
+        // Create notification for each admin
+        const notifications = adminIds.map(adminId => ({
+          customer_id: adminId,
+          source_type: 'ticket',
+          source_id: inquiryId,
+          title: 'Customer Reply',
+          message: `Customer ${customerName} replied to support ticket #${ticketDisplayId}.`,
+          type: 'info',
+          category: 'ticket',
+        }));
+
+        console.log(
+          '[sendCustomerReply] Creating admin notifications:',
+          notifications
+        );
+
+        const { error: notifError } = await supabase
+          .from('notifications')
+          .insert(notifications);
+
+        if (notifError) {
+          console.error(
+            '[sendCustomerReply] Error creating admin notifications:',
+            notifError
+          );
+        } else {
+          console.log(
+            '[sendCustomerReply] Created notifications for',
+            adminIds.length,
+            'admins'
+          );
+        }
+      }
+    } catch (notifErr) {
+      console.error(
+        '[sendCustomerReply] Error in notification creation:',
+        notifErr
+      );
+      // Don't fail the whole action if notifications fail
     }
 
     messages.push({
@@ -302,9 +434,16 @@ export async function sendCustomerReply(params: ActionExecutionParams): Promise<
 /**
  * Resolve ticket - customer marks as resolved
  */
-export async function resolveTicket(params: ActionExecutionParams): Promise<ActionExecutionResult> {
+export async function resolveTicket(
+  params: ActionExecutionParams
+): Promise<ActionExecutionResult> {
   const { context } = params;
-  const messages: Array<{ id: string; role: 'printy'; text: string; ts: number }> = [];
+  const messages: Array<{
+    id: string;
+    role: 'printy';
+    text: string;
+    ts: number;
+  }> = [];
 
   try {
     // Get inquiry_id from context
@@ -328,7 +467,10 @@ export async function resolveTicket(params: ActionExecutionParams): Promise<Acti
       .single();
 
     if (!inquiry?.session_id) {
-      console.error('[resolveTicket] No session_id found for inquiry:', inquiryId);
+      console.error(
+        '[resolveTicket] No session_id found for inquiry:',
+        inquiryId
+      );
       messages.push({
         id: crypto.randomUUID(),
         role: 'printy',
@@ -343,9 +485,10 @@ export async function resolveTicket(params: ActionExecutionParams): Promise<Acti
     // Update inquiry status to resolved using inquiry_id and set resolved_at timestamp
     const { error: statusError } = await supabase
       .from('inquiries_v2')
-      .update({ 
+      .update({
         inquiry_status: 'resolved',
-        resolved_at: new Date().toISOString()
+        resolved_at: new Date().toISOString(),
+        updated_by: params.customerId, // Track that customer resolved the ticket
       })
       .eq('inquiry_id', inquiryId);
 
@@ -361,24 +504,96 @@ export async function resolveTicket(params: ActionExecutionParams): Promise<Acti
     }
 
     // Insert confirmation message into the original session
-    const confirmMessage = 'Ticket marked as resolved. Thank you for using our support!';
+    const confirmMessage =
+      'Ticket marked as resolved. Thank you for using our support!';
     const encryptedMessage = new TextEncoder().encode(confirmMessage);
-    await supabase
-      .from('chat_messages_v2')
-      .insert({
-        session_id: originalSessionId,
-        sender_role: 'printy',
-        message_text_enc: encryptedMessage,
-      });
+    await supabase.from('chat_messages_v2').insert({
+      session_id: originalSessionId,
+      sender_role: 'printy',
+      message_text_enc: encryptedMessage,
+    });
 
     // End the original session
     await supabase
       .from('chat_sessions_v2')
-      .update({ 
+      .update({
         status: 'ended',
         ended_at: new Date().toISOString(),
       })
       .eq('session_id', originalSessionId);
+
+    // Create notifications for admins about ticket resolution
+    console.log('[resolveTicket] Starting notification creation process...');
+    try {
+      // Get customer name for the notification
+      const { data: customerData } = await supabase
+        .from('customer')
+        .select('first_name, last_name')
+        .eq('customer_id', params.customerId)
+        .single();
+
+      const customerName = customerData
+        ? `${customerData.first_name || ''} ${customerData.last_name || ''}`.trim() ||
+          'Customer'
+        : 'Customer';
+
+      console.log('[resolveTicket] Got customer name:', customerName);
+
+      // Get ticket display_id for notification
+      const { data: ticketData } = await supabase
+        .from('inquiries_v2')
+        .select('display_id')
+        .eq('inquiry_id', inquiryId)
+        .single();
+
+      const ticketDisplayId =
+        ticketData?.display_id || inquiryId?.substring(0, 8);
+
+      // Get all admin users
+      const adminIds = await getAllAdminIds();
+      console.log('[resolveTicket] Got admin IDs:', adminIds);
+
+      if (adminIds.length > 0) {
+        // Create notification for each admin
+        const notifications = adminIds.map(adminId => ({
+          customer_id: adminId,
+          source_type: 'ticket',
+          source_id: inquiryId,
+          title: 'Ticket Resolved',
+          message: `Support ticket #${ticketDisplayId} was marked as resolved by ${customerName}.`,
+          type: 'success',
+          category: 'ticket',
+        }));
+
+        console.log(
+          '[resolveTicket] Creating admin notifications:',
+          notifications
+        );
+
+        const { error: notifError } = await supabase
+          .from('notifications')
+          .insert(notifications);
+
+        if (notifError) {
+          console.error(
+            '[resolveTicket] Error creating admin notifications:',
+            notifError
+          );
+        } else {
+          console.log(
+            '[resolveTicket] Created notifications for',
+            adminIds.length,
+            'admins'
+          );
+        }
+      }
+    } catch (notifErr) {
+      console.error(
+        '[resolveTicket] Error in notification creation:',
+        notifErr
+      );
+      // Don't fail the whole action if notifications fail
+    }
 
     messages.push({
       id: crypto.randomUUID(),
@@ -405,13 +620,12 @@ export async function resolveTicket(params: ActionExecutionParams): Promise<Acti
  */
 function formatStatus(status: string): string {
   const statusMap: Record<string, string> = {
-    'new': 'New',
-    'under_review': 'Under Review',
-    'pending_customer_reply': 'Pending Customer Reply',
-    'pending_admin_reply': 'Pending Admin Reply',
-    'resolved': 'Resolved',
-    'closed': 'Closed',
+    new: 'New',
+    under_review: 'Under Review',
+    pending_customer_reply: 'Pending Customer Reply',
+    pending_admin_reply: 'Pending Admin Reply',
+    resolved: 'Resolved',
+    closed: 'Closed',
   };
   return statusMap[status] || status;
 }
-

@@ -134,7 +134,8 @@ const SuperAdminRoot: React.FC = () => {
 
           <div className="px-6 pb-4">
             <Text variant="p">
-              Are you sure you want to log out? You'll need to sign in again to access the superadmin dashboard.
+              Are you sure you want to log out? You'll need to sign in again to
+              access the superadmin dashboard.
             </Text>
           </div>
 

@@ -1,109 +1,113 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, Text, Button } from '@shared/components';
+import { useResponsiveLayout, useResponsiveClasses } from '@shared/hooks/ui';
 import type { RecentOrder as RecentOrderType } from '@shared/types/customer';
 import StatusBadge from './StatusBadge';
 import PayNowButton from './PayNowButton';
 import ReuploadPaymentButton from './ReuploadPaymentButton';
-import { formatLongDate } from '@shared/utils/dateFormatter';
+import { formatShortDate } from '@shared/utils/dateFormatter';
 import { formatRelativeTimeLabel } from '@shared/utils/timeFormatter';
 
 interface RecentOrderProps {
-  recentOrder: RecentOrderType;
+  recentOrder: RecentOrderType | null;
 }
 
 const RecentOrder: React.FC<RecentOrderProps> = ({ recentOrder }) => {
   const navigate = useNavigate();
+
+  // Handle null/undefined status
+  if (!recentOrder || !recentOrder.status) {
+    return (
+      <Card className="device-spacing-component">
+        <div className="flex items-center justify-between mb-4">
+          <Text
+            variant="h3"
+            className="device-text-heading"
+            size="lg"
+            weight="semibold"
+          >
+            Recent Order
+          </Text>
+          <Button
+            variant="ghost"
+            className="device-btn-secondary text-brand-primary hover:text-brand-primary-600"
+            onClick={() => navigate('/customer/orders')}
+          >
+            View all
+          </Button>
+        </div>
+        <div className="text-center py-8 text-neutral-500">
+          <Text variant="p">No recent orders found</Text>
+        </div>
+      </Card>
+    );
+  }
+
   const s = recentOrder.status.toLowerCase();
 
   // Database format (primary)
   const isAwaitingPayment = s === 'awaiting_payment';
   const isReuploadPayment = s === 'reupload_payment';
+  const { getOrderCardLayout } = useResponsiveLayout();
+  const { textClasses } = useResponsiveClasses();
+  const layout = getOrderCardLayout;
 
   return (
-    <Card className="p-6">
+    <Card className="device-spacing-component">
       <div className="flex items-center justify-between mb-4">
-        <Text variant="h3" size="lg" weight="semibold">
+        <Text
+          variant="h3"
+          className="device-text-heading"
+          size="lg"
+          weight="semibold"
+        >
           Recent Order
         </Text>
         <Button
           variant="ghost"
-          size="sm"
+          className="device-btn-secondary text-brand-primary hover:text-brand-primary-600"
           onClick={() => navigate('/customer/orders')}
-          className="text-brand-primary hover:text-brand-primary-600"
         >
           View all
         </Button>
       </div>
 
       <div className="space-y-3">
-        {/* Primary row: Display ID + Status */}
-        <div className="flex items-center justify-between">
-          <Text variant="h4" size="base" weight="medium" className="font-mono">
-            {recentOrder.displayId}
-          </Text>
-          <StatusBadge status={recentOrder.status} />
+        {/* Row 1: Display ID • Title | Status */}
+        <div className={layout.structure.row1}>
+          <div className={layout.leftSection}>
+            <div className={`flex items-center ${layout.elementGap} min-w-0`}>
+              <span className={`${layout.orderId} device-text-fraunces`}>
+                {recentOrder.displayId}
+              </span>
+              {recentOrder.title ? (
+                <>
+                  <span className="text-neutral-400">•</span>
+                  <span className={layout.productName}>
+                    {recentOrder.title}
+                  </span>
+                </>
+              ) : null}
+            </div>
+          </div>
+          <div className={layout.badgeContainer}>
+            <StatusBadge status={recentOrder.status} />
+          </div>
         </div>
 
-        {/* Secondary row: Title */}
-        <Text variant="p" size="sm" color="muted" className="line-clamp-2">
-          {recentOrder.title}
-        </Text>
-
-        {/* Tertiary row: Important dates */}
-        <div className="flex flex-col gap-1">
-          <div className="flex justify-between">
-            <Text variant="p" size="xs" color="muted">
-              Created:
-            </Text>
-            <Text variant="p" size="xs" color="muted">
-              {formatLongDate(recentOrder.createdAt)}
-            </Text>
-          </div>
-          <div className="flex justify-between">
-            <Text variant="p" size="xs" color="muted">
-              Updated:
-            </Text>
-            <Text variant="p" size="xs" color="muted">
-              {formatRelativeTimeLabel(recentOrder.updatedAt)}
-            </Text>
-          </div>
-          {recentOrder.paymentVerifiedAt && (
-            <div className="flex justify-between">
-              <Text variant="p" size="xs" color="muted">
-                Payment Verified:
-              </Text>
-              <Text variant="p" size="xs" color="muted">
-                {formatLongDate(recentOrder.paymentVerifiedAt)}
-              </Text>
-            </div>
-          )}
-          {recentOrder.completedAt && (
-            <div className="flex justify-between">
-              <Text variant="p" size="xs" color="muted">
-                Completed:
-              </Text>
-              <Text variant="p" size="xs" color="muted">
-                {formatLongDate(recentOrder.completedAt)}
-              </Text>
-            </div>
-          )}
-        </div>
-
-        {/* Price if available */}
+        {/* Row 2: Amount only */}
         {recentOrder.total && (
-          <Text
-            variant="p"
-            size="lg"
-            weight="medium"
-            className="text-brand-primary"
-          >
-            {recentOrder.total}
-          </Text>
+          <div className={layout.structure.row2}>
+            <div className={layout.leftSection} />
+            <div className={layout.rightSection}>
+              <div className={layout.amount}>{recentOrder.total}</div>
+            </div>
+          </div>
         )}
 
-        {/* Action buttons */}
-        <div className="pt-2">
+        {/* Row 3: Action buttons - bottom-right only */}
+        <div className="flex justify-end mt-3">
           {isAwaitingPayment && (
             <PayNowButton
               orderId={recentOrder.id}
@@ -117,6 +121,46 @@ const RecentOrder: React.FC<RecentOrderProps> = ({ recentOrder }) => {
               displayId={recentOrder.displayId}
               total={recentOrder.total}
             />
+          )}
+        </div>
+
+        {/* Row 4: Dates (stacked) */}
+        <div className="mt-1">
+          <div
+            className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
+          >
+            <span className="font-medium">Created:</span>
+            <span className="truncate">
+              {formatShortDate(recentOrder.createdAt)}
+            </span>
+          </div>
+          <div
+            className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
+          >
+            <span className="font-medium">Updated:</span>
+            <span className="truncate">
+              {formatRelativeTimeLabel(recentOrder.updatedAt)}
+            </span>
+          </div>
+          {recentOrder.paymentVerifiedAt && (
+            <div
+              className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
+            >
+              <span className="font-medium">Payment Verified:</span>
+              <span className="truncate">
+                {formatShortDate(recentOrder.paymentVerifiedAt)}
+              </span>
+            </div>
+          )}
+          {recentOrder.completedAt && (
+            <div
+              className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
+            >
+              <span className="font-medium">Completed:</span>
+              <span className="truncate">
+                {formatShortDate(recentOrder.completedAt)}
+              </span>
+            </div>
           )}
         </div>
       </div>

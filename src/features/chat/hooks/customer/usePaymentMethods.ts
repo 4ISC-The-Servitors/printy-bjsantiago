@@ -55,7 +55,9 @@ export function usePaymentMethods(): UsePaymentMethodsResult {
       setPaymentMethods(data || []);
     } catch (err) {
       console.error('Unexpected error fetching payment methods:', err);
-      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
+      setError(
+        err instanceof Error ? err.message : 'An unexpected error occurred'
+      );
     } finally {
       setLoading(false);
     }
@@ -69,7 +71,7 @@ export function usePaymentMethods(): UsePaymentMethodsResult {
   const bankTransferMethods = paymentMethods.filter(
     method => method.method_type === 'bank_transfer'
   );
-  
+
   const qrphMethods = paymentMethods.filter(
     method => method.method_type === 'qrph'
   );
@@ -80,7 +82,7 @@ export function usePaymentMethods(): UsePaymentMethodsResult {
     qrphMethods,
     loading,
     error,
-    refetch: fetchPaymentMethods
+    refetch: fetchPaymentMethods,
   };
 }
 
@@ -88,95 +90,106 @@ export function usePaymentMethods(): UsePaymentMethodsResult {
  * Hook to fetch payment methods with admin management capabilities
  */
 export function useAdminPaymentMethods(): UsePaymentMethodsResult & {
-  addPaymentMethod: (method: Omit<PaymentMethod, 'method_id' | 'created_at' | 'updated_at'>) => Promise<void>;
-  updatePaymentMethod: (methodId: string, updates: Partial<PaymentMethod>) => Promise<void>;
+  addPaymentMethod: (
+    method: Omit<PaymentMethod, 'method_id' | 'created_at' | 'updated_at'>
+  ) => Promise<void>;
+  updatePaymentMethod: (
+    methodId: string,
+    updates: Partial<PaymentMethod>
+  ) => Promise<void>;
   deletePaymentMethod: (methodId: string) => Promise<void>;
 } {
   const baseResult = usePaymentMethods();
   const [loading, setLoading] = useState(false);
 
-  const addPaymentMethod = useCallback(async (
-    method: Omit<PaymentMethod, 'method_id' | 'created_at' | 'updated_at'>
-  ) => {
-    try {
-      setLoading(true);
-      
-      const { error } = await supabase
-        .from('payment_methods')
-        .insert([method]);
+  const addPaymentMethod = useCallback(
+    async (
+      method: Omit<PaymentMethod, 'method_id' | 'created_at' | 'updated_at'>
+    ) => {
+      try {
+        setLoading(true);
 
-      if (error) {
-        console.error('Error adding payment method:', error);
-        throw error;
+        const { error } = await supabase
+          .from('payment_methods')
+          .insert([method]);
+
+        if (error) {
+          console.error('Error adding payment method:', error);
+          throw error;
+        }
+
+        // Refetch to get updated list
+        await baseResult.refetch();
+      } catch (err) {
+        console.error('Error adding payment method:', err);
+        throw err;
+      } finally {
+        setLoading(false);
       }
+    },
+    [baseResult]
+  );
 
-      // Refetch to get updated list
-      await baseResult.refetch();
-    } catch (err) {
-      console.error('Error adding payment method:', err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, [baseResult]);
+  const updatePaymentMethod = useCallback(
+    async (methodId: string, updates: Partial<PaymentMethod>) => {
+      try {
+        setLoading(true);
 
-  const updatePaymentMethod = useCallback(async (
-    methodId: string,
-    updates: Partial<PaymentMethod>
-  ) => {
-    try {
-      setLoading(true);
-      
-      const { error } = await supabase
-        .from('payment_methods')
-        .update(updates)
-        .eq('method_id', methodId);
+        const { error } = await supabase
+          .from('payment_methods')
+          .update(updates)
+          .eq('method_id', methodId);
 
-      if (error) {
-        console.error('Error updating payment method:', error);
-        throw error;
+        if (error) {
+          console.error('Error updating payment method:', error);
+          throw error;
+        }
+
+        // Refetch to get updated list
+        await baseResult.refetch();
+      } catch (err) {
+        console.error('Error updating payment method:', err);
+        throw err;
+      } finally {
+        setLoading(false);
       }
+    },
+    [baseResult]
+  );
 
-      // Refetch to get updated list
-      await baseResult.refetch();
-    } catch (err) {
-      console.error('Error updating payment method:', err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, [baseResult]);
+  const deletePaymentMethod = useCallback(
+    async (methodId: string) => {
+      try {
+        setLoading(true);
 
-  const deletePaymentMethod = useCallback(async (methodId: string) => {
-    try {
-      setLoading(true);
-      
-      const { error } = await supabase
-        .from('payment_methods')
-        .delete()
-        .eq('method_id', methodId);
+        const { error } = await supabase
+          .from('payment_methods')
+          .delete()
+          .eq('method_id', methodId);
 
-      if (error) {
-        console.error('Error deleting payment method:', error);
-        throw error;
+        if (error) {
+          console.error('Error deleting payment method:', error);
+          throw error;
+        }
+
+        // Refetch to get updated list
+        await baseResult.refetch();
+      } catch (err) {
+        console.error('Error deleting payment method:', err);
+        throw err;
+      } finally {
+        setLoading(false);
       }
-
-      // Refetch to get updated list
-      await baseResult.refetch();
-    } catch (err) {
-      console.error('Error deleting payment method:', err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, [baseResult]);
+    },
+    [baseResult]
+  );
 
   return {
     ...baseResult,
     loading: baseResult.loading || loading,
     addPaymentMethod,
     updatePaymentMethod,
-    deletePaymentMethod
+    deletePaymentMethod,
   };
 }
 

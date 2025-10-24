@@ -7,7 +7,9 @@ import { createClient } from '@supabase/supabase-js';
 dotenv.config({ path: process.env.ENV_FILE || '.env.backup' });
 
 const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+const serviceKey =
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
+  process.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl || !serviceKey) {
   throw new Error(
@@ -33,5 +35,3 @@ export async function ensureBackupBucket(bucketName: string) {
     throw createErr;
   }
 }
-
-

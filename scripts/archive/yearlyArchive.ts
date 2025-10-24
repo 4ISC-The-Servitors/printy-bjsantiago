@@ -6,12 +6,19 @@ type AdminClient = ReturnType<typeof createClient>;
 
 function getAdminClient(): AdminClient {
   const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) throw new Error('Missing SUPABASE_URL and/or SUPABASE_SERVICE_ROLE_KEY');
+  const key =
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key)
+    throw new Error('Missing SUPABASE_URL and/or SUPABASE_SERVICE_ROLE_KEY');
   return createClient(url, key, { auth: { persistSession: false } });
 }
 
-function getPrevCalendarYearBounds(): { year: number; startIso: string; endIso: string } {
+function getPrevCalendarYearBounds(): {
+  year: number;
+  startIso: string;
+  endIso: string;
+} {
   // Use Asia/Manila as business TZ, then compute UTC bounds of that calendar year.
   const tz = 'Asia/Manila';
   const now = new Date();
@@ -26,14 +33,18 @@ function getPrevCalendarYearBounds(): { year: number; startIso: string; endIso: 
   const targetYear = nowInTz.getUTCFullYear() - 1;
   const start = new Date(Date.UTC(targetYear, 0, 1, 0, 0, 0));
   const end = new Date(Date.UTC(targetYear + 1, 0, 1, 0, 0, 0));
-  return { year: targetYear, startIso: start.toISOString(), endIso: end.toISOString() };
+  return {
+    year: targetYear,
+    startIso: start.toISOString(),
+    endIso: end.toISOString(),
+  };
 }
 
 function toCsv(rows: Row[]): string {
   if (!rows.length) return '';
   const headers = Array.from(
     rows.reduce<Set<string>>((s, r) => {
-      Object.keys(r).forEach((k) => s.add(k));
+      Object.keys(r).forEach(k => s.add(k));
       return s;
     }, new Set())
   );
@@ -46,7 +57,7 @@ function toCsv(rows: Row[]): string {
   const lines: string[] = [];
   lines.push(headers.join(','));
   for (const row of rows) {
-    lines.push(headers.map((h) => esc((row as any)[h])).join(','));
+    lines.push(headers.map(h => esc((row as any)[h])).join(','));
   }
   return lines.join('\n');
 }
@@ -56,7 +67,9 @@ async function ensureBucket(admin: AdminClient, bucket: string): Promise<void> {
     const { data, error } = await admin.storage.getBucket(bucket);
     if (!error && data) return;
   } catch {}
-  const { error: createErr } = await admin.storage.createBucket(bucket, { public: false });
+  const { error: createErr } = await admin.storage.createBucket(bucket, {
+    public: false,
+  });
   if (createErr && (createErr as any).status !== 409) throw createErr;
 }
 
@@ -83,7 +96,9 @@ function rowsToCsvLinesUsingHeaders(headers: string[], rows: Row[]): string {
     if (/[",\n\r]/.test(str)) return '"' + str.replace(/"/g, '""') + '"';
     return str;
   };
-  return rows.map((row) => headers.map((h) => esc((row as any)[h])).join(',')).join('\n');
+  return rows
+    .map(row => headers.map(h => esc((row as any)[h])).join(','))
+    .join('\n');
 }
 
 async function appendCsv(
@@ -118,7 +133,8 @@ async function appendCsv(
   const headers = headerLine.split(',');
   const extra = rowsToCsvLinesUsingHeaders(headers, rows);
   const needsNl = existing.length > 0 && !existing.endsWith('\n');
-  const combined = existing + (extra ? (needsNl ? '\n' : '') + extra + '\n' : '');
+  const combined =
+    existing + (extra ? (needsNl ? '\n' : '') + extra + '\n' : '');
   const bytes = Buffer.from(combined, 'utf8');
   const { error } = await admin.storage.from(bucket).upload(objectPath, bytes, {
     upsert: true,
@@ -138,9 +154,16 @@ async function run(): Promise<void> {
   const prefix = `archives/${year}`;
 
   // Helper to fetch rows via RPC or query builder fallbacks
-  async function fetchAll(tableOrView: string, filterCol: string): Promise<Row[]> {
+  async function fetchAll(
+    tableOrView: string,
+    filterCol: string
+  ): Promise<Row[]> {
     const rows: Row[] = [];
-    let from = admin.from(tableOrView).select('*').gte(filterCol, startIso).lt(filterCol, endIso);
+    let from = admin
+      .from(tableOrView)
+      .select('*')
+      .gte(filterCol, startIso)
+      .lt(filterCol, endIso);
     const { data, error } = await from.limit(100000); // practical cap
     if (error) throw error;
     if (data) rows.push(...data);
@@ -148,7 +171,10 @@ async function run(): Promise<void> {
   }
 
   // Helper to delete exported rows
-  async function deleteRange(table: string, filterCol: string): Promise<number> {
+  async function deleteRange(
+    table: string,
+    filterCol: string
+  ): Promise<number> {
     const { count, error } = await admin
       .from(table)
       .delete({ count: 'exact' })
@@ -167,7 +193,9 @@ async function run(): Promise<void> {
       const objectPath = `${prefix}/${table}-${year}.csv`;
       await appendCsv(admin, bucket, objectPath, rows);
       if (!dryRun) await deleteRange(table, timeCol);
-      console.log(`[archive] ${table}: exported ${rows.length}${dryRun ? ' (dry-run)' : ''}`);
+      console.log(
+        `[archive] ${table}: exported ${rows.length}${dryRun ? ' (dry-run)' : ''}`
+      );
     } else {
       console.log(`[archive] ${table}: no rows in range`);
     }
@@ -183,7 +211,9 @@ async function run(): Promise<void> {
       const objectPath = `${prefix}/${table}-${year}.csv`;
       await appendCsv(admin, bucket, objectPath, rows);
       if (!dryRun) await deleteRange(table, timeCol);
-      console.log(`[archive] ${table}: exported ${rows.length}${dryRun ? ' (dry-run)' : ''}`);
+      console.log(
+        `[archive] ${table}: exported ${rows.length}${dryRun ? ' (dry-run)' : ''}`
+      );
     } else {
       console.log(`[archive] ${table}: no rows in range`);
     }
@@ -198,7 +228,9 @@ async function run(): Promise<void> {
       const objectPath = `${prefix}/${table}-${year}.csv`;
       await appendCsv(admin, bucket, objectPath, rows);
       if (!dryRun) await deleteRange(table, timeCol);
-      console.log(`[archive] ${table}: exported ${rows.length}${dryRun ? ' (dry-run)' : ''}`);
+      console.log(
+        `[archive] ${table}: exported ${rows.length}${dryRun ? ' (dry-run)' : ''}`
+      );
     } else {
       console.log(`[archive] ${table}: no rows in range`);
     }
@@ -214,7 +246,9 @@ async function run(): Promise<void> {
         const objectPath = `${prefix}/${table}-${year}.csv`;
         await appendCsv(admin, bucket, objectPath, rows);
         if (!dryRun) await deleteRange(table, timeCol);
-        console.log(`[archive] ${table}: exported ${rows.length}${dryRun ? ' (dry-run)' : ''}`);
+        console.log(
+          `[archive] ${table}: exported ${rows.length}${dryRun ? ' (dry-run)' : ''}`
+        );
       } else {
         console.log(`[archive] ${table}: no rows in range`);
       }
@@ -247,7 +281,9 @@ async function run(): Promise<void> {
       ] as const;
 
       for (const t of tables) {
-        const { data, error } = await inFilter(admin.from(t.name).select('*')).limit(100000);
+        const { data, error } = await inFilter(
+          admin.from(t.name).select('*')
+        ).limit(100000);
         if (error) throw error;
         const rows = data || [];
         if (rows.length) {
@@ -258,8 +294,16 @@ async function run(): Promise<void> {
 
       if (!dryRun) {
         // Delete children first then conversations
-        for (const t of ['quote_orders', 'quote_proposals', 'quote_specs', 'quote_messages']) {
-          const { error } = await admin.from(t).delete().in('conversation_id', convIds);
+        for (const t of [
+          'quote_orders',
+          'quote_proposals',
+          'quote_specs',
+          'quote_messages',
+        ]) {
+          const { error } = await admin
+            .from(t)
+            .delete()
+            .in('conversation_id', convIds);
           if (error) throw error;
         }
         const { error: delConvErr } = await admin
@@ -268,7 +312,9 @@ async function run(): Promise<void> {
           .in('conversation_id', convIds);
         if (delConvErr) throw delConvErr;
       }
-      console.log(`[archive] quote_*: exported conversations=${convIds.length}${dryRun ? ' (dry-run)' : ''}`);
+      console.log(
+        `[archive] quote_*: exported conversations=${convIds.length}${dryRun ? ' (dry-run)' : ''}`
+      );
     } else {
       console.log('[archive] quote_*: no conversations in range');
     }
@@ -277,9 +323,7 @@ async function run(): Promise<void> {
   console.log(`[archive] Completed archive for ${year}`);
 }
 
-run().catch((err) => {
+run().catch(err => {
   console.error('[archive] Failed:', err);
   process.exit(1);
 });
-
-

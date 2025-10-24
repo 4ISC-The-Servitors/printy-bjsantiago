@@ -1,6 +1,7 @@
 # Issue Ticket V2 Implementation Summary
 
 ## Overview
+
 This document summarizes the implementation of the Issue Ticket System V2, which migrates from the old `inquiries` table to a new `inquiries_v2` table with a cleaner schema and better conversation tracking through `chat_messages_v2`.
 
 ## Implementation Status: COMPLETE (Code Changes)
@@ -8,6 +9,7 @@ This document summarizes the implementation of the Issue Ticket System V2, which
 ### What Has Been Implemented
 
 #### 1. Database Migration ✅
+
 **File:** `supabase/migrations/063_create_inquiries_v2.sql`
 
 - Created `inquiries_v2` table with clean schema
@@ -20,6 +22,7 @@ This document summarizes the implementation of the Issue Ticket System V2, which
 #### 2. Action Handlers ✅
 
 **Customer Actions:**
+
 - `src/features/chat/actions/customer/createInquiry.ts` - UPDATED
   - Now uses `inquiries_v2` table
   - Stores `order_id` if provided
@@ -32,6 +35,7 @@ This document summarizes the implementation of the Issue Ticket System V2, which
   - `resolve_ticket`: Customer marks ticket as resolved and ends session
 
 **Admin Actions:**
+
 - `src/features/chat/actions/admin/fetchTicketForAdmin.ts` - NEW
   - `fetch_ticket_for_admin`: Fetches ticket details for admin review (displays inquiry type, description, order ID)
 
@@ -42,6 +46,7 @@ This document summarizes the implementation of the Issue Ticket System V2, which
   - `ticket_change_status`: Admin changes ticket status (Under Review, Resolved, Closed)
 
 #### 3. Action Registration ✅
+
 - Updated `src/features/chat/actions/customer/index.ts` to export new customer actions
 - Updated `src/features/chat/actions/admin/index.ts` to export new admin actions
 - Actions automatically available to `JsonbFlowProcessor` via merged registry
@@ -49,22 +54,27 @@ This document summarizes the implementation of the Issue Ticket System V2, which
 #### 4. Frontend Updates ✅
 
 **Admin Side:**
+
 - `src/admin/hooks/useAdminTickets.ts` - UPDATED to query `inquiries_v2`
 - `src/features/chat/hooks/admin/useAdminTickets.ts` - UPDATED to query `inquiries_v2`
 
 **Customer Side:**
+
 - `src/customer/components/dashboard/ticketHistory/TicketHistory.tsx` - UPDATED to query `inquiries_v2`
 - `src/customer/hooks/useRecentTicket.ts` - Uses updated `getCustomerInquiries` function
 - `src/features/chat/api/sessionQueries.ts` - UPDATED `getCustomerInquiries` to query `inquiries_v2`
 
 #### 5. Type Definitions ✅
+
 - `src/features/chat/api/sessionQueries.ts` - Updated `InquiryWithSession` interface
   - Added `order_id` field
   - Added `updated_at` field
   - Added camelCase variants for hooks
 
 #### 6. Flow Definitions ✅
+
 Created JSON flow definitions (ready to insert into database):
+
 - `docs_guide/issue-ticket-v2.json` - Updated issue ticket flow with order_id collection
 - `docs_guide/track-ticket.json` - New flow for tracking existing tickets
 - `docs_guide/admin-review-ticket.json` - NEW admin flow for reviewing tickets
@@ -74,31 +84,37 @@ Created JSON flow definitions (ready to insert into database):
 ## Manual Steps Required (Supabase Studio)
 
 ### Step 1: Run Migrations
+
 Execute the migration files in Supabase SQL Editor **in order**:
 
 **Migration 063:** `supabase/migrations/063_create_inquiries_v2.sql`
+
 - Creates the `inquiries_v2` table
 - Sets up indexes
 - Configures RLS policies
 - Attaches triggers
 
 **Migration 064:** `supabase/migrations/064_update_chat_sessions_inquiry_fk.sql`
+
 - Drops old FK constraint from `chat_sessions_v2.inquiry_id` → `inquiries.inquiry_id`
 - Creates new FK constraint from `chat_sessions_v2.inquiry_id` → `inquiries_v2.inquiry_id`
 - **CRITICAL:** This fixes the foreign key constraint violation error
 
 ### Step 2: Update issue-ticket Flow
+
 In Supabase Studio → Table Editor → `chat_flows_v2`:
 
 1. Find the row with `flow_id = 'issue-ticket'`
 2. Update the `flow_definition` column with the content from `docs_guide/issue-ticket-v2.json`
 
 **Key changes in the flow:**
+
 - Now collects `order_id` when customer confirms issue is order-related
 - Stores order_id in context for `create_inquiry` action
 - Flow structure: welcome → collect_details → ask_order_id → [collect_order_id] → create_ticket → end
 
 ### Step 3: Insert track-ticket Flow
+
 In Supabase Studio → Table Editor → `chat_flows_v2`:
 
 1. Click "Insert row"
@@ -109,9 +125,11 @@ In Supabase Studio → Table Editor → `chat_flows_v2`:
    - `flow_definition`: Copy content from `docs_guide/track-ticket.json`
 
 **Flow structure:**
+
 - welcome (fetch_ticket_details action) → show_conversation → [Reply to Admin | Mark as Resolved | End Chat]
 
 ### Step 4: Insert admin-review-ticket Flow
+
 In Supabase Studio → Table Editor → `chat_flows_v2`:
 
 1. Click "Insert row"
@@ -122,10 +140,13 @@ In Supabase Studio → Table Editor → `chat_flows_v2`:
    - `flow_definition`: Copy content from `docs_guide/admin-review-ticket.json`
 
 **Flow structure:**
+
 - fetch_ticket_info (fetch_ticket_for_admin action) → show_ticket_details → [Reply to Customer | Mark as Under Review | Mark as Resolved | Close Ticket | End Chat]
 
 ### Step 5: Verify Customer Dashboard Config
+
 Check `src/customer/pages/CustomerDashboard.tsx` lines 79-84:
+
 - Ensure `trackTicket` topic exists in `topicConfig`
 - Verify `flowId` is `'track-ticket'`
 
@@ -187,6 +208,7 @@ Check `src/customer/pages/CustomerDashboard.tsx` lines 79-84:
    - **End Chat**: Exits the review flow
 
 **Key Implementation Details:**
+
 - Admin's review happens in a new admin session, but actions update the customer's original session
 - `inquiry_id` is passed via context from the ticket card click
 - `customer_session_id` is retrieved by `fetch_ticket_for_admin` and stored in context
@@ -224,11 +246,13 @@ chat_messages_v2
 ## Conversation Build-Up
 
 All messages are stored in `chat_messages_v2` with `sender_role`:
+
 - `'customer'` - Customer's messages (initial description, replies)
 - `'admin'` - Admin's responses
 - `'printy'` - System messages (confirmations, status changes)
 
 Example conversation in database:
+
 ```
 1. sender_role: 'customer' - "My order didn't arrive as expected..."
 2. sender_role: 'admin' - "I'm sorry to hear that. Can you provide the tracking number?"
@@ -262,14 +286,16 @@ closed (admin marks)
 ## Testing Checklist
 
 ### Before Testing
+
 - [ ] Run migration 063 in Supabase
 - [ ] Update issue-ticket flow in chat_flows_v2
 - [ ] Insert track-ticket flow in chat_flows_v2
 - [ ] Deploy code changes
 
 ### Customer Tests
+
 - [ ] Create ticket without order_id
-- [ ] Create ticket with order_id  
+- [ ] Create ticket with order_id
 - [ ] View ticket in ticket history
 - [ ] Track ticket shows conversation
 - [ ] Reply to admin
@@ -277,6 +303,7 @@ closed (admin marks)
 - [ ] Mark ticket as resolved
 
 ### Admin Tests
+
 - [ ] View tickets in admin panel
 - [ ] See ticket with order_id
 - [ ] Open ticket and view conversation
@@ -286,6 +313,7 @@ closed (admin marks)
 - [ ] View customer replies
 
 ### Data Verification
+
 - [ ] Messages appear in chat_messages_v2
 - [ ] No data in old inquiries table
 - [ ] order_id foreign key works
@@ -317,6 +345,7 @@ closed (admin marks)
 ## Files Changed
 
 ### New Files
+
 - `supabase/migrations/063_create_inquiries_v2.sql`
 - `supabase/migrations/064_update_chat_sessions_inquiry_fk.sql` - Fixes FK constraint
 - `src/features/chat/actions/customer/trackTicket.ts`
@@ -329,6 +358,7 @@ closed (admin marks)
 - `docs_guide/ISSUE_TICKET_V2_IMPLEMENTATION_SUMMARY.md` (this file)
 
 ### Modified Files
+
 - `src/features/chat/actions/customer/createInquiry.ts`
 - `src/features/chat/actions/customer/index.ts`
 - `src/features/chat/actions/admin/index.ts`
@@ -344,6 +374,7 @@ closed (admin marks)
 ## Support
 
 For questions or issues:
+
 1. Check CHAT_FLOW_STATUS_GUIDE.md for status definitions
 2. Review flow JSON files for flow structure
 3. Check migration file for database schema
@@ -353,4 +384,3 @@ For questions or issues:
 
 **Implementation Date:** October 21, 2025  
 **Status:** Code Complete - Awaiting Database Migration
-

@@ -25,16 +25,8 @@ export const OrdersSkeleton: React.FC = () => {
                 </div>
                 <Skeleton variant="text" width="150px" height="14px" />
                 <div className="flex gap-2">
-                  <Skeleton
-                    variant="rectangular"
-                    width="60px"
-                    height="20px"
-                  />
-                  <Skeleton
-                    variant="rectangular"
-                    width="80px"
-                    height="20px"
-                  />
+                  <Skeleton variant="rectangular" width="60px" height="20px" />
+                  <Skeleton variant="rectangular" width="80px" height="20px" />
                 </div>
               </div>
               <div className="flex items-center gap-3">

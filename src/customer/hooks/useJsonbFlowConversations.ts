@@ -4,4 +4,7 @@
  *
  * DEPRECATED: Import directly from '@features/chat/hooks/customer/useJsonbFlowConversations' instead
  */
-export { useJsonbFlowConversations, default } from '@features/chat/hooks/customer/useJsonbFlowConversations';
+export {
+  useJsonbFlowConversations,
+  default,
+} from '@features/chat/hooks/customer/useJsonbFlowConversations';

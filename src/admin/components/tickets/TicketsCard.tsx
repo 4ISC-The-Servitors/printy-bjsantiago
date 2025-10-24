@@ -12,22 +12,20 @@ interface TicketsCardProps {
 const TicketsCard: React.FC<TicketsCardProps> = ({ filteredTickets }) => {
   // All hooks must be called unconditionally before any early returns
   useResponsiveLayout();
-  const {
-    isLoading,
-    error,
-    page,
-    setPage,
-    pageSize,
-    viewInChat,
-  } = useTicketsCard();
+  const { isLoading, error, page, setPage, pageSize, viewInChat } =
+    useTicketsCard();
 
   // Calculate paginated display tickets from filtered tickets
   const start = (page - 1) * pageSize;
-  const displayInquiries = filteredTickets?.slice(start, start + pageSize) || [];
+  const displayInquiries =
+    filteredTickets?.slice(start, start + pageSize) || [];
 
   // Reset to page 1 if current page exceeds available pages
   React.useEffect(() => {
-    const maxPage = Math.max(1, Math.ceil((filteredTickets?.length || 0) / pageSize));
+    const maxPage = Math.max(
+      1,
+      Math.ceil((filteredTickets?.length || 0) / pageSize)
+    );
     if (page > maxPage) {
       setPage(maxPage);
     }
@@ -58,13 +56,15 @@ const TicketsCard: React.FC<TicketsCardProps> = ({ filteredTickets }) => {
               <TicketItem
                 key={ticket.inquiry_id}
                 ticket={ticket}
-                onViewInChat={(ticketId) => viewInChat(ticketId, filteredTickets)}
+                onViewInChat={ticketId => viewInChat(ticketId, filteredTickets)}
               />
             ))
           ) : !error ? (
             <div className="text-center py-12 text-neutral-500">
               <p className="text-lg font-medium">No tickets found</p>
-              <p className="text-sm mt-1">Try adjusting your search or filters</p>
+              <p className="text-sm mt-1">
+                Try adjusting your search or filters
+              </p>
             </div>
           ) : null}
         </div>

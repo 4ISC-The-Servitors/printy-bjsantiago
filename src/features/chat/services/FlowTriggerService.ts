@@ -49,7 +49,9 @@ export class FlowTriggerService {
   /**
    * Quote flow logic: Check status to determine flow
    */
-  private static async getQuoteFlow(sessionId: string): Promise<FlowContext | null> {
+  private static async getQuoteFlow(
+    sessionId: string
+  ): Promise<FlowContext | null> {
     console.log('🔍 Checking quote status for session_id:', sessionId);
 
     const { data: quoteData, error: quoteError } = await supabase
@@ -70,12 +72,18 @@ export class FlowTriggerService {
       console.log('✅ Quote is accepted - using admin-create-order flow');
 
       // Get the accepted proposal for context
-      const { data: proposalData } = await supabase
+      const { data: proposalData, error: proposalError } = await supabase
         .from('quote_proposals')
         .select('proposal_id')
         .eq('session_id', sessionId)
-        .eq('status', 'accepted')
+        .order('created_at', { ascending: false })
+        .limit(1)
         .single();
+
+      if (proposalError) {
+        console.error('⚠️ Error fetching accepted proposal:', proposalError);
+        return null;
+      }
 
       const context: Record<string, any> = {
         quote_id: quoteData.quote_id,
@@ -85,6 +93,9 @@ export class FlowTriggerService {
       if (proposalData) {
         console.log('📋 Found accepted proposal:', proposalData.proposal_id);
         context.proposal_id = proposalData.proposal_id;
+      } else {
+        console.error('⚠️ No accepted proposal found for session:', sessionId);
+        return null;
       }
 
       return {
@@ -107,9 +118,13 @@ export class FlowTriggerService {
     const hasSavedSpecs = savedSpecs && savedSpecs.length > 0;
 
     if (hasSavedSpecs) {
-      console.log('📋 Found saved specs - using admin-quote-propose flow with saved specs context');
+      console.log(
+        '📋 Found saved specs - using admin-quote-propose flow with saved specs context'
+      );
     } else {
-      console.log('📝 No saved specs found - using admin-quote-propose flow for new specs');
+      console.log(
+        '📝 No saved specs found - using admin-quote-propose flow for new specs'
+      );
     }
 
     return {
@@ -127,8 +142,13 @@ export class FlowTriggerService {
   /**
    * Ticket flow logic: Always use admin-review-ticket
    */
-  private static async getTicketFlow(inquiryId: string): Promise<FlowContext | null> {
-    console.log('🔍 Tickets topic detected - using admin-review-ticket flow for inquiry_id:', inquiryId);
+  private static async getTicketFlow(
+    inquiryId: string
+  ): Promise<FlowContext | null> {
+    console.log(
+      '🔍 Tickets topic detected - using admin-review-ticket flow for inquiry_id:',
+      inquiryId
+    );
 
     // Fetch ticket data for display ID
     const { data: ticketData } = await supabase
@@ -149,8 +169,13 @@ export class FlowTriggerService {
   /**
    * Order flow logic: Check status to determine flow
    */
-  private static async getOrderFlow(orderId: string): Promise<FlowContext | null> {
-    console.log('🔍 Orders topic detected - checking order status for order_id:', orderId);
+  private static async getOrderFlow(
+    orderId: string
+  ): Promise<FlowContext | null> {
+    console.log(
+      '🔍 Orders topic detected - checking order status for order_id:',
+      orderId
+    );
 
     const { data: orderData, error: orderError } = await supabase
       .from('orders')
@@ -167,7 +192,9 @@ export class FlowTriggerService {
 
     // VERIFYING_PAYMENT status → admin-verify-payment flow
     if (orderData.status === 'verifying_payment') {
-      console.log('✅ Order is in verifying_payment status - using admin-verify-payment flow');
+      console.log(
+        '✅ Order is in verifying_payment status - using admin-verify-payment flow'
+      );
 
       return {
         flowId: 'admin-verify-payment',
@@ -181,7 +208,10 @@ export class FlowTriggerService {
     }
 
     // For other order statuses, we currently don't have a specific flow
-    console.warn('⚠️ No specific flow defined for order status:', orderData.status);
+    console.warn(
+      '⚠️ No specific flow defined for order status:',
+      orderData.status
+    );
     return null;
   }
 
@@ -191,7 +221,11 @@ export class FlowTriggerService {
   static validateContext(page: AdminPage, flowId: FlowId): boolean {
     const pageFlows: Record<AdminPage, FlowId[]> = {
       quotes: ['admin-quote-propose', 'admin-create-order'],
-      tickets: ['admin-review-ticket', 'admin-issue-ticket', 'admin-track-ticket'],
+      tickets: [
+        'admin-review-ticket',
+        'admin-issue-ticket',
+        'admin-track-ticket',
+      ],
       orders: ['admin-verify-payment'],
     };
 
@@ -222,13 +256,17 @@ export class FlowTriggerService {
 
     // 2. Page changed (e.g., tickets → quotes)
     if (currentPage !== newPage) {
-      console.log(`🔄 Page changed: ${currentPage} → ${newPage}, resetting chat`);
+      console.log(
+        `🔄 Page changed: ${currentPage} → ${newPage}, resetting chat`
+      );
       return true;
     }
 
     // 3. Entity changed within same page (e.g., different quote)
     if (currentEntityId !== newEntityId) {
-      console.log(`🔄 Entity changed: ${currentEntityId} → ${newEntityId}, resetting chat`);
+      console.log(
+        `🔄 Entity changed: ${currentEntityId} → ${newEntityId}, resetting chat`
+      );
       return true;
     }
 
@@ -240,7 +278,10 @@ export class FlowTriggerService {
    * Checks if a flow should skip typing delays (for admin flows that need instant display)
    */
   static shouldSkipTypingDelay(flowId: FlowId): boolean {
-    const instantFlows: FlowId[] = ['admin-create-order', 'admin-verify-payment'];
+    const instantFlows: FlowId[] = [
+      'admin-create-order',
+      'admin-verify-payment',
+    ];
     return instantFlows.includes(flowId);
   }
 }

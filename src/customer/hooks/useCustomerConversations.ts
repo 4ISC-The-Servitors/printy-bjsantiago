@@ -4,4 +4,7 @@
  *
  * DEPRECATED: Import directly from '@features/chat/hooks/customer/useCustomerConversations' instead
  */
-export { useCustomerConversations, default } from '@features/chat/hooks/customer/useCustomerConversations';
+export {
+  useCustomerConversations,
+  default,
+} from '@features/chat/hooks/customer/useCustomerConversations';

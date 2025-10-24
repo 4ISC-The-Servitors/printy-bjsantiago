@@ -1,5 +1,6 @@
 import React from 'react';
 import { Button } from '@shared/components';
+import { MessageSquare } from 'lucide-react';
 
 interface TrackQuoteButtonProps {
   conversationId: string;
@@ -7,7 +8,11 @@ interface TrackQuoteButtonProps {
   status: string;
 }
 
-const TrackQuoteButton: React.FC<TrackQuoteButtonProps> = ({ conversationId, subject, status }) => {
+const TrackQuoteButton: React.FC<TrackQuoteButtonProps> = ({
+  conversationId,
+  subject,
+  status,
+}) => {
   // Hide button if quote is accepted or rejected
   if (status === 'accepted' || status === 'rejected') {
     return null;
@@ -20,9 +25,15 @@ const TrackQuoteButton: React.FC<TrackQuoteButtonProps> = ({ conversationId, sub
     });
     window.dispatchEvent(event);
   };
-  
+
   return (
-    <Button variant="primary" size="sm" threeD onClick={onClick}>
+    <Button
+      variant="primary"
+      className="device-btn-primary"
+      threeD
+      onClick={onClick}
+    >
+      <MessageSquare className="w-4 h-4" />
       Track Quote
     </Button>
   );

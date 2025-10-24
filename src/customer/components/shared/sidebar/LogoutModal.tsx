@@ -8,7 +8,11 @@ interface LogoutModalProps {
   onConfirm: () => void;
 }
 
-const LogoutModal: React.FC<LogoutModalProps> = ({ isOpen, onClose, onConfirm }) => {
+const LogoutModal: React.FC<LogoutModalProps> = ({
+  isOpen,
+  onClose,
+  onConfirm,
+}) => {
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="sm">
       <div className="bg-white rounded-2xl shadow-xl border border-neutral-200">
@@ -48,5 +52,3 @@ const LogoutModal: React.FC<LogoutModalProps> = ({ isOpen, onClose, onConfirm })
 };
 
 export default LogoutModal;
-
-

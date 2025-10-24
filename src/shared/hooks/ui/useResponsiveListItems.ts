@@ -2,7 +2,12 @@ import { useEffect, useState, useCallback } from 'react';
 
 export function useResponsiveListItems(
   getContainerHeight: () => number | null,
-  options?: { itemHeight?: number; min?: number; max?: number; observeEl?: () => Element | null }
+  options?: {
+    itemHeight?: number;
+    min?: number;
+    max?: number;
+    observeEl?: () => Element | null;
+  }
 ) {
   const { itemHeight = 64, min = 1, max = 10, observeEl } = options || {};
   const [count, setCount] = useState<number>(min);
@@ -46,5 +51,3 @@ export function useResponsiveListItems(
 }
 
 export default useResponsiveListItems;
-
-

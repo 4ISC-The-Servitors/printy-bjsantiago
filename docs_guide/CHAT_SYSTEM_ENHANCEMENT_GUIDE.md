@@ -17,26 +17,31 @@ This guide addresses critical issues with chat session management, message loadi
 ## Critical Issues Identified
 
 ### 1. End Chat Quick Replies Not Working Properly
+
 - "End Chat" quick replies don't properly end sessions
 - Inconsistent behavior between customer and admin paths
 - Session status not properly updated in database
 
 ### 2. Close (X) Button Behavior Issues
+
 - Should end active chats but not trigger multiple endings for already ended chats
 - Missing session state checking before triggering end logic
 - Inconsistent with "End Chat" quick reply behavior
 
 ### 3. Minimize (-) Button Issues
+
 - Should preserve session state for later access
 - Users can't easily return to minimized chats
 - No integration with recent sessions
 
 ### 4. Message Loading Problems
+
 - Typing indicators show for already-sent messages after refresh
 - Can't distinguish between loading existing vs new messages
 - Missing readOnly state for ended conversations
 
 ### 5. End Chat Message Persistence
+
 - End chat messages not consistently saved to database
 - Timing issues between UI updates and database sync
 - Missing guaranteed DB insertion for end messages
@@ -68,12 +73,15 @@ export interface ChatEndServiceOptions {
 }
 
 export class ChatEndService {
-  private static readonly DEFAULT_END_MESSAGE = "Thank you for chatting with Printy! This conversation has been ended.";
+  private static readonly DEFAULT_END_MESSAGE =
+    'Thank you for chatting with Printy! This conversation has been ended.';
 
   /**
    * Unified method to end chat sessions consistently
    */
-  static async endChatSession(options: ChatEndServiceOptions): Promise<{ success: boolean; error?: string }> {
+  static async endChatSession(
+    options: ChatEndServiceOptions
+  ): Promise<{ success: boolean; error?: string }> {
     const { sessionId, userId, userType, conversationId, endMessage } = options;
 
     try {
@@ -106,8 +114,8 @@ export class ChatEndService {
           metadata: {
             is_end_message: true,
             ended_by: userType,
-            ended_at: new Date().toISOString()
-          }
+            ended_at: new Date().toISOString(),
+          },
         });
 
       if (messageError) {
@@ -124,8 +132,8 @@ export class ChatEndService {
           metadata: {
             ...session.metadata,
             ended_at: new Date().toISOString(),
-            ended_by: userType
-          }
+            ended_by: userType,
+          },
         })
         .eq('id', sessionId);
 
@@ -136,12 +144,15 @@ export class ChatEndService {
 
       // 5. Update conversation if conversationId provided
       if (conversationId) {
-        const table = userType === 'admin' ? 'admin_conversations' : 'customer_conversations';
+        const table =
+          userType === 'admin'
+            ? 'admin_conversations'
+            : 'customer_conversations';
         const { error: convError } = await supabase
           .from(table)
           .update({
             status: 'ended',
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
           })
           .eq('id', conversationId);
 
@@ -152,7 +163,6 @@ export class ChatEndService {
       }
 
       return { success: true };
-
     } catch (error) {
       console.error('Unexpected error in endChatSession:', error);
       return { success: false, error: 'Unexpected error occurred' };
@@ -186,13 +196,17 @@ export class ChatEndService {
 ```typescript
 // Add this to the existing action handler or create a new end chat action
 
-export const endCustomerChat = async (sessionId: string, userId: string, conversationId?: string) => {
+export const endCustomerChat = async (
+  sessionId: string,
+  userId: string,
+  conversationId?: string
+) => {
   const result = await ChatEndService.endChatSession({
     sessionId,
     userId,
     userType: 'customer',
     conversationId,
-    endMessage: ChatEndService.DEFAULT_END_MESSAGE
+    endMessage: ChatEndService.DEFAULT_END_MESSAGE,
   });
 
   if (!result.success) {
@@ -208,40 +222,47 @@ export const endCustomerChat = async (sessionId: string, userId: string, convers
 ```typescript
 // Replace the existing endChat implementation with:
 
-const endChat = useCallback(async (conversationId: string, sessionId: string) => {
-  try {
-    // Use the unified service
-    const result = await ChatEndService.endChatSession({
-      sessionId,
-      userId: user.id,
-      userType: 'customer',
-      conversationId
-    });
+const endChat = useCallback(
+  async (conversationId: string, sessionId: string) => {
+    try {
+      // Use the unified service
+      const result = await ChatEndService.endChatSession({
+        sessionId,
+        userId: user.id,
+        userType: 'customer',
+        conversationId,
+      });
 
-    if (result.success) {
-      // Update local state
-      setConversations(prev =>
-        prev.map(conv =>
-          conv.id === conversationId
-            ? { ...conv, status: 'ended', updated_at: new Date().toISOString() }
-            : conv
-        )
-      );
+      if (result.success) {
+        // Update local state
+        setConversations(prev =>
+          prev.map(conv =>
+            conv.id === conversationId
+              ? {
+                  ...conv,
+                  status: 'ended',
+                  updated_at: new Date().toISOString(),
+                }
+              : conv
+          )
+        );
 
-      // Clear active conversation if it's the one being ended
-      if (activeConversation?.id === conversationId) {
-        setActiveConversation(null);
+        // Clear active conversation if it's the one being ended
+        if (activeConversation?.id === conversationId) {
+          setActiveConversation(null);
+        }
+
+        toast.success('Chat ended successfully');
+      } else {
+        toast.error(result.error || 'Failed to end chat');
       }
-
-      toast.success("Chat ended successfully");
-    } else {
-      toast.error(result.error || "Failed to end chat");
+    } catch (error) {
+      console.error('Error ending chat:', error);
+      toast.error('Failed to end chat');
     }
-  } catch (error) {
-    console.error('Error ending chat:', error);
-    toast.error("Failed to end chat");
-  }
-}, [user.id, activeConversation, setActiveConversation]);
+  },
+  [user.id, activeConversation, setActiveConversation]
+);
 ```
 
 ### 1.3 Fix Admin End Chat Implementation
@@ -251,13 +272,17 @@ const endChat = useCallback(async (conversationId: string, sessionId: string) =>
 ```typescript
 import { ChatEndService } from '../../services/ChatEndService';
 
-export const endAdminChat = async (sessionId: string, adminId: string, conversationId?: string) => {
+export const endAdminChat = async (
+  sessionId: string,
+  adminId: string,
+  conversationId?: string
+) => {
   const result = await ChatEndService.endChatSession({
     sessionId,
     userId: adminId,
     userType: 'admin',
     conversationId,
-    endMessage: "This conversation has been ended by the administrator."
+    endMessage: 'This conversation has been ended by the administrator.',
   });
 
   if (!result.success) {
@@ -273,40 +298,47 @@ export const endAdminChat = async (sessionId: string, adminId: string, conversat
 ```typescript
 // Replace the existing endChat implementation:
 
-const endChat = useCallback(async (conversationId: string, sessionId: string) => {
-  try {
-    // Use the unified service
-    const result = await ChatEndService.endChatSession({
-      sessionId,
-      userId: user.id,
-      userType: 'admin',
-      conversationId
-    });
+const endChat = useCallback(
+  async (conversationId: string, sessionId: string) => {
+    try {
+      // Use the unified service
+      const result = await ChatEndService.endChatSession({
+        sessionId,
+        userId: user.id,
+        userType: 'admin',
+        conversationId,
+      });
 
-    if (result.success) {
-      // Update local state
-      setConversations(prev =>
-        prev.map(conv =>
-          conv.id === conversationId
-            ? { ...conv, status: 'ended', updated_at: new Date().toISOString() }
-            : conv
-        )
-      );
+      if (result.success) {
+        // Update local state
+        setConversations(prev =>
+          prev.map(conv =>
+            conv.id === conversationId
+              ? {
+                  ...conv,
+                  status: 'ended',
+                  updated_at: new Date().toISOString(),
+                }
+              : conv
+          )
+        );
 
-      // Clear active conversation if it's the one being ended
-      if (activeConversation?.id === conversationId) {
-        setActiveConversation(null);
+        // Clear active conversation if it's the one being ended
+        if (activeConversation?.id === conversationId) {
+          setActiveConversation(null);
+        }
+
+        toast.success('Chat ended successfully');
+      } else {
+        toast.error(result.error || 'Failed to end chat');
       }
-
-      toast.success("Chat ended successfully");
-    } else {
-      toast.error(result.error || "Failed to end chat");
+    } catch (error) {
+      console.error('Error ending chat:', error);
+      toast.error('Failed to end chat');
     }
-  } catch (error) {
-    console.error('Error ending chat:', error);
-    toast.error("Failed to end chat");
-  }
-}, [user.id, activeConversation, setActiveConversation]);
+  },
+  [user.id, activeConversation, setActiveConversation]
+);
 ```
 
 ### 1.4 Fix Quick Reply Handling
@@ -323,7 +355,10 @@ const handleQuickReply = async (reply: string) => {
   addMessage(reply, 'user');
 
   // Check if this is an end chat quick reply
-  if (reply.toLowerCase().includes('end chat') || reply.toLowerCase().includes('end conversation')) {
+  if (
+    reply.toLowerCase().includes('end chat') ||
+    reply.toLowerCase().includes('end conversation')
+  ) {
     // Get current session info
     const sessionId = activeConversation?.session_id;
     const conversationId = activeConversation?.id;
@@ -336,17 +371,17 @@ const handleQuickReply = async (reply: string) => {
           sessionId,
           userId: user.id,
           userType,
-          conversationId
+          conversationId,
         });
 
         if (result.success) {
           onEndChat();
         } else {
-          toast.error("Failed to end chat");
+          toast.error('Failed to end chat');
         }
       } catch (error) {
         console.error('Error ending chat from quick reply:', error);
-        toast.error("Failed to end chat");
+        toast.error('Failed to end chat');
       }
       return;
     }
@@ -376,7 +411,9 @@ const handleClose = async () => {
 
   try {
     // Check if session is already ended
-    const isEnded = await ChatEndService.isSessionEnded(activeConversation.session_id);
+    const isEnded = await ChatEndService.isSessionEnded(
+      activeConversation.session_id
+    );
 
     if (!isEnded) {
       // Session is active, end it
@@ -384,14 +421,14 @@ const handleClose = async () => {
         sessionId: activeConversation.session_id,
         userId: user.id,
         userType: 'customer',
-        conversationId: activeConversation.id
+        conversationId: activeConversation.id,
       });
 
       if (result.success) {
-        toast.success("Chat ended");
+        toast.success('Chat ended');
         onEndChat?.();
       } else {
-        toast.error("Failed to end chat");
+        toast.error('Failed to end chat');
       }
     } else {
       // Session already ended, just close the panel
@@ -399,7 +436,7 @@ const handleClose = async () => {
     }
   } catch (error) {
     console.error('Error handling close:', error);
-    toast.error("Failed to close chat");
+    toast.error('Failed to close chat');
   }
 };
 ```
@@ -416,7 +453,9 @@ const handleClose = async () => {
 
   try {
     // Check if session is already ended
-    const isEnded = await ChatEndService.isSessionEnded(activeConversation.session_id);
+    const isEnded = await ChatEndService.isSessionEnded(
+      activeConversation.session_id
+    );
 
     if (!isEnded) {
       // Session is active, end it
@@ -424,14 +463,14 @@ const handleClose = async () => {
         sessionId: activeConversation.session_id,
         userId: user.id,
         userType: 'admin',
-        conversationId: activeConversation.id
+        conversationId: activeConversation.id,
       });
 
       if (result.success) {
-        toast.success("Chat ended");
+        toast.success('Chat ended');
         onClose?.();
       } else {
-        toast.error("Failed to end chat");
+        toast.error('Failed to end chat');
       }
     } else {
       // Session already ended, just close the overlay
@@ -439,7 +478,7 @@ const handleClose = async () => {
     }
   } catch (error) {
     console.error('Error handling close:', error);
-    toast.error("Failed to close chat");
+    toast.error('Failed to close chat');
   }
 };
 ```
@@ -461,7 +500,7 @@ const handleMinimize = () => {
     customerName: activeConversation.customer_name,
     lastMessage: activeConversation.last_message,
     timestamp: activeConversation.updated_at,
-    isMinimized: true
+    isMinimized: true,
   };
 
   // Add to recent sessions (you'll need to implement this storage)
@@ -474,8 +513,13 @@ const handleMinimize = () => {
 // Helper function to add to recent sessions
 const addToRecentSessions = (session: any) => {
   // Store in localStorage or context
-  const existing = JSON.parse(localStorage.getItem('recentChatSessions') || '[]');
-  const updated = [session, ...existing.filter(s => s.conversationId !== session.conversationId)].slice(0, 10);
+  const existing = JSON.parse(
+    localStorage.getItem('recentChatSessions') || '[]'
+  );
+  const updated = [
+    session,
+    ...existing.filter(s => s.conversationId !== session.conversationId),
+  ].slice(0, 10);
   localStorage.setItem('recentChatSessions', JSON.stringify(updated));
 };
 ```
@@ -493,7 +537,7 @@ const handleMinimize = () => {
     sessionId: activeConversation.session_id,
     lastMessage: activeConversation.last_message,
     timestamp: activeConversation.updated_at,
-    isMinimized: true
+    isMinimized: true,
   };
 
   addToRecentSessions(recentSession);
@@ -529,7 +573,9 @@ export const useRecentSessions = () => {
 
   const addToRecentSessions = (session: RecentSession) => {
     setRecentSessions(prev => {
-      const filtered = prev.filter(s => s.conversationId !== session.conversationId);
+      const filtered = prev.filter(
+        s => s.conversationId !== session.conversationId
+      );
       const updated = [session, ...filtered].slice(0, 10);
       localStorage.setItem('recentChatSessions', JSON.stringify(updated));
       return updated;
@@ -547,7 +593,7 @@ export const useRecentSessions = () => {
   return {
     recentSessions,
     addToRecentSessions,
-    removeFromRecentSessions
+    removeFromRecentSessions,
   };
 };
 ```
@@ -605,14 +651,15 @@ const loadConversation = async (conversationId: string, sessionId: string) => {
     const { data: messages } = await fetchSessionMessagesV2(sessionId);
 
     // Set messages with historical flag
-    setMessages(messages.map(msg => ({
-      ...msg,
-      isHistorical: true // Mark all loaded messages as historical
-    })));
+    setMessages(
+      messages.map(msg => ({
+        ...msg,
+        isHistorical: true, // Mark all loaded messages as historical
+      }))
+    );
 
     // Set read-only state for ended conversations
     setReadOnly(isEnded);
-
   } catch (error) {
     console.error('Error loading conversation:', error);
     toast.error('Failed to load conversation');
@@ -689,16 +736,16 @@ const loadConversation = useCallback(async (sessionId: string) => {
       .order('sent_at', { ascending: true });
 
     // Mark messages as historical to prevent typing indicators
-    const historicalMessages = messages?.map(msg => ({
-      ...msg,
-      isHistorical: true,
-      sender_type: msg.sender_type as 'user' | 'bot'
-    })) || [];
+    const historicalMessages =
+      messages?.map(msg => ({
+        ...msg,
+        isHistorical: true,
+        sender_type: msg.sender_type as 'user' | 'bot',
+      })) || [];
 
     setMessages(historicalMessages);
     setReadOnly(isEnded);
     setIsTyping(false); // Ensure typing indicator is off
-
   } catch (error) {
     console.error('Error loading conversation:', error);
   }
@@ -712,6 +759,7 @@ const loadConversation = useCallback(async (sessionId: string) => {
 ### 1. End Chat Functionality Testing
 
 **Test Steps:**
+
 1. Start a new chat as customer
 2. Click "End Chat" in quick replies
 3. Verify chat ends and end message is saved and shown, ReadOnlyOverlay is shown
@@ -719,6 +767,7 @@ const loadConversation = useCallback(async (sessionId: string) => {
 5. Repeat as admin with different conversation
 
 **Expected Results:**
+
 - Chat status changes to 'ended'
 - End message appears in chat, ReadOnlyOverlay is shown
 - Database records updated correctly
@@ -727,6 +776,7 @@ const loadConversation = useCallback(async (sessionId: string) => {
 ### 2. Close Button Testing
 
 **Test Steps:**
+
 1. Start active chat
 2. Click close (X) button
 3. Verify chat ends with proper message
@@ -735,6 +785,7 @@ const loadConversation = useCallback(async (sessionId: string) => {
 6. Verify no duplicate end message
 
 **Expected Results:**
+
 - Active chats end when closed
 - Already ended chats just close
 - No duplicate end messages
@@ -742,6 +793,7 @@ const loadConversation = useCallback(async (sessionId: string) => {
 ### 3. Minimize Button Testing
 
 **Test Steps:**
+
 1. Start active chat
 2. Click minimize (-) button
 3. Verify chat is minimized, not ended
@@ -750,6 +802,7 @@ const loadConversation = useCallback(async (sessionId: string) => {
 6. Verify conversation continues
 
 **Expected Results:**
+
 - Chat is minimized without ending
 - Can be re-opened from recent sessions
 - Conversation state preserved
@@ -757,6 +810,7 @@ const loadConversation = useCallback(async (sessionId: string) => {
 ### 4. Message Loading Testing
 
 **Test Steps:**
+
 1. Start chat and exchange messages
 2. Refresh page
 3. Return to chat
@@ -766,6 +820,7 @@ const loadConversation = useCallback(async (sessionId: string) => {
 7. Verify read-only state
 
 **Expected Results:**
+
 - No typing indicators for existing messages
 - Proper read-only state for ended chats
 - Messages load correctly after refresh
@@ -777,6 +832,7 @@ const loadConversation = useCallback(async (sessionId: string) => {
 ### If Issues Occur:
 
 1. **Revert to Previous Implementation:**
+
    ```bash
    git checkout HEAD~1 -- src/features/chat/services/ChatEndService.ts
    git checkout HEAD~1 -- src/customer/hooks/useCustomerConversations.ts
@@ -802,6 +858,7 @@ const loadConversation = useCallback(async (sessionId: string) => {
    - Verify message persistence
 
 2. **Database Verification:**
+
    ```sql
    -- Check session statuses
    SELECT id, status, metadata FROM chat_sessions_v2 WHERE status = 'ended';

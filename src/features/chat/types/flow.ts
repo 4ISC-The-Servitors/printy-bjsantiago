@@ -30,6 +30,8 @@ export type ActionType =
   | 'check_accepted_quote'
   | 'display_accepted_proposal'
   | 'display_quote_price'
+  | 'display_quoted_price'
+  | 'show_quote_decision_prompt'
   | 'display_order_payment_info'
   | 'display_payment_methods'
   | 'upload_payment_proof_image'
@@ -115,6 +117,14 @@ export interface DisplayQuotePriceConfig {
   conversation_id_key: string;
 }
 
+export interface DisplayQuotedPriceConfig {
+  conversation_id_key: string;
+}
+
+export interface ShowQuoteDecisionPromptConfig {
+  conversation_id_key: string;
+}
+
 export interface DisplayOrderPaymentInfoConfig {
   order_id_key: string;
 }
@@ -147,6 +157,8 @@ export type ActionConfig =
   | CheckAcceptedQuoteConfig
   | DisplayAcceptedProposalConfig
   | DisplayQuotePriceConfig
+  | DisplayQuotedPriceConfig
+  | ShowQuoteDecisionPromptConfig
   | DisplayOrderPaymentInfoConfig
   | DisplayPaymentMethodsConfig
   | UploadPaymentProofImageConfig;

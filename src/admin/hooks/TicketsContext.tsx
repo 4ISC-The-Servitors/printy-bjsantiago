@@ -13,7 +13,9 @@ interface TicketsContextValue {
   error: string | null;
 }
 
-const TicketsContext = createContext<TicketsContextValue | undefined>(undefined);
+const TicketsContext = createContext<TicketsContextValue | undefined>(
+  undefined
+);
 
 export const TicketsProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
@@ -22,16 +24,16 @@ export const TicketsProvider: React.FC<{ children: React.ReactNode }> = ({
   const { tickets, loading, error, reload } = useAdminTickets({
     page: 1,
     pageSize: 100, // Load more tickets for the context
-    useAdvancedFallbacks: true
+    useAdvancedFallbacks: true,
   });
 
   const updateTicket = (ticketId: string, updates: Partial<AdminTicketRow>) => {
     console.log('updateTicket called:', ticketId, updates);
-    
+
     // Optimistic update would go here if we had access to setTickets
     // For now, we'll rely on the real-time subscription to update the UI
     // The actual database update is handled by the chat flows
-    
+
     // Then refresh from database to ensure consistency
     reload();
   };
@@ -41,13 +43,15 @@ export const TicketsProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   return (
-    <TicketsContext.Provider value={{ 
-      tickets, 
-      updateTicket, 
-      refreshTickets, 
-      loading, 
-      error 
-    }}>
+    <TicketsContext.Provider
+      value={{
+        tickets,
+        updateTicket,
+        refreshTickets,
+        loading,
+        error,
+      }}
+    >
       {children}
     </TicketsContext.Provider>
   );

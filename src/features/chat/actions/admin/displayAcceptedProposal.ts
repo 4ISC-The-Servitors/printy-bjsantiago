@@ -61,7 +61,6 @@ export async function displayAcceptedProposal(
       `
       )
       .eq('proposal_id', proposalId)
-      .eq('status', 'accepted')
       .single();
 
     if (proposalError || !proposal) {

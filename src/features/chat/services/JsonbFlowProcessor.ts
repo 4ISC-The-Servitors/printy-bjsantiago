@@ -324,6 +324,7 @@ export class JsonbFlowProcessor {
     }
 
     // Auto-advance if initial node has a next and does NOT require input (common for admin flows)
+    let lastActionResult: any = null; // Track last action result for quick replies
     if (
       initialNode.type === 'message' &&
       initialNode.next &&
@@ -342,9 +343,15 @@ export class JsonbFlowProcessor {
             actionNode: currentNode as ActionNode,
             sessionId,
             customerId,
-            context: (initialContext || {}) as any,
+            context: stateManager.getContext(),
           });
           bootMessages.push(...actionResult.messages);
+
+          // ✅ Store last action result for quick replies
+          lastActionResult = {
+            result: actionResult,
+            node: currentNode,
+          };
 
           // ✅ FIX: Save action messages to database
           for (const message of actionResult.messages) {
@@ -426,7 +433,58 @@ export class JsonbFlowProcessor {
       }
     }
 
-    const quickReplies = buildQuickReplies(flowDefinition.nodes[currentNodeId]);
+    // Build quick replies from final node
+    let quickReplies = buildQuickReplies(flowDefinition.nodes[currentNodeId]);
+
+    // ✅ FIX: Use action quick replies if the last executed action provided them
+    // This allows actions to dynamically provide quick replies (like Accept/Reject quote)
+    try {
+      if (lastActionResult && lastActionResult.result?.quickReplies) {
+        const actionNode = lastActionResult.node as ActionNode;
+        const actionResult = lastActionResult.result;
+
+        // Check if action has validation errors
+        const hasValidationErrors = actionResult.messages?.some(
+          (msg: any) =>
+            msg.text?.includes('was not found') ||
+            msg.text?.includes('Please provide a valid') ||
+            msg.text?.includes('Try again later') ||
+            msg.text?.includes("Couldn't create")
+        );
+
+        // Use action quick replies if:
+        // 1. There are validation errors (stay on same node for retry)
+        // 2. Action has no next node (designed for interaction)
+        // 3. Action is specifically designed to show quick replies
+        const shouldUseActionQuickReplies =
+          hasValidationErrors ||
+          !actionNode.next ||
+          actionNode.action === 'display_quoted_price' ||
+          actionNode.action === 'show_quote_decision_prompt' ||
+          actionNode.action === 'show_customer_orders';
+
+        if (shouldUseActionQuickReplies) {
+          quickReplies = actionResult.quickReplies;
+          console.log(
+            '[startFlow] Using action quickReplies:',
+            actionNode.action,
+            quickReplies
+          );
+
+          // ✅ CRITICAL FIX: Store quickReplies in session metadata
+          // This allows processInput to access them for routing
+          stateManager.updateContext({
+            _pending_quick_replies: actionResult.quickReplies,
+          });
+        }
+      }
+    } catch (qrError) {
+      console.error(
+        '[startFlow] Error processing action quickReplies:',
+        qrError
+      );
+      // Fall back to node-based quick replies if error occurs
+    }
 
     // Build fallback message if bootMessages is empty and initialNode has a valid string message
     const fallbackMessages =
@@ -503,6 +561,12 @@ export class JsonbFlowProcessor {
       nodeId: metadata.current_node_id,
     });
 
+    // ✅ FIX: Always store user input in context for conditional nodes to access
+    // This allows conditional nodes to route based on user selections (like "Accept Quote")
+    stateManager.updateContext({
+      user_input: userInput,
+    });
+
     const responses: Array<{
       id: string;
       role: 'printy';
@@ -522,8 +586,52 @@ export class JsonbFlowProcessor {
       });
     }
 
-    // Handle option selection
+    // ✅ FIX: Check for pending quick replies from previous action first
+    // This handles dynamic quick replies returned by actions (like Accept/Reject quote)
+    const currentContext = stateManager.getContext();
+    console.log('[ProcessInput] Full context:', currentContext);
+    const pendingQuickReplies = currentContext._pending_quick_replies;
+    console.log(
+      '[ProcessInput] Pending quick replies from context:',
+      pendingQuickReplies
+    );
+    let optionMatched = false;
+
+    if (pendingQuickReplies && Array.isArray(pendingQuickReplies)) {
+      console.log(
+        '[ProcessInput] Checking pending quick replies:',
+        pendingQuickReplies
+      );
+      console.log('[ProcessInput] User input:', userInput);
+
+      const selectedQuickReply = pendingQuickReplies.find((qr: any) => {
+        const labelMatch = qr.label?.toLowerCase() === userInput.toLowerCase();
+        const valueMatch = qr.value?.toLowerCase() === userInput.toLowerCase();
+        console.log(
+          `[ProcessInput] Checking quick reply "${qr.label}": labelMatch=${labelMatch}, valueMatch=${valueMatch}`
+        );
+        return labelMatch || valueMatch;
+      });
+
+      if (selectedQuickReply && selectedQuickReply.next) {
+        console.log(
+          '[ProcessInput] Quick reply matched! Moving to:',
+          selectedQuickReply.next
+        );
+        stateManager.setCurrentNode(selectedQuickReply.next);
+
+        // Clear pending quick replies after use
+        stateManager.updateContext({
+          _pending_quick_replies: null,
+        });
+
+        optionMatched = true;
+      }
+    }
+
+    // Handle option selection from node definition (fallback if no quick reply matched)
     if (
+      !optionMatched &&
       (currentNode.type === 'message' || currentNode.type === 'action') &&
       currentNode.options
     ) {
@@ -557,6 +665,8 @@ export class JsonbFlowProcessor {
           );
           stateManager.setCurrentNode(selectedOption.next);
         }
+
+        optionMatched = true;
       } else {
         console.log(
           '[ProcessInput] No matching option found for input:',
@@ -568,23 +678,33 @@ export class JsonbFlowProcessor {
     // ✅ FIX: Handle quick reply selections from action results
     // This handles cases where actions return dynamic quick replies (like show_customer_orders)
     if (currentNode.type === 'action' && userInput) {
-      console.log('[ProcessInput] Checking for action quick reply selection:', userInput);
+      console.log(
+        '[ProcessInput] Checking for action quick reply selection:',
+        userInput
+      );
 
       // Check if this input matches any quick reply that would have been returned by an action
       // We look for order IDs in the format ORD-XXXXXX or special values like 'no_order'
-      const isOrderSelection = /^ORD-\d+$/.test(userInput) || userInput === 'no_order';
+      const isOrderSelection =
+        /^ORD-\d+$/.test(userInput) || userInput === 'no_order';
 
       if (isOrderSelection) {
-        console.log('[ProcessInput] Detected order quick reply selection:', userInput);
+        console.log(
+          '[ProcessInput] Detected order quick reply selection:',
+          userInput
+        );
 
         // Store the order selection in context
         stateManager.updateContext({
-          order_id: userInput
+          order_id: userInput,
         });
 
         // Move to create_ticket node
         stateManager.setCurrentNode('create_ticket');
-        console.log('[ProcessInput] Moving to create_ticket node for order:', userInput);
+        console.log(
+          '[ProcessInput] Moving to create_ticket node for order:',
+          userInput
+        );
       }
     }
 
@@ -633,11 +753,12 @@ export class JsonbFlowProcessor {
 
       // Move to next node after action, but only if action was successful
       // Check if any error messages indicate validation failure that should prevent advancement
-      const hasValidationErrors = actionResult.messages.some((msg: any) =>
-        msg.text.includes('was not found') ||
-        msg.text.includes('Please provide a valid') ||
-        msg.text.includes('Try again later') ||
-        msg.text.includes("Couldn't create")
+      const hasValidationErrors = actionResult.messages.some(
+        (msg: any) =>
+          msg.text.includes('was not found') ||
+          msg.text.includes('Please provide a valid') ||
+          msg.text.includes('Try again later') ||
+          msg.text.includes("Couldn't create")
       );
 
       if (nextNode.next && !hasValidationErrors) {
@@ -864,27 +985,49 @@ export class JsonbFlowProcessor {
 
     // ✅ FIX: Include quick replies from action results if available
     // This allows actions to provide dynamic quick replies (like order selection)
-    if (nextNode.type === 'action' && actionResult && actionResult.quickReplies) {
+    if (
+      nextNode.type === 'action' &&
+      actionResult &&
+      actionResult.quickReplies
+    ) {
       // Use action quick replies if available
       // Check if action has validation errors or if the action is designed to provide quick replies
-      const hasValidationErrors = actionResult.messages.some((msg: any) =>
-        msg.text.includes('was not found') ||
-        msg.text.includes('Please provide a valid') ||
-        msg.text.includes('Try again later') ||
-        msg.text.includes("Couldn't create")
+      const hasValidationErrors = actionResult.messages.some(
+        (msg: any) =>
+          msg.text.includes('was not found') ||
+          msg.text.includes('Please provide a valid') ||
+          msg.text.includes('Try again later') ||
+          msg.text.includes("Couldn't create")
       );
 
       // Use action quick replies if:
       // 1. There are validation errors (stay on same node for retry)
       // 2. Action has no next node (designed for interaction)
-      // 3. Action is specifically designed to show quick replies (like show_customer_orders)
+      // 3. Action is specifically designed to show quick replies
       const shouldUseActionQuickReplies =
         hasValidationErrors ||
         !nextNode.next ||
-        nextNode.action === 'show_customer_orders';
+        nextNode.action === 'show_customer_orders' ||
+        nextNode.action === 'show_quote_decision_prompt';
 
       if (shouldUseActionQuickReplies) {
         quickReplies = actionResult.quickReplies;
+        console.log(
+          '[continueFlow] Using action quickReplies:',
+          nextNode.action,
+          quickReplies
+        );
+
+        // ✅ CRITICAL FIX: Store quickReplies in session metadata
+        // This allows processInput to access them for routing
+        stateManager.updateContext({
+          _pending_quick_replies: actionResult.quickReplies,
+        });
+
+        // ✅ CRITICAL: Flush metadata to database immediately
+        // This ensures quickReplies are persisted for the next processInput call
+        await stateManager.flush();
+        console.log('[continueFlow] Flushed quickReplies to database');
       }
     }
 

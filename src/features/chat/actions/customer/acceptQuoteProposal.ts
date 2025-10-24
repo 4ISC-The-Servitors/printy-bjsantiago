@@ -1,13 +1,12 @@
 /**
  * Action handler: accept_quote_proposal
  *
- * Accepts a quote proposal by updating the database status to 'Accepted'.
- * This action immediately updates both quote_proposals and quotes tables.
+ * Accepts a quote proposal by updating the quote status to 'accepted'.
+ * This action updates only the quotes table (single source of truth for status).
  *
  * @description
  * - Retrieves the conversation ID from session context
- * - Updates quote_proposals status to 'Accepted'
- * - Updates quotes status to 'Accepted'
+ * - Updates quotes status to 'accepted'
  * - Logs the acceptance for audit purposes
  *
  * @param params.actionNode - The action node from the flow definition
@@ -95,52 +94,6 @@ export async function acceptQuoteProposal(
   }
 
   try {
-    console.log(
-      '[acceptQuoteProposal] Updating quote_proposals for session_id:',
-      conversationId
-    );
-
-    // Update quote_proposals status to 'accepted'
-    const { data: proposalData, error: proposalError } = await supabase
-      .from('quote_proposals')
-      .update({
-        status: 'accepted',
-        updated_at: new Date().toISOString(),
-      })
-      .eq('session_id', conversationId)
-      .select();
-
-    console.log('[acceptQuoteProposal] quote_proposals update result:', {
-      data: proposalData,
-      error: proposalError,
-      count: proposalData?.length,
-    });
-
-    if (proposalError) {
-      console.error('Error updating quote_proposals:', proposalError);
-      messages.push({
-        id: crypto.randomUUID(),
-        role: 'printy',
-        text: 'Error accepting quote proposal. Please try again.',
-        ts: Date.now(),
-      });
-      return { messages };
-    }
-
-    if (!proposalData || proposalData.length === 0) {
-      console.warn(
-        '[acceptQuoteProposal] No quote_proposals found for session_id:',
-        conversationId
-      );
-      messages.push({
-        id: crypto.randomUUID(),
-        role: 'printy',
-        text: 'No quote proposal found for this session. Please try again.',
-        ts: Date.now(),
-      });
-      return { messages };
-    }
-
     // Update quotes status to 'accepted'
     console.log(
       '[acceptQuoteProposal] Updating quotes for session_id:',
@@ -152,6 +105,7 @@ export async function acceptQuoteProposal(
       .update({
         status: 'accepted',
         updated_at: new Date().toISOString(),
+        updated_by: params.customerId, // Track that customer accepted the quote
       })
       .eq('session_id', conversationId)
       .select();
@@ -185,8 +139,97 @@ export async function acceptQuoteProposal(
       conversationId
     );
 
-    // Return empty messages - the flow processor will handle the confirmation message
-    return { messages: [] };
+    // Create notifications for admins
+    try {
+      // Get customer name for notification message
+      const { data: customerData } = await supabase
+        .from('customer')
+        .select('first_name, last_name')
+        .eq('customer_id', params.customerId)
+        .single();
+
+      const customerName =
+        customerData?.first_name && customerData?.last_name
+          ? `${customerData.first_name} ${customerData.last_name}`
+          : 'Customer';
+
+      // Get quote display_id for notification
+      const quoteDisplayId = quoteData?.[0]?.display_id || 'Unknown';
+
+      // Get all admin users using RPC (bypasses RLS)
+      const { data: admins, error: adminError } = await supabase.rpc(
+        'get_admin_customer_ids'
+      );
+
+      console.log('[AcceptQuote] Admin query result:', {
+        admins,
+        adminError,
+        count: admins?.length,
+      });
+
+      if (admins && admins.length > 0) {
+        // Create notification for each admin
+        const notifications = admins.map((admin: { customer_id: string }) => ({
+          customer_id: admin.customer_id,
+          source_type: 'quote',
+          source_id: quoteData?.[0]?.quote_id,
+          title: 'Quote Accepted',
+          message: `Quote #${quoteDisplayId} was accepted by ${customerName}.`,
+          type: 'warning',
+          category: 'quote',
+        }));
+
+        console.log(
+          '[AcceptQuote] Attempting to insert notifications:',
+          notifications
+        );
+
+        const { data: insertedNotifs, error: notifError } = await supabase
+          .from('notifications')
+          .insert(notifications)
+          .select();
+
+        console.log('[AcceptQuote] Notification insert result:', {
+          insertedNotifs,
+          notifError,
+        });
+
+        if (notifError) {
+          console.error(
+            '[AcceptQuote] Error creating admin notifications:',
+            notifError
+          );
+        } else {
+          console.log(
+            '[AcceptQuote] Created notifications for',
+            admins.length,
+            'admins'
+          );
+        }
+      }
+    } catch (notifErr) {
+      console.error('[AcceptQuote] Error in notification creation:', notifErr);
+      // Don't fail the whole action if notifications fail
+    }
+
+    // Return success message with End Chat option
+    messages.push({
+      id: crypto.randomUUID(),
+      role: 'printy',
+      text: 'Great! You have accepted the quote proposal. Our admin will create your order and you will be instructed to pay for it before your order gets processed.',
+      ts: Date.now(),
+    });
+
+    return {
+      messages,
+      quickReplies: [
+        {
+          label: 'End Chat',
+          value: 'end',
+          next: 'end',
+        },
+      ],
+    };
   } catch (error) {
     console.error('Error accepting quote proposal:', error);
     messages.push({

@@ -31,7 +31,9 @@ const defaultBreakpoints: PageSizeBreakpoints = {
   desktop: 4,
 };
 
-const defaultDynamicConfig: Required<Omit<DynamicPageSizeConfig, 'breakpoints'>> = {
+const defaultDynamicConfig: Required<
+  Omit<DynamicPageSizeConfig, 'breakpoints'>
+> = {
   itemHeight: 140, // Approximate height of an order card
   itemSpacing: 24, // space-y-6 = 24px
   headerOffset: 120, // Navbar + header
@@ -45,11 +47,12 @@ const defaultDynamicConfig: Required<Omit<DynamicPageSizeConfig, 'breakpoints'>>
  * Enhanced responsive page size hook that can dynamically calculate
  * the optimal number of items based on available viewport height
  */
-export function useResponsivePageSize(
-  config?: DynamicPageSizeConfig
-) {
+export function useResponsivePageSize(config?: DynamicPageSizeConfig) {
   const mergedConfig = useMemo(() => {
-    const breakpoints = { ...defaultBreakpoints, ...(config?.breakpoints || {}) };
+    const breakpoints = {
+      ...defaultBreakpoints,
+      ...(config?.breakpoints || {}),
+    };
     return {
       ...defaultDynamicConfig,
       ...(config || {}),
@@ -71,7 +74,8 @@ export function useResponsivePageSize(
 
     // Calculate available height for items
     const viewportHeight = window.innerHeight;
-    const availableHeight = viewportHeight - mergedConfig.headerOffset - mergedConfig.footerOffset;
+    const availableHeight =
+      viewportHeight - mergedConfig.headerOffset - mergedConfig.footerOffset;
 
     // Calculate how many items can fit
     const itemTotalHeight = mergedConfig.itemHeight + mergedConfig.itemSpacing;

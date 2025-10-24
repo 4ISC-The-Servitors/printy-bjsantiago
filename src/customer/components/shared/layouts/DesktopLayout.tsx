@@ -6,7 +6,11 @@ interface DesktopLayoutProps {
   rightPanel?: React.ReactNode; // optional right dock/panel
 }
 
-const DesktopLayout: React.FC<DesktopLayoutProps> = ({ sidebar, children, rightPanel }) => {
+const DesktopLayout: React.FC<DesktopLayoutProps> = ({
+  sidebar,
+  children,
+  rightPanel,
+}) => {
   return (
     <div className="h-screen bg-gradient-to-br from-neutral-50 to-brand-primary-50 flex">
       {/* Left Sidebar (desktop) */}
@@ -15,7 +19,9 @@ const DesktopLayout: React.FC<DesktopLayoutProps> = ({ sidebar, children, rightP
       </aside>
 
       {/* Main Content */}
-      <main className={`flex-1 flex flex-col ${rightPanel ? 'lg:mr-[420px]' : ''}`}>
+      <main
+        className={`flex-1 flex flex-col ${rightPanel ? 'lg:mr-[420px]' : ''}`}
+      >
         {/* Desktop content spacing and container sizing */}
         <div className="p-8 overflow-y-auto">
           <div className="max-w-6xl mx-auto w-full device-container">
@@ -35,5 +41,3 @@ const DesktopLayout: React.FC<DesktopLayoutProps> = ({ sidebar, children, rightP
 };
 
 export default DesktopLayout;
-
-

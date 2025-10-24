@@ -1,17 +1,40 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState, useMemo } from 'react';
 import { supabase } from '@lib/supabase';
-import DesktopLayout from '@customer/components/shared/layouts/DesktopLayout';
-import MobileLayout from '@customer/components/shared/layouts/MobileLayout';
+import ResponsivePageLayout from '@customer/components/shared/layouts/ResponsivePageLayout';
+import HistoryItemCard from '@customer/components/shared/cards/HistoryItemCard';
+import {
+  Card,
+  Text,
+  Search,
+  Filter,
+  Pagination,
+  ToastContainer,
+  Breadcrumbs,
+} from '@shared/components';
+import TrackTicketButton from '@customer/components/dashboard/recentTickets/TrackTicketButton';
+import { useGenericSearchFilter } from '@shared/hooks/ui/useGenericSearchFilter';
+import { FILTER_CONFIGS } from '@shared/types/filters';
+import {
+  useResponsiveClasses,
+  useDeviceUtils,
+} from '@shared/hooks/ui/useResponsiveClasses';
+import { useResponsivePageSize } from '@shared/hooks/ui/useResponsivePageSize';
+
+// Chat components and hooks
+import {
+  CustomerChatPanel,
+  CustomerChatOverlay,
+} from '@features/chat/components/layouts';
 import SidebarPanel from '@customer/components/shared/sidebar/SidebarPanel';
 import LogoutButton from '@customer/components/shared/sidebar/LogoutButton';
 import LogoutModal from '@customer/components/shared/sidebar/LogoutModal';
-import { Text, Badge, Button } from '@shared/components';
-import { formatTicketStatus } from '@shared/utils/statusFormatter';
-import { getTicketStatusBadgeVariant } from '@shared/utils/statusColors';
-import { formatLongDate } from '@shared/utils/dateFormatter';
-import { formatRelativeTimeLabel } from '@shared/utils/timeFormatter';
-import { useRecentChatSessions, type ConversationLike } from '@customer/hooks/useRecentChatSessions';
+import { useLogoutWithToast } from '@/auth/hooks/useLogoutWithToast';
+import { useCustomerConversations } from '@features/chat/hooks/customer/useCustomerConversations';
+import { useDashboardChatEvents } from '@features/chat/hooks/customer/useDashboardChatEvents';
+import { useRecentChatSessions } from '@features/chat/hooks/customer/useRecentChatSessions';
+import { useChatAttachments } from '@features/chat/hooks/shared/useChatAttachments';
+import { getSessionTitle } from '@features/chat/config/sessionTitleConfig';
+import type { ConversationItem } from '@features/chat/hooks/shared/useConversationState';
 
 interface Ticket {
   id: string;
@@ -27,26 +50,189 @@ interface Ticket {
 }
 
 const TicketHistory: React.FC = () => {
-  const navigate = useNavigate();
-  const [query, setQuery] = useState('');
-  const [status, setStatus] = useState<string>('');
   const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [conversations, setConversations] = useState<ConversationLike[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
-  // Load conversations for sidebar
+  // Chat state management
+  const { logout, toasts, toast } = useLogoutWithToast();
+  const { isMobileOrTablet } = useDeviceUtils();
+
+  const {
+    messages,
+    isTyping,
+    conversations,
+    activeId,
+    quickReplies,
+    handleSend: sendViaHook,
+    handleQuickReply: quickReplyViaHook,
+    endChat: endChatViaHook,
+    initializeFlow: initializeFlowHook,
+    switchConversation: switchConversationHook,
+    setActiveId,
+    setConversations,
+  } = useCustomerConversations();
+
+  // Memoize toast instance to prevent re-creating array on every render
+  const toastInstance = useMemo(
+    () => [toasts, toast] as [any, any],
+    [toasts, toast]
+  );
+
+  // Responsive hooks
+  const { spacingClasses } = useResponsiveClasses();
+  const { isMobile } = useDeviceUtils();
+
+  // Responsive page size
+  const pageSize = useResponsivePageSize({
+    itemHeight: 140, // Approximate height of a ticket card
+    itemSpacing: 24, // space-y-6 = 24px
+    headerOffset: 200, // Navbar + header + search/filter
+    footerOffset: 80, // Pagination height
+    minItems: 2,
+    maxItems: 20,
+    useDynamicCalculation: true,
+  });
+
+  // Search + Filter logic using generic search filter
+  const {
+    search,
+    setSearch,
+    filter,
+    setFilter,
+    filteredItems: allFilteredTickets,
+  } = useGenericSearchFilter({
+    items: tickets,
+    searchFields: [
+      'id',
+      'displayId',
+      'title',
+      'status',
+      'subject',
+      'createdAt',
+      'updatedAt',
+    ],
+    dateField: 'createdAt',
+    filterConfig: FILTER_CONFIGS.tickets,
+    statusField: 'status',
+  });
+
+  // Pagination logic
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const paginatedTickets = allFilteredTickets.slice(startIndex, endIndex);
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, filter]);
+
+  // Chat functionality
   useRecentChatSessions(setConversations);
 
-  // Load tickets from database
+  // Initialize flow via useCustomerConversations
+  const initializeFlow = (flowId: string, title: string, ctx: unknown = {}) => {
+    initializeFlowHook(flowId, title, ctx);
+  };
+
+  // Dashboard chat events for ticket flows
+  useDashboardChatEvents(
+    initializeFlow,
+    switchConversationHook,
+    () => undefined, // No recent order context for ticket history
+    () => undefined // No recent total context for ticket history
+  );
+
+  // Attachments
+  const { handleAttachFiles } = useChatAttachments(sendViaHook);
+
+  const handleLogout = () => {
+    setShowLogoutModal(true);
+  };
+
+  const confirmLogout = async () => {
+    setShowLogoutModal(false);
+    await logout('/auth/signin');
+  };
+
+  // Load recent chat sessions from database for the sidebar list (initial)
+  useEffect(() => {
+    const loadRecentSessions = async () => {
+      try {
+        const { data: sessions, error } = await supabase
+          .from('chat_sessions_v2')
+          .select(
+            `
+            session_id,
+            customer_id,
+            status,
+            created_at,
+            flow_id,
+            display_title,
+            metadata->context->display_id
+          `
+          )
+          .order('created_at', { ascending: false })
+          .limit(10);
+
+        if (error) {
+          console.error('Error fetching sessions:', error);
+          return;
+        }
+
+        if (sessions && sessions.length > 0) {
+          const sessionConversations: ConversationItem[] = sessions.map(
+            (session: any) => ({
+              id: session.session_id,
+              title: getSessionTitle({
+                flowId: session.flow_id,
+                metadata: {
+                  title: session.display_title,
+                  context: {
+                    display_id: session.display_id,
+                  },
+                },
+              }),
+              createdAt: new Date(session.created_at).getTime(),
+              messages: [], // Messages will be loaded when switching to conversation
+              flowId: session.flow_id || 'about',
+              status: session.status === 'ended' ? 'ended' : 'active',
+              icon: undefined,
+            })
+          );
+
+          setConversations(prev => {
+            // Merge with existing conversations, avoiding duplicates
+            const existingIds = new Set(prev.map(c => c.id));
+            const newConversations = sessionConversations.filter(
+              c => !existingIds.has(c.id)
+            );
+            return [...newConversations, ...prev].sort(
+              (a, b) => b.createdAt - a.createdAt
+            );
+          });
+        }
+      } catch (e) {
+        console.error('loadRecentSessions error', e);
+      }
+    };
+
+    loadRecentSessions();
+  }, []);
+
+  // Load tickets from database (inquiries_v2)
   useEffect(() => {
     const loadTickets = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
         if (!user) return;
 
         const { data, error } = await supabase
           .from('inquiries_v2')
-          .select(`
+          .select(
+            `
             inquiry_id,
             display_id,
             inquiry_status,
@@ -56,7 +242,8 @@ const TicketHistory: React.FC = () => {
             customer_id,
             order_id,
             session_id
-          `)
+          `
+          )
           .eq('customer_id', user.id)
           .order('received_at', { ascending: false });
 
@@ -65,35 +252,25 @@ const TicketHistory: React.FC = () => {
           return;
         }
 
-        console.log('Loaded tickets data:', data);
-        console.log('Current user ID:', user.id);
-
-        // If no tickets found for this user, let's try a broader query to debug
-        if (!data || data.length === 0) {
-          console.log('No tickets found for user, checking all inquiries...');
-          const { data: allData, error: allError } = await supabase
-            .from('inquiries_v2')
-            .select('inquiry_id, display_id, inquiry_status, received_at, updated_at, inquiry_type, customer_id, order_id, session_id')
-            .order('received_at', { ascending: false })
-            .limit(5);
-          
-          if (!allError) {
-            console.log('Sample of all inquiries:', allData);
-          }
-        }
-
         const ticketList: Ticket[] = (data || []).map(ticket => ({
           id: ticket.inquiry_id,
           title: ticket.inquiry_type || 'Support Ticket',
           createdAt: new Date(ticket.received_at).getTime(),
-          updatedAt: new Date(ticket.received_at).getTime(), // Using received_at as updated_at since it's not available
+          updatedAt: ticket.updated_at
+            ? new Date(ticket.updated_at).getTime()
+            : new Date(ticket.received_at).getTime(),
           status: ticket.inquiry_status,
-          displayId: ticket.display_id || ticket.inquiry_id.substring(0, 8).toUpperCase(),
+          displayId:
+            ticket.display_id ||
+            ticket.inquiry_id.substring(0, 8).toUpperCase(),
           subject: ticket.inquiry_type,
-          description: undefined, // No description field available in inquiries table
-          resolvedAt: undefined, // Resolved_at column doesn't exist in inquiries table
-          assignedTo: undefined, // assigned_to field not available in inquiries table
+          description: undefined,
+          resolvedAt: undefined,
+          assignedTo: undefined,
         }));
+
+        // Sort by updatedAt descending (most recent first)
+        ticketList.sort((a, b) => b.updatedAt - a.updatedAt);
 
         setTickets(ticketList);
       } catch (error) {
@@ -104,215 +281,277 @@ const TicketHistory: React.FC = () => {
     loadTickets();
   }, []);
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return tickets.filter(ticket => {
-      const matchesQuery = q
-        ? ticket.title.toLowerCase().includes(q) ||
-          ticket.displayId.toLowerCase().includes(q) ||
-          ticket.status.toLowerCase().includes(q) ||
-          (ticket.subject && ticket.subject.toLowerCase().includes(q))
-        : true;
-      const matchesStatus = status
-        ? ticket.status === status
-        : true;
-      return matchesQuery && matchesStatus;
-    });
-  }, [tickets, query, status]);
-
   const handleItemClick = (ticket: Ticket) => {
-    // Navigate to ticket details or open chat for this ticket
-    alert(`Ticket ${ticket.displayId} clicked`);
+    // TODO: Navigate to ticket details page or open chat
+    console.log('Ticket clicked:', ticket.displayId);
   };
 
-  const confirmLogout = async () => {
-    setShowLogoutModal(false);
-    navigate('/auth/signin');
+  // Build actions for each ticket
+  const renderTicketActions = (ticket: Ticket) => {
+    const statusLower = ticket.status.toLowerCase();
+
+    // Only show track button for tickets that are not resolved or closed
+    if (statusLower !== 'resolved' && statusLower !== 'closed') {
+      return (
+        <TrackTicketButton
+          inquiryId={ticket.id}
+          subject={ticket.subject || ticket.title}
+          status={ticket.status}
+        />
+      );
+    }
+
+    return null;
   };
 
-  const sidebar = (
-    <SidebarPanel
-      conversations={conversations}
-      activeId={null}
-      onSwitchConversation={(id: string) => {
-        window.dispatchEvent(
-          new CustomEvent('customer-open-session', { detail: { sessionId: id } })
-        );
-        navigate('/customer');
-      }}
-      onNavigateToAccount={() => navigate('/customer/account')}
-      bottomActions={
-        <LogoutButton onClick={() => setShowLogoutModal(true)} />
-      }
-    />
-  );
+  // Build metadata for each ticket
+  const buildTicketMetadata = (ticket: Ticket) => {
+    const metadata: Record<string, string> = {};
 
-  const renderTicketItem = (ticket: Ticket) => {
-    const displayId = ticket.displayId || ticket.id.substring(0, 8).toUpperCase();
-    
-    return (
-      <div 
-        key={ticket.id}
-        className="bg-white rounded-lg border border-neutral-200 p-4 hover:border-brand-primary-300 transition-colors cursor-pointer"
-        onClick={() => handleItemClick(ticket)}
-      >
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2">
-              <Text variant="h3" size="base" weight="semibold" className="font-mono">
-                {displayId}
-              </Text>
-              <Badge variant={getTicketStatusBadgeVariant(ticket.status)} size="sm">
-                {formatTicketStatus(ticket.status)}
-              </Badge>
-            </div>
-            
-            <Text variant="p" size="sm" color="muted" className="mb-3">
-              {ticket.subject || ticket.title}
-            </Text>
+    if (ticket.subject && ticket.subject !== ticket.title) {
+      metadata.subject = ticket.subject;
+    }
 
-            {ticket.description && (
-              <Text variant="p" size="xs" color="muted" className="line-clamp-2 mb-3">
-                {ticket.description}
-              </Text>
-            )}
+    if (ticket.description) {
+      metadata.description = ticket.description;
+    }
 
-            {/* Important dates */}
-            <div className="flex flex-col gap-1 mb-3">
-              <div className="flex justify-between">
-                <Text variant="p" size="xs" color="muted">Created:</Text>
-                <Text variant="p" size="xs" color="muted">{formatLongDate(ticket.createdAt)}</Text>
-              </div>
-              <div className="flex justify-between">
-                <Text variant="p" size="xs" color="muted">Updated:</Text>
-                <Text variant="p" size="xs" color="muted">{formatRelativeTimeLabel(ticket.updatedAt)}</Text>
-              </div>
-            </div>
+    if (ticket.assignedTo) {
+      metadata.assigned = ticket.assignedTo;
+    }
 
-            {/* Show assigned_to if available */}
-            {ticket.assignedTo && (
-              <div className="mt-2">
-                <Badge variant="secondary" size="sm">
-                  Assigned: {ticket.assignedTo}
-                </Badge>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    );
+    if (ticket.resolvedAt) {
+      metadata.resolved = new Date(ticket.resolvedAt).toLocaleDateString();
+    }
+
+    return metadata;
   };
 
-  const content = (
-    <>
-      {/* Header */}
+  // Ticket history content
+  const ticketHistoryContent = (
+    <div className="space-y-4">
+      {/* Breadcrumbs */}
       <div className="mb-6">
-        <div className="flex items-center gap-4 mb-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate('/customer')}
-            className="text-neutral-600 hover:text-neutral-900"
-          >
-            ← Back to Dashboard
-          </Button>
-        </div>
-        <Text variant="h1" size="2xl" weight="bold" className="text-neutral-900">
+        <Breadcrumbs
+          items={[
+            { label: 'Dashboard', path: '/customer' },
+            { label: 'Order History', path: '/customer/orders' },
+            { label: 'Quote History', path: '/customer/quotes' },
+            { label: 'Ticket History', isActive: true },
+            { label: 'Chat History', path: '/customer/chats' },
+          ]}
+        />
+      </div>
+
+      {/* Page Title */}
+      <div>
+        <Text
+          variant="h1"
+          size="xl"
+          weight="bold"
+          className="device-text-heading text-neutral-900 mt-5 mb-5"
+        >
           Ticket History
         </Text>
-        <Text variant="p" size="base" color="muted">
-          View all your support tickets and their current status
-        </Text>
       </div>
 
-      {/* Filters */}
-      <div className="mb-6 flex flex-col sm:flex-row gap-4">
-        <div className="flex-1">
-          <input
-            type="text"
-            placeholder="Search tickets..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent"
-          />
+      {/* Search and Filter Section */}
+      <div className="relative mb-6 sm:mb-8">
+        {/* Filter and Search Row - Always horizontal layout with responsive spacing */}
+        <div className={`flex items-center ${spacingClasses.gap}`}>
+          {/* Filter Component - Floating mode */}
+          <div className={`${isMobile ? 'w-24' : 'w-auto'} shrink-0`}>
+            <Filter
+              value={filter}
+              onChange={v => setFilter(v)}
+              filterConfig={FILTER_CONFIGS.tickets}
+              showResultCount={false}
+              resultCount={allFilteredTickets.length}
+              floating={true}
+            />
+          </div>
+
+          {/* Search Bar - Takes remaining space */}
+          <div className="flex-1 min-w-0">
+            <Search
+              value={search}
+              onChange={v => setSearch(v)}
+              placeholder="Search by ticket ID, subject, or status..."
+              size="lg"
+            />
+          </div>
         </div>
-        <div className="sm:w-48">
-          <select
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-            className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent"
-          >
-            <option value="">All Statuses</option>
-            <option value="open">Open</option>
-            <option value="in_progress">In Progress</option>
-            <option value="resolved">Resolved</option>
-            <option value="closed">Closed</option>
-          </select>
-        </div>
-        {(query || status) && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              setQuery('');
-              setStatus('');
-            }}
-            className="whitespace-nowrap"
-          >
-            Clear Filters
-          </Button>
+
+        {/* Result Count */}
+        {(filter.statuses?.length > 0 ||
+          filter.dateFrom ||
+          filter.dateTo ||
+          search.trim()) && (
+          <div className="text-sm text-neutral-600 mt-4">
+            Found{' '}
+            <span className="font-semibold text-neutral-900">
+              {allFilteredTickets.length}
+            </span>{' '}
+            {allFilteredTickets.length === 1 ? 'ticket' : 'tickets'}
+          </div>
         )}
       </div>
 
-      {/* Tickets List */}
-      {filtered.length === 0 ? (
-        <div className="text-center py-12">
-          <Text variant="p" size="base" color="muted">
-            {tickets.length === 0 
-              ? 'No tickets found. If you just created an inquiry, it may take a moment to appear.' 
-              : 'No tickets match your filters.'}
-          </Text>
-          {tickets.length === 0 && (
-            <div className="mt-4">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => navigate('/customer')}
-              >
-                Start New Chat
-              </Button>
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {filtered.map(renderTicketItem)}
+      {/* Pagination */}
+      {allFilteredTickets.length > pageSize && (
+        <div className="mt-6">
+          <Pagination
+            page={currentPage}
+            pageSize={pageSize}
+            total={allFilteredTickets.length}
+            onPageChange={setCurrentPage}
+          />
         </div>
       )}
 
+      <div className="space-y-4">
+        {paginatedTickets.map(ticket => (
+          <HistoryItemCard
+            key={ticket.id}
+            type="ticket"
+            displayId={ticket.displayId}
+            title={ticket.subject || ticket.title}
+            status={ticket.status}
+            createdAt={ticket.createdAt}
+            updatedAt={ticket.updatedAt}
+            metadata={buildTicketMetadata(ticket)}
+            actions={renderTicketActions(ticket)}
+            onClick={() => handleItemClick(ticket)}
+          />
+        ))}
+      </div>
+
+      {allFilteredTickets.length === 0 && (
+        <Card className="p-8 text-center">
+          <Text variant="p" className="text-neutral-500">
+            {tickets.length === 0
+              ? 'No tickets found.'
+              : 'No tickets match your filters.'}
+          </Text>
+        </Card>
+      )}
+    </div>
+  );
+
+  // When chat is active, render without ResponsivePageLayout to avoid extra containers
+  if (activeId) {
+    return (
+      <div className="h-screen bg-gradient-to-br from-neutral-50 to-brand-primary-50 flex">
+        {/* Desktop Sidebar (>= lg) */}
+        <aside className="hidden lg:flex w-64 xl:w-80 bg-white border-r border-neutral-200 flex-col">
+          <SidebarPanel
+            conversations={conversations}
+            activeId={activeId}
+            onSwitchConversation={id => {
+              setActiveId(id);
+              window.dispatchEvent(
+                new CustomEvent('customer-open-session', {
+                  detail: { sessionId: id },
+                })
+              );
+            }}
+            onNavigateToAccount={() => {
+              window.location.href = '/customer/account';
+            }}
+            bottomActions={<LogoutButton onClick={handleLogout} />}
+          />
+        </aside>
+
+        {/* Main Content Area - Chat Panel/Overlay */}
+        <main className="flex-1 flex flex-col overflow-hidden">
+          {isMobileOrTablet ? (
+            <CustomerChatOverlay
+              open={!!activeId}
+              onClose={() => setActiveId(null)}
+              title={
+                conversations.find(c => c.id === activeId)?.title || 'Chat'
+              }
+              messages={messages}
+              isTyping={isTyping}
+              quickReplies={quickReplies}
+              onSend={sendViaHook}
+              onQuickReply={quickReplyViaHook}
+              onEndChat={endChatViaHook}
+              readOnly={
+                conversations.find(c => c.id === activeId)?.status === 'ended'
+              }
+              sessionId={activeId}
+              conversationId={activeId}
+              toast={toastInstance}
+            />
+          ) : (
+            <CustomerChatPanel
+              title={
+                conversations.find(c => c.id === activeId)?.title || 'Chat'
+              }
+              messages={messages}
+              onSend={sendViaHook}
+              isTyping={isTyping}
+              onBack={() => {
+                setActiveId(null);
+                window.dispatchEvent(new CustomEvent('customer-chat-closed'));
+              }}
+              onMinimize={() => {
+                setActiveId(null);
+                window.dispatchEvent(new CustomEvent('customer-chat-closed'));
+              }}
+              quickReplies={quickReplies}
+              onQuickReply={quickReplyViaHook}
+              onEndChat={endChatViaHook}
+              onAttachFiles={handleAttachFiles}
+              readOnly={
+                conversations.find(c => c.id === activeId)?.status === 'ended'
+              }
+              hideInput={
+                conversations.find(c => c.id === activeId)?.status === 'ended'
+              }
+              toast={toastInstance}
+              sessionId={activeId}
+              conversationId={activeId}
+            />
+          )}
+        </main>
+
+        <ToastContainer
+          toasts={toasts}
+          onRemoveToast={id => toast.remove(id)}
+          position={isMobileOrTablet ? 'top-center' : 'bottom-right'}
+        />
+
+        {/* Logout Modal */}
+        <LogoutModal
+          isOpen={showLogoutModal}
+          onClose={() => setShowLogoutModal(false)}
+          onConfirm={confirmLogout}
+        />
+      </div>
+    );
+  }
+
+  // Normal ticket history view with ResponsivePageLayout
+  return (
+    <>
+      <ResponsivePageLayout showSidebar={true}>
+        {ticketHistoryContent}
+      </ResponsivePageLayout>
+
+      <ToastContainer
+        toasts={toasts}
+        onRemoveToast={id => toast.remove(id)}
+        position={isMobileOrTablet ? 'top-center' : 'bottom-right'}
+      />
+
+      {/* Logout Modal */}
       <LogoutModal
         isOpen={showLogoutModal}
         onClose={() => setShowLogoutModal(false)}
         onConfirm={confirmLogout}
       />
-    </>
-  );
-
-  return (
-    <>
-      {/* Desktop Layout */}
-      <div className="hidden lg:block">
-        <DesktopLayout sidebar={sidebar}>
-          {content}
-        </DesktopLayout>
-      </div>
-
-      {/* Mobile Layout */}
-      <div className="lg:hidden">
-        <MobileLayout sidebar={sidebar}>
-          {content}
-        </MobileLayout>
-      </div>
     </>
   );
 };

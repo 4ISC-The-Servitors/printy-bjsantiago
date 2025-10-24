@@ -46,11 +46,21 @@
  */
 
 import { supabase } from '@lib/supabase';
-import type { ActionExecutionParams, ActionExecutionResult } from '@features/chat/types';
+import type {
+  ActionExecutionParams,
+  ActionExecutionResult,
+} from '@features/chat/types';
 
-export async function uploadPaymentProof(params: ActionExecutionParams): Promise<ActionExecutionResult> {
+export async function uploadPaymentProof(
+  params: ActionExecutionParams
+): Promise<ActionExecutionResult> {
   const { actionNode, context, customerId } = params;
-  const messages: Array<{ id: string; role: 'printy'; text: string; ts: number }> = [];
+  const messages: Array<{
+    id: string;
+    role: 'printy';
+    text: string;
+    ts: number;
+  }> = [];
 
   const config = actionNode.action_config as any;
   const orderIdKey = config?.order_id_key || 'order_id';
@@ -62,9 +72,10 @@ export async function uploadPaymentProof(params: ActionExecutionParams): Promise
   // Example formats we support:
   // - supabase://payment-proofs/<customerId>/<filename>
   // - https://<project>.supabase.co/storage/v1/object/sign/payment-proofs/<path>
-  const looksLikeProof = /^https?:\/\/.*\.(jpg|jpeg|png|gif|webp|pdf)/i.test(fileRef)
-    || /^https?:\/\/.*supabase\.co.*payment-proofs/i.test(fileRef)
-    || /^supabase:\/\/payment-proofs\//i.test(fileRef);
+  const looksLikeProof =
+    /^https?:\/\/.*\.(jpg|jpeg|png|gif|webp|pdf)/i.test(fileRef) ||
+    /^https?:\/\/.*supabase\.co.*payment-proofs/i.test(fileRef) ||
+    /^supabase:\/\/payment-proofs\//i.test(fileRef);
 
   if (!looksLikeProof) {
     messages.push({
@@ -85,23 +96,23 @@ export async function uploadPaymentProof(params: ActionExecutionParams): Promise
   if (!resolvedOrderId && orderIdInput) {
     // Try to resolve using provided order input (display_id or UUID)
     try {
-      const { data: byDisplay } = await supabase
+      const { data: byDisplay } = (await supabase
         .from('orders_duplicate')
         .select('order_id')
         .eq('display_id', orderIdInput)
         .eq('customer_id', customerId)
-        .maybeSingle?.() as any;
+        .maybeSingle?.()) as any;
       if (byDisplay?.order_id) resolvedOrderId = byDisplay.order_id;
     } catch {}
 
     if (!resolvedOrderId) {
       try {
-        const { data: byUuid } = await supabase
+        const { data: byUuid } = (await supabase
           .from('orders_duplicate')
           .select('order_id')
           .eq('order_id', orderIdInput)
           .eq('customer_id', customerId)
-          .maybeSingle?.() as any;
+          .maybeSingle?.()) as any;
         if (byUuid?.order_id) resolvedOrderId = byUuid.order_id;
       } catch {}
     }
@@ -124,6 +135,7 @@ export async function uploadPaymentProof(params: ActionExecutionParams): Promise
       payment_proof: fileRef,
       payment_proof_uploaded_at: new Date().toISOString(),
       status: 'verifying_payment',
+      updated_by: customerId, // Track that customer uploaded payment proof
     })
     .eq('order_id', resolvedOrderId)
     .eq('customer_id', customerId);

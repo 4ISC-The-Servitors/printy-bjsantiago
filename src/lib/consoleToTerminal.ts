@@ -1,18 +1,10 @@
 /**
- * Console to Terminal Forwarder - Error-Only Mode
- * 
- * This utility intercepts browser console logs and forwards only critical errors
- * to the terminal via a Vite middleware endpoint. This provides a clean terminal
- * output focused on actual issues rather than verbose success logs.
+ * Console to Terminal Forwarder - Direct Error Logging
+ *
+ * This utility directly scaffolds errors from the dev console to the terminal
+ * without relying on fetch requests. It provides reliable error capture and
+ * forwarding for better debugging experience.
  */
-
-interface ConsoleLogData {
-  level: string;
-  message: string;
-  args: any[];
-  timestamp: string;
-  stack?: string;
-}
 
 interface LogFilterConfig {
   showErrors: boolean;
@@ -63,18 +55,6 @@ class TerminalConsoleForwarder {
       // Temporarily exclude React internal errors (known issue)
       'Internal React error: Expected static flag was missing',
       'Warning: Internal React error: Expected static flag was missing',
-      'Loaded tickets data',
-      'Loaded quotes data',
-      'Fetched orders',
-      'Fetched quotes',
-      'No tickets found for user',
-      'Sample of all inquiries',
-      'Loaded tickets data',
-      'Loaded quotes data',
-      'Fetched orders',
-      'Fetched quotes',
-      'No tickets found for user',
-      'Sample of all inquiries',
       // Exclude debug flow logs
       'StartFlow] Processing',
       'ProcessInput] Current node',
@@ -139,7 +119,7 @@ class TerminalConsoleForwarder {
       'All inquiries',
       'All orders',
       'All quotes',
-      'All tickets'
+      'All tickets',
     ],
     includePatterns: [
       // Always include critical errors
@@ -189,8 +169,21 @@ class TerminalConsoleForwarder {
       'Exception',
       'Stack trace',
       'Uncaught Error',
-      'Unhandled Promise Rejection'
-    ]
+      'Unhandled Promise Rejection',
+      // Include syntax errors and module errors
+      'SyntaxError',
+      'TypeError',
+      'ReferenceError',
+      'Module not found',
+      'does not provide an export',
+      'Cannot resolve',
+      'Module resolution',
+      'Import error',
+      'Export error',
+      'Uncaught SyntaxError',
+      'Uncaught TypeError',
+      'Uncaught ReferenceError',
+    ],
   };
 
   constructor() {
@@ -206,57 +199,61 @@ class TerminalConsoleForwarder {
   }
 
   private setupInterceptors() {
-    // Override console methods with filtering
+    // Override console methods with direct terminal output
     console.log = (...args) => {
       this.originalConsole.log(...args);
       if (this.shouldForwardLog('log', ...args)) {
-        this.forwardToTerminal('log', ...args);
+        this.scaffoldToTerminal('log', ...args);
       }
     };
 
     console.error = (...args) => {
       this.originalConsole.error(...args);
       if (this.shouldForwardLog('error', ...args)) {
-        this.forwardToTerminal('error', ...args);
+        this.scaffoldToTerminal('error', ...args);
       }
     };
 
     console.warn = (...args) => {
       this.originalConsole.warn(...args);
       if (this.shouldForwardLog('warn', ...args)) {
-        this.forwardToTerminal('warn', ...args);
+        this.scaffoldToTerminal('warn', ...args);
       }
     };
 
     console.info = (...args) => {
       this.originalConsole.info(...args);
       if (this.shouldForwardLog('info', ...args)) {
-        this.forwardToTerminal('info', ...args);
+        this.scaffoldToTerminal('info', ...args);
       }
     };
 
     console.debug = (...args) => {
       this.originalConsole.debug(...args);
       if (this.shouldForwardLog('debug', ...args)) {
-        this.forwardToTerminal('debug', ...args);
+        this.scaffoldToTerminal('debug', ...args);
       }
     };
 
-    // Global error handler - always forward critical errors
-    window.addEventListener('error', (event) => {
-      this.forwardToTerminal('error', `Uncaught Error: ${event.message}`, {
+    // Global error handler - always scaffold critical errors
+    window.addEventListener('error', event => {
+      this.scaffoldToTerminal('error', `Uncaught Error: ${event.message}`, {
         filename: event.filename,
         lineno: event.lineno,
         colno: event.colno,
-        stack: event.error?.stack
+        stack: event.error?.stack,
       });
     });
 
-    // Unhandled promise rejection handler - always forward critical errors
-    window.addEventListener('unhandledrejection', (event) => {
-      this.forwardToTerminal('error', `Unhandled Promise Rejection: ${event.reason}`, {
-        stack: event.reason?.stack
-      });
+    // Unhandled promise rejection handler - always scaffold critical errors
+    window.addEventListener('unhandledrejection', event => {
+      this.scaffoldToTerminal(
+        'error',
+        `Unhandled Promise Rejection: ${event.reason}`,
+        {
+          stack: event.reason?.stack,
+        }
+      );
     });
   }
 
@@ -270,10 +267,15 @@ class TerminalConsoleForwarder {
     const lowerMessage = message.toLowerCase();
 
     // Check if this log level is enabled
-    const levelEnabled = this.filterConfig[`show${level.charAt(0).toUpperCase() + level.slice(1)}` as keyof LogFilterConfig] as boolean;
+    const levelEnabled = this.filterConfig[
+      `show${level.charAt(0).toUpperCase() + level.slice(1)}` as keyof LogFilterConfig
+    ] as boolean;
     if (!levelEnabled) {
       // Even if level is disabled, check if it matches include patterns
-      return this.matchesPatterns(lowerMessage, this.filterConfig.includePatterns);
+      return this.matchesPatterns(
+        lowerMessage,
+        this.filterConfig.includePatterns
+      );
     }
 
     // Check exclude patterns first
@@ -305,58 +307,107 @@ class TerminalConsoleForwarder {
     });
   }
 
-  private forwardToTerminal(level: string, ...args: any[]) {
+  private scaffoldToTerminal(level: string, ...args: any[]) {
     if (!this.isEnabled) return;
 
     try {
-      const logData: ConsoleLogData = {
-        level,
-        message: this.formatMessage(args),
-        args: this.serializeArgs(args),
-        timestamp: new Date().toISOString()
-      };
+      const message = this.formatMessage(args);
 
-      // Send to terminal via fetch (non-blocking)
-      fetch('/__console-log', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(logData)
-      }).catch(() => {
-        // Silently fail if the endpoint is not available
-        // This prevents infinite loops or errors during build
-      });
+      // Send directly to Vite dev server with correct format
+      this.sendToViteDevServer(level, message, args);
     } catch (error) {
       // Silently fail to prevent console loops
+      // This ensures the error logging system itself doesn't cause issues
+    }
+  }
+
+  private sendToViteDevServer(level: string, message: string, args: any[]) {
+    // Use the Vite dev server endpoint with the exact format it expects
+    fetch('/__console-log', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        level: level,
+        message: message,
+        args: args,
+        timestamp: new Date().toISOString(),
+      }),
+      keepalive: true, // Ensure request completes even if page unloads
+    }).catch(() => {
+      // If the endpoint doesn't exist, use a more visible fallback
+      this.visibleFallback(`[${level.toUpperCase()}] ${message}`);
+    });
+  }
+
+  private visibleFallback(message: string) {
+    // Make errors more visible in the browser console
+    // This ensures you can at least see them in the dev tools
+    const originalConsole = this.originalConsole;
+
+    // Use a distinctive format that's easy to spot
+    originalConsole.error('🚨 TERMINAL ERROR:', message);
+
+    // Also try to make it visible in the page itself for critical errors
+    if (
+      message.toLowerCase().includes('error') ||
+      message.toLowerCase().includes('failed')
+    ) {
+      // Create a temporary visual indicator
+      this.showErrorIndicator(message);
+    }
+  }
+
+  private showErrorIndicator(message: string) {
+    // Create a temporary visual indicator on the page
+    try {
+      const indicator = document.createElement('div');
+      indicator.style.cssText = `
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        background: #ff4444;
+        color: white;
+        padding: 10px;
+        border-radius: 4px;
+        z-index: 10000;
+        font-family: monospace;
+        font-size: 12px;
+        max-width: 300px;
+        word-wrap: break-word;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+      `;
+      indicator.textContent = `ERROR: ${message.substring(0, 100)}${message.length > 100 ? '...' : ''}`;
+
+      document.body.appendChild(indicator);
+
+      // Remove after 5 seconds
+      setTimeout(() => {
+        if (indicator.parentNode) {
+          indicator.parentNode.removeChild(indicator);
+        }
+      }, 5000);
+    } catch (error) {
+      // If DOM manipulation fails, just log to console
+      console.error('Error indicator failed:', error);
     }
   }
 
   private formatMessage(args: any[]): string {
-    return args.map(arg => {
-      if (typeof arg === 'string') return arg;
-      if (typeof arg === 'object' && arg !== null) {
-        try {
-          return JSON.stringify(arg);
-        } catch {
-          return '[Object]';
+    return args
+      .map(arg => {
+        if (typeof arg === 'string') return arg;
+        if (typeof arg === 'object' && arg !== null) {
+          try {
+            return JSON.stringify(arg);
+          } catch {
+            return '[Object]';
+          }
         }
-      }
-      return String(arg);
-    }).join(' ');
-  }
-
-  private serializeArgs(args: any[]): any[] {
-    return args.map(arg => {
-      if (typeof arg === 'object' && arg !== null) {
-        try {
-          return JSON.parse(JSON.stringify(arg));
-        } catch {
-          return '[Circular or Non-serializable Object]';
-        }
-      }
-      return arg;
-    });
+        return String(arg);
+      })
+      .join(' ');
   }
 
   public enable() {
@@ -398,7 +449,7 @@ class TerminalConsoleForwarder {
       showWarnings: true,
       showInfo: true,
       showLogs: true,
-      showDebug: true
+      showDebug: true,
     });
   }
 
@@ -411,21 +462,49 @@ class TerminalConsoleForwarder {
       showWarnings: true,
       showInfo: false,
       showLogs: false,
-      showDebug: false
+      showDebug: false,
     });
+  }
+
+  /**
+   * Test function to verify the logging system is working
+   */
+  public testLogging() {
+    console.log('Testing console logging system...');
+    console.error('This is a test error message');
+    console.warn('This is a test warning message');
+
+    // Test the direct scaffolding
+    this.scaffoldToTerminal('error', 'Direct test error message');
+    this.scaffoldToTerminal('warn', 'Direct test warning message');
+
+    // Test with a syntax error-like message
+    this.scaffoldToTerminal(
+      'error',
+      'Uncaught SyntaxError: The requested module does not provide an export named test'
+    );
   }
 }
 
 // Initialize the forwarder only in development
 if (import.meta.env.DEV) {
   const forwarder = new TerminalConsoleForwarder();
-  
+
   // Make it globally available for debugging
   (window as any).__consoleForwarder = forwarder;
-  
-  console.log('Console to Terminal forwarding enabled (Error-Only Mode).');
+
+  console.log('Console to Terminal direct logging enabled (Error-Only Mode).');
   console.log('Available commands:');
-  console.log('  window.__consoleForwarder.enableVerboseMode() - Show all logs');
-  console.log('  window.__consoleForwarder.enableErrorOnlyMode() - Show only errors/warnings');
-  console.log('  window.__consoleForwarder.getFilterConfig() - View current config');
+  console.log(
+    '  window.__consoleForwarder.enableVerboseMode() - Show all logs'
+  );
+  console.log(
+    '  window.__consoleForwarder.enableErrorOnlyMode() - Show only errors/warnings'
+  );
+  console.log(
+    '  window.__consoleForwarder.getFilterConfig() - View current config'
+  );
+  console.log(
+    '  window.__consoleForwarder.testLogging() - Test the logging system'
+  );
 }

@@ -459,6 +459,7 @@ The following features have inherent performance costs that are **necessary for 
    - Implemented proper error handling and user feedback
 
 #### Files Created:
+
 - ✅ `src/features/chat/actions/admin/denyPayment.ts`
 - ✅ `src/features/chat/actions/admin/verifyPayment.ts`
 - ✅ `src/features/chat/actions/admin/displayOrderSpecs.ts`
@@ -468,9 +469,11 @@ The following features have inherent performance costs that are **necessary for 
 - ✅ `supabase/sql/055_add_payment_denied_columns.sql`
 
 #### Files Modified:
+
 - ✅ `src/admin/hooks/useAdminChat.ts` (fixed input processing and sender roles)
 
 #### Testing Results:
+
 - ✅ Admin can view order details, pricing, and payment proof
 - ✅ Admin can verify payment (updates order to 'processing' status)
 - ✅ Admin can deny payment with custom reason (updates order to 'reupload_payment' status)
@@ -716,11 +719,12 @@ This section provides practical guidance for building new chat flows and action 
 When creating admin flows that require both quick reply buttons and free-form text input:
 
 **✅ DO:**
+
 ```typescript
 // In useAdminChat.ts - handleSendMessage should process both input types
 const handleSendMessage = (text: string) => {
   // ... existing code ...
-  
+
   // Process free-form input through the flow system if we have an active session
   if (dbSessionId) {
     void (async () => {
@@ -737,6 +741,7 @@ const handleSendMessage = (text: string) => {
 ```
 
 **❌ DON'T:**
+
 ```typescript
 // Don't skip flow processing for free-form input
 const handleSendMessage = (text: string) => {
@@ -746,6 +751,7 @@ const handleSendMessage = (text: string) => {
 ```
 
 **Key Points:**
+
 - Always process admin text input through `JsonbFlowProcessor.processInput`
 - Always specify `senderRole: 'admin'` for admin flows
 - Use `'admin'` role for message insertion, not `'printy'`
@@ -758,6 +764,7 @@ const handleSendMessage = (text: string) => {
 #### 1. **Use Shared Utilities (ALWAYS)**
 
 **DO:**
+
 ```typescript
 import {
   withErrorHandling,
@@ -782,11 +789,15 @@ export async function myNewAction(
       if (validationError) return validationError;
 
       // Your action logic here
-      const messages = [/* ... */];
+      const messages = [
+        /* ... */
+      ];
 
       return {
         messages,
-        context: { /* context updates */ }
+        context: {
+          /* context updates */
+        },
       };
     },
     ErrorMessages.GENERIC // or custom message
@@ -795,6 +806,7 @@ export async function myNewAction(
 ```
 
 **DON'T:**
+
 ```typescript
 // ❌ Don't write custom try-catch blocks
 export async function myNewAction(params: ActionExecutionParams) {
@@ -812,9 +824,12 @@ export async function myNewAction(params: ActionExecutionParams) {
 #### 2. **Return Context Updates (IMPORTANT)**
 
 **DO:**
+
 ```typescript
 return {
-  messages: [/* ... */],
+  messages: [
+    /* ... */
+  ],
   context: {
     // Return ALL context updates for SessionStateManager
     order_status: 'completed',
@@ -825,6 +840,7 @@ return {
 ```
 
 **DON'T:**
+
 ```typescript
 // ❌ Don't update metadata directly in action handlers
 await supabase
@@ -842,6 +858,7 @@ return { messages }; // Missing context updates
 #### 3. **Use Shared Helper Functions**
 
 **DO:**
+
 ```typescript
 // For quote-related actions
 import {
@@ -855,6 +872,7 @@ const formattedText = formatQuoteDetailsForCustomer(quoteDetails);
 ```
 
 **DON'T:**
+
 ```typescript
 // ❌ Don't duplicate data fetching logic
 const { data: messages } = await supabase.rpc('api_fetch_chat_messages_v2', ...);
@@ -863,6 +881,7 @@ const customerMessages = messages.filter(m => m.sender_role === 'customer');
 ```
 
 **When to Create New Helpers:**
+
 - If you're writing the same query/logic in 2+ places
 - If you're fetching related data (orders + payments, quotes + proposals)
 - If you're formatting data for display
@@ -872,6 +891,7 @@ const customerMessages = messages.filter(m => m.sender_role === 'customer');
 #### 4. **Optimize Database Queries**
 
 **DO:**
+
 ```typescript
 // ✅ Use database views for complex queries (when applicable)
 const { data: quoteWithProposal } = await supabase
@@ -896,6 +916,7 @@ const [order, customer, payment] = await Promise.all([
 ```
 
 **DON'T:**
+
 ```typescript
 // ❌ Don't fetch data sequentially when not needed
 const order = await fetchOrder(orderId);
@@ -916,6 +937,7 @@ for (const item of items) {
 #### 5. **Message Insertion Patterns**
 
 **DO:**
+
 ```typescript
 // ✅ For single message
 await insertMessage({
@@ -931,6 +953,7 @@ await insertMessagesBatchV2(sessionId, messages);
 ```
 
 **DON'T:**
+
 ```typescript
 // ❌ Don't insert messages manually
 await supabase.from('chat_messages_v2').insert({
@@ -946,12 +969,14 @@ await supabase.from('chat_messages_v2').insert({
 ### 🚀 JsonbFlowProcessor Integration
 
 When JsonbFlowProcessor calls your action, it automatically:
+
 - ✅ Batches metadata updates via SessionStateManager
 - ✅ Handles context merging
 - ✅ Saves action messages to database
 - ✅ Advances to next node
 
 **Your action handler should:**
+
 1. Execute business logic (create order, verify payment, etc.)
 2. Return messages for the user
 3. Return context updates (if any)
@@ -982,6 +1007,7 @@ Before committing a new action handler, verify:
 When building new features, consider creating helpers for:
 
 **Data Fetching:**
+
 ```typescript
 // src/features/chat/helpers/orderDetailsHelper.ts
 export async function fetchCompleteOrderDetails(orderId: string) {
@@ -991,9 +1017,12 @@ export async function fetchCompleteOrderDetails(orderId: string) {
 ```
 
 **Data Formatting:**
+
 ```typescript
 // src/features/chat/helpers/orderDetailsHelper.ts
-export function formatOrderDetailsForCustomer(orderDetails: OrderDetails): string {
+export function formatOrderDetailsForCustomer(
+  orderDetails: OrderDetails
+): string {
   // Consistent formatting logic
 }
 
@@ -1003,9 +1032,12 @@ export function formatOrderDetailsForAdmin(orderDetails: OrderDetails): string {
 ```
 
 **Validation:**
+
 ```typescript
 // Extend errorHandling.ts if needed
-export function validateOrderContext(context: SessionContext): ErrorResponse | null {
+export function validateOrderContext(
+  context: SessionContext
+): ErrorResponse | null {
   // Custom validation logic
 }
 ```
@@ -1015,6 +1047,7 @@ export function validateOrderContext(context: SessionContext): ErrorResponse | n
 ### 🎨 Flow Design Best Practices
 
 #### 1. **Minimize Sequential Actions**
+
 ```typescript
 // ✅ GOOD: Parallel data fetching
 {
@@ -1034,11 +1067,13 @@ export function validateOrderContext(context: SessionContext): ErrorResponse | n
 ```
 
 #### 2. **Cache Static Data**
+
 - Flow definitions are automatically cached (FlowDefinitionCache)
 - Don't fetch flow definitions manually
 - Use context to pass data between nodes
 
 #### 3. **Use Conditional Nodes Efficiently**
+
 ```typescript
 // ✅ GOOD: Set context in action, use in conditional
 {
@@ -1056,29 +1091,31 @@ export function validateOrderContext(context: SessionContext): ErrorResponse | n
 
 ### 🚫 Common Performance Pitfalls to Avoid
 
-| ❌ DON'T | ✅ DO |
-|---------|-------|
-| Update metadata directly in actions | Return context updates for SessionStateManager |
-| Fetch data sequentially | Use Promise.all for independent queries |
-| Query in loops | Use single query with WHERE IN or database views |
-| Select all fields (`select('*')`) | Select only needed fields |
-| Duplicate error handling logic | Use `withErrorHandling()` wrapper |
-| Write custom validation | Use `validateRequiredContext()` |
-| Fetch flow definitions manually | Use cached definitions from JsonbFlowProcessor |
-| Create multiple DB writes in actions | Batch operations where possible |
-| Duplicate data formatting logic | Extract to shared helper functions |
+| ❌ DON'T                             | ✅ DO                                            |
+| ------------------------------------ | ------------------------------------------------ |
+| Update metadata directly in actions  | Return context updates for SessionStateManager   |
+| Fetch data sequentially              | Use Promise.all for independent queries          |
+| Query in loops                       | Use single query with WHERE IN or database views |
+| Select all fields (`select('*')`)    | Select only needed fields                        |
+| Duplicate error handling logic       | Use `withErrorHandling()` wrapper                |
+| Write custom validation              | Use `validateRequiredContext()`                  |
+| Fetch flow definitions manually      | Use cached definitions from JsonbFlowProcessor   |
+| Create multiple DB writes in actions | Batch operations where possible                  |
+| Duplicate data formatting logic      | Extract to shared helper functions               |
 
 ---
 
 ### 📊 Performance Monitoring
 
 When testing new flows/actions, monitor:
+
 1. **Database query count** - Should be minimal per operation
 2. **Response time** - Chat initiation <300ms, replies <250ms
 3. **Context updates** - Should batch via SessionStateManager
 4. **Error patterns** - Consistent logging via errorHandling.ts
 
 **Debugging tip:** Check console logs for:
+
 - `[SessionStateManager]` - Metadata flush operations
 - `[cache-hit]` / `[cache-miss]` - Flow definition cache performance
 - `[JsonbFlowProcessor]` - Flow execution steps
@@ -1088,6 +1125,7 @@ When testing new flows/actions, monitor:
 ### 🔄 Migration Strategy for Existing Code
 
 If updating existing actions to follow these patterns:
+
 1. Wrap in `withErrorHandling()` first
 2. Add `validateRequiredContext()` for inputs
 3. Move database updates to return statements
@@ -1099,6 +1137,7 @@ If updating existing actions to follow these patterns:
 ### 📚 Reference Implementation
 
 See these files as examples:
+
 - **Action Handler:** `src/features/chat/actions/customer/displayQuoteDetails.ts`
 - **Admin Action Handler:** `src/features/chat/actions/admin/denyPayment.ts`
 - **Shared Helper:** `src/features/chat/helpers/quoteDetailsHelper.ts`

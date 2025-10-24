@@ -1,18 +1,29 @@
 /**
  * Change Ticket Status Action
- * 
+ *
  * Handler for admin changing ticket status (Under Review, Resolved, Closed)
  */
 
+import { getAdminUserId } from '@features/chat/utils/admin/getAdminUserId';
 import { supabase } from '@lib/supabase';
-import type { ActionExecutionParams, ActionExecutionResult } from '@features/chat/types';
+import type {
+  ActionExecutionParams,
+  ActionExecutionResult,
+} from '@features/chat/types';
 
 /**
  * Change ticket status
  */
-export async function ticketChangeStatus(params: ActionExecutionParams): Promise<ActionExecutionResult> {
+export async function ticketChangeStatus(
+  params: ActionExecutionParams
+): Promise<ActionExecutionResult> {
   const { context } = params;
-  const messages: Array<{ id: string; role: 'printy'; text: string; ts: number }> = [];
+  const messages: Array<{
+    id: string;
+    role: 'printy';
+    text: string;
+    ts: number;
+  }> = [];
 
   const newStatus = String(context['ticket_status'] || '');
   const customerSessionId = context['customer_session_id'];
@@ -42,11 +53,14 @@ export async function ticketChangeStatus(params: ActionExecutionParams): Promise
 
   try {
     // Update inquiry status and set resolved_at if changing to resolved
-    const updateData: any = { inquiry_status: newStatus };
+    const updateData: any = {
+      inquiry_status: newStatus,
+      updated_by: await getAdminUserId(), // Track that admin changed ticket status
+    };
     if (newStatus === 'resolved') {
       updateData.resolved_at = new Date().toISOString();
     }
-    
+
     const { error: statusError } = await supabase
       .from('inquiries_v2')
       .update(updateData)
@@ -65,23 +79,21 @@ export async function ticketChangeStatus(params: ActionExecutionParams): Promise
 
     // Insert status change notification in customer's session (if available)
     const statusLabel = formatStatusLabel(newStatus);
-    
+
     if (customerSessionId) {
       const notificationText = `Ticket status changed to: ${statusLabel}`;
       const encryptedMessage = new TextEncoder().encode(notificationText);
-      
-      await supabase
-        .from('chat_messages_v2')
-        .insert({
-          session_id: customerSessionId,
-          sender_role: 'printy',
-          message_text_enc: encryptedMessage,
-          metadata: {
-            action: 'status_change',
-            old_status: context['previous_status'],
-            new_status: newStatus,
-          },
-        });
+
+      await supabase.from('chat_messages_v2').insert({
+        session_id: customerSessionId,
+        sender_role: 'printy',
+        message_text_enc: encryptedMessage,
+        metadata: {
+          action: 'status_change',
+          old_status: context['previous_status'],
+          new_status: newStatus,
+        },
+      });
     }
 
     messages.push({
@@ -109,10 +121,9 @@ export async function ticketChangeStatus(params: ActionExecutionParams): Promise
  */
 function formatStatusLabel(status: string): string {
   const labelMap: Record<string, string> = {
-    'under_review': 'Under Review',
-    'resolved': 'Resolved',
-    'closed': 'Closed',
+    under_review: 'Under Review',
+    resolved: 'Resolved',
+    closed: 'Closed',
   };
   return labelMap[status] || status;
 }
-

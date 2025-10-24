@@ -11,11 +11,6 @@ import { useToast } from '@lib/useToast';
 import { ArrowLeft, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '@lib/supabase';
 
-// TODO: Backend Integration
-// - Validate access token and type from URL
-// - Handle Supabase updateUser for new password
-// - Provide robust error messages and edge-case handling
-
 const ResetPassword: React.FC = () => {
   const navigate = useNavigate();
   const [toasts, toastMethods] = useToast();

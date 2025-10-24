@@ -28,7 +28,8 @@ export async function uploadPaymentProof(
     if (!allowedTypes.includes(file.type)) {
       return {
         url: '',
-        error: 'Invalid file type. Please upload an image file (JPEG, PNG, GIF, or WebP).'
+        error:
+          'Invalid file type. Please upload an image file (JPEG, PNG, GIF, or WebP).',
       };
     }
 
@@ -37,7 +38,7 @@ export async function uploadPaymentProof(
     if (file.size > maxSize) {
       return {
         url: '',
-        error: 'File too large. Please upload an image smaller than 5MB.'
+        error: 'File too large. Please upload an image smaller than 5MB.',
       };
     }
 
@@ -52,14 +53,14 @@ export async function uploadPaymentProof(
       .from('payment-proofs')
       .upload(filePath, file, {
         cacheControl: '3600',
-        upsert: false // Don't overwrite existing files
+        upsert: false, // Don't overwrite existing files
       });
 
     if (error) {
       console.error('Upload error:', error);
       return {
         url: '',
-        error: `Upload failed: ${error.message}`
+        error: `Upload failed: ${error.message}`,
       };
     }
 
@@ -68,14 +69,16 @@ export async function uploadPaymentProof(
     const fileUrl = `supabase://payment-proofs/${filePath}`;
 
     return {
-      url: fileUrl
+      url: fileUrl,
     };
-
   } catch (error) {
     console.error('Upload error:', error);
     return {
       url: '',
-      error: error instanceof Error ? error.message : 'An unexpected error occurred during upload.'
+      error:
+        error instanceof Error
+          ? error.message
+          : 'An unexpected error occurred during upload.',
     };
   }
 }
@@ -96,7 +99,8 @@ export async function uploadPaymentMethod(
     if (!allowedTypes.includes(file.type)) {
       return {
         url: '',
-        error: 'Invalid file type. Please upload an image file (JPEG, PNG, GIF, or WebP).'
+        error:
+          'Invalid file type. Please upload an image file (JPEG, PNG, GIF, or WebP).',
       };
     }
 
@@ -105,7 +109,7 @@ export async function uploadPaymentMethod(
     if (file.size > maxSize) {
       return {
         url: '',
-        error: 'File too large. Please upload an image smaller than 5MB.'
+        error: 'File too large. Please upload an image smaller than 5MB.',
       };
     }
 
@@ -120,14 +124,14 @@ export async function uploadPaymentMethod(
       .from('payment-methods')
       .upload(filePath, file, {
         cacheControl: '3600',
-        upsert: false // Don't overwrite existing files
+        upsert: false, // Don't overwrite existing files
       });
 
     if (error) {
       console.error('Upload error:', error);
       return {
         url: '',
-        error: `Upload failed: ${error.message}`
+        error: `Upload failed: ${error.message}`,
       };
     }
 
@@ -139,19 +143,21 @@ export async function uploadPaymentMethod(
     if (!urlData?.publicUrl) {
       return {
         url: '',
-        error: 'Failed to get public URL for uploaded file.'
+        error: 'Failed to get public URL for uploaded file.',
       };
     }
 
     return {
-      url: urlData.publicUrl
+      url: urlData.publicUrl,
     };
-
   } catch (error) {
     console.error('Upload error:', error);
     return {
       url: '',
-      error: error instanceof Error ? error.message : 'An unexpected error occurred during upload.'
+      error:
+        error instanceof Error
+          ? error.message
+          : 'An unexpected error occurred during upload.',
     };
   }
 }

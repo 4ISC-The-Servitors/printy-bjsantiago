@@ -5,11 +5,11 @@
  * but exposes a single `actionHandlers` map for the flow processor.
  */
 
-import type { ActionHandler } from "../types";
+import type { ActionHandler } from '../types';
 
 // Import the per-role registries
-import { actionHandlers as adminActionHandlers } from "./admin/index";
-import { actionHandlers as customerActionHandlers } from "./customer/index";
+import { actionHandlers as adminActionHandlers } from './admin/index';
+import { actionHandlers as customerActionHandlers } from './customer/index';
 
 /**
  * Merged registry. Action names are distinct across roles
@@ -21,7 +21,5 @@ export const actionHandlers: Record<string, ActionHandler> = {
 };
 
 // Re-export individual handlers if callers need direct imports
-export * from "./admin/index";
-export * from "./customer/index";
-
-
+export * from './admin/index';
+export * from './customer/index';

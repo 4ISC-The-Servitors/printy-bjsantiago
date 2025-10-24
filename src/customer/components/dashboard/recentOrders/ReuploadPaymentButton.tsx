@@ -1,5 +1,6 @@
 import React from 'react';
 import { Button } from '@shared/components';
+import { Upload } from 'lucide-react';
 
 interface ReuploadPaymentButtonProps {
   orderId: string;
@@ -19,7 +20,13 @@ const ReuploadPaymentButton: React.FC<ReuploadPaymentButtonProps> = ({
     window.dispatchEvent(event);
   };
   return (
-    <Button variant="primary" size="sm" threeD onClick={onClick}>
+    <Button
+      variant="primary"
+      className="device-btn-primary"
+      threeD
+      onClick={onClick}
+    >
+      <Upload className="w-4 h-4" />
       Reupload Payment
     </Button>
   );

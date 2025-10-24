@@ -10,7 +10,7 @@ import * as SettingsMobile from '../components/settings/mobile';
 export interface AdminData {
   displayName: string;
   email: string;
-  role: 'admin' | 'super_admin';
+  role: 'admin';
   department: string;
   permissions: string[];
   lastLogin: string;

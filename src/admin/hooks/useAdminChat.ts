@@ -6,7 +6,10 @@ import type {
 } from '@features/chat/types/chat';
 import { JsonbFlowProcessor } from '@features/chat/services/JsonbFlowProcessor';
 import { ChatEndService } from '@features/chat/services/ChatEndService';
-import { FlowTriggerService, type AdminPage } from '@features/chat/services/FlowTriggerService';
+import {
+  FlowTriggerService,
+  type AdminPage,
+} from '@features/chat/services/FlowTriggerService';
 import { getFlowDefinition } from '@features/chat/api/jsonbChatFlowApi';
 import { useAdminConversations } from './useAdminConversations';
 import { useChatLoadingToast } from '@features/chat/hooks/shared/useChatLoadingToast';
@@ -59,7 +62,8 @@ export const useAdminChat = (): UseAdminChatReturn => {
   const [readOnly, setReadOnly] = useState<boolean>(false);
   const [viewingHistorical, setViewingHistorical] = useState<boolean>(false);
   const [dbSessionId, setDbSessionId] = useState<string | null>(null);
-  const { showConversationSwitchToast, clearLoadingToasts } = useChatLoadingToast();
+  const { showConversationSwitchToast, clearLoadingToasts } =
+    useChatLoadingToast();
 
   // Track current page context to prevent cross-contamination
   const [currentPage, setCurrentPage] = useState<AdminPage | null>(null);
@@ -93,7 +97,6 @@ export const useAdminChat = (): UseAdminChatReturn => {
       }
     }
   };
-
 
   const endChatWithDelay = async () => {
     // If viewing an already-ended conversation, just close the panel
@@ -131,12 +134,14 @@ export const useAdminChat = (): UseAdminChatReturn => {
             sessionId: dbSessionId,
             userId: adminId,
             userType: 'admin',
-            conversationId: currentConversationId
+            conversationId: currentConversationId,
           });
 
           if (result.success) {
             // Fetch the end message from database to show it in UI
-            const { fetchSessionMessagesV2 } = await import('@features/chat/api/jsonbChatFlowApi');
+            const { fetchSessionMessagesV2 } = await import(
+              '@features/chat/api/jsonbChatFlowApi'
+            );
             const messages = await fetchSessionMessagesV2(dbSessionId);
             const lastMessage = messages[messages.length - 1];
 
@@ -149,7 +154,11 @@ export const useAdminChat = (): UseAdminChatReturn => {
               };
               setMessages(prev => [...prev, endMessage]);
               if (currentConversationId)
-                addConvMessage('printy', endMessage.text, currentConversationId);
+                addConvMessage(
+                  'printy',
+                  endMessage.text,
+                  currentConversationId
+                );
             }
 
             setQuickReplies([]);
@@ -252,7 +261,12 @@ export const useAdminChat = (): UseAdminChatReturn => {
     );
 
     if (shouldReset) {
-      console.log('🎯 useAdminChat opening with page:', page, 'entityId:', orderId);
+      console.log(
+        '🎯 useAdminChat opening with page:',
+        page,
+        'entityId:',
+        orderId
+      );
 
       // Reset chat state
       setMessages([]);
@@ -276,7 +290,10 @@ export const useAdminChat = (): UseAdminChatReturn => {
 
         try {
           // Use FlowTriggerService to determine the correct flow
-          const flowContext = await FlowTriggerService.getFlowForContext(page, orderId);
+          const flowContext = await FlowTriggerService.getFlowForContext(
+            page,
+            orderId
+          );
 
           if (!flowContext) {
             console.error('❌ Failed to determine flow for page:', page);
@@ -436,8 +453,7 @@ export const useAdminChat = (): UseAdminChatReturn => {
       setDbSessionId(conversationId);
 
       try {
-        const historicalMessages =
-          await loadHistoricalMessages(conversationId);
+        const historicalMessages = await loadHistoricalMessages(conversationId);
         setMessages(historicalMessages);
       } catch (error) {
         console.error('Failed to load historical messages:', error);
@@ -511,9 +527,14 @@ export const useAdminChat = (): UseAdminChatReturn => {
           });
 
           // Use FlowTriggerService to determine typing delay behavior
-          const skipDelay = FlowTriggerService.shouldSkipTypingDelay(flowId as any);
+          const skipDelay = FlowTriggerService.shouldSkipTypingDelay(
+            flowId as any
+          );
           await appendMessagesWithTyping(
-            resp.messages.map(m => ({ role: m.role as ChatRole, text: m.text })),
+            resp.messages.map(m => ({
+              role: m.role as ChatRole,
+              text: m.text,
+            })),
             skipDelay
           );
 
@@ -701,7 +722,9 @@ export const useAdminChat = (): UseAdminChatReturn => {
           senderRole: 'admin',
         });
         // Use FlowTriggerService to determine typing delay behavior
-        const skipDelay = FlowTriggerService.shouldSkipTypingDelay(flowId as any);
+        const skipDelay = FlowTriggerService.shouldSkipTypingDelay(
+          flowId as any
+        );
         await appendMessagesWithTyping(
           resp.messages.map(m => ({ role: m.role as ChatRole, text: m.text })),
           skipDelay

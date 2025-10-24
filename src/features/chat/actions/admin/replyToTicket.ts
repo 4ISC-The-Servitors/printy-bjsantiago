@@ -1,19 +1,30 @@
 /**
  * Admin Reply to Ticket Action
- * 
+ *
  * Handler for admin responding to customer support tickets
  */
 
+import { getAdminUserId } from '@features/chat/utils/admin/getAdminUserId';
 import { supabase } from '@lib/supabase';
-import type { ActionExecutionParams, ActionExecutionResult } from '@features/chat/types';
+import type {
+  ActionExecutionParams,
+  ActionExecutionResult,
+} from '@features/chat/types';
 import { insertMessageV2 } from '@features/chat/api/jsonbChatFlowApi';
 
 /**
  * Send admin reply to customer ticket
  */
-export async function sendAdminReply(params: ActionExecutionParams): Promise<ActionExecutionResult> {
+export async function sendAdminReply(
+  params: ActionExecutionParams
+): Promise<ActionExecutionResult> {
   const { context } = params;
-  const messages: Array<{ id: string; role: 'printy'; text: string; ts: number }> = [];
+  const messages: Array<{
+    id: string;
+    role: 'printy';
+    text: string;
+    ts: number;
+  }> = [];
 
   const adminReply = String(context['admin_reply'] || '');
   const customerSessionId = context['customer_session_id'];
@@ -60,10 +71,16 @@ export async function sendAdminReply(params: ActionExecutionParams): Promise<Act
     }
 
     // Update inquiry status to pending_customer_reply
-    console.log('[sendAdminReply] Updating inquiry status to pending_customer_reply for inquiry_id:', inquiryId);
+    console.log(
+      '[sendAdminReply] Updating inquiry status to pending_customer_reply for inquiry_id:',
+      inquiryId
+    );
     const { data: updateData, error: statusError } = await supabase
       .from('inquiries_v2')
-      .update({ inquiry_status: 'pending_customer_reply' })
+      .update({
+        inquiry_status: 'pending_customer_reply',
+        updated_by: await getAdminUserId(), // Track that admin replied to ticket
+      })
       .eq('inquiry_id', inquiryId)
       .select('inquiry_id, inquiry_status');
 
@@ -72,7 +89,10 @@ export async function sendAdminReply(params: ActionExecutionParams): Promise<Act
     } else {
       console.log('[sendAdminReply] Status update result:', updateData);
       if (updateData && updateData.length > 0) {
-        console.log('[sendAdminReply] Status updated successfully to:', updateData[0].inquiry_status);
+        console.log(
+          '[sendAdminReply] Status updated successfully to:',
+          updateData[0].inquiry_status
+        );
       } else {
         console.error('[sendAdminReply] No rows were updated');
       }
@@ -97,4 +117,3 @@ export async function sendAdminReply(params: ActionExecutionParams): Promise<Act
     return { messages };
   }
 }
-

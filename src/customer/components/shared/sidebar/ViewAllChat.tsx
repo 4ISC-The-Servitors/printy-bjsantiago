@@ -8,8 +8,7 @@ interface ViewAllChatProps {
 const ViewAllChat: React.FC<ViewAllChatProps> = ({ onClick }) => (
   <Button
     variant="ghost"
-    size="sm"
-    className="text-neutral-500 hover:text-neutral-700 h-7 px-2"
+    className="device-btn-tertiary text-neutral-500 hover:text-neutral-700"
     onClick={onClick}
   >
     View all
@@ -17,5 +16,3 @@ const ViewAllChat: React.FC<ViewAllChatProps> = ({ onClick }) => (
 );
 
 export default ViewAllChat;
-
-

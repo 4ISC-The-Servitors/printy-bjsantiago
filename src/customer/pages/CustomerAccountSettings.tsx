@@ -1,22 +1,23 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, {
+  useMemo,
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+} from 'react';
 import { useNavigate } from 'react-router-dom';
-import SidebarPanel from '@customer/components/shared/sidebar/SidebarPanel';
-import LogoutButton from '@customer/components/shared/sidebar/LogoutButton';
 import LogoutModal from '@customer/components/shared/sidebar/LogoutModal';
-import {
-  Container,
-  Text,
-  ToastContainer,
-  Button,
-} from '@shared/components';
+import MobileSidebarMenu from '@customer/components/shared/sidebar/MobileSidebarMenu';
+import MobileSidebarTrigger from '@customer/components/shared/sidebar/MobileSidebarTrigger';
+import { Container, Text, ToastContainer, Button } from '@shared/components';
 import { useToast } from '@lib/useToast';
 import { ArrowLeft } from 'lucide-react';
-import ProfileOverviewCard from '@customer/components/accountSettings/desktop/ProfileOverviewCard';
-import PersonalInfoForm from '@customer/components/accountSettings/desktop/PersonalInfoForm';
-import SecuritySettings from '@customer/components/accountSettings/desktop/SecuritySettings';
-import NotificationPreferences from '@customer/components/accountSettings/desktop/NotificationPreferences';
-// Use the same conversations hook as Dashboard so the sidebar is consistent
-import { useCustomerConversations } from '@customer/hooks/useCustomerConversations';
+import ProfileOverviewCard from '@/customer/components/accountSettings/ProfileOverviewCard';
+import PersonalInfoForm from '@/customer/components/accountSettings/PersonalInfoForm';
+import SecuritySettings from '@/customer/components/accountSettings/SecuritySettings';
+import NotificationPreferences from '@/customer/components/accountSettings/NotificationPreferences';
+import { ProfileService } from '@customer/services/profileService';
+import { useAuth } from '@auth/hooks/AuthContext';
 
 export interface UserData {
   displayName: string;
@@ -25,7 +26,13 @@ export interface UserData {
   address: string;
   city: string;
   zipCode: string;
+  province: string;
+  barangay: string;
+  building: string;
   avatarUrl?: string;
+  firstName: string;
+  lastName: string;
+  customerType: string;
 }
 
 export interface NotificationPreferencesData {
@@ -39,42 +46,147 @@ export interface NotificationPreferencesData {
 const AccountSettings: React.FC = () => {
   const [toasts, toast] = useToast();
   const navigate = useNavigate();
-  const { conversations, activeId } = useCustomerConversations();
+  const { user } = useAuth();
 
-  // TODO(BACKEND): Replace local state with data fetched from backend (Supabase)
-  // Keep optimistic UI and use skeletons/spinners if needed.
   const [userData, setUserData] = useState<UserData | null>(null);
   const [preferences, setPreferences] =
     useState<NotificationPreferencesData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const fetchingRef = useRef(false);
 
   const [isDesktop, setIsDesktop] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+
+  // Auto-close mobile menu on route change
+  useEffect(() => {
+    setShowMobileMenu(false);
+  }, [navigate]);
+
+  const fetchProfileData = useCallback(async () => {
+    console.log('fetchProfileData called, user:', user);
+
+    // Prevent multiple simultaneous calls
+    if (fetchingRef.current) {
+      console.log('Already fetching, skipping...');
+      return;
+    }
+
+    if (!user?.id) {
+      console.log('No user ID, setting loading to false');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      console.log('Starting to fetch profile data...');
+      fetchingRef.current = true;
+      setLoading(true);
+
+      // Add timeout to prevent infinite loading
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Request timeout')), 10000)
+      );
+
+      // Fetch customer profile from Supabase with timeout
+      const profilePromise = ProfileService.getProfile(user.id);
+      const profile = (await Promise.race([
+        profilePromise,
+        timeoutPromise,
+      ])) as any;
+
+      console.log('Profile service returned:', profile);
+
+      if (profile) {
+        const displayName = ProfileService.getDisplayName(
+          profile.first_name,
+          profile.last_name
+        );
+        const address = ProfileService.formatAddress(profile.address);
+
+        const userDataToSet = {
+          displayName,
+          email: profile.email_address,
+          phone: profile.contact_no,
+          address,
+          city: profile.address.city_name || '',
+          zipCode: profile.address.zip_code || '',
+          province: profile.address.province_name || '',
+          barangay: profile.address.barangay_name || '',
+          building: profile.address.building_name || '',
+          avatarUrl: '',
+          firstName: profile.first_name,
+          lastName: profile.last_name,
+          customerType: profile.customer_type,
+        };
+
+        console.log('Setting user data:', userDataToSet);
+        setUserData(userDataToSet);
+      } else {
+        console.log('No profile found, using fallback data');
+        // Fallback to empty data if profile not found
+        const fallbackData = {
+          displayName: '',
+          email: user.email || '',
+          phone: '',
+          address: '',
+          city: '',
+          zipCode: '',
+          province: '',
+          barangay: '',
+          building: '',
+          avatarUrl: '',
+          firstName: '',
+          lastName: '',
+          customerType: '',
+        };
+        console.log('Setting fallback user data:', fallbackData);
+        setUserData(fallbackData);
+      }
+
+      // TODO: Fetch notification preferences from backend
+      setPreferences({
+        emailNotifications: true,
+        smsNotifications: true,
+        orderUpdates: true,
+        chatMessages: true,
+        ticketUpdates: true,
+      });
+
+      console.log('Profile data fetch completed successfully');
+    } catch (error) {
+      console.error('Error fetching profile data:', error);
+      toast.error(
+        'Error',
+        `Failed to load profile data: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+
+      // Set fallback data even on error
+      setUserData({
+        displayName: '',
+        email: user.email || '',
+        phone: '',
+        address: '',
+        city: '',
+        zipCode: '',
+        province: '',
+        barangay: '',
+        building: '',
+        avatarUrl: '',
+        firstName: '',
+        lastName: '',
+        customerType: '',
+      });
+    } finally {
+      console.log('Setting loading to false');
+      fetchingRef.current = false;
+      setLoading(false);
+    }
+  }, [user?.id]);
 
   useEffect(() => {
-    // TODO(BACKEND): Fetch profile and preferences for current user
-    // Example:
-    // const profile = await ProfileService.getProfile();
-    // const prefs = await PreferencesService.getPreferences();
-    // setUserData(profile);
-    // setPreferences(prefs);
-    // For now, initialize minimal safe defaults to preserve UX layout
-    setUserData({
-      displayName: '',
-      email: '',
-      phone: '+63 9',
-      address: '',
-      city: '',
-      zipCode: '',
-      avatarUrl: '',
-    });
-    setPreferences({
-      emailNotifications: true,
-      smsNotifications: true,
-      orderUpdates: true,
-      chatMessages: true,
-      ticketUpdates: true,
-    });
-  }, []);
+    fetchProfileData();
+  }, [fetchProfileData]);
 
   const initials = useMemo(
     () =>
@@ -105,10 +217,43 @@ const AccountSettings: React.FC = () => {
     };
   }, []);
 
-  const handleSavePersonalInfo = (next: Partial<UserData>) => {
-    // TODO(BACKEND): Persist profile changes
-    setUserData(prev => ({ ...(prev as UserData), ...next }));
-    toast.success('Saved', 'Your personal information has been updated.');
+  const handleSavePersonalInfo = async (next: Partial<UserData>) => {
+    if (!user?.id) {
+      toast.error('Error', 'User not authenticated');
+      return;
+    }
+
+    try {
+      // Convert UserData to ProfileService format
+      const profileUpdates = {
+        contact_no: next.phone,
+        email_address: next.email,
+        address: {
+          street_name: next.address, // Street address field contains only street name
+          building_name: next.building,
+          barangay_name: next.barangay,
+          city_name: next.city,
+          province_name: next.province,
+          zip_code: next.zipCode,
+        },
+      };
+
+      const success = await ProfileService.updateProfile(
+        user.id,
+        profileUpdates
+      );
+
+      if (success) {
+        // Update local state
+        setUserData(prev => ({ ...(prev as UserData), ...next }));
+        toast.success('Saved', 'Your personal information has been updated.');
+      } else {
+        toast.error('Error', 'Failed to update profile. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast.error('Error', 'Failed to update profile. Please try again.');
+    }
   };
 
   const handleTogglePreference = (key: keyof NotificationPreferencesData) => {
@@ -133,48 +278,41 @@ const AccountSettings: React.FC = () => {
   };
 
   return (
-    <div className="h-screen bg-gradient-to-br from-neutral-50 to-brand-primary-50 flex">
-      {/* Sidebar fixed placements */}
-      <div className="hidden lg:flex w-64 bg-white border-r border-neutral-200 flex-col">
-        <SidebarPanel
-          conversations={conversations as any}
-          activeId={activeId}
-          onSwitchConversation={(id: string) => {
-            window.dispatchEvent(
-              new CustomEvent('customer-open-session', {
-                detail: { sessionId: id },
-              })
-            );
-            navigate('/customer');
-          }}
-          onNavigateToAccount={() => navigate('/customer/account')}
-          bottomActions={
-            <LogoutButton onClick={() => setShowLogoutModal(true)} />
-          }
-        />
-      </div>
-      <div className="lg:hidden fixed left-0 top-0 bottom-0 w-16 bg-white border-r border-neutral-200 z-50">
-        <SidebarPanel
-          conversations={conversations as any}
-          activeId={activeId}
-          onSwitchConversation={(id: string) => {
-            window.dispatchEvent(
-              new CustomEvent('customer-open-session', {
-                detail: { sessionId: id },
-              })
-            );
-            navigate('/customer');
-          }}
-          onNavigateToAccount={() => navigate('/customer/account')}
-          bottomActions={
-            <LogoutButton onClick={() => setShowLogoutModal(true)} />
-          }
-        />
+    <div className="h-screen bg-gradient-to-br from-neutral-50 to-brand-primary-50 flex flex-col">
+      {/* Mobile header with burger */}
+      <div className="lg:hidden flex flex-col">
+        <header className="bg-white/80 backdrop-blur border-b border-neutral-200 px-4 py-3 flex items-center justify-between shrink-0">
+          <MobileSidebarTrigger onOpen={() => setShowMobileMenu(true)} />
+          <div className="w-10" />
+        </header>
+        {showMobileMenu && (
+          <div
+            className="fixed inset-0 z-50 bg-black/20"
+            onClick={() => setShowMobileMenu(false)}
+          >
+            <div
+              className="absolute left-0 top-0 bottom-0 w-80 max-w-[85%] bg-white"
+              onClick={e => e.stopPropagation()}
+            >
+              <MobileSidebarMenu
+                conversations={[]}
+                activeId={null}
+                onClose={() => setShowMobileMenu(false)}
+                onSwitchConversation={() => {}}
+                onAccount={() => setShowMobileMenu(false)}
+                onLogout={() => {
+                  setShowMobileMenu(false);
+                  navigate('/auth/signin');
+                }}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Main content */}
-      <main className="flex-1 flex flex-col pl-16 lg:pl-0">
-        <Container size="xl" className="py-6 md:py-10">
+      {/* Main content - full screen */}
+      <main className="flex-1 flex flex-col overflow-hidden">
+        <Container size="xl" className="py-6 md:py-10 flex-1 overflow-y-auto">
           <div className="mb-6 flex items-center gap-3">
             <Button
               onClick={() => navigate('/customer')}
@@ -187,42 +325,57 @@ const AccountSettings: React.FC = () => {
               <ArrowLeft className="h-4 w-4 md:mr-2" />
               <span className="hidden md:inline">Back</span>
             </Button>
-            <Text variant="h1" size="2xl" weight="bold">
+            <Text variant="h1" size="xl" weight="bold">
               Account Settings
             </Text>
           </div>
 
           <div className="space-y-6 md:space-y-8">
-            {userData && (
-              <ProfileOverviewCard
-                initials={initials}
-                displayName={userData.displayName}
-                email={userData.email}
-                membership="Valued"
-              />
-            )}
+            {loading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-primary-600"></div>
+                <span className="ml-3 text-gray-600">Loading profile...</span>
+              </div>
+            ) : (
+              <>
+                {userData && (
+                  <ProfileOverviewCard
+                    initials={initials}
+                    displayName={userData.displayName}
+                    email={userData.email}
+                    membership={
+                      userData.customerType === 'valued'
+                        ? 'Valued'
+                        : userData.customerType === 'regular'
+                          ? 'Regular'
+                          : 'Valued'
+                    }
+                  />
+                )}
 
-            {userData && (
-              <PersonalInfoForm
-                value={userData}
-                onSave={handleSavePersonalInfo}
-              />
-            )}
+                {userData && (
+                  <PersonalInfoForm
+                    value={userData}
+                    onSave={handleSavePersonalInfo}
+                  />
+                )}
 
-            <SecuritySettings
-              onPasswordUpdated={() =>
-                toast.success(
-                  'Password updated',
-                  'Your password has been changed successfully.'
-                )
-              }
-            />
+                <SecuritySettings
+                  onPasswordUpdated={() =>
+                    toast.success(
+                      'Password updated',
+                      'Your password has been changed successfully.'
+                    )
+                  }
+                />
 
-            {preferences && (
-              <NotificationPreferences
-                value={preferences}
-                onToggle={handleTogglePreference}
-              />
+                {preferences && (
+                  <NotificationPreferences
+                    value={preferences}
+                    onToggle={handleTogglePreference}
+                  />
+                )}
+              </>
             )}
           </div>
         </Container>

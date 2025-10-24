@@ -4,7 +4,8 @@ export type LLMMessage = {
   content: string;
 };
 
-const BASE_URL = import.meta.env.VITE_LLM_BASE_URL || 'https://api.cohere.ai/v1';
+const BASE_URL =
+  import.meta.env.VITE_LLM_BASE_URL || 'https://api.cohere.ai/v1';
 const MODEL = import.meta.env.VITE_LLM_MODEL || 'command-light';
 const API_KEY = import.meta.env.VITE_COHERE_API_KEY || '';
 
@@ -24,7 +25,7 @@ export async function generateWithCohere(
   modelOverride?: string
 ): Promise<any> {
   ensureKeyIfNeeded();
-  
+
   // Cohere expects the last message as 'message' and previous as 'chat_history'
   const lastMessage = messages[messages.length - 1];
   const chatHistory = messages.slice(0, -1).map(m => ({
@@ -35,7 +36,7 @@ export async function generateWithCohere(
   const res = await fetch(`${BASE_URL}/chat`, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${API_KEY}`,
+      Authorization: `Bearer ${API_KEY}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
@@ -46,7 +47,7 @@ export async function generateWithCohere(
       ...(forceJson ? { response_format: { type: 'json_object' } } : {}),
     }),
   });
-  
+
   if (!res.ok) {
     const errorText = await res.text();
     let errorMessage = `Cohere error ${res.status}`;
@@ -63,10 +64,10 @@ export async function generateWithCohere(
     }
     throw new Error(errorMessage);
   }
-  
+
   const data = await res.json();
   const text = data.text || '';
-  
+
   if (forceJson) {
     try {
       return JSON.parse(text);

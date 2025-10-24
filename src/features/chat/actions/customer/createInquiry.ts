@@ -39,14 +39,27 @@
  * - Falls back to inquiry_id if display_id is not available
  * - Issue details are stored as plain text (encryption TBD)
  */
+import { getAllAdminIds } from '@features/chat/utils/admin/getAdminUserId';
 import { supabase } from '@lib/supabase';
-import type { ActionExecutionParams, ActionExecutionResult } from '@features/chat/types';
+import type {
+  ActionExecutionParams,
+  ActionExecutionResult,
+} from '@features/chat/types';
 import { ChatEndService } from '../../services/ChatEndService';
 import { insertMessageV2 } from '@features/chat/api/jsonbChatFlowApi';
 
-export async function createInquiry(params: ActionExecutionParams): Promise<ActionExecutionResult> {
+export async function createInquiry(
+  params: ActionExecutionParams
+): Promise<ActionExecutionResult> {
+  console.log('[createInquiry] Action started with params:', params);
+
   const { actionNode, context, customerId, sessionId } = params;
-  const messages: Array<{ id: string; role: 'printy'; text: string; ts: number }> = [];
+  const messages: Array<{
+    id: string;
+    role: 'printy';
+    text: string;
+    ts: number;
+  }> = [];
 
   const config = actionNode.action_config as any;
   const typeKey = config.type_key || 'inquiry_type';
@@ -56,6 +69,12 @@ export async function createInquiry(params: ActionExecutionParams): Promise<Acti
   const inquiryType = String(context[typeKey] || 'other');
   const issueDetails = String(context[detailsKey] || '');
   const orderDisplayId = context[orderIdKey] || null;
+
+  console.log('[createInquiry] Extracted values:', {
+    inquiryType,
+    issueDetails,
+    orderDisplayId,
+  });
 
   if (!issueDetails) {
     messages.push({
@@ -85,6 +104,15 @@ export async function createInquiry(params: ActionExecutionParams): Promise<Acti
   // If orderDisplayId is 'no_order', the issue is not related to a specific order - proceed without linking
 
   // Create inquiry in v2 table - let database auto-generate display_id
+  console.log('[createInquiry] Creating inquiry with data:', {
+    customer_id: customerId,
+    inquiry_type: inquiryType,
+    inquiry_status: 'new',
+    session_id: sessionId,
+    order_id: actualOrderId,
+    updated_by: customerId,
+  });
+
   const { data: inquiryData, error } = await supabase
     .from('inquiries_v2')
     .insert({
@@ -93,12 +121,13 @@ export async function createInquiry(params: ActionExecutionParams): Promise<Acti
       inquiry_status: 'new',
       session_id: sessionId,
       order_id: actualOrderId, // Store actual order UUID if found
+      updated_by: customerId, // Track that customer created the ticket
     })
     .select('inquiry_id, display_id')
     .single();
 
   if (error) {
-    console.error('Failed to create inquiry:', error);
+    console.error('[createInquiry] Failed to create inquiry:', error);
     messages.push({
       id: crypto.randomUUID(),
       role: 'printy',
@@ -108,8 +137,71 @@ export async function createInquiry(params: ActionExecutionParams): Promise<Acti
     return { messages };
   }
 
+  console.log('[createInquiry] Inquiry created successfully:', inquiryData);
+
   const inquiryId = inquiryData?.inquiry_id;
   let displayId = inquiryData?.display_id;
+
+  console.log('[createInquiry] Starting notification creation process...');
+
+  // Create notifications for admins about the new ticket
+  try {
+    // Get customer name for the notification
+    const { data: customerData } = await supabase
+      .from('customer')
+      .select('first_name, last_name')
+      .eq('customer_id', customerId)
+      .single();
+
+    const customerName = customerData
+      ? `${customerData.first_name || ''} ${customerData.last_name || ''}`.trim() ||
+        'Customer'
+      : 'Customer';
+
+    console.log('[createInquiry] Got customer name:', customerName);
+
+    // Get all admin users
+    const adminIds = await getAllAdminIds();
+    console.log('[createInquiry] Got admin IDs:', adminIds);
+
+    if (adminIds.length > 0) {
+      // Create notification for each admin
+      const notifications = adminIds.map(adminId => ({
+        customer_id: adminId,
+        source_type: 'ticket',
+        source_id: inquiryId,
+        title: 'New Support Ticket',
+        message: `New support ticket #${displayId || inquiryId?.substring(0, 8)} created by ${customerName}.`,
+        type: 'warning',
+        category: 'ticket',
+      }));
+
+      console.log(
+        '[createInquiry] Creating admin notifications:',
+        notifications
+      );
+
+      const { error: notifError } = await supabase
+        .from('notifications')
+        .insert(notifications);
+
+      if (notifError) {
+        console.error(
+          '[createInquiry] Error creating admin notifications:',
+          notifError
+        );
+      } else {
+        console.log(
+          '[createInquiry] Created notifications for',
+          adminIds.length,
+          'admins'
+        );
+      }
+    }
+  } catch (notifErr) {
+    console.error('[createInquiry] Error in notification creation:', notifErr);
+    // Don't fail the whole action if notifications fail
+  }
 
   if (!inquiryId) {
     messages.push({
@@ -150,7 +242,7 @@ export async function createInquiry(params: ActionExecutionParams): Promise<Acti
 
   // Success message matching issueTicketFlow.ts
   let successText = `Your support ticket has been created! Here is your Ticket ID: ${displayId}\n\nOur team will review your issue and get back to you as soon as possible. You can track the status of your ticket in your dashboard.\n\nWe appreciate your patience!`;
-  
+
   // Add order information if successfully linked
   if (orderDisplayId && actualOrderId) {
     successText = `Your support ticket has been created and linked to Order ${orderDisplayId}! Here is your Ticket ID: ${displayId}\n\nOur team will review your issue and get back to you as soon as possible. You can track the status of your ticket in your dashboard.\n\nWe appreciate your patience!`;
@@ -182,9 +274,16 @@ export async function createInquiry(params: ActionExecutionParams): Promise<Acti
  *
  * @returns ActionExecutionResult with end chat message
  */
-export async function endCustomerChat(params: ActionExecutionParams): Promise<ActionExecutionResult> {
+export async function endCustomerChat(
+  params: ActionExecutionParams
+): Promise<ActionExecutionResult> {
   const { customerId, sessionId } = params;
-  const messages: Array<{ id: string; role: 'printy'; text: string; ts: number }> = [];
+  const messages: Array<{
+    id: string;
+    role: 'printy';
+    text: string;
+    ts: number;
+  }> = [];
 
   try {
     // Use the unified service to end the chat
@@ -192,7 +291,7 @@ export async function endCustomerChat(params: ActionExecutionParams): Promise<Ac
       sessionId,
       userId: customerId,
       userType: 'customer',
-      endMessage: 'Thank you for chatting with us. Have a great day!'
+      endMessage: 'Thank you for chatting with us. Have a great day!',
     });
 
     if (!result.success) {
@@ -208,13 +307,12 @@ export async function endCustomerChat(params: ActionExecutionParams): Promise<Ac
 
     // Success message - this will be added by the service, so we don't need to add another
     return { messages };
-
   } catch (error) {
     console.error('Error in endCustomerChat:', error);
     messages.push({
       id: crypto.randomUUID(),
       role: 'printy',
-      text: "Something went wrong. Please try again.",
+      text: 'Something went wrong. Please try again.',
       ts: Date.now(),
     });
     return { messages };

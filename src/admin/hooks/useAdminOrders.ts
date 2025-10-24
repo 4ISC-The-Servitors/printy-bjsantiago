@@ -83,7 +83,7 @@ export function useAdminOrders(options: LoadOrdersOptions = {}) {
         `,
           { count: 'exact' }
         )
-        .order('created_at', { ascending: false })
+        .order('updated_at', { ascending: false })
         .range(from, from + pageSize - 1);
 
       if (error) {

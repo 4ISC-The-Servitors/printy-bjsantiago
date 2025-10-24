@@ -16,7 +16,9 @@ const LandingPage: React.FC = () => {
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [isTyping, setIsTyping] = React.useState(false);
   const [quickReplies, setQuickReplies] = React.useState<QuickReply[]>([]);
-  const [currentFlow, setCurrentFlow] = React.useState<FlowDefinition | null>(null);
+  const [currentFlow, setCurrentFlow] = React.useState<FlowDefinition | null>(
+    null
+  );
   const [currentNodeId, setCurrentNodeId] = React.useState<string>('');
   const [chatTitle, setChatTitle] = React.useState<string>('Chat');
   const [inputPlaceholder, setInputPlaceholder] =
@@ -32,22 +34,22 @@ const LandingPage: React.FC = () => {
     setIsTyping(true);
     setMessages([]);
     setQuickReplies([]);
-    
+
     try {
       // Map flow keys to database flow IDs
       const flowIdMap: Record<string, string> = {
-        'about': 'guest-about-us',
-        'faqs': 'guest-faqs',
-        'place-order': 'guest-place-order' // This would need to be created separately
+        about: 'guest-about-us',
+        faqs: 'guest-faqs',
+        'place-order': 'guest-place-order', // This would need to be created separately
       };
-      
+
       const flowId = flowIdMap[flowKey];
       if (!flowId) {
         console.error('Unknown flow key:', flowKey);
         setIsTyping(false);
         return;
       }
-      
+
       // Fetch flow definition from database
       const { data: flowData, error } = await supabase
         .from('chat_flows_v2')
@@ -55,18 +57,18 @@ const LandingPage: React.FC = () => {
         .eq('flow_id', flowId)
         .eq('flow_owner', 'guest')
         .single();
-      
+
       if (error || !flowData) {
         console.error('Error fetching flow:', error);
         setIsTyping(false);
         return;
       }
-      
+
       const flowDefinition = flowData.flow_definition as FlowDefinition;
       setCurrentFlow(flowDefinition);
       setChatTitle(flowDefinition.title);
       setCurrentNodeId(flowDefinition.initial_node);
-      
+
       // Process initial node
       const initialNode = flowDefinition.nodes[flowDefinition.initial_node];
       if (initialNode && initialNode.type === 'message') {
@@ -77,7 +79,7 @@ const LandingPage: React.FC = () => {
           ts: Date.now(),
         };
         setMessages([botMessage]);
-        
+
         // Set quick replies from initial node options
         if (initialNode.options) {
           const replies = initialNode.options.map((option, index) => ({
@@ -88,14 +90,13 @@ const LandingPage: React.FC = () => {
           setQuickReplies(replies);
         }
       }
-      
+
       setIsChatOpen(true);
       setInputPlaceholder('Type a message...');
       setIsTyping(false);
       document
         .getElementById('chat-section')
         ?.scrollIntoView({ behavior: 'smooth' });
-        
     } catch (error) {
       console.error('Error initializing flow:', error);
       setIsTyping(false);
@@ -119,18 +120,22 @@ const LandingPage: React.FC = () => {
     try {
       // Find matching option in current node
       const currentNode = currentFlow.nodes[currentNodeId];
-      if (currentNode && currentNode.type === 'message' && currentNode.options) {
-        const selectedOption = currentNode.options.find(option => 
-          option.label.toLowerCase() === text.trim().toLowerCase()
+      if (
+        currentNode &&
+        currentNode.type === 'message' &&
+        currentNode.options
+      ) {
+        const selectedOption = currentNode.options.find(
+          option => option.label.toLowerCase() === text.trim().toLowerCase()
         );
-        
+
         if (selectedOption) {
           // Move to next node
           const nextNodeId = selectedOption.next;
           if (nextNodeId) {
             setCurrentNodeId(nextNodeId);
             const nextNode = currentFlow.nodes[nextNodeId];
-            
+
             if (nextNode) {
               if (nextNode.type === 'message') {
                 const botMessage: ChatMessage = {
@@ -140,7 +145,7 @@ const LandingPage: React.FC = () => {
                   ts: Date.now(),
                 };
                 setMessages(prev => [...prev, botMessage]);
-                
+
                 // Set quick replies for next node
                 if (nextNode.options) {
                   const replies = nextNode.options.map((option, index) => ({
@@ -171,7 +176,7 @@ const LandingPage: React.FC = () => {
             ts: Date.now(),
           };
           setMessages(prev => [...prev, errorMessage]);
-          
+
           // Restore quick replies for current node
           if (currentNode.options) {
             const replies = currentNode.options.map((option, index) => ({
@@ -183,7 +188,7 @@ const LandingPage: React.FC = () => {
           }
         }
       }
-      
+
       setIsTyping(false);
     } catch (error) {
       console.error('Error processing message:', error);

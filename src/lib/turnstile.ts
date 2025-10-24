@@ -13,7 +13,9 @@ let turnstileScriptLoaded: Promise<void> | null = null;
 let preToken: { action: string; token: string; ts: number } | null = null;
 const inlineWidgetIds: Record<string, string> = {};
 const inlineTokens: Record<string, { token: string; ts: number }> = {};
-const debugFlag = String((import.meta as any).env?.VITE_TURNSTILE_DEBUG ?? 'false').toLowerCase();
+const debugFlag = String(
+  (import.meta as any).env?.VITE_TURNSTILE_DEBUG ?? 'false'
+).toLowerCase();
 const debugOn = !['false', '0', 'no', 'off', ''].includes(debugFlag.trim());
 function dbg(...args: unknown[]) {
   if (debugOn) {
@@ -51,13 +53,19 @@ async function ensureTurnstile() {
 }
 
 export async function getTurnstileToken(action: string) {
-  if (preToken && preToken.action === action && Date.now() - preToken.ts < 60000) {
+  if (
+    preToken &&
+    preToken.action === action &&
+    Date.now() - preToken.ts < 60000
+  ) {
     const t = preToken.token;
     preToken = null; // consume
     dbg('using primed token for', action);
     return t;
   }
-  const siteKey = (import.meta as any).env?.VITE_TURNSTILE_SITE_KEY as string | undefined;
+  const siteKey = (import.meta as any).env?.VITE_TURNSTILE_SITE_KEY as
+    | string
+    | undefined;
   if (!siteKey) throw new Error('Missing VITE_TURNSTILE_SITE_KEY');
 
   const turnstile = await ensureTurnstile();
@@ -68,40 +76,41 @@ export async function getTurnstileToken(action: string) {
   container.style.top = '0';
   document.body.appendChild(container);
 
-  const renderOnce = () => new Promise<string>((resolve, reject) => {
-    let widgetId = '';
+  const renderOnce = () =>
+    new Promise<string>((resolve, reject) => {
+      let widgetId = '';
 
-    const cleanup = () => {
-      try {
-        if (widgetId) turnstile.remove(widgetId);
-        if (container.parentNode) container.parentNode.removeChild(container);
-      } catch {
-        // ignore cleanup errors
-      }
-    };
+      const cleanup = () => {
+        try {
+          if (widgetId) turnstile.remove(widgetId);
+          if (container.parentNode) container.parentNode.removeChild(container);
+        } catch {
+          // ignore cleanup errors
+        }
+      };
 
-    dbg('render start', { action });
-    widgetId = turnstile.render(container, {
-      sitekey: siteKey,
-      appearance: 'execute',
-      action,
-      callback: (t: string) => {
-        setTimeout(() => cleanup(), 250);
-        dbg('token acquired', { action, len: t?.length ?? 0 });
-        resolve(t);
-      },
-      'error-callback': () => {
-        setTimeout(() => cleanup(), 250);
-        dbg('render error', { action });
-        reject(new Error('Turnstile error'));
-      },
-      'timeout-callback': () => {
-        setTimeout(() => cleanup(), 250);
-        dbg('render timeout', { action });
-        reject(new Error('Turnstile timeout'));
-      },
-    } as unknown as Record<string, unknown>);
-  });
+      dbg('render start', { action });
+      widgetId = turnstile.render(container, {
+        sitekey: siteKey,
+        appearance: 'execute',
+        action,
+        callback: (t: string) => {
+          setTimeout(() => cleanup(), 250);
+          dbg('token acquired', { action, len: t?.length ?? 0 });
+          resolve(t);
+        },
+        'error-callback': () => {
+          setTimeout(() => cleanup(), 250);
+          dbg('render error', { action });
+          reject(new Error('Turnstile error'));
+        },
+        'timeout-callback': () => {
+          setTimeout(() => cleanup(), 250);
+          dbg('render timeout', { action });
+          reject(new Error('Turnstile timeout'));
+        },
+      } as unknown as Record<string, unknown>);
+    });
 
   // retry once after a short delay if first attempt times out or errors
   const token = await renderOnce().catch(async () => {
@@ -121,7 +130,9 @@ export async function renderInlineTurnstile(
   appearance: 'always' | 'interaction-only' = 'always',
   onSuccess?: (token: string) => void
 ) {
-  const siteKey = (import.meta as any).env?.VITE_TURNSTILE_SITE_KEY as string | undefined;
+  const siteKey = (import.meta as any).env?.VITE_TURNSTILE_SITE_KEY as
+    | string
+    | undefined;
   if (!siteKey) {
     throw new Error('Missing VITE_TURNSTILE_SITE_KEY');
   }
@@ -175,7 +186,9 @@ function getFreshInlineToken(action: string, maxAgeMs = 60000): string | null {
 }
 
 async function getTurnstileTokenInteractive(action: string) {
-  const siteKey = (import.meta as any).env?.VITE_TURNSTILE_SITE_KEY as string | undefined;
+  const siteKey = (import.meta as any).env?.VITE_TURNSTILE_SITE_KEY as
+    | string
+    | undefined;
   if (!siteKey) throw new Error('Missing VITE_TURNSTILE_SITE_KEY');
   const turnstile = await ensureTurnstile();
 
@@ -204,7 +217,8 @@ async function getTurnstileTokenInteractive(action: string) {
 
   const removeAll = () => {
     try {
-      if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
+      if (overlay && overlay.parentNode)
+        overlay.parentNode.removeChild(overlay);
     } catch {}
   };
 
@@ -212,38 +226,51 @@ async function getTurnstileTokenInteractive(action: string) {
     let widgetId = '';
     const cleanup = () => {
       try {
-        if (widgetId && (window as any).turnstile?.remove) (window as any).turnstile.remove(widgetId);
+        if (widgetId && (window as any).turnstile?.remove)
+          (window as any).turnstile.remove(widgetId);
       } catch {}
       removeAll();
     };
-    widgetId = turnstile.render(host as HTMLElement, {
-      sitekey: siteKey,
-      appearance: inlineHost ? 'interaction-only' : 'always',
-      action,
-      callback: (t: string) => {
-        setTimeout(() => cleanup(), 250);
-        resolve(t);
-      },
-      'error-callback': () => {
-        setTimeout(() => cleanup(), 250);
-        reject(new Error('Turnstile error'));
-      },
-      'timeout-callback': () => {
-        setTimeout(() => cleanup(), 250);
-        reject(new Error('Turnstile timeout'));
-      },
-    } as unknown as Record<string, unknown>);
+    widgetId = turnstile.render(
+      host as HTMLElement,
+      {
+        sitekey: siteKey,
+        appearance: inlineHost ? 'interaction-only' : 'always',
+        action,
+        callback: (t: string) => {
+          setTimeout(() => cleanup(), 250);
+          resolve(t);
+        },
+        'error-callback': () => {
+          setTimeout(() => cleanup(), 250);
+          reject(new Error('Turnstile error'));
+        },
+        'timeout-callback': () => {
+          setTimeout(() => cleanup(), 250);
+          reject(new Error('Turnstile timeout'));
+        },
+      } as unknown as Record<string, unknown>
+    );
   });
 }
 
 export async function assertHumanTurnstile(action: string) {
   // Feature flags: allow bypass per action for troubleshooting
-  const globalEnable = String((import.meta as any).env?.VITE_TURNSTILE_ENABLED ?? 'true').toLowerCase();
-  const enableSignIn = String((import.meta as any).env?.VITE_TURNSTILE_ENABLE_SIGNIN ?? 'true').toLowerCase();
-  const enableSignUp = String((import.meta as any).env?.VITE_TURNSTILE_ENABLE_SIGNUP ?? 'true').toLowerCase();
-  const enablePasswordReset = String((import.meta as any).env?.VITE_TURNSTILE_ENABLE_PASSWORD_RESET ?? 'true').toLowerCase();
+  const globalEnable = String(
+    (import.meta as any).env?.VITE_TURNSTILE_ENABLED ?? 'true'
+  ).toLowerCase();
+  const enableSignIn = String(
+    (import.meta as any).env?.VITE_TURNSTILE_ENABLE_SIGNIN ?? 'true'
+  ).toLowerCase();
+  const enableSignUp = String(
+    (import.meta as any).env?.VITE_TURNSTILE_ENABLE_SIGNUP ?? 'true'
+  ).toLowerCase();
+  const enablePasswordReset = String(
+    (import.meta as any).env?.VITE_TURNSTILE_ENABLE_PASSWORD_RESET ?? 'true'
+  ).toLowerCase();
 
-  const truthy = (v: string) => !['false', '0', 'off', 'no', ''].includes(v.trim());
+  const truthy = (v: string) =>
+    !['false', '0', 'off', 'no', ''].includes(v.trim());
   const isDisabled =
     !truthy(globalEnable) ||
     (action === 'signin' && !truthy(enableSignIn)) ||
@@ -268,7 +295,9 @@ export async function assertHumanTurnstile(action: string) {
       const tokenPromise = getTurnstileToken(action);
       token = (await Promise.race<string>([
         tokenPromise,
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Turnstile timeout')), 12000)),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Turnstile timeout')), 12000)
+        ),
       ])) as string;
     } catch (e) {
       // Fallback: visible challenge (inline container if present)
@@ -279,7 +308,10 @@ export async function assertHumanTurnstile(action: string) {
   const { data, error } = await supabase.functions.invoke('verify-turnstile', {
     body: { token, action },
   });
-  dbg('verify-turnstile response', { ok: data?.ok ?? false, error: Boolean(error) });
+  dbg('verify-turnstile response', {
+    ok: data?.ok ?? false,
+    error: Boolean(error),
+  });
   if (error || !data?.ok) {
     throw new Error('Failed human verification');
   }
@@ -294,5 +326,3 @@ export async function primeTurnstile(action: string) {
     // Ignore prefetch errors; real call will try again
   }
 }
-
-

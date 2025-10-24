@@ -60,7 +60,8 @@ export const AdminConversationsProvider: React.FC<{
     try {
       const { data: sessions, error } = await supabase
         .from('chat_sessions_v2')
-        .select(`
+        .select(
+          `
           session_id,
           flow_id,
           status,
@@ -78,8 +79,11 @@ export const AdminConversationsProvider: React.FC<{
             display_id,
             status
           )
-        `)
-        .or('metadata->admin_chat.eq.true,flow_id.eq.admin-quote-propose,inquiry_id.not.is.null')
+        `
+        )
+        .or(
+          'metadata->admin_chat.eq.true,flow_id.eq.admin-quote-propose,inquiry_id.not.is.null'
+        )
         .order('created_at', { ascending: false })
         .limit(20);
 
@@ -137,7 +141,9 @@ export const AdminConversationsProvider: React.FC<{
   };
 
   // Load historical messages from database
-  const loadHistoricalMessages = async (sessionId: string): Promise<ChatMessage[]> => {
+  const loadHistoricalMessages = async (
+    sessionId: string
+  ): Promise<ChatMessage[]> => {
     try {
       const messages = await fetchSessionMessagesV2(sessionId);
       return messages.map(m => ({

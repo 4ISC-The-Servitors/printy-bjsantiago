@@ -27,6 +27,7 @@ Restructuring scattered 301-file codebase into clean role-based architecture.
 - **Files:** 13 modified (12 handlers + 1 README)
 
 **Action Handlers:**
+
 - Customer: `verify_order`, `display_quote_details`, `upload_payment_proof`, `accept_quote_proposal`, `reject_quote_proposal`, `create_quote_conversation`, `create_inquiry`
 - Admin: `display_quote_details_admin`, `ai_summarize_specs`, `send_quote_proposal`, `open_spec_editor`
 
@@ -56,6 +57,7 @@ Restructuring scattered 301-file codebase into clean role-based architecture.
 - **Files:** 17 migrated, 10 dirs created, 5 exports, 2 deleted
 
 **Component Migration:**
+
 ```
 UI (11):        Badge, Button, Card, Input, Modal, Pagination, Skeleton, Switch, Text, Tooltip
 Layout (2):     Container, PageLoading
@@ -84,6 +86,7 @@ Feedback (3):   Notification, Toast, ToastContainer
 - **Files:** 62 migrated, 3 barrel exports created, 1 App.tsx updated
 
 **Known Issues (Non-blocking):**
+
 - Legacy admin files in `src/components/admin/`, `src/hooks/admin/`, `src/pages/admin/` still exist (will be deleted in Phase 8)
 - Some TypeScript warnings about unused variables (due to commented Checkbox)
 - Pre-existing type errors in codebase (not introduced by migration)
@@ -110,6 +113,7 @@ Feedback (3):   Notification, Toast, ToastContainer
 - **Files:** 66 migrated, 4 barrel exports created, 1 App.tsx updated
 
 **Customer Module Structure:**
+
 ```
 src/customer/
 ├── components/
@@ -134,6 +138,7 @@ src/customer/
 ```
 
 **Known Issues (Non-blocking):**
+
 - Legacy customer files in `src/components/customer/`, `src/hooks/customer/`, `src/pages/customer/` still exist (will be deleted in Phase 8)
 - 3 mobile settings components are empty placeholder files (commented out in barrel exports)
 - Some TypeScript errors in customer hooks (pre-existing, not migration-related)
@@ -222,18 +227,21 @@ src/
 ## 🚨 Breaking Changes Reference
 
 ### 1. chatLogic/ DELETED
+
 - **Location:** `src/chatLogic/` (entire folder)
 - **What:** All scripted flows (admin, customer, guest)
 - **Impact:** Guest flows on landing page now placeholder
 - **Action Needed:** Migrate guest flows to JSONB before re-enabling
 
 ### 2. Checkbox Component REMOVED
+
 - **Location:** `src/shared/components/ui/Checkbox.tsx` (deleted)
 - **Why:** Connected to selection system (user requested removal)
 - **Impact:** Any code using `<Checkbox>` will fail
 - **Action Needed:** Use alternative or rebuild if required
 
 ### 3. selectionUtils REMOVED
+
 - **Location:** `src/utils/admin/selectionUtils.ts` (deleted)
 - **Why:** User requested selection code removal
 - **Impact:** Selection features unavailable
@@ -256,6 +264,7 @@ import { Container } from '../../shared/components/layout/Container';
 ```
 
 **Configured Aliases:**
+
 - `@admin/*` → `src/admin/*` ✅
 - `@customer/*` → `src/customer/*` ✅
 - `@guest/*` → `src/guest/*` ✅
@@ -272,6 +281,7 @@ import { Container } from '../../shared/components/layout/Container';
 ## 📋 Completed Phases
 
 ### Phase 4: Admin Module ✅ COMPLETE
+
 - ✅ Moved `src/components/admin/` → `src/admin/components/` (36 files)
 - ✅ Moved `src/hooks/admin/` → `src/admin/hooks/` (18 files)
 - ✅ Moved `src/pages/admin/` → `src/admin/pages/` (8 files)
@@ -282,6 +292,7 @@ import { Container } from '../../shared/components/layout/Container';
 ### Phase 5: Customer Module ✅ COMPLETE
 
 ### Phase 6: Guest & Auth Modules ✅ COMPLETE
+
 - ✅ Moved `src/components/customer/` → `src/customer/components/` (50 files)
 - ✅ Moved `src/hooks/customer/` → `src/customer/hooks/` (9 files)
 - ✅ Moved `src/pages/customer/` → `src/customer/pages/` (7 files)
@@ -291,6 +302,7 @@ import { Container } from '../../shared/components/layout/Container';
 - **Actual:** 66 files, completed in 1 session
 
 ### Phase 6: Guest & Auth Modules ✅ COMPLETE
+
 - ✅ Moved `src/components/guest/chat/` → `src/guest/components/chat/` (1 file)
 - ✅ Guest landing page already in `src/guest/pages/` (1 file)
 - ✅ Created new `src/auth/` module for authentication
@@ -304,6 +316,7 @@ import { Container } from '../../shared/components/layout/Container';
 - **Actual:** 16 files migrated, completed in 1 session
 
 ### Phase 7: Shared Hooks/Utils ✅ COMPLETE
+
 - ✅ Migrated shared hooks to `src/shared/hooks/` (21 files)
   - API hooks: usePaymentMethods, useQuoteActions, useQuoteConversation
   - Auth hooks: useLogoutWithToast
@@ -314,13 +327,14 @@ import { Container } from '../../shared/components/layout/Container';
   - File upload: uploadPaymentProof utility
 - ✅ Migrated shared types to `src/shared/types/` (4 files)
   - Main types, chatFlow types, customer types, filters
-- ✅ Updated all internal imports to use @shared/* aliases
+- ✅ Updated all internal imports to use @shared/\* aliases
 - ✅ Created comprehensive barrel exports for all shared modules
 - ✅ Fixed duplicate export conflicts (useResponsiveLayout)
 - ✅ Updated main shared barrel export with selective type exports
 - **Actual:** 31 files migrated, completed in 1 session
 
 ### Phase 8: Cleanup ✅ COMPLETE
+
 - ✅ Deleted all legacy directories (`components/`, `hooks/`, `pages/`)
 - ✅ Removed backward compatibility exports
 - ✅ Optimized bundle splitting in vite.config.ts
@@ -329,6 +343,7 @@ import { Container } from '../../shared/components/layout/Container';
 - **Actual:** Completed in 1 session
 
 ### Phase 9: Chat Feature Flattening & Final Migrations ✅ COMPLETE
+
 - ✅ Flattened chat feature structure from 6 levels to 3 levels
 - ✅ Moved `src/components/chat/` → `features/chat/components/{core,layouts}/` (14 files)
 - ✅ Consolidated chat hooks from 3 locations → `features/chat/hooks/{admin,customer,shared}/` (8 files)
@@ -357,17 +372,17 @@ import { Container } from '../../shared/components/layout/Container';
 
 ## 📊 Progress Metrics
 
-| Phase | Status | Files | Date |
-|-------|--------|-------|------|
-| 1: JSONB Stabilization | ✅ | 13 | 2025-10-17 |
-| 2: Path Aliases | ✅ | 40 | 2025-10-17 |
-| 3: Role Structure | ✅ | 34 | 2025-10-17 |
-| 4: Admin | ✅ | 62 | 2025-10-17 |
-| 5: Customer | ✅ | 66 | 2025-10-17 |
-| 6: Guest/Auth | ✅ | 16 | 2025-10-17 |
-| 7: Shared | ✅ | 31 | 2025-10-17 |
-| 8: Cleanup | ✅ | 50+ | 2025-10-17 |
-| 9: Chat Flattening & Final Migrations | ✅ | 60+ | 2025-10-17 |
+| Phase                                 | Status | Files | Date       |
+| ------------------------------------- | ------ | ----- | ---------- |
+| 1: JSONB Stabilization                | ✅     | 13    | 2025-10-17 |
+| 2: Path Aliases                       | ✅     | 40    | 2025-10-17 |
+| 3: Role Structure                     | ✅     | 34    | 2025-10-17 |
+| 4: Admin                              | ✅     | 62    | 2025-10-17 |
+| 5: Customer                           | ✅     | 66    | 2025-10-17 |
+| 6: Guest/Auth                         | ✅     | 16    | 2025-10-17 |
+| 7: Shared                             | ✅     | 31    | 2025-10-17 |
+| 8: Cleanup                            | ✅     | 50+   | 2025-10-17 |
+| 9: Chat Flattening & Final Migrations | ✅     | 60+   | 2025-10-17 |
 
 **Total Progress:** 360+ files (100%) ✅ COMPLETE
 
@@ -379,6 +394,7 @@ import { Container } from '../../shared/components/layout/Container';
 
 1. **Path Aliases Only** - Never use relative imports (`../../../`)
 2. **Correct Patterns:**
+
    ```typescript
    // ✅ CORRECT
    import { Button } from '@shared/components/ui';
@@ -408,6 +424,7 @@ import { Container } from '../../shared/components/layout/Container';
 5. **All Routes Functional:** ✅ Verified working with new structure
 
 **What's GONE:**
+
 - ❌ `src/chatLogic/` - 37 scripted flow files (replaced by JSONB)
 - ❌ `Checkbox` component and `selectionUtils.ts` (removed per user request)
 - ❌ All legacy directories in `src/components/`, `src/hooks/`, `src/pages/`
@@ -417,6 +434,7 @@ import { Container } from '../../shared/components/layout/Container';
 - ❌ `features/chat/core/` - Flattened from 6 levels to 3 levels
 
 **Key Learnings from Restructuring:**
+
 - Watch for incorrect import suggestions from automated tools (e.g., `@shared/utils` vs `@utils/shared`)
 - Chat components now live in `@features/chat/components/*` (moved from `@components/chat/*` in Phase 9)
 - Types should use relative paths when not in shared location
@@ -433,6 +451,7 @@ import { Container } from '../../shared/components/layout/Container';
 - `docs/DB_BACKED_CHAT_FLOW_MIGRATION.md` - Legacy migration notes
 
 **Phase 7 Completion Notes:**
+
 - Shared module successfully migrated (31 files: 21 hooks + 6 utils + 4 types)
 - API, auth, core, and UI hooks now available in shared module
 - All formatters and utility functions centralized
@@ -512,6 +531,7 @@ import { Container } from '../../shared/components/layout/Container';
 - **Files:** 60+ files migrated/restructured, completed in 1 session
 
 **Chat Feature Structure (After Flattening):**
+
 ```
 src/features/chat/
 ├── actions/
@@ -534,6 +554,7 @@ src/features/chat/
 ```
 
 **Key Improvements:**
+
 - **Reduced nesting:** From 6 folder levels to maximum 3 levels
 - **Better discoverability:** All chat components in one place
 - **Cleaner imports:** `@features/chat/actions/admin/` instead of `@features/chat/core/services/actions/admin/`
@@ -541,6 +562,7 @@ src/features/chat/
 - **Type safety:** Comprehensive type exports with ActionHandler patterns
 
 **Known Issues (Non-blocking):**
+
 - Some TypeScript errors in action handlers (relative import paths, missing type imports)
 - Pre-existing type errors in codebase (not introduced by Phase 9)
 
@@ -553,6 +575,7 @@ src/features/chat/
 **Architecture:** Clean role-based structure with flattened features and proper separation of concerns
 
 **Phase 9 Completion Notes:**
+
 - Chat feature successfully flattened from 6 levels to 3 levels
 - All chat components, hooks, actions consolidated under `features/chat/`
 - Admin utilities moved to proper role-based location
@@ -564,6 +587,7 @@ src/features/chat/
 - Final architecture: Maximum 3 folder levels for all features
 
 **Phase 6 Completion Notes:**
+
 - Guest module successfully migrated (2 files: 1 component + 1 page)
 - New auth module created and populated (14 files: 10 components + 4 pages)
 - All imports updated to use `@guest/*` and `@auth/*` aliases
@@ -573,6 +597,7 @@ src/features/chat/
 - Legacy auth/guest files remain in `src/pages/auth/` and `src/components/auth/` (will be deleted in Phase 8)
 
 **Phase 5 Completion Notes:**
+
 - Customer module successfully migrated (66 files)
 - All imports updated to use `@customer/*` aliases
 - Barrel exports created for clean API access

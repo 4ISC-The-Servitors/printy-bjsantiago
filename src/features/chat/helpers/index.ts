@@ -9,5 +9,5 @@ export {
   updateSessionMetadata,
   endSession,
   processPendingQuoteAction,
-  fetchSessionMessages
+  fetchSessionMessages,
 } from './flowHelpers';

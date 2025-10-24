@@ -10,12 +10,15 @@ export interface ChatEndServiceOptions {
 }
 
 export class ChatEndService {
-  private static readonly DEFAULT_END_MESSAGE = "Thanks for choosing B.J. Santiago! Have a great day!";
+  private static readonly DEFAULT_END_MESSAGE =
+    'Thanks for choosing B.J. Santiago! Have a great day!';
 
   /**
    * Unified method to end chat sessions consistently
    */
-  static async endChatSession(options: ChatEndServiceOptions): Promise<{ success: boolean; error?: string }> {
+  static async endChatSession(
+    options: ChatEndServiceOptions
+  ): Promise<{ success: boolean; error?: string }> {
     const { sessionId, userType, endMessage } = options;
 
     try {
@@ -42,8 +45,8 @@ export class ChatEndService {
       const { messageId } = await insertMessageV2({
         sessionId,
         text: messageToAdd,
-        role: 'printy',  // End message is from Printy bot
-        nodeId: null
+        role: 'printy', // End message is from Printy bot
+        nodeId: null,
       });
 
       if (!messageId) {
@@ -56,11 +59,11 @@ export class ChatEndService {
         .from('chat_sessions_v2')
         .update({
           status: 'ended',
-          ended_at: new Date().toISOString(),  // Use ended_at column directly
+          ended_at: new Date().toISOString(), // Use ended_at column directly
           metadata: {
             ...session.metadata,
-            ended_by: userType
-          }
+            ended_by: userType,
+          },
         })
         .eq('session_id', sessionId);
 
@@ -70,7 +73,6 @@ export class ChatEndService {
       }
 
       return { success: true };
-
     } catch (error) {
       console.error('Unexpected error in endChatSession:', error);
       return { success: false, error: 'Unexpected error occurred' };

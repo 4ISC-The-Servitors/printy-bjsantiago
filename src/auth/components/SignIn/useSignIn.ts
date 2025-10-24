@@ -2,7 +2,11 @@ import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@lib/supabase';
 import { useToast } from '@lib/useToast';
-import { assertHumanTurnstile, primeTurnstile, renderInlineTurnstile } from '@lib/turnstile';
+import {
+  assertHumanTurnstile,
+  primeTurnstile,
+  renderInlineTurnstile,
+} from '@lib/turnstile';
 
 export interface SignInFormData {
   email: string;
@@ -35,9 +39,14 @@ export const useSignIn = () => {
       while (retries < 50) {
         const element = document.getElementById('turnstile-signin');
         if (element) {
-          await renderInlineTurnstile('turnstile-signin', 'signin', 'always', () => {
-            setTurnstileReady(true);
-          });
+          await renderInlineTurnstile(
+            'turnstile-signin',
+            'signin',
+            'always',
+            () => {
+              setTurnstileReady(true);
+            }
+          );
           break;
         }
         await new Promise(resolve => setTimeout(resolve, 100));

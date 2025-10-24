@@ -23,24 +23,48 @@ const AdminSettingsPage = lazy(() => import('@admin/pages/AdminSettings'));
 const AdminPortfolio = lazy(() => import('@admin/pages/Portfolio'));
 const AdminChats = lazy(() => import('@admin/pages/Chats'));
 const SuperAdminDashboard = lazy(() => import('@superadmin/pages/Dashboard'));
-const CustomerDashboard = lazy(() => import('@customer/pages/CustomerDashboard'));
-const CustomerChatHistory = lazy(() => import('@customer/pages/CustomerChatHistory'));
-const CustomerOrderHistory = lazy(() => import('@customer/pages/CustomerOrderHistory'));
-const CustomerTicketHistory = lazy(() => import('@customer/pages/CustomerTicketHistory'));
-const CustomerQuoteHistory = lazy(() => import('@customer/pages/CustomerQuoteHistory'));
+const CustomerDashboard = lazy(
+  () => import('@customer/pages/CustomerDashboard')
+);
+const CustomerChatHistory = lazy(
+  () => import('@customer/pages/CustomerChatHistory')
+);
+const CustomerOrderHistory = lazy(
+  () => import('@customer/pages/CustomerOrderHistory')
+);
+const CustomerTicketHistory = lazy(
+  () => import('@customer/pages/CustomerTicketHistory')
+);
+const CustomerQuoteHistory = lazy(
+  () => import('@customer/pages/CustomerQuoteHistory')
+);
 
 function App() {
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
-      <Route path="/auth/signin" element={<GuestOnly><SignIn /></GuestOnly>} />
-      <Route path="/auth/signup" element={<GuestOnly><SignUp /></GuestOnly>} />
+      <Route
+        path="/auth/signin"
+        element={
+          <GuestOnly>
+            <SignIn />
+          </GuestOnly>
+        }
+      />
+      <Route
+        path="/auth/signup"
+        element={
+          <GuestOnly>
+            <SignUp />
+          </GuestOnly>
+        }
+      />
       <Route path="/auth/forgot-password" element={<ForgotPassword />} />
       <Route path="/auth/reset-password/confirm" element={<ResetPassword />} />
       <Route
         path="/customer"
         element={
-          <RequireAuth allowed={['regular','valued']}>
+          <RequireAuth allowed={['regular', 'valued']}>
             <Suspense fallback={<PageLoading variant="dashboard" />}>
               <CustomerRoot />
             </Suspense>
@@ -183,7 +207,6 @@ function App() {
           }
         />
       </Route>
-
     </Routes>
   );
 }

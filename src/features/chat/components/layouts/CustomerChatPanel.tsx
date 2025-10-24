@@ -47,7 +47,8 @@ export const CustomerChatPanel: React.FC<CustomerChatPanelProps> = ({
   const [input, setInput] = useState('');
   const [showContent, setShowContent] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const { showChatLoadingToast, clearLoadingToasts } = useChatLoadingToast(toast);
+  const { showChatLoadingToast, clearLoadingToasts } =
+    useChatLoadingToast(toast);
   const loadingToastIdRef = useRef<string | null>(null);
 
   const handleClose = async () => {
@@ -77,7 +78,7 @@ export const CustomerChatPanel: React.FC<CustomerChatPanelProps> = ({
       title: title,
       lastMessage: messages[messages.length - 1]?.text || '',
       timestamp: new Date().toISOString(),
-      isMinimized: true
+      isMinimized: true,
     };
 
     // Add to recent sessions
@@ -90,8 +91,15 @@ export const CustomerChatPanel: React.FC<CustomerChatPanelProps> = ({
   const addToRecentSessions = (session: any) => {
     try {
       // Store in localStorage
-      const existing = JSON.parse(localStorage.getItem('recentChatSessions') || '[]');
-      const updated = [session, ...existing.filter((s: any) => s.conversationId !== session.conversationId)].slice(0, 10);
+      const existing = JSON.parse(
+        localStorage.getItem('recentChatSessions') || '[]'
+      );
+      const updated = [
+        session,
+        ...existing.filter(
+          (s: any) => s.conversationId !== session.conversationId
+        ),
+      ].slice(0, 10);
       localStorage.setItem('recentChatSessions', JSON.stringify(updated));
     } catch (error) {
       console.error('Failed to save recent session:', error);
@@ -207,36 +215,41 @@ export const CustomerChatPanel: React.FC<CustomerChatPanelProps> = ({
   if (!showContent) return null;
 
   return (
-    <div className="h-full flex flex-col bg-white animate-in fade-in duration-300" data-chat-active="true">
+    <div
+      className="h-full flex flex-col bg-white animate-in fade-in duration-300"
+      data-chat-active="true"
+    >
       {/* Header */}
       <div className="p-4 border-b border-neutral-200 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
+          <Text variant="h2" size="lg" weight="semibold">
+            {title}
+          </Text>
+        </div>
+        <div className="flex items-center gap-2">
           {onMinimize && (
             <Button
               variant="ghost"
               size="sm"
               onClick={handleMinimize}
-              className="h-9 w-9 p-0"
+              className="h-9 w-9 p-0 text-neutral-500"
               aria-label="Minimize chat"
             >
-              <Minus className="w-5 h-5" />
+              <Minus className="w-5 h-5 text-neutral-500" />
             </Button>
           )}
-          <Text variant="h2" size="xl" weight="semibold">
-            {title}
-          </Text>
+          {onEndChat && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleClose}
+              className="h-9 w-9 p-0"
+              aria-label="Close chat"
+            >
+              <X className="w-5 h-5 text-error" />
+            </Button>
+          )}
         </div>
-        {onEndChat && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleClose}
-            className="h-9 w-9 p-0"
-            aria-label="Close chat"
-          >
-            <X className="w-5 h-5" />
-          </Button>
-        )}
       </div>
 
       {/* Messages */}

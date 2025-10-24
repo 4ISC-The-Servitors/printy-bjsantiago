@@ -4,4 +4,7 @@
  *
  * DEPRECATED: Import directly from '@features/chat/hooks/customer/useDashboardChatEvents' instead
  */
-export { useDashboardChatEvents, default } from '@features/chat/hooks/customer/useDashboardChatEvents';
+export {
+  useDashboardChatEvents,
+  default,
+} from '@features/chat/hooks/customer/useDashboardChatEvents';

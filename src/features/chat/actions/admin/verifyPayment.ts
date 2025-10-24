@@ -102,15 +102,14 @@ export async function verifyPayment(
         };
       }
 
-      // Get admin user ID from customer table where customer_type = 'admin'
-      const { data: adminData, error: adminError } = await supabase
-        .from('customer')
-        .select('customer_id')
-        .eq('customer_type', 'admin')
-        .single();
+      // Get current authenticated admin user ID
+      const {
+        data: { user: currentUser },
+        error: userError,
+      } = await supabase.auth.getUser();
 
-      if (adminError || !adminData) {
-        console.error('[verifyPayment] Error fetching admin user:', adminError);
+      if (userError || !currentUser) {
+        console.error('[verifyPayment] Error getting current user:', userError);
         return {
           messages: [
             {
@@ -123,7 +122,7 @@ export async function verifyPayment(
         };
       }
 
-      const adminUserId = adminData.customer_id;
+      const adminUserId = currentUser.id;
 
       // Update order status to processing
       const { error: updateError } = await supabase
@@ -132,6 +131,7 @@ export async function verifyPayment(
           status: 'processing',
           payment_verified_at: new Date().toISOString(),
           payment_verified_by: adminUserId,
+          updated_by: adminUserId, // Track that admin verified payment
         })
         .eq('order_id', orderId);
 
@@ -147,6 +147,59 @@ export async function verifyPayment(
             },
           ],
         };
+      }
+
+      // Create notification for customer about payment verification
+      console.log('[verifyPayment] Starting notification creation process...');
+      try {
+        // Get admin name for the notification
+        const { data: adminData } = await supabase
+          .from('customer')
+          .select('first_name, last_name')
+          .eq('customer_id', adminUserId)
+          .single();
+
+        const adminName = adminData
+          ? `${adminData.first_name || ''} ${adminData.last_name || ''}`.trim() ||
+            'Admin'
+          : 'Admin';
+
+        console.log('[verifyPayment] Got admin name:', adminName);
+
+        // Create notification for customer
+        const notification = {
+          customer_id: orderDetails.customerId,
+          source_type: 'order',
+          source_id: orderId,
+          title: 'Payment Verified',
+          message: `Your payment for order #${orderDetails.displayId} has been verified by ${adminName}. Your order is now being processed.`,
+          type: 'success',
+          category: 'order',
+        };
+
+        console.log(
+          '[verifyPayment] Creating customer notification:',
+          notification
+        );
+
+        const { error: notifError } = await supabase
+          .from('notifications')
+          .insert(notification);
+
+        if (notifError) {
+          console.error(
+            '[verifyPayment] Error creating customer notification:',
+            notifError
+          );
+        } else {
+          console.log('[verifyPayment] Created notification for customer');
+        }
+      } catch (notifErr) {
+        console.error(
+          '[verifyPayment] Error in notification creation:',
+          notifErr
+        );
+        // Don't fail the whole action if notifications fail
       }
 
       // No hardcoded message - let the flow handle the success message

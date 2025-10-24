@@ -48,7 +48,6 @@ export async function displayQuotePrice(
       .from('quote_proposals')
       .select('quoted_price, proposal_id')
       .eq('proposal_id', proposalId)
-      .eq('status', 'accepted')
       .single();
 
     if (proposalError || !proposal) {

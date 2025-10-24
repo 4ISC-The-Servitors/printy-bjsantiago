@@ -55,18 +55,33 @@ import { supabase } from '@lib/supabase';
 import { openSpecEditor } from '@features/quote/specEditorEvents';
 import { buildConversationPrompt } from '@features/quote/quoteAssistantPrompt';
 import { generateWithCohere } from '@features/api/shared/llmClient';
-import type { ActionExecutionParams, ActionExecutionResult } from '@features/chat/types';
+import type {
+  ActionExecutionParams,
+  ActionExecutionResult,
+} from '@features/chat/types';
 
-export async function aiSummarizeSpecs(params: ActionExecutionParams): Promise<ActionExecutionResult> {
+export async function aiSummarizeSpecs(
+  params: ActionExecutionParams
+): Promise<ActionExecutionResult> {
   const { actionNode, context } = params;
-  const messages: Array<{ id: string; role: 'printy'; text: string; ts: number }> = [];
+  const messages: Array<{
+    id: string;
+    role: 'printy';
+    text: string;
+    ts: number;
+  }> = [];
 
   const config = actionNode.action_config as any;
   const conversationIdKey = config.conversation_id_key || 'session_id';
   const conversationId = String(context[conversationIdKey] || '').trim();
 
   if (!conversationId) {
-    messages.push({ id: crypto.randomUUID(), role: 'printy', text: 'Missing conversation ID for summarization.', ts: Date.now() });
+    messages.push({
+      id: crypto.randomUUID(),
+      role: 'printy',
+      text: 'Missing conversation ID for summarization.',
+      ts: Date.now(),
+    });
     return { messages };
   }
 
@@ -77,14 +92,26 @@ export async function aiSummarizeSpecs(params: ActionExecutionParams): Promise<A
 
   if (error) {
     console.error('[aiSummarizeSpecs] Failed to load messages:', error);
-    messages.push({ id: crypto.randomUUID(), role: 'printy', text: 'Error reading conversation messages.', ts: Date.now() });
+    messages.push({
+      id: crypto.randomUUID(),
+      role: 'printy',
+      text: 'Error reading conversation messages.',
+      ts: Date.now(),
+    });
     return { messages };
   }
 
-  const history = (data as any[] || []).map((m: any) => ({ role: m.sender_role, text: m.message_text }));
+  const history = ((data as any[]) || []).map((m: any) => ({
+    role: m.sender_role,
+    text: m.message_text,
+  }));
   const prompt = buildConversationPrompt(history);
 
-  const analysis = await generateWithCohere([{ role: 'user', content: prompt }], true, 'command-nightly');
+  const analysis = await generateWithCohere(
+    [{ role: 'user', content: prompt }],
+    true,
+    'command-nightly'
+  );
 
   // Open Spec Editor with AI spec
   openSpecEditor({
@@ -98,5 +125,3 @@ export async function aiSummarizeSpecs(params: ActionExecutionParams): Promise<A
   // and persisted by the flow processor. Returning no messages avoids duplicates.
   return { messages };
 }
-
-
