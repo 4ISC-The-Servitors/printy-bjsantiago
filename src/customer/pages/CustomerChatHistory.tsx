@@ -43,7 +43,7 @@ const ChatHistory: React.FC = () => {
 
   // Filter configuration for chat conversations
   const filterConfig: FilterConfig = {
-    showDateRange: false,
+    showDateRange: true,
     showStatusFilter: true,
     showRoleFilter: false,
     statusOptions: [

@@ -10,11 +10,40 @@ import { formatShortDate } from '@shared/utils/dateFormatter';
 import { formatRelativeTimeLabel } from '@shared/utils/timeFormatter';
 
 interface RecentOrderProps {
-  recentOrder: RecentOrderType;
+  recentOrder: RecentOrderType | null;
 }
 
 const RecentOrder: React.FC<RecentOrderProps> = ({ recentOrder }) => {
   const navigate = useNavigate();
+  
+  // Handle null/undefined status
+  if (!recentOrder || !recentOrder.status) {
+    return (
+      <Card className="device-spacing-component">
+        <div className="flex items-center justify-between mb-4">
+          <Text
+            variant="h3"
+            className="device-text-heading"
+            size="lg"
+            weight="semibold"
+          >
+            Recent Order
+          </Text>
+          <Button
+            variant="ghost"
+            className="device-btn-secondary text-brand-primary hover:text-brand-primary-600"
+            onClick={() => navigate('/customer/orders')}
+          >
+            View all
+          </Button>
+        </div>
+        <div className="text-center py-8 text-neutral-500">
+          <Text variant="p">No recent orders found</Text>
+        </div>
+      </Card>
+    );
+  }
+
   const s = recentOrder.status.toLowerCase();
 
   // Database format (primary)

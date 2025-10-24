@@ -119,11 +119,10 @@ const ResponsivePageLayout: React.FC<ResponsivePageLayoutProps> = ({
           {/* Sidebar Panel */}
           <aside className="lg:hidden fixed left-0 top-0 bottom-0 w-80 max-w-[85vw] bg-white shadow-2xl z-50 animate-slide-in-left">
             <MobileSidebarMenu
+              conversations={conversations}
+              activeId={null}
               onClose={() => setIsMobileSidebarOpen(false)}
-              onViewAllChats={() => {
-                setIsMobileSidebarOpen(false);
-                navigate('/customer/chats');
-              }}
+              onSwitchConversation={handleSwitchConversation}
               onAccount={handleNavigateToAccount}
               onLogout={handleLogout}
             />

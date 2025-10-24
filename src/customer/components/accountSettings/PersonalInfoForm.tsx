@@ -30,7 +30,6 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = ({
 
   const validate = () => {
     const next: Record<string, string> = {};
-    if (!form.displayName.trim()) next.displayName = 'Display name is required';
     if (!form.email.trim()) next.email = 'Email is required';
     const phoneLocal = getLocalDigitsFromPhone(form.phone);
     if (phoneLocal.length !== 10)
@@ -101,34 +100,12 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = ({
           <Text variant="span" className="device-text-body" weight="medium">
             Display Name
           </Text>
-          {isEditing ? (
-            <Input
-              value={form.displayName}
-              onChange={e =>
-                setForm(p => ({ ...p, displayName: e.target.value }))
-              }
-              aria-invalid={Boolean(errors.displayName)}
-              aria-describedby={
-                errors.displayName ? 'displayName-error' : undefined
-              }
-            />
-          ) : (
-            <Text
-              variant="p"
-              className="bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2"
-            >
-              {value.displayName}
-            </Text>
-          )}
-          {errors.displayName && (
-            <Text
-              id="displayName-error"
-              variant="p"
-              className="text-error mt-1 text-sm"
-            >
-              {errors.displayName}
-            </Text>
-          )}
+          <Text
+            variant="p"
+            className="bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2"
+          >
+            {value.displayName}
+          </Text>
         </div>
 
         <div>
@@ -220,6 +197,46 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = ({
           </div>
           <div>
             <Text variant="span" className="device-text-body" weight="medium">
+              Building
+            </Text>
+            {isEditing ? (
+              <Input
+                value={form.building}
+                onChange={e =>
+                  setForm(p => ({ ...p, building: e.target.value }))
+                }
+              />
+            ) : (
+              <Text
+                variant="p"
+                className="bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2"
+              >
+                {value.building || 'Not specified'}
+              </Text>
+            )}
+          </div>
+          <div>
+            <Text variant="span" className="device-text-body" weight="medium">
+              Barangay
+            </Text>
+            {isEditing ? (
+              <Input
+                value={form.barangay}
+                onChange={e =>
+                  setForm(p => ({ ...p, barangay: e.target.value }))
+                }
+              />
+            ) : (
+              <Text
+                variant="p"
+                className="bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2"
+              >
+                {value.barangay || 'Not specified'}
+              </Text>
+            )}
+          </div>
+          <div>
+            <Text variant="span" className="device-text-body" weight="medium">
               City
             </Text>
             {isEditing ? (
@@ -233,6 +250,26 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = ({
                 className="bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2"
               >
                 {value.city}
+              </Text>
+            )}
+          </div>
+          <div>
+            <Text variant="span" className="device-text-body" weight="medium">
+              Province
+            </Text>
+            {isEditing ? (
+              <Input
+                value={form.province}
+                onChange={e =>
+                  setForm(p => ({ ...p, province: e.target.value }))
+                }
+              />
+            ) : (
+              <Text
+                variant="p"
+                className="bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2"
+              >
+                {value.province || 'Not specified'}
               </Text>
             )}
           </div>

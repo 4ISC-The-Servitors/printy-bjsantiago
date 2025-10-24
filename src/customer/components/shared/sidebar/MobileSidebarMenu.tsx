@@ -1,98 +1,130 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { MessageSquare, LogOut, Bot, X, User } from 'lucide-react';
 import { Button, Text } from '@shared/components';
+import RecentChats from './RecentChats';
+import ViewAllChat from './ViewAllChat';
+import type { ChatMessage } from '@features/chat/types/chat';
+
+interface Conversation {
+  id: string;
+  title: string;
+  createdAt: number;
+  messages: ChatMessage[];
+  flowId: string;
+  status: 'active' | 'ended';
+  icon?: React.ReactNode;
+}
 
 export interface CustomerMobileSidebarMenuProps {
+  conversations: Conversation[];
+  activeId: string | null;
   onClose: () => void;
   onViewAllChats?: () => void;
+  onSwitchConversation: (id: string) => void;
   onAccount: () => void;
   onLogout: () => void;
 }
 
 /**
  * Customer mobile sidebar menu overlay
- * - Mirrors admin mobile sidebar with customer actions
+ * - Mirrors SidebarPanel.tsx styling exactly
  * - Full-height panel with header, primary chat entry, and bottom actions
  */
 const CustomerMobileSidebarMenu: React.FC<CustomerMobileSidebarMenuProps> = ({
+  conversations,
+  activeId,
   onClose,
   onViewAllChats,
+  onSwitchConversation,
   onAccount,
   onLogout,
 }) => {
-  return (
-    <div className="h-full flex flex-col bg-white">
-      {/* Header */}
-      <div className="p-4 shrink-0 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-brand-primary text-white flex items-center justify-center">
-            <Bot className="w-6 h-6" />
-          </div>
-          <div>
-            <Text
-              variant="h3"
-              size="lg"
-              weight="bold"
-              className="text-brand-primary"
-            >
-              Printy
-            </Text>
-            <Text variant="p" size="xs" color="muted">
-              B.J. Santiago Inc.
-            </Text>
-          </div>
-        </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onClose}
-          className="h-8 w-8 p-0 shrink-0"
-          aria-label="Close menu"
-        >
-          <X className="w-5 h-5" />
-        </Button>
-      </div>
+  const listContainerRef = useRef<HTMLDivElement>(null);
 
-      {/* Chats */}
-      <div className="px-3 pt-2 shrink-0">
-        {onViewAllChats && (
+  return (
+    <div className="h-full flex flex-col">
+      {/* Header - matches SidebarPanel exactly */}
+      <div className="p-4 shrink-0">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-brand-primary text-white flex items-center justify-center">
+              <Bot className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="text-brand-primary font-bold">Printy</div>
+              <div className="text-xs text-neutral-500">B.J. Santiago Inc.</div>
+            </div>
+          </div>
           <Button
             variant="ghost"
-            onClick={onViewAllChats}
-            className="w-full justify-start px-3 py-3 h-auto"
+            size="sm"
+            onClick={onClose}
+            className="h-8 w-8 p-0 shrink-0"
+            aria-label="Close menu"
           >
-            <MessageSquare className="w-5 h-5 mr-3 text-neutral-700" />
-            <Text variant="p" size="base" weight="medium">
-              Chats
-            </Text>
+            <X className="w-5 h-5" />
           </Button>
-        )}
+        </div>
       </div>
 
-      <div className="flex-1" />
+      {/* Main Content Area - matches SidebarPanel structure */}
+      <div className="flex-1 px-3 min-h-0 flex flex-col">
+        {/* Chats Section */}
+        <div className="mb-2 shrink-0">
+          <div className="flex items-center justify-between px-2">
+            <Text
+              variant="h3"
+              size="sm"
+              weight="semibold"
+              className="text-neutral-700"
+            >
+              Recent Chats
+            </Text>
+            <ViewAllChat
+              onClick={() => window.location.assign('/customer/chats')}
+            />
+          </div>
+          <div className="mt-2 border-t border-neutral-200" />
+        </div>
 
-      {/* Bottom actions */}
-      <div className="p-3 pb-[72px] space-y-2">
-        <Button
-          variant="ghost"
-          onClick={onAccount}
-          className="w-full justify-start px-3 py-3 h-auto"
+        {/* Recent chats area - flexible height that fills available space */}
+        <div
+          ref={listContainerRef}
+          className="flex-1 overflow-hidden recent-chats-area min-h-0"
         >
-          <User className="w-5 h-5 mr-3 text-neutral-700" />
-          <Text variant="p" size="base" weight="medium">
-            Account
-          </Text>
+          <RecentChats
+            conversations={conversations as any}
+            activeId={activeId}
+            onSwitchConversation={onSwitchConversation}
+            getContainerHeight={() =>
+              listContainerRef.current
+                ? listContainerRef.current.getBoundingClientRect().height
+                : 0
+            }
+          />
+        </div>
+      </div>
+
+      {/* Bottom Actions - matches SidebarPanel exactly */}
+      <div className="p-3 border-t border-neutral-200 shrink-0 space-y-4">
+        {/* Account Button - matches AccountButton.tsx */}
+        <Button
+          variant="secondary"
+          className="w-full justify-start"
+          threeD
+          onClick={onAccount}
+        >
+          <User className="w-4 h-4 mr-2" /> Account
         </Button>
 
+        {/* Logout Button - matches LogoutButton.tsx */}
         <Button
-          variant="ghost"
+          variant="accent"
+          className="w-full justify-start"
+          threeD
           onClick={onLogout}
-          className="w-full justify-start px-3 py-3 h-auto"
         >
-          <LogOut className="w-5 h-5 mr-3 text-neutral-700" />
-          <Text variant="p" size="base" weight="medium">
-            Logout
-          </Text>
+          <LogOut className="w-4 h-4 mr-2" /> Logout
         </Button>
       </div>
     </div>

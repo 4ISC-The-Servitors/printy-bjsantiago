@@ -26,6 +26,9 @@ export interface UserData {
   address: string;
   city: string;
   zipCode: string;
+  province: string;
+  barangay: string;
+  building: string;
   avatarUrl?: string;
   firstName: string;
   lastName: string;
@@ -108,6 +111,9 @@ const AccountSettings: React.FC = () => {
           address,
           city: profile.address.city_name || '',
           zipCode: profile.address.zip_code || '',
+          province: profile.address.province_name || '',
+          barangay: profile.address.barangay_name || '',
+          building: profile.address.building_name || '',
           avatarUrl: '',
           firstName: profile.first_name,
           lastName: profile.last_name,
@@ -126,6 +132,9 @@ const AccountSettings: React.FC = () => {
           address: '',
           city: '',
           zipCode: '',
+          province: '',
+          barangay: '',
+          building: '',
           avatarUrl: '',
           firstName: '',
           lastName: '',
@@ -212,14 +221,21 @@ const AccountSettings: React.FC = () => {
     }
 
     try {
-      // Update profile in Supabase
-      const updateData: any = {};
-      if (next.firstName !== undefined) updateData.first_name = next.firstName;
-      if (next.lastName !== undefined) updateData.last_name = next.lastName;
-      if (next.phone !== undefined) updateData.contact_no = next.phone;
-      if (next.email !== undefined) updateData.email_address = next.email;
+      // Convert UserData to ProfileService format
+      const profileUpdates = {
+        contact_no: next.phone,
+        email_address: next.email,
+        address: {
+          street_name: next.address, // Street address field contains only street name
+          building_name: next.building,
+          barangay_name: next.barangay,
+          city_name: next.city,
+          province_name: next.province,
+          zip_code: next.zipCode,
+        },
+      };
 
-      const success = await ProfileService.updateProfile(user.id, updateData);
+      const success = await ProfileService.updateProfile(user.id, profileUpdates);
 
       if (success) {
         // Update local state

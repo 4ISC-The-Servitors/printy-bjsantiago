@@ -9,11 +9,40 @@ import { formatRelativeTimeLabel } from '@shared/utils/timeFormatter';
 import { useResponsiveLayout, useResponsiveClasses } from '@shared/hooks/ui';
 
 interface RecentTicketsProps {
-  recentTicket: RecentTicketType;
+  recentTicket: RecentTicketType | null;
 }
 
 const RecentTickets: React.FC<RecentTicketsProps> = ({ recentTicket }) => {
   const navigate = useNavigate();
+  
+  // Handle null/undefined ticket
+  if (!recentTicket) {
+    return (
+      <Card className="device-spacing-component">
+        <div className="flex items-center justify-between mb-4">
+          <Text
+            variant="h3"
+            className="device-text-heading"
+            size="lg"
+            weight="semibold"
+          >
+            Recent Ticket
+          </Text>
+          <Button
+            variant="ghost"
+            className="device-btn-secondary text-brand-primary hover:text-brand-primary-600"
+            onClick={() => navigate('/customer/tickets')}
+          >
+            View all
+          </Button>
+        </div>
+        <div className="text-center py-8 text-neutral-500">
+          <Text variant="p">No recent tickets found</Text>
+        </div>
+      </Card>
+    );
+  }
+
   const { getTicketCardLayout } = useResponsiveLayout();
   const { textClasses } = useResponsiveClasses();
   const layout = getTicketCardLayout;

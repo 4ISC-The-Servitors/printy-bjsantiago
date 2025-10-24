@@ -9,11 +9,40 @@ import { formatShortDate } from '@shared/utils/dateFormatter';
 import { formatRelativeTimeLabel } from '@shared/utils/timeFormatter';
 
 interface RecentQuotesProps {
-  recentQuote: RecentQuote;
+  recentQuote: RecentQuote | null;
 }
 
 const RecentQuotes: React.FC<RecentQuotesProps> = ({ recentQuote }) => {
   const navigate = useNavigate();
+  
+  // Handle null/undefined quote
+  if (!recentQuote) {
+    return (
+      <Card className="device-spacing-component">
+        <div className="flex items-center justify-between mb-4">
+          <Text
+            variant="h3"
+            className="device-text-heading"
+            size="lg"
+            weight="semibold"
+          >
+            Recent Quote
+          </Text>
+          <Button
+            variant="ghost"
+            className="device-btn-secondary text-brand-primary hover:text-brand-primary-600"
+            onClick={() => navigate('/customer/quotes')}
+          >
+            View all
+          </Button>
+        </div>
+        <div className="text-center py-8 text-neutral-500">
+          <Text variant="p">No recent quotes found</Text>
+        </div>
+      </Card>
+    );
+  }
+
   const { getQuoteCardLayout } = useResponsiveLayout();
   const { textClasses } = useResponsiveClasses();
   const layout = getQuoteCardLayout;
