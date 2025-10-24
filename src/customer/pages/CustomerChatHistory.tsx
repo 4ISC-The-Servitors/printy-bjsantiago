@@ -8,6 +8,7 @@ import {
   Text,
   Pagination,
   Breadcrumbs,
+  Card,
 } from '@shared/components';
 import { useGenericSearchFilter } from '@shared/hooks/ui/useGenericSearchFilter';
 import {
@@ -222,13 +223,13 @@ const ChatHistory: React.FC = () => {
         </div>
 
         {allFilteredConversations.length === 0 && (
-          <div className="text-center py-12">
-            <Text variant="p" className="device-text-body text-neutral-500">
+          <Card className="p-8 text-center">
+            <Text variant="p" className="text-neutral-500">
               {conversations.length === 0
                 ? 'No conversations found.'
                 : 'No conversations match your filters.'}
             </Text>
-          </div>
+          </Card>
         )}
       </div>
     </ResponsivePageLayout>
