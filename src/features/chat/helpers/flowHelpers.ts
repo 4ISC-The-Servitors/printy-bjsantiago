@@ -135,6 +135,9 @@ export async function endSession(sessionId: string): Promise<void> {
 /**
  * Process pending quote actions (accept/reject) after conversation ends
  */
+/**
+ * Process pending quote actions (accept/reject) after conversation ends
+ */
 export async function processPendingQuoteAction(
   action: string,
   conversationId: string
@@ -144,6 +147,23 @@ export async function processPendingQuoteAction(
       `[ProcessPendingQuote] Processing ${action} for conversation:`,
       conversationId
     );
+
+    // Get customer ID from the session FIRST
+    const { data: sessionData, error: sessionError } = await supabase
+      .from('chat_sessions_v2')
+      .select('customer_id')
+      .eq('session_id', conversationId)
+      .single();
+
+    if (sessionError || !sessionData?.customer_id) {
+      console.error(
+        `[ProcessPendingQuote] Error fetching session data:`,
+        sessionError
+      );
+      return;
+    }
+
+    const actingCustomerId = sessionData.customer_id;
 
     // Get the latest proposal
     const { data: proposals, error: fetchError } = await supabase
@@ -190,10 +210,12 @@ export async function processPendingQuoteAction(
       `[ProcessPendingQuote] Proposal status updated to ${newStatus}`
     );
 
-    // Update quote status in quotes table
+    // Update quote status in quotes table with customer_id
     console.log(
-      `[ProcessPendingQuote] Attempting to update quote status to ${newStatus} for session_id:`,
-      conversationId
+      `[ProcessPendingQuote] Updating quote status to ${newStatus} for session_id:`,
+      conversationId,
+      'with customer_id:',
+      actingCustomerId
     );
 
     const { data: updateResult, error: quoteError } = await supabase
@@ -201,6 +223,7 @@ export async function processPendingQuoteAction(
       .update({
         status: newStatus,
         updated_at: new Date().toISOString(),
+        updated_by: actingCustomerId, // CRITICAL: Customer's ID for notify_quote_events
       })
       .eq('session_id', conversationId)
       .select();
@@ -215,7 +238,10 @@ export async function processPendingQuoteAction(
         `[ProcessPendingQuote] Quote status update result:`,
         updateResult
       );
-      console.log(`[ProcessPendingQuote] Quote status updated to ${newStatus}`);
+      console.log(
+        `[ProcessPendingQuote] Quote status updated to ${newStatus} with updated_by=`,
+        actingCustomerId
+      );
     }
   } catch (error) {
     console.error(
