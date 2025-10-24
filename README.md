@@ -7,6 +7,10 @@
 - corrected notif triggers for admin and customer: kulang na lang for delivery/pickup/completed order status updates
 - enhanced customer UI responsiveness and overall UI, to follow admin
 - can now chat via order/ticket/quote history page
+- customer account settings now fetch from db
+- change password works in account settings customer
+- fixed sign up forms to insert correct fields in db
+- removed zipcode table, updated columns in orders, inquiries_v2, quotes, quote_proposals
 
 ### 2025-10-19-Andeng
 
