@@ -57,7 +57,7 @@ export const getServiceStatusBadgeVariant = (status: string): BadgeVariant => {
   if (s === 'inactive') return 'warning';
   if (s === 'retired') return 'secondary';
   return 'secondary';
-}
+};
 
 export const getChatStatusBadgeVariant = (status: string): BadgeVariant => {
   const s = (status || '').toLowerCase();

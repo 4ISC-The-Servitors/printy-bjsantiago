@@ -2,6 +2,12 @@
 
 ## 📄 Changelogs
 
+### 2025-10-24-Andeng
+
+- corrected notif triggers for admin and customer: kulang na lang for delivery/pickup/completed order status updates
+- enhanced customer UI responsiveness and overall UI, to follow admin
+- can now chat via order/ticket/quote history page
+
 ### 2025-10-19-Andeng
 
 - **Admin Payment Verification Flow Completion**

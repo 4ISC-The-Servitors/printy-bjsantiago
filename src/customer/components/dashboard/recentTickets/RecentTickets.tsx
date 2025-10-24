@@ -14,7 +14,7 @@ interface RecentTicketsProps {
 
 const RecentTickets: React.FC<RecentTicketsProps> = ({ recentTicket }) => {
   const navigate = useNavigate();
-  
+
   // Handle null/undefined ticket
   if (!recentTicket) {
     return (

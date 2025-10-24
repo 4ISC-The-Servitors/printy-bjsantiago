@@ -238,7 +238,10 @@ const AccountSettings: React.FC = () => {
         },
       };
 
-      const success = await ProfileService.updateProfile(user.id, profileUpdates);
+      const success = await ProfileService.updateProfile(
+        user.id,
+        profileUpdates
+      );
 
       if (success) {
         // Update local state

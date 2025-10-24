@@ -64,7 +64,7 @@ export function useAdminTickets(options: LoadInquiriesOptions = {}) {
               .select(
                 'inquiry_id, display_id, customer_id, inquiry_type, inquiry_status, received_at, updated_at, order_id, session_id, customer:customer_id(first_name,last_name,customer_type)'
               )
-              .order('received_at', { ascending: false })
+              .order('updated_at', { ascending: false })
               .range(from, from + pageSize - 1);
             if (!viewErr && Array.isArray(viewRows)) rows = viewRows as any[];
             if (viewErr && error) {
@@ -88,7 +88,7 @@ export function useAdminTickets(options: LoadInquiriesOptions = {}) {
               .select(
                 'inquiry_id, display_id, customer_id, inquiry_type, inquiry_status, received_at, updated_at, order_id, session_id, customer:customer_id(first_name,last_name,customer_type)'
               )
-              .order('received_at', { ascending: false })
+              .order('updated_at', { ascending: false })
               .range(from, from + pageSize - 1);
             if (Array.isArray(viewRows)) rows = viewRows as any[];
           }

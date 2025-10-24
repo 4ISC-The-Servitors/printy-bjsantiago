@@ -104,15 +104,14 @@ export async function denyPayment(
         };
       }
 
-      // Get admin user ID from customer table where customer_type = 'admin'
-      const { data: adminData, error: adminError } = await supabase
-        .from('customer')
-        .select('customer_id')
-        .eq('customer_type', 'admin')
-        .single();
+      // Get current authenticated admin user ID
+      const {
+        data: { user: currentUser },
+        error: userError,
+      } = await supabase.auth.getUser();
 
-      if (adminError || !adminData) {
-        console.error('[denyPayment] Error fetching admin user:', adminError);
+      if (userError || !currentUser) {
+        console.error('[denyPayment] Error getting current user:', userError);
         return {
           messages: [
             {
@@ -125,7 +124,7 @@ export async function denyPayment(
         };
       }
 
-      const adminUserId = adminData.customer_id;
+      const adminUserId = currentUser.id;
 
       // Update order status to reupload_payment and store denial reason
       const { error: updateError } = await supabase
@@ -151,6 +150,59 @@ export async function denyPayment(
             },
           ],
         };
+      }
+
+      // Create notification for customer about payment denial
+      console.log('[denyPayment] Starting notification creation process...');
+      try {
+        // Get admin name for the notification
+        const { data: adminData } = await supabase
+          .from('customer')
+          .select('first_name, last_name')
+          .eq('customer_id', adminUserId)
+          .single();
+
+        const adminName = adminData
+          ? `${adminData.first_name || ''} ${adminData.last_name || ''}`.trim() ||
+            'Admin'
+          : 'Admin';
+
+        console.log('[denyPayment] Got admin name:', adminName);
+
+        // Create notification for customer
+        const notification = {
+          customer_id: orderDetails.customerId,
+          source_type: 'order',
+          source_id: orderId,
+          title: 'Payment Denied',
+          message: `Your payment for order #${orderDetails.displayId} was denied by ${adminName}. Reason: ${denialReason}. Please upload a new payment proof.`,
+          type: 'warning',
+          category: 'order',
+        };
+
+        console.log(
+          '[denyPayment] Creating customer notification:',
+          notification
+        );
+
+        const { error: notifError } = await supabase
+          .from('notifications')
+          .insert(notification);
+
+        if (notifError) {
+          console.error(
+            '[denyPayment] Error creating customer notification:',
+            notifError
+          );
+        } else {
+          console.log('[denyPayment] Created notification for customer');
+        }
+      } catch (notifErr) {
+        console.error(
+          '[denyPayment] Error in notification creation:',
+          notifErr
+        );
+        // Don't fail the whole action if notifications fail
       }
 
       // No hardcoded message - let the flow handle the denial message

@@ -2,10 +2,18 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ResponsivePageLayout from '@customer/components/shared/layouts/ResponsivePageLayout';
 import HistoryItemCard from '@customer/components/shared/cards/HistoryItemCard';
-import { Search, Filter, Button, Text, Pagination } from '@shared/components';
-import { ArrowLeft } from 'lucide-react';
+import {
+  Search,
+  Filter,
+  Text,
+  Pagination,
+  Breadcrumbs,
+} from '@shared/components';
 import { useGenericSearchFilter } from '@shared/hooks/ui/useGenericSearchFilter';
-import { useResponsiveClasses, useDeviceUtils } from '@shared/hooks/ui/useResponsiveClasses';
+import {
+  useResponsiveClasses,
+  useDeviceUtils,
+} from '@shared/hooks/ui/useResponsiveClasses';
 import { useResponsivePageSize } from '@shared/hooks/ui/useResponsivePageSize';
 import type { ChatMessage } from '@features/chat/types/chat';
 import { getUserSessionsV2 } from '@features/chat/api/jsonbChatFlowApi';
@@ -52,7 +60,6 @@ const ChatHistory: React.FC = () => {
     ],
   };
 
-
   // Use the generic search filter hook
   const {
     search,
@@ -71,7 +78,10 @@ const ChatHistory: React.FC = () => {
   // Pagination logic
   const startIndex = (currentPage - 1) * pageSize;
   const endIndex = startIndex + pageSize;
-  const paginatedConversations = allFilteredConversations.slice(startIndex, endIndex);
+  const paginatedConversations = allFilteredConversations.slice(
+    startIndex,
+    endIndex
+  );
 
   // Reset to first page when filters change
   useEffect(() => {
@@ -115,18 +125,17 @@ const ChatHistory: React.FC = () => {
   return (
     <ResponsivePageLayout>
       <div className="space-y-4">
-        {/* Back to Dashboard */}
-        <div className="flex justify-start">
-          <Button
-            threeD
-            variant="ghost"
-            size="sm"
-            onClick={() => window.location.assign('/customer')}
-            className="text-neutral-600 hover:text-neutral-900"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Dashboard
-          </Button>
+        {/* Breadcrumbs */}
+        <div className="mb-6">
+          <Breadcrumbs
+            items={[
+              { label: 'Dashboard', path: '/customer' },
+              { label: 'Order History', path: '/customer/orders' },
+              { label: 'Quote History', path: '/customer/quotes' },
+              { label: 'Ticket History', path: '/customer/tickets' },
+              { label: 'Chat History', isActive: true },
+            ]}
+          />
         </div>
 
         {/* Page Title */}
@@ -178,7 +187,9 @@ const ChatHistory: React.FC = () => {
               <span className="font-semibold text-neutral-900">
                 {allFilteredConversations.length}
               </span>{' '}
-              {allFilteredConversations.length === 1 ? 'conversation' : 'conversations'}
+              {allFilteredConversations.length === 1
+                ? 'conversation'
+                : 'conversations'}
             </div>
           )}
         </div>

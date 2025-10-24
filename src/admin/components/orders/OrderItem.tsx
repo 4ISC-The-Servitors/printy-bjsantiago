@@ -96,11 +96,15 @@ export const OrderItem: React.FC<OrderItemProps> = ({
       {/* Row 2: Customer Name | Amount */}
       <div className="flex items-center justify-between gap-2 sm:gap-3 md:gap-4 lg:gap-6 mb-2 sm:mb-3">
         <div className="flex-1 min-w-0">
-          <span className="device-text-caption font-medium text-neutral-700">{order.customer_name}</span>
+          <span className="device-text-caption font-medium text-neutral-700">
+            {order.customer_name}
+          </span>
         </div>
 
         <div className="text-right">
-          <div className="device-text-caption font-semibold text-neutral-900">{order.total_amount}</div>
+          <div className="device-text-caption font-semibold text-neutral-900">
+            {order.total_amount}
+          </div>
         </div>
       </div>
 

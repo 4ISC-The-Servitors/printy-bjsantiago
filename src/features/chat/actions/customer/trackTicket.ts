@@ -13,6 +13,7 @@ import type {
   ActionExecutionResult,
 } from '@features/chat/types';
 import { formatShortDate } from '@shared/utils/dateFormatter';
+import { getAllAdminIds } from '@features/chat/utils/admin/getAdminUserId';
 import { insertMessageV2 } from '@features/chat/api/jsonbChatFlowApi';
 
 /**
@@ -312,9 +313,9 @@ export async function sendCustomerReply(
     );
     const { data: updateData, error: statusError } = await supabase
       .from('inquiries_v2')
-      .update({ 
+      .update({
         inquiry_status: 'pending_admin_reply',
-        updated_by: params.customerId // Track that customer replied to ticket
+        updated_by: params.customerId, // Track that customer replied to ticket
       })
       .eq('inquiry_id', inquiryId)
       .select('inquiry_id, inquiry_status');
@@ -333,6 +334,81 @@ export async function sendCustomerReply(
           '[sendCustomerReply] No rows were updated - inquiry_id might not exist or no permission'
         );
       }
+    }
+
+    // Create notifications for admins about customer reply
+    console.log(
+      '[sendCustomerReply] Starting notification creation process...'
+    );
+    try {
+      // Get customer name for the notification
+      const { data: customerData } = await supabase
+        .from('customer')
+        .select('first_name, last_name')
+        .eq('customer_id', params.customerId)
+        .single();
+
+      const customerName = customerData
+        ? `${customerData.first_name || ''} ${customerData.last_name || ''}`.trim() ||
+          'Customer'
+        : 'Customer';
+
+      console.log('[sendCustomerReply] Got customer name:', customerName);
+
+      // Get ticket display_id for notification
+      const { data: ticketData } = await supabase
+        .from('inquiries_v2')
+        .select('display_id')
+        .eq('inquiry_id', inquiryId)
+        .single();
+
+      const ticketDisplayId =
+        ticketData?.display_id || inquiryId?.substring(0, 8);
+
+      // Get all admin users
+      const adminIds = await getAllAdminIds();
+      console.log('[sendCustomerReply] Got admin IDs:', adminIds);
+
+      if (adminIds.length > 0) {
+        // Create notification for each admin
+        const notifications = adminIds.map(adminId => ({
+          customer_id: adminId,
+          source_type: 'ticket',
+          source_id: inquiryId,
+          title: 'Customer Reply',
+          message: `Customer ${customerName} replied to support ticket #${ticketDisplayId}.`,
+          type: 'info',
+          category: 'ticket',
+        }));
+
+        console.log(
+          '[sendCustomerReply] Creating admin notifications:',
+          notifications
+        );
+
+        const { error: notifError } = await supabase
+          .from('notifications')
+          .insert(notifications);
+
+        if (notifError) {
+          console.error(
+            '[sendCustomerReply] Error creating admin notifications:',
+            notifError
+          );
+        } else {
+          console.log(
+            '[sendCustomerReply] Created notifications for',
+            adminIds.length,
+            'admins'
+          );
+        }
+      }
+    } catch (notifErr) {
+      console.error(
+        '[sendCustomerReply] Error in notification creation:',
+        notifErr
+      );
+      // Don't fail the whole action if notifications fail
     }
 
     messages.push({
@@ -445,6 +521,79 @@ export async function resolveTicket(
         ended_at: new Date().toISOString(),
       })
       .eq('session_id', originalSessionId);
+
+    // Create notifications for admins about ticket resolution
+    console.log('[resolveTicket] Starting notification creation process...');
+    try {
+      // Get customer name for the notification
+      const { data: customerData } = await supabase
+        .from('customer')
+        .select('first_name, last_name')
+        .eq('customer_id', params.customerId)
+        .single();
+
+      const customerName = customerData
+        ? `${customerData.first_name || ''} ${customerData.last_name || ''}`.trim() ||
+          'Customer'
+        : 'Customer';
+
+      console.log('[resolveTicket] Got customer name:', customerName);
+
+      // Get ticket display_id for notification
+      const { data: ticketData } = await supabase
+        .from('inquiries_v2')
+        .select('display_id')
+        .eq('inquiry_id', inquiryId)
+        .single();
+
+      const ticketDisplayId =
+        ticketData?.display_id || inquiryId?.substring(0, 8);
+
+      // Get all admin users
+      const adminIds = await getAllAdminIds();
+      console.log('[resolveTicket] Got admin IDs:', adminIds);
+
+      if (adminIds.length > 0) {
+        // Create notification for each admin
+        const notifications = adminIds.map(adminId => ({
+          customer_id: adminId,
+          source_type: 'ticket',
+          source_id: inquiryId,
+          title: 'Ticket Resolved',
+          message: `Support ticket #${ticketDisplayId} was marked as resolved by ${customerName}.`,
+          type: 'success',
+          category: 'ticket',
+        }));
+
+        console.log(
+          '[resolveTicket] Creating admin notifications:',
+          notifications
+        );
+
+        const { error: notifError } = await supabase
+          .from('notifications')
+          .insert(notifications);
+
+        if (notifError) {
+          console.error(
+            '[resolveTicket] Error creating admin notifications:',
+            notifError
+          );
+        } else {
+          console.log(
+            '[resolveTicket] Created notifications for',
+            adminIds.length,
+            'admins'
+          );
+        }
+      }
+    } catch (notifErr) {
+      console.error(
+        '[resolveTicket] Error in notification creation:',
+        notifErr
+      );
+      // Don't fail the whole action if notifications fail
+    }
 
     messages.push({
       id: crypto.randomUUID(),

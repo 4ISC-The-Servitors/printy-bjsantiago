@@ -65,12 +65,10 @@ export const displayAcceptedSpecs: ActionHandler = async ({
         spec_final,
         quoted_price,
         notes,
-        status,
         created_at
       `
       )
       .eq('proposal_id', order.proposal_id)
-      .eq('status', 'accepted')
       .single();
 
     if (proposalError || !proposal) {

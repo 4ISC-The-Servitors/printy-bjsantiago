@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import {LogOut, Bot, X, User } from 'lucide-react';
+import { LogOut, Bot, X, User } from 'lucide-react';
 import { Button, Text } from '@shared/components';
 import RecentChats from './RecentChats';
 import ViewAllChat from './ViewAllChat';

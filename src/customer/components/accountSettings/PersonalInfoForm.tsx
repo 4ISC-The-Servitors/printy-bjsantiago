@@ -313,7 +313,11 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = ({
       >
         <Card className="p-0">
           <div className="flex items-center justify-between p-6 pb-4">
-            <Text variant="h3" className="device-text-heading" weight="semibold">
+            <Text
+              variant="h3"
+              className="device-text-heading"
+              weight="semibold"
+            >
               Confirm Save
             </Text>
           </div>

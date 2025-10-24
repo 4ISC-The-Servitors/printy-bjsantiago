@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Text, Button, Input } from '@shared/components';
+import { Text, Button, Input, Breadcrumbs } from '@shared/components';
+import type { BreadcrumbItem } from '@shared/components';
 
 interface FilterOption {
   label: string;
@@ -28,6 +29,7 @@ interface HistoryPageTemplateProps {
   showBackButton?: boolean;
   backButtonPath?: string;
   headerActions?: React.ReactNode; // Additional header actions
+  breadcrumbs?: BreadcrumbItem[]; // Breadcrumb navigation items
 }
 
 /**
@@ -81,6 +83,7 @@ const HistoryPageTemplate: React.FC<HistoryPageTemplateProps> = ({
   showBackButton = true,
   backButtonPath = '/customer',
   headerActions,
+  breadcrumbs,
 }) => {
   const navigate = useNavigate();
 
@@ -94,6 +97,13 @@ const HistoryPageTemplate: React.FC<HistoryPageTemplateProps> = ({
 
   return (
     <div className="w-full">
+      {/* Breadcrumbs */}
+      {breadcrumbs && breadcrumbs.length > 0 && (
+        <div className="mb-4">
+          <Breadcrumbs items={breadcrumbs} />
+        </div>
+      )}
+
       {/* Header */}
       <div className="mb-6">
         {showBackButton && (

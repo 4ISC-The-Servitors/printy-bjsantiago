@@ -51,8 +51,10 @@ const Step1Account: React.FC<Props> = ({
   ];
 
   // Password confirmation validation
-  const isPasswordMatch = password && confirmPassword && password === confirmPassword;
-  const isPasswordMismatch = password && confirmPassword && password !== confirmPassword;
+  const isPasswordMatch =
+    password && confirmPassword && password === confirmPassword;
+  const isPasswordMismatch =
+    password && confirmPassword && password !== confirmPassword;
   return (
     <div className="space-y-6">
       <div className="space-y-2">
@@ -98,7 +100,7 @@ const Step1Account: React.FC<Props> = ({
             </button>
           </div>
         </Input>
-        
+
         {/* Password Requirements */}
         {password && (
           <div className="mt-2 space-y-1">
@@ -110,9 +112,7 @@ const Step1Account: React.FC<Props> = ({
                 <div key={index} className="flex items-center gap-2">
                   <div
                     className={`w-4 h-4 rounded-full flex items-center justify-center ${
-                      requirement.isValid
-                        ? 'bg-green-500'
-                        : 'bg-neutral-300'
+                      requirement.isValid ? 'bg-green-500' : 'bg-neutral-300'
                     }`}
                   >
                     {requirement.isValid && (
@@ -158,8 +158,8 @@ const Step1Account: React.FC<Props> = ({
             isPasswordMatch
               ? 'border-green-500 focus:border-green-500 focus:ring-green-500'
               : isPasswordMismatch
-              ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
-              : ''
+                ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                : ''
           }`}
           wrapperClassName="relative"
         >
@@ -179,7 +179,7 @@ const Step1Account: React.FC<Props> = ({
               )}
             </button>
           </div>
-          
+
           {/* Password Match Indicator */}
           {confirmPassword && (
             <div className="absolute right-10 top-1/2 -translate-y-1/2">
@@ -215,12 +215,15 @@ const Step1Account: React.FC<Props> = ({
             </div>
           )}
         </Input>
-        
+
         {/* Password Match Status Text */}
         {confirmPassword && (
           <div className="mt-1">
             {isPasswordMatch ? (
-              <Text variant="span" className="text-sm text-green-700 flex items-center gap-1">
+              <Text
+                variant="span"
+                className="text-sm text-green-700 flex items-center gap-1"
+              >
                 <svg
                   className="w-3 h-3"
                   fill="currentColor"
@@ -235,7 +238,10 @@ const Step1Account: React.FC<Props> = ({
                 Passwords match
               </Text>
             ) : isPasswordMismatch ? (
-              <Text variant="span" className="text-sm text-red-700 flex items-center gap-1">
+              <Text
+                variant="span"
+                className="text-sm text-red-700 flex items-center gap-1"
+              >
                 <svg
                   className="w-3 h-3"
                   fill="currentColor"

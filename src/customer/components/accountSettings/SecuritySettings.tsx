@@ -23,7 +23,11 @@ const SecuritySettings: React.FC<SecuritySettingsProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [, toast] = useToast();
-  const { lastPasswordChange, isLoading: isLoadingPasswordDate, error: passwordDateError } = usePasswordChangeDate();
+  const {
+    lastPasswordChange,
+    isLoading: isLoadingPasswordDate,
+    error: passwordDateError,
+  } = usePasswordChangeDate();
 
   const toggle = (k: 'current' | 'next' | 'confirm') =>
     setShow(p => ({ ...p, [k]: !p[k] }));
@@ -31,11 +35,11 @@ const SecuritySettings: React.FC<SecuritySettingsProps> = ({
   // Format password change date
   const formatPasswordChangeDate = (date: Date | null): string => {
     if (!date) return 'Never';
-    
+
     const now = new Date();
     const diffInMs = now.getTime() - date.getTime();
     const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-    
+
     if (diffInDays === 0) return 'Today';
     if (diffInDays === 1) return 'Yesterday';
     if (diffInDays < 7) return `${diffInDays} days ago`;
@@ -113,7 +117,7 @@ const SecuritySettings: React.FC<SecuritySettingsProps> = ({
 
       // Update password using Supabase Auth
       const { error: updateError } = await supabase.auth.updateUser({
-        password: pw.next
+        password: pw.next,
       });
 
       if (updateError) {
@@ -132,7 +136,6 @@ const SecuritySettings: React.FC<SecuritySettingsProps> = ({
       setPw({ current: '', next: '', confirm: '' });
       setShow({ current: false, next: false, confirm: false });
       onPasswordUpdated?.();
-
     } catch (err) {
       setError('An unexpected error occurred. Please try again.');
       console.error('Password update error:', err);
@@ -162,12 +165,11 @@ const SecuritySettings: React.FC<SecuritySettingsProps> = ({
               Password
             </Text>
             <Text variant="p" className="device-text-caption text-neutral-600">
-              {isLoadingPasswordDate 
-                ? 'Loading...' 
-                : passwordDateError 
+              {isLoadingPasswordDate
+                ? 'Loading...'
+                : passwordDateError
                   ? 'Unable to load password history'
-                  : `Last changed ${formatPasswordChangeDate(lastPasswordChange)}`
-              }
+                  : `Last changed ${formatPasswordChangeDate(lastPasswordChange)}`}
             </Text>
           </div>
           {!isChanging && (
@@ -242,11 +244,14 @@ const SecuritySettings: React.FC<SecuritySettingsProps> = ({
                   )}
                 </Button>
               </div>
-              
+
               {/* Password Requirements */}
               {pw.next && (
                 <div className="mt-2 space-y-1">
-                  <Text variant="span" className="device-text-caption text-neutral-600">
+                  <Text
+                    variant="span"
+                    className="device-text-caption text-neutral-600"
+                  >
                     Password requirements:
                   </Text>
                   <div className="space-y-1">
@@ -305,8 +310,8 @@ const SecuritySettings: React.FC<SecuritySettingsProps> = ({
                     isPasswordMatch
                       ? 'border-green-500 focus:border-green-500 focus:ring-green-500'
                       : isPasswordMismatch
-                      ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
-                      : ''
+                        ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                        : ''
                   }
                 />
                 <Button
@@ -322,7 +327,7 @@ const SecuritySettings: React.FC<SecuritySettingsProps> = ({
                     <Eye className="h-4 w-4" />
                   )}
                 </Button>
-                
+
                 {/* Password Match Indicator */}
                 {pw.confirm && (
                   <div className="absolute right-10 top-1/2 -translate-y-1/2">
@@ -358,12 +363,15 @@ const SecuritySettings: React.FC<SecuritySettingsProps> = ({
                   </div>
                 )}
               </div>
-              
+
               {/* Password Match Status Text */}
               {pw.confirm && (
                 <div className="mt-1">
                   {isPasswordMatch ? (
-                    <Text variant="span" className="text-sm text-green-700 flex items-center gap-1">
+                    <Text
+                      variant="span"
+                      className="text-sm text-green-700 flex items-center gap-1"
+                    >
                       <svg
                         className="w-3 h-3"
                         fill="currentColor"
@@ -378,7 +386,10 @@ const SecuritySettings: React.FC<SecuritySettingsProps> = ({
                       Passwords match
                     </Text>
                   ) : isPasswordMismatch ? (
-                    <Text variant="span" className="text-sm text-red-700 flex items-center gap-1">
+                    <Text
+                      variant="span"
+                      className="text-sm text-red-700 flex items-center gap-1"
+                    >
                       <svg
                         className="w-3 h-3"
                         fill="currentColor"
@@ -401,8 +412,8 @@ const SecuritySettings: React.FC<SecuritySettingsProps> = ({
               <Button variant="ghost" onClick={resetForm} disabled={isLoading}>
                 Cancel
               </Button>
-              <Button 
-                threeD 
+              <Button
+                threeD
                 onClick={() => setConfirmOpen(true)}
                 disabled={isLoading || !pw.current || !pw.next || !pw.confirm}
               >
@@ -429,18 +440,14 @@ const SecuritySettings: React.FC<SecuritySettingsProps> = ({
             </Text>
           </div>
           <div className="flex items-center justify-end gap-3 p-6 pt-4">
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               onClick={() => setConfirmOpen(false)}
               disabled={isLoading}
             >
               Cancel
             </Button>
-            <Button
-              threeD
-              onClick={handlePasswordUpdate}
-              disabled={isLoading}
-            >
+            <Button threeD onClick={handlePasswordUpdate} disabled={isLoading}>
               {isLoading ? 'Updating...' : 'Confirm'}
             </Button>
           </div>

@@ -12,7 +12,9 @@ interface PasswordChangeDateResult {
  * Hook to fetch the last password change date from Supabase audit logs for admin users
  */
 export const usePasswordChangeDate = (): PasswordChangeDateResult => {
-  const [lastPasswordChange, setLastPasswordChange] = useState<Date | null>(null);
+  const [lastPasswordChange, setLastPasswordChange] = useState<Date | null>(
+    null
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
@@ -30,7 +32,10 @@ export const usePasswordChangeDate = (): PasswordChangeDateResult => {
 
         // Since audit logs are not accessible via PostgREST, use the current user's data
         // from the auth session which includes updated_at timestamp
-        const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser();
+        const {
+          data: { user: currentUser },
+          error: userError,
+        } = await supabase.auth.getUser();
 
         if (userError) {
           console.error('Error fetching current user:', userError);

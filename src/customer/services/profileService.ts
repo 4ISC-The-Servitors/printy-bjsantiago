@@ -104,7 +104,8 @@ export class ProfileService {
           // Use Supabase nested selects to traverse relations from location
           const { data: joined, error: joinedError } = await supabase
             .from('location')
-            .select(`
+            .select(
+              `
               zip_code,
               building!inner (
                 bldg_name,
@@ -127,7 +128,8 @@ export class ProfileService {
                   )
                 )
               )
-            `)
+            `
+            )
             .eq('location_id', customerData.location_id)
             .maybeSingle();
 
@@ -201,12 +203,17 @@ export class ProfileService {
     try {
       // Update basic customer information
       const customerUpdates: any = {};
-      if (updates.first_name !== undefined) customerUpdates.first_name = updates.first_name;
-      if (updates.last_name !== undefined) customerUpdates.last_name = updates.last_name;
-      if (updates.contact_no !== undefined) customerUpdates.contact_no = updates.contact_no;
-      if (updates.email_address !== undefined) customerUpdates.email_address = updates.email_address;
+      if (updates.first_name !== undefined)
+        customerUpdates.first_name = updates.first_name;
+      if (updates.last_name !== undefined)
+        customerUpdates.last_name = updates.last_name;
+      if (updates.contact_no !== undefined)
+        customerUpdates.contact_no = updates.contact_no;
+      if (updates.email_address !== undefined)
+        customerUpdates.email_address = updates.email_address;
       if (updates.gender !== undefined) customerUpdates.gender = updates.gender;
-      if (updates.birthday !== undefined) customerUpdates.birthday = updates.birthday;
+      if (updates.birthday !== undefined)
+        customerUpdates.birthday = updates.birthday;
 
       if (Object.keys(customerUpdates).length > 0) {
         const { error: customerError } = await supabase
@@ -237,7 +244,8 @@ export class ProfileService {
         if (customerData?.location_id) {
           // Update location table with zip_code only (building details are in building table)
           const locationUpdates: any = {};
-          if (updates.address.zip_code !== undefined) locationUpdates.zip_code = updates.address.zip_code;
+          if (updates.address.zip_code !== undefined)
+            locationUpdates.zip_code = updates.address.zip_code;
 
           if (Object.keys(locationUpdates).length > 0) {
             const { error: locationError } = await supabase
@@ -262,7 +270,8 @@ export class ProfileService {
 
             if (!locationError && locationData?.bldg_id) {
               const buildingUpdates: any = {};
-              if (updates.address.building_name !== undefined) buildingUpdates.bldg_name = updates.address.building_name;
+              if (updates.address.building_name !== undefined)
+                buildingUpdates.bldg_name = updates.address.building_name;
 
               if (Object.keys(buildingUpdates).length > 0) {
                 const { error: buildingError } = await supabase
@@ -288,11 +297,12 @@ export class ProfileService {
               .single();
 
             if (!locationError && locationData?.bldg_id) {
-              const { data: buildingData, error: buildingError } = await supabase
-                .from('building')
-                .select('street_id')
-                .eq('bldg_id', locationData.bldg_id)
-                .single();
+              const { data: buildingData, error: buildingError } =
+                await supabase
+                  .from('building')
+                  .select('street_id')
+                  .eq('bldg_id', locationData.bldg_id)
+                  .single();
 
               if (!buildingError && buildingData?.street_id) {
                 // Update street name
@@ -319,11 +329,12 @@ export class ProfileService {
               .single();
 
             if (!locationError && locationData?.bldg_id) {
-              const { data: buildingData, error: buildingError } = await supabase
-                .from('building')
-                .select('street_id')
-                .eq('bldg_id', locationData.bldg_id)
-                .single();
+              const { data: buildingData, error: buildingError } =
+                await supabase
+                  .from('building')
+                  .select('street_id')
+                  .eq('bldg_id', locationData.bldg_id)
+                  .single();
 
               if (!buildingError && buildingData?.street_id) {
                 const { data: streetData, error: streetError } = await supabase
@@ -380,4 +391,3 @@ export class ProfileService {
     return `${first} ${last}`.trim();
   }
 }
-

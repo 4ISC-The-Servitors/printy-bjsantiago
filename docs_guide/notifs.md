@@ -115,15 +115,15 @@ This phase will be implemented AFTER in-app notifications are tested and working
 
 ## Key Notification Logic Rules
 
-| Event | Who Changed It | Who Gets Notified | Example Message |
-|-------|---------------|-------------------|-----------------|
-| Order created | Customer | Admin only | "New order #ORD-XXX from [Customer Name]" |
-| Payment uploaded | Customer | Admin only | "Payment proof uploaded for order #ORD-XXX" |
-| Payment verified | Admin | Customer only | "Your payment for order #ORD-XXX has been verified" |
-| Payment denied | Admin | Customer only | "Payment proof denied for order #ORD-XXX. Reason: [reason]" |
-| Order status changed | Admin | Customer only | "Order #ORD-XXX status: [new status]" |
-| Ticket created | Customer | Admin only | "New support ticket #TCK-XXX from [Customer Name]" |
-| Ticket status changed | Admin | Customer only | "Your ticket #TCK-XXX status: [new status]" |
+| Event                 | Who Changed It | Who Gets Notified | Example Message                                             |
+| --------------------- | -------------- | ----------------- | ----------------------------------------------------------- |
+| Order created         | Customer       | Admin only        | "New order #ORD-XXX from [Customer Name]"                   |
+| Payment uploaded      | Customer       | Admin only        | "Payment proof uploaded for order #ORD-XXX"                 |
+| Payment verified      | Admin          | Customer only     | "Your payment for order #ORD-XXX has been verified"         |
+| Payment denied        | Admin          | Customer only     | "Payment proof denied for order #ORD-XXX. Reason: [reason]" |
+| Order status changed  | Admin          | Customer only     | "Order #ORD-XXX status: [new status]"                       |
+| Ticket created        | Customer       | Admin only        | "New support ticket #TCK-XXX from [Customer Name]"          |
+| Ticket status changed | Admin          | Customer only     | "Your ticket #TCK-XXX status: [new status]"                 |
 
 ## Notes
 

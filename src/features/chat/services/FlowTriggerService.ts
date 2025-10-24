@@ -72,12 +72,18 @@ export class FlowTriggerService {
       console.log('✅ Quote is accepted - using admin-create-order flow');
 
       // Get the accepted proposal for context
-      const { data: proposalData } = await supabase
+      const { data: proposalData, error: proposalError } = await supabase
         .from('quote_proposals')
         .select('proposal_id')
         .eq('session_id', sessionId)
-        .eq('status', 'accepted')
+        .order('created_at', { ascending: false })
+        .limit(1)
         .single();
+
+      if (proposalError) {
+        console.error('⚠️ Error fetching accepted proposal:', proposalError);
+        return null;
+      }
 
       const context: Record<string, any> = {
         quote_id: quoteData.quote_id,
@@ -87,6 +93,9 @@ export class FlowTriggerService {
       if (proposalData) {
         console.log('📋 Found accepted proposal:', proposalData.proposal_id);
         context.proposal_id = proposalData.proposal_id;
+      } else {
+        console.error('⚠️ No accepted proposal found for session:', sessionId);
+        return null;
       }
 
       return {

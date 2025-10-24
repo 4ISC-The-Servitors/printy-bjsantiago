@@ -21,7 +21,7 @@ import type {
 } from '@features/chat/types';
 
 export async function showQuoteDecisionPrompt(
-  params: ActionExecutionParams
+  _params: ActionExecutionParams
 ): Promise<ActionExecutionResult> {
   const messages: Array<{
     id: string;
@@ -38,7 +38,9 @@ export async function showQuoteDecisionPrompt(
     ts: Date.now(),
   });
 
-  console.log('[showQuoteDecisionPrompt] Returning warning message and options');
+  console.log(
+    '[showQuoteDecisionPrompt] Returning warning message and options'
+  );
 
   // Return with quick reply options
   return {

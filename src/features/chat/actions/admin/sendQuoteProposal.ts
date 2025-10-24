@@ -53,6 +53,7 @@
  * - Customer can view proposal in their quote details flow
  */
 
+import { getAdminUserId } from '@features/chat/utils/admin/getAdminUserId';
 import { supabase } from '@lib/supabase';
 import type {
   ActionExecutionParams,
@@ -176,7 +177,7 @@ export async function sendQuoteProposal(
       status: 'spec_proposed',
       proposal_id: proposalData?.proposal_id, // Link quote to this proposal
       updated_at: new Date().toISOString(),
-      updated_by: context['admin_user_id'], // Track that admin sent quote proposal
+      updated_by: await getAdminUserId(), // Track that admin sent quote proposal
     })
     .eq('session_id', conversationId);
 

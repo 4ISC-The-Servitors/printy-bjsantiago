@@ -1,7 +1,6 @@
 import React from 'react';
 import { MessageSquare, Settings, LogOut, Bot } from 'lucide-react';
 import { Button, Tooltip } from '@admin/components/shared';
-import Notification from '@shared/components/feedback/Notification';
 
 export interface SidebarPanelProps {
   onViewAllChats?: () => void;

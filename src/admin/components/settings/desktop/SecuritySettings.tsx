@@ -15,7 +15,11 @@ const SecuritySettings: React.FC<SecuritySettingsProps> = ({
   });
   const [pw, setPw] = useState({ current: '', next: '', confirm: '' });
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const { lastPasswordChange, isLoading: isLoadingPasswordDate, error: passwordDateError } = usePasswordChangeDate();
+  const {
+    lastPasswordChange,
+    isLoading: isLoadingPasswordDate,
+    error: passwordDateError,
+  } = usePasswordChangeDate();
 
   const toggle = (k: 'current' | 'next' | 'confirm') =>
     setShow(p => ({ ...p, [k]: !p[k] }));
@@ -23,11 +27,11 @@ const SecuritySettings: React.FC<SecuritySettingsProps> = ({
   // Format password change date
   const formatPasswordChangeDate = (date: Date | null): string => {
     if (!date) return 'Never';
-    
+
     const now = new Date();
     const diffInMs = now.getTime() - date.getTime();
     const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-    
+
     if (diffInDays === 0) return 'Today';
     if (diffInDays === 1) return 'Yesterday';
     if (diffInDays < 7) return `${diffInDays} days ago`;
@@ -52,12 +56,11 @@ const SecuritySettings: React.FC<SecuritySettingsProps> = ({
               Admin Password
             </Text>
             <Text variant="p" className="text-neutral-600">
-              {isLoadingPasswordDate 
-                ? 'Loading...' 
-                : passwordDateError 
+              {isLoadingPasswordDate
+                ? 'Loading...'
+                : passwordDateError
                   ? 'Unable to load password history'
-                  : `Last changed ${formatPasswordChangeDate(lastPasswordChange)}`
-              }
+                  : `Last changed ${formatPasswordChangeDate(lastPasswordChange)}`}
             </Text>
           </div>
           {!isChanging && (

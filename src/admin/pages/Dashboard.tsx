@@ -91,7 +91,12 @@ const AdminDashboard: React.FC = () => {
 
       <Card className="p-6">
         <div className="flex justify-between items-center mb-4">
-          <Text variant="h2" size="xl" weight="semibold" className="text-neutral-900">
+          <Text
+            variant="h2"
+            size="xl"
+            weight="semibold"
+            className="text-neutral-900"
+          >
             Notifications
           </Text>
           {unreadCount > 0 && (
@@ -106,11 +111,15 @@ const AdminDashboard: React.FC = () => {
 
         {isLoading ? (
           <div className="text-center py-8">
-            <Text variant="p" color="muted">Loading notifications...</Text>
+            <Text variant="p" color="muted">
+              Loading notifications...
+            </Text>
           </div>
         ) : notifications.length === 0 ? (
           <div className="text-center py-8">
-            <Text variant="p" color="muted">No notifications</Text>
+            <Text variant="p" color="muted">
+              No notifications
+            </Text>
           </div>
         ) : (
           <div className="space-y-3 max-h-96 overflow-y-auto">
@@ -125,7 +134,12 @@ const AdminDashboard: React.FC = () => {
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <Text variant="p" size="base" weight="medium" className="text-gray-900">
+                      <Text
+                        variant="p"
+                        size="base"
+                        weight="medium"
+                        className="text-gray-900"
+                      >
                         {notification.title}
                       </Text>
                       {!notification.isRead && (

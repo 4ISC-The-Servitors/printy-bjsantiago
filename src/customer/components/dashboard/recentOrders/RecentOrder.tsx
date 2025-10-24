@@ -15,7 +15,7 @@ interface RecentOrderProps {
 
 const RecentOrder: React.FC<RecentOrderProps> = ({ recentOrder }) => {
   const navigate = useNavigate();
-  
+
   // Handle null/undefined status
   if (!recentOrder || !recentOrder.status) {
     return (

@@ -59,6 +59,7 @@ import type {
   ActionExecutionParams,
   ActionExecutionResult,
 } from '@features/chat/types';
+import { getAllAdminIds } from '@features/chat/utils/admin/getAdminUserId';
 
 export async function reuploadPaymentProof(
   params: ActionExecutionParams
@@ -129,6 +130,71 @@ export async function reuploadPaymentProof(
 
       if (updateError) {
         throw new Error(`Failed to update order: ${updateError.message}`);
+      }
+
+      // Create notifications for admins about payment proof reupload
+      console.log(
+        '[reuploadPaymentProof] Starting notification creation process...'
+      );
+      try {
+        // Get customer name for the notification
+        const { data: customerData } = await supabase
+          .from('customer')
+          .select('first_name, last_name')
+          .eq('customer_id', customerId)
+          .single();
+
+        const customerName = customerData
+          ? `${customerData.first_name || ''} ${customerData.last_name || ''}`.trim() ||
+            'Customer'
+          : 'Customer';
+
+        console.log('[reuploadPaymentProof] Got customer name:', customerName);
+
+        // Get all admin users
+        const adminIds = await getAllAdminIds();
+        console.log('[reuploadPaymentProof] Got admin IDs:', adminIds);
+
+        if (adminIds.length > 0) {
+          // Create notification for each admin
+          const notifications = adminIds.map(adminId => ({
+            customer_id: adminId,
+            source_type: 'order',
+            source_id: orderId,
+            title: 'Payment Proof Reuploaded',
+            message: `Customer ${customerName} reuploaded payment proof for order #${order.display_id}.`,
+            type: 'info',
+            category: 'order',
+          }));
+
+          console.log(
+            '[reuploadPaymentProof] Creating admin notifications:',
+            notifications
+          );
+
+          const { error: notifError } = await supabase
+            .from('notifications')
+            .insert(notifications);
+
+          if (notifError) {
+            console.error(
+              '[reuploadPaymentProof] Error creating admin notifications:',
+              notifError
+            );
+          } else {
+            console.log(
+              '[reuploadPaymentProof] Created notifications for',
+              adminIds.length,
+              'admins'
+            );
+          }
+        }
+      } catch (notifErr) {
+        console.error(
+          '[reuploadPaymentProof] Error in notification creation:',
+          notifErr
+        );
+        // Don't fail the whole action if notifications fail
       }
 
       // Success - no messages, let the flow handle messaging

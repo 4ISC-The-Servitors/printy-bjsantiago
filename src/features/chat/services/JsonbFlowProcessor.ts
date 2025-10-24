@@ -479,7 +479,10 @@ export class JsonbFlowProcessor {
         }
       }
     } catch (qrError) {
-      console.error('[startFlow] Error processing action quickReplies:', qrError);
+      console.error(
+        '[startFlow] Error processing action quickReplies:',
+        qrError
+      );
       // Fall back to node-based quick replies if error occurs
     }
 
@@ -588,11 +591,17 @@ export class JsonbFlowProcessor {
     const currentContext = stateManager.getContext();
     console.log('[ProcessInput] Full context:', currentContext);
     const pendingQuickReplies = currentContext._pending_quick_replies;
-    console.log('[ProcessInput] Pending quick replies from context:', pendingQuickReplies);
+    console.log(
+      '[ProcessInput] Pending quick replies from context:',
+      pendingQuickReplies
+    );
     let optionMatched = false;
 
     if (pendingQuickReplies && Array.isArray(pendingQuickReplies)) {
-      console.log('[ProcessInput] Checking pending quick replies:', pendingQuickReplies);
+      console.log(
+        '[ProcessInput] Checking pending quick replies:',
+        pendingQuickReplies
+      );
       console.log('[ProcessInput] User input:', userInput);
 
       const selectedQuickReply = pendingQuickReplies.find((qr: any) => {

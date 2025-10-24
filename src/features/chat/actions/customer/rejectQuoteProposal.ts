@@ -165,7 +165,7 @@ export async function rejectQuoteProposal(
 
       if (admins && admins.length > 0) {
         // Create notification for each admin
-        const notifications = admins.map((admin) => ({
+        const notifications = admins.map((admin: { customer_id: string }) => ({
           customer_id: admin.customer_id,
           source_type: 'quote',
           source_id: quoteData?.[0]?.quote_id,
@@ -175,7 +175,10 @@ export async function rejectQuoteProposal(
           category: 'quote',
         }));
 
-        console.log('[RejectQuote] Attempting to insert notifications:', notifications);
+        console.log(
+          '[RejectQuote] Attempting to insert notifications:',
+          notifications
+        );
 
         const { data: insertedNotifs, error: notifError } = await supabase
           .from('notifications')

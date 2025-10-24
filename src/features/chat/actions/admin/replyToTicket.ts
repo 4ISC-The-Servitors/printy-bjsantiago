@@ -4,6 +4,7 @@
  * Handler for admin responding to customer support tickets
  */
 
+import { getAdminUserId } from '@features/chat/utils/admin/getAdminUserId';
 import { supabase } from '@lib/supabase';
 import type {
   ActionExecutionParams,
@@ -76,9 +77,9 @@ export async function sendAdminReply(
     );
     const { data: updateData, error: statusError } = await supabase
       .from('inquiries_v2')
-      .update({ 
+      .update({
         inquiry_status: 'pending_customer_reply',
-        updated_by: context['admin_user_id'] // Track that admin replied to ticket
+        updated_by: await getAdminUserId(), // Track that admin replied to ticket
       })
       .eq('inquiry_id', inquiryId)
       .select('inquiry_id, inquiry_status');

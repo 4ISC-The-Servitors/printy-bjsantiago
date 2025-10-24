@@ -1,5 +1,6 @@
 import { supabase } from '@lib/supabase';
 import type { ActionHandler } from '@features/chat/types';
+import { getAllAdminIds } from '@features/chat/utils/admin/getAdminUserId';
 
 export const processPaymentProofUpload: ActionHandler = async ({
   customerId,
@@ -91,6 +92,74 @@ export const processPaymentProofUpload: ActionHandler = async ({
         ts: Date.now(),
       });
       return { messages };
+    }
+
+    // Create notifications for admins about payment proof upload
+    console.log(
+      '[processPaymentProofUpload] Starting notification creation process...'
+    );
+    try {
+      // Get customer name for the notification
+      const { data: customerData } = await supabase
+        .from('customer')
+        .select('first_name, last_name')
+        .eq('customer_id', customerId)
+        .single();
+
+      const customerName = customerData
+        ? `${customerData.first_name || ''} ${customerData.last_name || ''}`.trim() ||
+          'Customer'
+        : 'Customer';
+
+      console.log(
+        '[processPaymentProofUpload] Got customer name:',
+        customerName
+      );
+
+      // Get all admin users
+      const adminIds = await getAllAdminIds();
+      console.log('[processPaymentProofUpload] Got admin IDs:', adminIds);
+
+      if (adminIds.length > 0) {
+        // Create notification for each admin
+        const notifications = adminIds.map(adminId => ({
+          customer_id: adminId,
+          source_type: 'order',
+          source_id: orderId,
+          title: 'Payment Proof Uploaded',
+          message: `Customer ${customerName} uploaded payment proof for order #${order.display_id}.`,
+          type: 'info',
+          category: 'order',
+        }));
+
+        console.log(
+          '[processPaymentProofUpload] Creating admin notifications:',
+          notifications
+        );
+
+        const { error: notifError } = await supabase
+          .from('notifications')
+          .insert(notifications);
+
+        if (notifError) {
+          console.error(
+            '[processPaymentProofUpload] Error creating admin notifications:',
+            notifError
+          );
+        } else {
+          console.log(
+            '[processPaymentProofUpload] Created notifications for',
+            adminIds.length,
+            'admins'
+          );
+        }
+      }
+    } catch (notifErr) {
+      console.error(
+        '[processPaymentProofUpload] Error in notification creation:',
+        notifErr
+      );
+      // Don't fail the whole action if notifications fail
     }
 
     // Don't add success message here - let the payment_uploaded node handle it

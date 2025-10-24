@@ -14,7 +14,7 @@ interface RecentQuotesProps {
 
 const RecentQuotes: React.FC<RecentQuotesProps> = ({ recentQuote }) => {
   const navigate = useNavigate();
-  
+
   // Handle null/undefined quote
   if (!recentQuote) {
     return (

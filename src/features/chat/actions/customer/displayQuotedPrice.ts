@@ -32,11 +32,6 @@ export async function displayQuotedPrice(
     text: string;
     ts: number;
   }> = [];
-  const quickReplies: Array<{
-    label: string;
-    value: string;
-    next: string;
-  }> = [];
 
   const config = actionNode.action_config as any;
   const conversationIdKey = config.conversation_id_key || 'conversation_id';

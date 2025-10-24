@@ -7,10 +7,10 @@ export function useNotificationVisibility() {
 
   const checkVisibility = () => {
     // Only show notification bell on dashboard pages
-    const isDashboardPage = 
-      location.pathname === '/customer' || 
+    const isDashboardPage =
+      location.pathname === '/customer' ||
       location.pathname.includes('/customer/dashboard');
-    
+
     // Hide notification bell when chat panels/docks are active
     const shouldHide =
       // Hide on non-dashboard pages

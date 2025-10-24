@@ -92,10 +92,7 @@ const RecentChats: React.FC<RecentChatsProps> = ({
                 <div className="font-semibold device-text-body truncate">
                   {c.title}
                 </div>
-                <Badge
-                  variant={getChatStatusBadgeVariant(c.status)}
-                  size="sm"
-                >
+                <Badge variant={getChatStatusBadgeVariant(c.status)} size="sm">
                   {formatChatStatus(c.status)}
                 </Badge>
               </div>
