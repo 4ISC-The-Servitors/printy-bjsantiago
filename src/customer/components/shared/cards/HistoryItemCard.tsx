@@ -192,6 +192,22 @@ const HistoryItemCard: React.FC<HistoryItemCardProps> = ({
             <span className="truncate">{metadata.completed}</span>
           </div>
         )}
+        {metadata?.accepted && (
+          <div
+            className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
+          >
+            <span className="font-medium">Accepted:</span>
+            <span className="truncate">{metadata.accepted}</span>
+          </div>
+        )}
+        {metadata?.rejected && (
+          <div
+            className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
+          >
+            <span className="font-medium">Rejected:</span>
+            <span className="truncate">{metadata.rejected}</span>
+          </div>
+        )}
       </div>
     </div>
   );

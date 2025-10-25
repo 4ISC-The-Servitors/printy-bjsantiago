@@ -11,6 +11,7 @@ import type {
   ActionExecutionResult,
 } from '@features/chat/types';
 import { formatShortDate } from '@shared/utils/dateFormatter';
+import { formatInquiryType } from '@shared/utils/statusFormatter';
 
 /**
  * Fetch ticket details for admin review
@@ -241,18 +242,6 @@ ${customerDescription}${orderInfo}`;
   }
 }
 
-/**
- * Helper function to format inquiry type
- */
-function formatInquiryType(type: string): string {
-  const typeMap: Record<string, string> = {
-    quality: 'Printing Quality Issue',
-    delivery: 'Delivery Problem',
-    billing: 'Billing Problem',
-    other: 'Other Concern',
-  };
-  return typeMap[type] || type;
-}
 
 /**
  * Helper function to format status for display

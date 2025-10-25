@@ -57,6 +57,11 @@ export const QuoteItem: React.FC<QuoteItemProps> = ({
     ? formatRelativeTimeLabel(lastActionDate)
     : formatOrderDateMobile(lastActionDate);
 
+  // For accepted/rejected dates, always use regular date format (not relative time)
+  const acceptedRejectedDateDesktop = formatOrderDateDesktop(quote.updated_at);
+  const acceptedRejectedDateTablet = formatOrderDateTablet(quote.updated_at);
+  const acceptedRejectedDateMobile = formatOrderDateMobile(quote.updated_at);
+
   return (
     <div
       className={`group ${layout.container}`}
@@ -98,14 +103,32 @@ export const QuoteItem: React.FC<QuoteItemProps> = ({
           <span className="hidden lg:inline">
             Created: {createdDateDesktop} • {lastActionLabel}:{' '}
             {lastActionDateDesktop}
+            {quote.status === 'accepted' && (
+              <> • Accepted: {acceptedRejectedDateDesktop}</>
+            )}
+            {quote.status === 'rejected' && (
+              <> • Rejected: {acceptedRejectedDateDesktop}</>
+            )}
           </span>
           <span className="hidden sm:inline lg:hidden">
             Created: {createdDateTablet} • {lastActionLabel}:{' '}
             {lastActionDateTablet}
+            {quote.status === 'accepted' && (
+              <> • Accepted: {acceptedRejectedDateTablet}</>
+            )}
+            {quote.status === 'rejected' && (
+              <> • Rejected: {acceptedRejectedDateTablet}</>
+            )}
           </span>
           <span className="sm:hidden">
             Created: {createdDateMobile} • {lastActionLabel}:{' '}
             {lastActionDateMobile}
+            {quote.status === 'accepted' && (
+              <> • Accepted: {acceptedRejectedDateMobile}</>
+            )}
+            {quote.status === 'rejected' && (
+              <> • Rejected: {acceptedRejectedDateMobile}</>
+            )}
           </span>
         </div>
 

@@ -128,6 +128,26 @@ const RecentQuotes: React.FC<RecentQuotesProps> = ({ recentQuote }) => {
               </span>
             </div>
           )}
+          {recentQuote.acceptedAt && (
+            <div
+              className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
+            >
+              <span className="font-medium">Accepted:</span>
+              <span className="truncate">
+                {formatShortDate(recentQuote.acceptedAt)}
+              </span>
+            </div>
+          )}
+          {recentQuote.rejectedAt && (
+            <div
+              className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
+            >
+              <span className="font-medium">Rejected:</span>
+              <span className="truncate">
+                {formatShortDate(recentQuote.rejectedAt)}
+              </span>
+            </div>
+          )}
         </div>
       </div>
     </Card>

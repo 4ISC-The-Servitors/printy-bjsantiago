@@ -7,6 +7,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { getCustomerInquiries } from '@features/chat/api/sessionQueries';
+import { formatInquiryType } from '@shared/utils/statusFormatter';
 import type { RecentTicket } from '@shared/types/customer';
 
 export type RecentTicketData = RecentTicket;
@@ -38,7 +39,7 @@ export function useRecentTicket() {
             displayId:
               latestInquiry.displayId ||
               latestInquiry.inquiry_id.slice(0, 8).toUpperCase(),
-            subject: latestInquiry.inquiryType || '(no subject)',
+            subject: formatInquiryType(latestInquiry.inquiryType || 'other'),
             status: latestInquiry.inquiryStatus || 'unknown',
             createdAt: receivedAt,
             updatedAt: latestInquiry.updatedAt || receivedAt,

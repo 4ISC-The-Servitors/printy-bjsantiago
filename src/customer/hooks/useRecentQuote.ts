@@ -28,6 +28,11 @@ export function useRecentQuote(customerId?: string) {
             quotedPrice = formatCurrency(Number(latestQuote.quoted_price));
           }
 
+          // Set acceptedAt or rejectedAt based on status
+          const updatedAt = latestQuote.updatedAt || latestQuote.createdAt;
+          const acceptedAt = latestQuote.status === 'accepted' ? updatedAt : undefined;
+          const rejectedAt = latestQuote.status === 'rejected' ? updatedAt : undefined;
+
           setRecentQuote({
             id: latestQuote.quote_id,
             displayId:
@@ -36,8 +41,10 @@ export function useRecentQuote(customerId?: string) {
             status: latestQuote.status as any, // Type casting due to v2 schema differences
             quotedPrice,
             createdAt: latestQuote.createdAt,
-            updatedAt: latestQuote.updatedAt || latestQuote.createdAt,
+            updatedAt: updatedAt,
             endedAt: latestQuote.endedAt,
+            acceptedAt: acceptedAt,
+            rejectedAt: rejectedAt,
           });
         } else {
           setRecentQuote(null);

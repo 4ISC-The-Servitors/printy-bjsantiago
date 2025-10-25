@@ -29,6 +29,8 @@ export interface RecentQuote {
   createdAt: number;
   updatedAt: number;
   endedAt?: number;
+  acceptedAt?: number;
+  rejectedAt?: number;
 }
 
 export interface RecentActivityProps {

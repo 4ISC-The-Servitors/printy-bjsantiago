@@ -34,6 +34,7 @@ import { useDashboardChatEvents } from '@features/chat/hooks/customer/useDashboa
 import { useRecentChatSessions } from '@features/chat/hooks/customer/useRecentChatSessions';
 import { useChatAttachments } from '@features/chat/hooks/shared/useChatAttachments';
 import { getSessionTitle } from '@features/chat/config/sessionTitleConfig';
+import { formatShortDate } from '@shared/utils/dateFormatter';
 import type { ConversationItem } from '@features/chat/hooks/shared/useConversationState';
 
 interface Quote {
@@ -47,6 +48,8 @@ interface Quote {
   description?: string;
   quoted_price?: number;
   endedAt?: number;
+  acceptedAt?: number;
+  rejectedAt?: number;
 }
 
 const QuoteHistory: React.FC = () => {
@@ -298,11 +301,16 @@ const QuoteHistory: React.FC = () => {
               }
             }
 
+            // Set acceptedAt or rejectedAt based on status
+            const updatedAt = new Date(quote.updated_at).getTime();
+            const acceptedAt = quote.status === 'accepted' ? updatedAt : undefined;
+            const rejectedAt = quote.status === 'rejected' ? updatedAt : undefined;
+
             return {
               id: quote.quote_id,
               title: subject,
               createdAt: new Date(quote.created_at).getTime(),
-              updatedAt: new Date(quote.updated_at).getTime(),
+              updatedAt: updatedAt,
               status: quote.status,
               displayId: quote.display_id || quote.quote_id,
               subject: subject,
@@ -311,6 +319,8 @@ const QuoteHistory: React.FC = () => {
               endedAt: quote.ended_at
                 ? new Date(quote.ended_at).getTime()
                 : undefined,
+              acceptedAt: acceptedAt,
+              rejectedAt: rejectedAt,
             };
           })
         );
@@ -363,7 +373,15 @@ const QuoteHistory: React.FC = () => {
     }
 
     if (quote.endedAt) {
-      metadata.ended = new Date(quote.endedAt).toLocaleDateString();
+      metadata.ended = formatShortDate(quote.endedAt);
+    }
+
+    if (quote.acceptedAt) {
+      metadata.accepted = formatShortDate(quote.acceptedAt);
+    }
+
+    if (quote.rejectedAt) {
+      metadata.rejected = formatShortDate(quote.rejectedAt);
     }
 
     return metadata;

@@ -74,3 +74,17 @@ export function formatChatStatus(status: string): string {
 
   return statusMap[status.toLowerCase()] || formatStatus(status);
 }
+
+/**
+ * Formats inquiry/ticket types for display
+ */
+export function formatInquiryType(type: string): string {
+  const typeMap: Record<string, string> = {
+    quality: 'Printing Quality Issue',
+    delivery: 'Delivery Problem',
+    billing: 'Billing Problem',
+    other: 'Other Concerns',
+  };
+
+  return typeMap[type.toLowerCase()] || formatStatus(type);
+}

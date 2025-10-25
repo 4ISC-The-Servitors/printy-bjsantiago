@@ -1,7 +1,7 @@
 import React from 'react';
 import { Badge, Button } from '@admin/components/shared';
 import { getTicketStatusBadgeVariant } from '@shared/utils/statusColors';
-import { formatTicketStatus } from '@shared/utils/statusFormatter';
+import { formatTicketStatus, formatInquiryType } from '@shared/utils/statusFormatter';
 import {
   formatOrderDateDesktop,
   formatOrderDateTablet,
@@ -65,7 +65,7 @@ export const TicketItem: React.FC<TicketItemProps> = ({
         : 'Customer');
 
   // Format inquiry type for display
-  const inquiryType = ticket.inquiry_type || 'General Inquiry';
+  const inquiryType = formatInquiryType(ticket.inquiry_type || 'other');
 
   // Format both received and updated dates responsively
   const receivedDateDesktop = ticket.received_at

@@ -34,6 +34,7 @@ import { useDashboardChatEvents } from '@features/chat/hooks/customer/useDashboa
 import { useRecentChatSessions } from '@features/chat/hooks/customer/useRecentChatSessions';
 import { useChatAttachments } from '@features/chat/hooks/shared/useChatAttachments';
 import { getSessionTitle } from '@features/chat/config/sessionTitleConfig';
+import { formatInquiryType } from '@shared/utils/statusFormatter';
 import type { ConversationItem } from '@features/chat/hooks/shared/useConversationState';
 
 interface Ticket {
@@ -254,7 +255,7 @@ const TicketHistory: React.FC = () => {
 
         const ticketList: Ticket[] = (data || []).map(ticket => ({
           id: ticket.inquiry_id,
-          title: ticket.inquiry_type || 'Support Ticket',
+          title: formatInquiryType(ticket.inquiry_type || 'other'),
           createdAt: new Date(ticket.received_at).getTime(),
           updatedAt: ticket.updated_at
             ? new Date(ticket.updated_at).getTime()
@@ -263,7 +264,7 @@ const TicketHistory: React.FC = () => {
           displayId:
             ticket.display_id ||
             ticket.inquiry_id.substring(0, 8).toUpperCase(),
-          subject: ticket.inquiry_type,
+          subject: formatInquiryType(ticket.inquiry_type || 'other'),
           description: undefined,
           resolvedAt: undefined,
           assignedTo: undefined,
