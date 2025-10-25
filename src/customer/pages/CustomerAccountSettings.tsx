@@ -18,6 +18,7 @@ import SecuritySettings from '@/customer/components/accountSettings/SecuritySett
 import NotificationPreferences from '@/customer/components/accountSettings/NotificationPreferences';
 import { ProfileService } from '@customer/services/profileService';
 import { useAuth } from '@auth/hooks/AuthContext';
+import { CustomerAccountSettingsLoading } from '@customer/components/loadingStates';
 
 export interface UserData {
   displayName: string;
@@ -322,10 +323,7 @@ const AccountSettings: React.FC = () => {
 
           <div className="space-y-6 md:space-y-8">
             {loading ? (
-              <div className="flex items-center justify-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-primary-600"></div>
-                <span className="ml-3 text-gray-600">Loading profile...</span>
-              </div>
+              <CustomerAccountSettingsLoading />
             ) : (
               <>
                 {userData && (

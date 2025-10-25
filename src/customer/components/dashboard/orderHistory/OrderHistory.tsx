@@ -21,6 +21,7 @@ import {
   useDeviceUtils,
 } from '@shared/hooks/ui/useResponsiveClasses';
 import { useResponsivePageSize } from '@shared/hooks/ui/useResponsivePageSize';
+import { CustomerHistoryLoading } from '@customer/components/loadingStates';
 
 // Chat components and hooks
 import {
@@ -56,6 +57,7 @@ const OrderHistory: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Chat state management
   const { logout, toasts, toast } = useLogoutWithToast();
@@ -295,11 +297,15 @@ const OrderHistory: React.FC = () => {
   // Load orders from database
   useEffect(() => {
     const loadOrders = async () => {
+      setIsLoading(true);
       try {
         const {
           data: { user },
         } = await supabase.auth.getUser();
-        if (!user) return;
+        if (!user) {
+          setIsLoading(false);
+          return;
+        }
 
         const { data, error } = await supabase
           .from('orders')
@@ -321,6 +327,7 @@ const OrderHistory: React.FC = () => {
 
         if (error) {
           console.error('Error loading orders:', error);
+          setIsLoading(false);
           return;
         }
 
@@ -349,6 +356,8 @@ const OrderHistory: React.FC = () => {
         setOrders(orderList);
       } catch (error) {
         console.error('Error loading orders:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -407,7 +416,9 @@ const OrderHistory: React.FC = () => {
   };
 
   // Order history content
-  const orderHistoryContent = (
+  const orderHistoryContent = isLoading ? (
+    <CustomerHistoryLoading title="Order History" />
+  ) : (
     <div className="space-y-4">
       {/* Breadcrumbs */}
       <div className="mb-6">

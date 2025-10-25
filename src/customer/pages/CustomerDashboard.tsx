@@ -15,8 +15,10 @@ import DashboardGrid from '@customer/components/dashboard/DashboardGrid';
 import ChatCards from '@customer/components/dashboard/chatCards/ChatCards';
 import RecentCard from '@customer/components/dashboard/RecentCard';
 // Shared UI components
-import { ToastContainer, Text, PageLoading } from '@shared/components';
+import { ToastContainer, Text } from '@shared/components';
 import Notification from '@shared/components/feedback/Notification';
+// Loading states
+import { CustomerDashboardLoading } from '@customer/components/loadingStates';
 import { useLogoutWithToast } from '@/auth/hooks/useLogoutWithToast';
 import { useRecentOrder } from '@customer/hooks/useRecentOrder';
 import { useRecentTicket } from '@customer/hooks/useRecentTicket';
@@ -100,6 +102,7 @@ const CustomerDashboardContent: React.FC = () => {
   const { logout, toasts, toast } = useLogoutWithToast();
   const { isMobileOrTablet } = useDeviceUtils();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+
 
   // ✅ Use context instead of hook directly (prevents duplicate instances)
   const {
@@ -287,7 +290,7 @@ const CustomerDashboardContent: React.FC = () => {
       {/* Notification Bell - Fixed Position for dashboard only */}
       <Notification />
       {isLoading ? (
-        <PageLoading variant="dashboard" />
+        <CustomerDashboardLoading />
       ) : activeId ? (
         <>
           {/* Desktop/Laptop chat panel */}

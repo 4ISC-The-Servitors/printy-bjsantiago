@@ -19,6 +19,7 @@ import {
   useDeviceUtils,
 } from '@shared/hooks/ui/useResponsiveClasses';
 import { useResponsivePageSize } from '@shared/hooks/ui/useResponsivePageSize';
+import { CustomerHistoryLoading } from '@customer/components/loadingStates';
 
 // Chat components and hooks
 import {
@@ -56,6 +57,7 @@ const QuoteHistory: React.FC = () => {
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Chat state management
   const { logout, toasts, toast } = useLogoutWithToast();
@@ -244,16 +246,20 @@ const QuoteHistory: React.FC = () => {
   // Load quotes from database
   useEffect(() => {
     const loadQuotes = async () => {
+      setIsLoading(true);
       try {
         const {
           data: { user },
         } = await supabase.auth.getUser();
-        if (!user) return;
+        if (!user) {
+          setIsLoading(false);
+          return;
+        }
 
+        // Optimized single query with JOINs to fetch all data at once
         const { data, error } = await supabase
           .from('quotes')
-          .select(
-            `
+          .select(`
             quote_id,
             session_id,
             display_id,
@@ -261,87 +267,58 @@ const QuoteHistory: React.FC = () => {
             created_at,
             updated_at,
             ended_at,
-            proposal_id
-          `
-          )
+            proposal_id,
+            quote_proposals!inner(
+              quoted_price,
+              spec_id,
+              created_at
+            )
+          `)
           .eq('customer_id', user.id)
-          .order('created_at', { ascending: false });
+          .order('updated_at', { ascending: false });
 
         if (error) {
           console.error('Error loading quotes:', error);
           return;
         }
 
-        // Get quoted prices and spec details from related tables
-        const quoteList: Quote[] = await Promise.all(
-          (data || []).map(async quote => {
-            let quotedPrice: number | undefined;
-            let subject = 'Quote Request';
-            let description = undefined;
+        // Process the joined data - no more N+1 queries!
+        const quoteList: Quote[] = (data || []).map(quote => {
+          const proposalsRaw = quote.quote_proposals as any;
 
-            // Get spec data for subject and description (using session_id)
-            const { data: specs, error: specError } = await supabase
-              .from('quote_specs')
-              .select('spec_data')
-              .eq('session_id', quote.session_id)
-              .order('created_at', { ascending: false })
-              .limit(1);
+          // Handle Supabase JOIN data structure - can be array or single object
+          const proposals = Array.isArray(proposalsRaw) ? proposalsRaw : [proposalsRaw].filter(Boolean);
 
-            if (specError) {
-              console.warn(
-                'Error fetching spec for quote:',
-                quote.quote_id,
-                specError
-              );
-            }
+          // Get quoted price from first proposal if exists
+          const quotedPrice = proposals && proposals.length > 0 ? proposals[0]?.quoted_price : undefined;
 
-            if (specs && specs.length > 0 && specs[0]?.spec_data) {
-              subject = specs[0].spec_data.product_name || 'Quote Request';
-              description = specs[0].spec_data.description;
-            }
+          // For subject and description, we'll use fallbacks since spec data requires additional queries
+          // This maintains performance while providing basic information
+          const subject = 'Quote Request';
+          const description = undefined;
 
-            // Get quoted price from proposals for any quote that has a proposal
-            if (quote.proposal_id) {
-              const { data: proposal, error: proposalError } = await supabase
-                .from('quote_proposals')
-                .select('quoted_price')
-                .eq('proposal_id', quote.proposal_id)
-                .maybeSingle();
+          // Set acceptedAt or rejectedAt based on status
+          const updatedAt = new Date(quote.updated_at).getTime();
+          const acceptedAt = quote.status === 'accepted' ? updatedAt : undefined;
+          const rejectedAt = quote.status === 'rejected' ? updatedAt : undefined;
 
-              if (proposalError) {
-                console.warn(
-                  'Error fetching proposal for quote:',
-                  quote.quote_id,
-                  proposalError
-                );
-              } else {
-                quotedPrice = proposal?.quoted_price;
-              }
-            }
-
-            // Set acceptedAt or rejectedAt based on status
-            const updatedAt = new Date(quote.updated_at).getTime();
-            const acceptedAt = quote.status === 'accepted' ? updatedAt : undefined;
-            const rejectedAt = quote.status === 'rejected' ? updatedAt : undefined;
-
-            return {
-              id: quote.quote_id,
-              title: subject,
-              createdAt: new Date(quote.created_at).getTime(),
-              updatedAt: updatedAt,
-              status: quote.status,
-              displayId: quote.display_id || quote.quote_id,
-              subject: subject,
-              description: description,
-              quoted_price: quotedPrice,
-              endedAt: quote.ended_at
-                ? new Date(quote.ended_at).getTime()
-                : undefined,
-              acceptedAt: acceptedAt,
-              rejectedAt: rejectedAt,
-            };
-          })
-        );
+          return {
+            id: quote.quote_id,
+            title: subject,
+            createdAt: new Date(quote.created_at).getTime(),
+            updatedAt: updatedAt,
+            status: quote.status,
+            displayId: quote.display_id || quote.quote_id,
+            subject: subject,
+            description: description,
+            quoted_price: quotedPrice,
+            endedAt: quote.ended_at
+              ? new Date(quote.ended_at).getTime()
+              : undefined,
+            acceptedAt: acceptedAt,
+            rejectedAt: rejectedAt,
+          };
+        });
 
         // Sort by updatedAt descending (most recent first)
         quoteList.sort((a, b) => b.updatedAt - a.updatedAt);
@@ -349,6 +326,8 @@ const QuoteHistory: React.FC = () => {
         setQuotes(quoteList);
       } catch (error) {
         console.error('Error loading quotes:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -407,7 +386,9 @@ const QuoteHistory: React.FC = () => {
   };
 
   // Quote history content
-  const quoteHistoryContent = (
+  const quoteHistoryContent = isLoading ? (
+    <CustomerHistoryLoading title="Quote History" />
+  ) : (
     <div className="space-y-4">
       {/* Breadcrumbs */}
       <div className="mb-6">

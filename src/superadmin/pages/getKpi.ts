@@ -1,8 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
-
-// Configuration is now correctly reading environment variables for Supabase
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+import { supabase } from '@lib/supabase';
 
 // --- GLOBAL CONFIGURATION CONSTANTS ---
 
@@ -26,11 +22,6 @@ const ORDER_STATUS_INQUIRY_FLOW_IDS = [
   'track-quote',
   'ask-assistance',
 ];
-
-// --- DEBUG INITIALIZATION ---
-console.log('--- Supabase Client Initialization ---');
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
-// ----------------------------
 
 /**
  * Interface for standard date range filtering.

@@ -19,6 +19,7 @@ import {
   useDeviceUtils,
 } from '@shared/hooks/ui/useResponsiveClasses';
 import { useResponsivePageSize } from '@shared/hooks/ui/useResponsivePageSize';
+import { CustomerHistoryLoading } from '@customer/components/loadingStates';
 
 // Chat components and hooks
 import {
@@ -54,6 +55,7 @@ const TicketHistory: React.FC = () => {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Chat state management
   const { logout, toasts, toast } = useLogoutWithToast();
@@ -242,11 +244,15 @@ const TicketHistory: React.FC = () => {
   // Load tickets from database (inquiries_v2)
   useEffect(() => {
     const loadTickets = async () => {
+      setIsLoading(true);
       try {
         const {
           data: { user },
         } = await supabase.auth.getUser();
-        if (!user) return;
+        if (!user) {
+          setIsLoading(false);
+          return;
+        }
 
         const { data, error } = await supabase
           .from('inquiries_v2')
@@ -268,6 +274,7 @@ const TicketHistory: React.FC = () => {
 
         if (error) {
           console.error('Error loading tickets:', error);
+          setIsLoading(false);
           return;
         }
 
@@ -294,6 +301,8 @@ const TicketHistory: React.FC = () => {
         setTickets(ticketList);
       } catch (error) {
         console.error('Error loading tickets:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -347,7 +356,9 @@ const TicketHistory: React.FC = () => {
   };
 
   // Ticket history content
-  const ticketHistoryContent = (
+  const ticketHistoryContent = isLoading ? (
+    <CustomerHistoryLoading title="Ticket History" />
+  ) : (
     <div className="space-y-4">
       {/* Breadcrumbs */}
       <div className="mb-6">

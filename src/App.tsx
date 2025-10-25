@@ -1,5 +1,4 @@
 import { Routes, Route } from 'react-router-dom';
-import { lazy, Suspense } from 'react';
 import LandingPage from './guest/pages/LandingPage';
 import SignIn from '@auth/pages/SignIn';
 import SignUp from '@auth/pages/SignUp';
@@ -7,37 +6,27 @@ import ForgotPassword from '@auth/pages/ForgotPassword';
 import ResetPassword from '@auth/pages/ResetPassword';
 import CustomerAccountSettings from '@customer/pages/CustomerAccountSettings';
 import CustomerRoot from '@customer/pages/CustomerRoot';
+import CustomerDashboard from '@customer/pages/CustomerDashboard';
+import CustomerChatHistory from '@customer/pages/CustomerChatHistory';
+import CustomerOrderHistory from '@customer/pages/CustomerOrderHistory';
+import CustomerTicketHistory from '@customer/pages/CustomerTicketHistory';
+import CustomerQuoteHistory from '@customer/pages/CustomerQuoteHistory';
 import AdminRoot from '@admin/pages/AdminRoot';
+import AdminDashboard from '@admin/pages/Dashboard';
+import AdminOrders from '@admin/pages/Orders';
+import AdminTickets from '@admin/pages/Tickets';
+import AdminQuotes from '@admin/pages/Quotes';
+import AdminPortfolio from '@admin/pages/Portfolio';
+import AdminChats from '@admin/pages/Chats';
+import AdminSettingsPage from '@admin/pages/AdminSettings';
 import SuperAdminRoot from '@superadmin/pages/SuperAdminRoot';
-import { PageLoading } from '@shared/components';
+import SuperAdminDashboard from '@superadmin/pages/Dashboard';
 import './index.css';
 import { RequireAuth } from '@auth/components/guards/RequireAuth';
 import { GuestOnly } from '@auth/components/guards/GuestOnly';
 
-// Lazy load heavy components
-const AdminDashboard = lazy(() => import('@admin/pages/Dashboard'));
-const AdminOrders = lazy(() => import('@admin/pages/Orders'));
-const AdminTickets = lazy(() => import('@admin/pages/Tickets'));
-const AdminQuotes = lazy(() => import('@admin/pages/Quotes'));
-const AdminSettingsPage = lazy(() => import('@admin/pages/AdminSettings'));
-const AdminPortfolio = lazy(() => import('@admin/pages/Portfolio'));
-const AdminChats = lazy(() => import('@admin/pages/Chats'));
-const SuperAdminDashboard = lazy(() => import('@superadmin/pages/Dashboard'));
-const CustomerDashboard = lazy(
-  () => import('@customer/pages/CustomerDashboard')
-);
-const CustomerChatHistory = lazy(
-  () => import('@customer/pages/CustomerChatHistory')
-);
-const CustomerOrderHistory = lazy(
-  () => import('@customer/pages/CustomerOrderHistory')
-);
-const CustomerTicketHistory = lazy(
-  () => import('@customer/pages/CustomerTicketHistory')
-);
-const CustomerQuoteHistory = lazy(
-  () => import('@customer/pages/CustomerQuoteHistory')
-);
+// Lazy load heavy components (only less frequently accessed pages)
+// Note: CustomerAccountSettings is kept as eager import since it's not lazy loaded
 
 function App() {
   return (
@@ -65,61 +54,37 @@ function App() {
         path="/customer"
         element={
           <RequireAuth allowed={['regular', 'valued']}>
-            <Suspense fallback={<PageLoading variant="dashboard" />}>
-              <CustomerRoot />
-            </Suspense>
+            <CustomerRoot />
           </RequireAuth>
         }
       >
         <Route
           index
-          element={
-            <Suspense fallback={<PageLoading variant="dashboard" />}>
-              <CustomerDashboard />
-            </Suspense>
-          }
+          element={<CustomerDashboard />}
         />
         <Route path="account" element={<CustomerAccountSettings />} />
         <Route
           path="chats"
-          element={
-            <Suspense fallback={<PageLoading variant="list" />}>
-              <CustomerChatHistory />
-            </Suspense>
-          }
+          element={<CustomerChatHistory />}
         />
         <Route
           path="orders"
-          element={
-            <Suspense fallback={<PageLoading variant="list" />}>
-              <CustomerOrderHistory />
-            </Suspense>
-          }
+          element={<CustomerOrderHistory />}
         />
         <Route
           path="tickets"
-          element={
-            <Suspense fallback={<PageLoading variant="list" />}>
-              <CustomerTicketHistory />
-            </Suspense>
-          }
+          element={<CustomerTicketHistory />}
         />
         <Route
           path="quotes"
-          element={
-            <Suspense fallback={<PageLoading variant="list" />}>
-              <CustomerQuoteHistory />
-            </Suspense>
-          }
+          element={<CustomerQuoteHistory />}
         />
       </Route>
       <Route
         path="/valued"
         element={
           <RequireAuth allowed={['valued']}>
-            <Suspense fallback={<PageLoading variant="dashboard" />}>
-              <CustomerDashboard />
-            </Suspense>
+            <CustomerDashboard />
           </RequireAuth>
         }
       />
@@ -127,67 +92,37 @@ function App() {
         path="/admin"
         element={
           <RequireAuth allowed={['admin']}>
-            <Suspense fallback={<PageLoading variant="dashboard" />}>
-              <AdminRoot />
-            </Suspense>
+            <AdminRoot />
           </RequireAuth>
         }
       >
         <Route
           index
-          element={
-            <Suspense fallback={<PageLoading variant="dashboard" />}>
-              <AdminDashboard />
-            </Suspense>
-          }
+          element={<AdminDashboard />}
         />
         <Route
           path="orders"
-          element={
-            <Suspense fallback={<PageLoading variant="list" />}>
-              <AdminOrders />
-            </Suspense>
-          }
+          element={<AdminOrders />}
         />
         <Route
           path="tickets"
-          element={
-            <Suspense fallback={<PageLoading variant="list" />}>
-              <AdminTickets />
-            </Suspense>
-          }
+          element={<AdminTickets />}
         />
         <Route
           path="quotes"
-          element={
-            <Suspense fallback={<PageLoading variant="list" />}>
-              <AdminQuotes />
-            </Suspense>
-          }
+          element={<AdminQuotes />}
         />
         <Route
           path="portfolio"
-          element={
-            <Suspense fallback={<PageLoading variant="grid" />}>
-              <AdminPortfolio />
-            </Suspense>
-          }
+          element={<AdminPortfolio />}
         />
         <Route
           path="chats"
-          element={
-            <Suspense fallback={<PageLoading variant="list" />}>
-              <AdminChats />
-            </Suspense>
-          }
+          element={<AdminChats />}
         />
         <Route
           path="settings"
-          element={
-            <Suspense fallback={<PageLoading variant="form" />}>
-              <AdminSettingsPage />
-            </Suspense>
-          }
+          element={<AdminSettingsPage />}
         />
       </Route>
       <Route
@@ -200,11 +135,7 @@ function App() {
       >
         <Route
           index
-          element={
-            <Suspense fallback={<PageLoading variant="dashboard" />}>
-              <SuperAdminDashboard />
-            </Suspense>
-          }
+          element={<SuperAdminDashboard />}
         />
       </Route>
     </Routes>
