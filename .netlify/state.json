@@ -1,0 +1,21 @@
+{
+	"geolocation": {
+		"data": {
+			"city": "Quezon City",
+			"country": {
+				"code": "PH",
+				"name": "Philippines"
+			},
+			"subdivision": {
+				"code": "00",
+				"name": "Metro Manila"
+			},
+			"timezone": "Asia/Manila",
+			"latitude": 14.6475,
+			"longitude": 121.0494,
+			"postalCode": "1100"
+		},
+		"timestamp": 1761110325844
+	},
+	"siteId": "c02c7cdf-ec8f-47d3-9544-d5af96fb975a"
+}
