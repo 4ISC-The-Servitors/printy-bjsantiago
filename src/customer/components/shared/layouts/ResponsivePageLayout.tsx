@@ -58,7 +58,6 @@ const ResponsivePageLayout: React.FC<ResponsivePageLayoutProps> = ({
         detail: { sessionId: id },
       })
     );
-    navigate('/customer');
   };
 
   const handleNavigateToAccount = () => {
