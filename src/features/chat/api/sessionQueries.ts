@@ -25,6 +25,7 @@ export interface SessionWithRelations {
   status: string;
   createdAt: number;
   currentNodeId?: string;
+  metadata?: any;
   inquiry?: {
     inquiry_id: string;
     display_id: string;
@@ -37,7 +38,12 @@ export interface SessionWithRelations {
     status: string;
     total_price?: number;
   };
-  type: 'inquiry' | 'quote' | 'general';
+  order?: {
+    order_id: string;
+    display_id: string;
+    status: string;
+  };
+  type: 'inquiry' | 'quote' | 'general' | 'order';
 }
 
 export interface InquiryWithSession {
@@ -116,6 +122,11 @@ export async function getUserSessions(
         quote_id,
         display_id,
         status
+      ),
+      order:orders!order_id(
+        order_id,
+        display_id,
+        status
       )
     `
     )
@@ -133,11 +144,21 @@ export async function getUserSessions(
     status: session.status,
     createdAt: new Date(session.created_at).getTime(),
     currentNodeId: session.metadata?.current_node_id,
+    metadata: session.metadata,
     inquiry: Array.isArray(session.inquiry)
       ? session.inquiry[0]
       : session.inquiry,
     quote: Array.isArray(session.quote) ? session.quote[0] : session.quote,
-    type: session.inquiry ? 'inquiry' : session.quote ? 'quote' : 'general',
+    order: Array.isArray(session.order)
+      ? session.order[0]
+      : session.order,
+    type: session.inquiry
+      ? 'inquiry'
+      : session.quote
+        ? 'quote'
+        : session.order
+          ? 'order'
+          : 'general',
   }));
 }
 

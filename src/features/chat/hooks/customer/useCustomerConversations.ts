@@ -102,9 +102,35 @@ export function useCustomerConversations() {
           .eq('session_id', result.sessionId)
           .single();
 
+        // Determine which FK to link based on context
+        const fkUpdates: any = {};
+
+        if (ctx?.quote_id) {
+          fkUpdates.quote_id = ctx.quote_id;
+        } else if (ctx?.conversation_id) {
+          // For track-quote, conversation_id is actually the original ask-quote session_id
+          // We need to find the quote_id from that session
+          const { data: quoteData } = await supabase
+            .from('quotes')
+            .select('quote_id')
+            .eq('session_id', ctx.conversation_id)
+            .single();
+          if (quoteData) fkUpdates.quote_id = quoteData.quote_id;
+        }
+
+        if (ctx?.inquiryId || ctx?.inquiry_id) {
+          fkUpdates.inquiry_id = ctx.inquiryId || ctx.inquiry_id;
+        }
+
+        if (ctx?.order_id) {
+          fkUpdates.order_id = ctx.order_id;
+        }
+
+        // Update session with FKs and metadata
         await supabase
           .from('chat_sessions_v2')
           .update({
+            ...fkUpdates,
             metadata: {
               ...(existingSession?.metadata || {}),
               title, // Save the display title
@@ -204,7 +230,7 @@ export function useCustomerConversations() {
         const mappedMessages: ChatMessage[] = allMessages.map(m => ({
           id: m.id,
           role: mapRole(m.role),
-          text: m.text,
+          text: m.role === 'customer' ? extractDisplayText(m.text) : m.text, // Clean UUID for user messages
           ts: m.ts,
         }));
 
@@ -368,7 +394,7 @@ export function useCustomerConversations() {
         const mappedMessages: ChatMessage[] = allMessages.map(m => ({
           id: m.id,
           role: mapRole(m.role),
-          text: m.text,
+          text: m.role === 'customer' ? extractDisplayText(m.text) : m.text, // Clean UUID for user messages
           ts: m.ts,
         }));
 

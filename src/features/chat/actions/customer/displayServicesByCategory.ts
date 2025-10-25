@@ -52,10 +52,15 @@ export async function displayServicesByCategory(
 
   try {
     // Get category information from context
-    // The quick reply value format is "category_id|category_name"
-    const selectedCategory = context?.selected_category;
+    // The context now stores only the category_id (not "category_id|category_name")
+    const categoryId = context?.selected_category;
     
-    if (!selectedCategory) {
+    console.log('[displayServicesByCategory] Received context:', {
+      selected_category: categoryId,
+      fullContext: context
+    });
+    
+    if (!categoryId) {
       messages.push({
         id: crypto.randomUUID(),
         role: 'printy',
@@ -74,13 +79,18 @@ export async function displayServicesByCategory(
       };
     }
 
-    const [categoryId, categoryName] = selectedCategory.split('|');
-    
-    if (!categoryId || !categoryName) {
+    // Fetch category name from database
+    const { data: category, error: categoryError } = await supabase
+      .from('service_categories')
+      .select('category_name')
+      .eq('category_id', categoryId)
+      .single();
+
+    if (categoryError || !category) {
       messages.push({
         id: crypto.randomUUID(),
         role: 'printy',
-        text: 'Invalid category selection. Let me take you back to the main menu.',
+        text: 'Category not found. Let me take you back to the main menu.',
         ts: Date.now(),
       });
       return {
@@ -94,6 +104,8 @@ export async function displayServicesByCategory(
         ],
       };
     }
+
+    const categoryName = category.category_name;
 
     // Query active services for the selected category
     const { data: services, error: servicesError } = await supabase

@@ -6,7 +6,6 @@ import {
   CustomerChatPanel,
   CustomerChatOverlay,
 } from '@features/chat/components/layouts';
-import type { ConversationItem } from '@features/chat/hooks/shared/useConversationState';
 // Sidebar and dashboard widgets
 import ResponsivePageLayout from '@customer/components/shared/layouts/ResponsivePageLayout';
 import SidebarPanel from '@customer/components/shared/sidebar/SidebarPanel';
@@ -90,8 +89,6 @@ const topicConfig: Record<
     description: 'Quick answers to common questions',
   },
 };
-
-type Conversation = ConversationItem;
 
 // topicConfig now imported from feature config
 
@@ -187,71 +184,8 @@ const CustomerDashboardContent: React.FC = () => {
   const isLoading =
     loadingRecentOrder || loadingRecentTicket || loadingRecentQuote;
 
-  // Load recent chat sessions from database for the sidebar list (initial)
-  useEffect(() => {
-    const loadRecentSessions = async () => {
-      try {
-        const { data: sessions, error } = await supabase
-          .from('chat_sessions_v2')
-          .select(
-            `
-            session_id,
-            customer_id,
-            status,
-            created_at,
-            flow_id,
-            display_title,
-            metadata->context->display_id
-          `
-          )
-          .is('metadata->ticket_conversation', null)
-          .order('created_at', { ascending: false })
-          .limit(10);
-
-        if (error) {
-          console.error('Error fetching sessions:', error);
-          return;
-        }
-
-        if (sessions && sessions.length > 0) {
-          const sessionConversations: Conversation[] = sessions.map(
-            (session: any) => ({
-              id: session.session_id,
-              title: getSessionTitle({
-                flowId: session.flow_id,
-                metadata: {
-                  title: session.display_title,
-                  context: {
-                    display_id: session.display_id,
-                  },
-                },
-              }),
-              createdAt: new Date(session.created_at).getTime(),
-              messages: [], // Messages will be loaded when switching to conversation
-              flowId: session.flow_id || 'about',
-              status: session.status === 'ended' ? 'ended' : 'active',
-              icon: undefined,
-            })
-          );
-
-          setConversations(prev => {
-            // Merge with existing conversations, avoiding duplicates
-            const existingIds = new Set(prev.map(c => c.id));
-            const newConversations = sessionConversations.filter(
-              c => !existingIds.has(c.id)
-            );
-            return [...newConversations, ...prev].sort(
-              (a, b) => b.createdAt - a.createdAt
-            );
-          });
-        }
-      } catch (e) {
-        console.error('loadRecentSessions error', e);
-      }
-    };
-
-    loadRecentSessions();
-  }, []);
+  // NOTE: Session loading is handled by useRecentChatSessions hook
+  // No need to manually load sessions here
 
   // ---------------- Chat logic ----------------
   // Initialize flow via useCustomerConversations

@@ -17,8 +17,9 @@ import {
 } from '@shared/hooks/ui/useResponsiveClasses';
 import { useResponsivePageSize } from '@shared/hooks/ui/useResponsivePageSize';
 import type { ChatMessage } from '@features/chat/types/chat';
-import { getUserSessionsV2 } from '@features/chat/api/jsonbChatFlowApi';
+import { getUserSessions } from '@features/chat/api/sessionQueries';
 import { getSessionTitle } from '@features/chat/config/sessionTitleConfig';
+import { auth } from '@lib/supabase';
 import type { FilterConfig } from '@shared/types/filters';
 
 interface Conversation {
@@ -99,17 +100,26 @@ const ChatHistory: React.FC = () => {
   useEffect(() => {
     (async () => {
       try {
-        const list = await getUserSessionsV2();
+        const { data: userData } = await auth.getUser();
+        if (!userData?.user?.id) return;
+        
+        const list = await getUserSessions(userData.user.id);
         const convs: Conversation[] = list.map(s => ({
           id: s.sessionId,
           title: getSessionTitle({
             flowId: s.flowId,
             metadata: {
-              title: s.displayTitle,
+              title: s.metadata?.title,
+              context: {
+                display_id: s.inquiry?.display_id || s.quote?.display_id || s.order?.display_id,
+              },
             },
+            inquiry: s.inquiry,
+            quote: s.quote,
+            order: s.order,
           }),
           createdAt: s.createdAt,
-          updatedAt: s.createdAt, // getUserSessionsV2 doesn't return updatedAt, use createdAt
+          updatedAt: s.createdAt, // getUserSessions doesn't return updatedAt, use createdAt
           messages: [],
           status: (s.status === 'ended' ? 'ended' : 'active') as
             | 'active'

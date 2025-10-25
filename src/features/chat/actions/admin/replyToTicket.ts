@@ -54,6 +54,7 @@ export async function sendAdminReply(
     // Get customer_id and original session info
     let customerId = null;
     let originalSessionId = customerSessionId;
+    let ticketDisplayId = null;
     
     if (customerSessionId) {
       const { data: originalSession } = await supabase
@@ -66,11 +67,12 @@ export async function sendAdminReply(
       // Fallback: get both from inquiry
       const { data: inquiry } = await supabase
         .from('inquiries_v2')
-        .select('customer_id, session_id')
+        .select('customer_id, session_id, display_id')
         .eq('inquiry_id', inquiryId)
         .single();
       customerId = inquiry?.customer_id;
       originalSessionId = inquiry?.session_id;
+      ticketDisplayId = inquiry?.display_id;
     }
 
     if (!customerId) {
@@ -92,6 +94,7 @@ export async function sendAdminReply(
         customer_id: customerId,
         status: 'ended', // Mark as ended so it doesn't appear in Recent Chats
         metadata: {
+          title: ticketDisplayId ? `Track Ticket: ${ticketDisplayId}` : 'Track Ticket',
           ticket_conversation: true,
           original_session_id: originalSessionId,
           inquiry_id: inquiryId,

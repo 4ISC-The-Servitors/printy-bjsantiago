@@ -6,12 +6,14 @@ interface TrackTicketButtonProps {
   inquiryId: string;
   subject: string;
   status: string;
+  displayId?: string;
 }
 
 const TrackTicketButton: React.FC<TrackTicketButtonProps> = ({
   inquiryId,
   subject,
   status,
+  displayId,
 }) => {
   // Hide button if ticket is resolved or closed
   if (status === 'resolved' || status === 'closed') {
@@ -20,7 +22,7 @@ const TrackTicketButton: React.FC<TrackTicketButtonProps> = ({
 
   const onClick = () => {
     const event = new CustomEvent('customer-open-ticket-chat', {
-      detail: { inquiryId, subject },
+      detail: { inquiryId, subject, displayId },
     });
     window.dispatchEvent(event);
   };

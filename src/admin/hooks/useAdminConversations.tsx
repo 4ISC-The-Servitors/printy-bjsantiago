@@ -76,6 +76,11 @@ export const AdminConversationsProvider: React.FC<{
             quote_id,
             display_id,
             status
+          ),
+          order:orders!order_id(
+            order_id,
+            display_id,
+            status
           )
         `
         )

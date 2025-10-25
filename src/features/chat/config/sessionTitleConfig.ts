@@ -15,21 +15,20 @@ export const FLOW_TITLES: Record<string, string> = {
   'pay-order': 'Pay Order',
   'reupload-payment': 'Reupload Payment',
   'issue-ticket': 'Ask Assistance',
+  'services-offered': 'Services Offered',
+  'faqs': 'FAQs',
+  'about-us': 'About B.J. Santiago',
 
   // Admin flows (verified in database)
-  'admin-quote-propose': 'Quote Propose',
-  'admin-create-order': 'Create Order',
-  'admin-verify-payment': 'Verify Payment',
-  'admin-review-ticket': 'Review Ticket',
+  'admin-quote-propose': 'Quote Proposal',
+  'admin-create-order': 'Order Creation',
+  'admin-verify-payment': 'Payment Verification',
+  'admin-review-ticket': 'Ticket Review',
 
-  // Service flows
-  'services-offered': 'Services Offered',
-  'guest-services-offered': 'Services Offered',
 
   // Flows not in database - commented out
   //'cancel-order': 'Cancel Order', // Not in chat_flows_v2
-  //'about': 'About B.J. Santiago', // Not in chat_flows_v2
-  //'faqs': 'FAQs', // Not in chat_flows_v2
+
 };
 
 interface SessionTitleParams {
@@ -45,6 +44,25 @@ interface SessionTitleParams {
   inquiry?: { display_id?: string };
   quote?: { display_id?: string };
   order?: { display_id?: string };
+}
+
+/**
+ * Helper function to check if a string looks like a UUID
+ */
+function isUUID(str: string): boolean {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(str);
+}
+
+/**
+ * Helper function to format display ID for UI (avoid showing UUIDs)
+ */
+function formatDisplayId(displayId: string): string {
+  if (isUUID(displayId)) {
+    // For UUIDs, show first 8 characters with ellipsis
+    return `${displayId.substring(0, 8)}...`;
+  }
+  return displayId;
 }
 
 /**
@@ -71,18 +89,22 @@ export function getSessionTitle(params: SessionTitleParams): string {
   // 2. Context-based title with display_id
   if (metadata?.context?.display_id) {
     const baseTitle = FLOW_TITLES[flowId] || flowId;
-    return `${baseTitle}: ${metadata.context.display_id}`;
+    const displayId = formatDisplayId(metadata.context.display_id);
+    return `${baseTitle}: ${displayId}`;
   }
 
   // 3. Foreign key relationships (admin flows)
   if (quote?.display_id) {
-    return `Quote: ${quote.display_id}`;
+    const displayId = formatDisplayId(quote.display_id);
+    return `Quote: ${displayId}`;
   }
   if (order?.display_id) {
-    return `Order: ${order.display_id}`;
+    const displayId = formatDisplayId(order.display_id);
+    return `Order: ${displayId}`;
   }
   if (inquiry?.display_id) {
-    return `Ticket: ${inquiry.display_id}`;
+    const displayId = formatDisplayId(inquiry.display_id);
+    return `Ticket: ${displayId}`;
   }
 
   // 4. Flow mapping fallback

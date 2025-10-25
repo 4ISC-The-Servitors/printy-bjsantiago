@@ -617,6 +617,19 @@ export class JsonbFlowProcessor {
             _pending_quick_replies: null,
           });
 
+          // ✅ FIX: Store category selection when userInput contains a pipe (category_id|category_name)
+          if (userInput.includes('|')) {
+            const categoryId = userInput.split('|')[0];
+            console.log('[JsonbFlowProcessor] Setting selected_category from quick reply match:', {
+              userInput,
+              categoryId,
+              selectedQuickReply
+            });
+            stateManager.updateContext({
+              selected_category: categoryId,
+            });
+          }
+
           optionMatched = true;
         }
       }
@@ -672,10 +685,18 @@ export class JsonbFlowProcessor {
         // Move to create_ticket node
         stateManager.setCurrentNode('create_ticket');
         optionMatched = true;
-      } else if (isCategorySelection && (currentNode.action === 'display_service_categories' || currentNode.action === 'display_services_by_category')) {
+      } else if (isCategorySelection) {
         // Store the category selection in context
+        // Extract category_id for storage (format: "category_id|category_name")
+        const categoryId = userInput.split('|')[0];
+        console.log('[JsonbFlowProcessor] Setting selected_category:', {
+          userInput,
+          categoryId,
+          currentNodeType: currentNode.type,
+          currentNodeAction: currentNode.type === 'action' ? (currentNode as ActionNode).action : undefined
+        });
         stateManager.updateContext({
-          selected_category: userInput,
+          selected_category: categoryId,
         });
 
         // Move to category_dynamic node

@@ -273,7 +273,7 @@ export async function sendCustomerReply(
     // Get the original session_id and customer_id from the inquiry
     const { data: inquiry } = await supabase
       .from('inquiries_v2')
-      .select('session_id, customer_id')
+      .select('session_id, customer_id, display_id')
       .eq('inquiry_id', inquiryId)
       .single();
 
@@ -293,6 +293,7 @@ export async function sendCustomerReply(
 
     const originalSessionId = inquiry.session_id;
     const customerId = inquiry.customer_id;
+    const ticketDisplayId = inquiry.display_id;
 
     if (!originalSessionId || !customerId) {
       console.error('[sendCustomerReply] Missing session_id or customer_id in inquiry');
@@ -313,6 +314,7 @@ export async function sendCustomerReply(
         customer_id: customerId,
         status: 'ended', // Mark as ended so it doesn't appear in Recent Chats
         metadata: {
+          title: ticketDisplayId ? `Track Ticket: ${ticketDisplayId}` : 'Track Ticket',
           ticket_conversation: true,
           original_session_id: originalSessionId,
           inquiry_id: inquiryId,

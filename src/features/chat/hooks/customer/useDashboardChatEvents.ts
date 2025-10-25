@@ -3,7 +3,7 @@
  * Wires dashboard-level events: pay now, open session.
  */
 import { useEffect } from 'react';
-import { FLOW_TITLES } from '@features/chat/config/sessionTitleConfig';
+import { getSessionTitle } from '@features/chat/config/sessionTitleConfig';
 
 export function useDashboardChatEvents(
   initializeFlow: (flowId: string, title: string, ctx?: any) => void,
@@ -22,8 +22,16 @@ export function useDashboardChatEvents(
       const orderId = detail?.orderId || getRecentOrderId();
       const displayId = detail?.displayId || orderId;
 
-      // Use centralized title from FLOW_TITLES
-      const title = FLOW_TITLES['pay-order'] || 'Pay Order';
+      // Use centralized title generation with context
+      const title = getSessionTitle({
+        flowId: 'pay-order',
+        metadata: {
+          context: {
+            display_id: displayId,
+          },
+        },
+        order: { display_id: displayId },
+      });
 
       initializeFlow('pay-order', title, {
         order_id: orderId,
@@ -53,8 +61,16 @@ export function useDashboardChatEvents(
       const orderId = detail?.orderId || getRecentOrderId();
       const displayId = detail?.displayId || orderId;
 
-      // Use centralized title from FLOW_TITLES
-      const title = FLOW_TITLES['reupload-payment'] || 'Reupload Payment';
+      // Use centralized title generation with context
+      const title = getSessionTitle({
+        flowId: 'reupload-payment',
+        metadata: {
+          context: {
+            display_id: displayId,
+          },
+        },
+        order: { display_id: displayId },
+      });
 
       initializeFlow('reupload-payment', title, {
         order_id: orderId,
@@ -101,8 +117,16 @@ export function useDashboardChatEvents(
 
       if (!inquiryId) return;
 
-      // Use centralized title from FLOW_TITLES
-      const title = FLOW_TITLES['track-ticket'] || 'Track Ticket';
+      // Use centralized title generation with context
+      const title = getSessionTitle({
+        flowId: 'track-ticket',
+        metadata: {
+          context: {
+            display_id: displayId,
+          },
+        },
+        inquiry: { display_id: displayId },
+      });
 
       initializeFlow('track-ticket', title, {
         inquiryId,
@@ -134,8 +158,16 @@ export function useDashboardChatEvents(
 
       if (!conversationId) return;
 
-      // Use centralized title from FLOW_TITLES
-      const title = FLOW_TITLES['track-quote'] || 'Track Quote';
+      // Use centralized title generation with context
+      const title = getSessionTitle({
+        flowId: 'track-quote',
+        metadata: {
+          context: {
+            display_id: displayId,
+          },
+        },
+        quote: { display_id: displayId },
+      });
 
       initializeFlow('track-quote', title, {
         conversation_id: conversationId,

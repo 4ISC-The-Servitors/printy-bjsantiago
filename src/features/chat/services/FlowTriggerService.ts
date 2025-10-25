@@ -1,4 +1,5 @@
 import { supabase } from '@lib/supabase';
+import { getSessionTitle } from '@features/chat/config/sessionTitleConfig';
 
 /**
  * FlowTriggerService - Centralized flow triggering logic
@@ -11,13 +12,22 @@ import { supabase } from '@lib/supabase';
  */
 
 export type AdminPage = 'quotes' | 'tickets' | 'orders';
-export type FlowId =
+
+export type AdminFlowId =
   | 'admin-quote-propose'
   | 'admin-create-order'
   | 'admin-review-ticket'
   | 'admin-issue-ticket'
   | 'admin-track-ticket'
   | 'admin-verify-payment';
+
+export type CustomerFlowId =
+  | 'track-quote'
+  | 'track-ticket'
+  | 'pay-order'
+  | 'reupload-payment';
+
+export type FlowId = AdminFlowId | CustomerFlowId;
 
 interface FlowContext {
   flowId: FlowId;
@@ -97,7 +107,15 @@ export class FlowTriggerService {
       return {
         flowId: 'admin-create-order',
         context,
-        sessionTitle: `Order Creation: ${quoteData.display_id || sessionId}`,
+        sessionTitle: getSessionTitle({
+          flowId: 'admin-create-order',
+          metadata: {
+            context: {
+              display_id: quoteData.display_id,
+            },
+          },
+          quote: { display_id: quoteData.display_id },
+        }),
       };
     }
 
@@ -124,7 +142,15 @@ export class FlowTriggerService {
         has_saved_specs: hasSavedSpecs,
         ...(hasSavedSpecs && { saved_spec_id: savedSpecs[0].spec_id }),
       },
-      sessionTitle: `Quote Proposal: ${quoteData.display_id || sessionId}`,
+      sessionTitle: getSessionTitle({
+        flowId: 'admin-quote-propose',
+        metadata: {
+          context: {
+            display_id: quoteData.display_id,
+          },
+        },
+        quote: { display_id: quoteData.display_id },
+      }),
     };
   }
 
@@ -147,7 +173,15 @@ export class FlowTriggerService {
       context: {
         inquiry_id: inquiryId,
       },
-      sessionTitle: `Ticket Review: ${ticketData?.display_id || inquiryId}`,
+      sessionTitle: getSessionTitle({
+        flowId: 'admin-review-ticket',
+        metadata: {
+          context: {
+            display_id: ticketData?.display_id,
+          },
+        },
+        inquiry: { display_id: ticketData?.display_id },
+      }),
     };
   }
 
@@ -180,7 +214,15 @@ export class FlowTriggerService {
           display_id: orderData.display_id,
           customer_id: orderData.customer_id,
         },
-        sessionTitle: `Payment Verification: ${orderData.display_id || orderId}`,
+        sessionTitle: getSessionTitle({
+          flowId: 'admin-verify-payment',
+          metadata: {
+            context: {
+              display_id: orderData.display_id,
+            },
+          },
+          order: { display_id: orderData.display_id },
+        }),
       };
     }
 
@@ -190,6 +232,158 @@ export class FlowTriggerService {
       orderData.status
     );
     return null;
+  }
+
+  /**
+   * Get flow context for customer flows
+   */
+  static async getCustomerFlowContext(
+    flowId: CustomerFlowId,
+    entityId: string
+  ): Promise<FlowContext | null> {
+    switch (flowId) {
+      case 'track-quote':
+        return this.getCustomerTrackQuoteFlow(entityId);
+      case 'track-ticket':
+        return this.getCustomerTrackTicketFlow(entityId);
+      case 'pay-order':
+        return this.getCustomerPayOrderFlow(entityId);
+      case 'reupload-payment':
+        return this.getCustomerReuploadPaymentFlow(entityId);
+      default:
+        console.error(`Unknown customer flow: ${flowId}`);
+        return null;
+    }
+  }
+
+  /**
+   * Customer track-quote flow
+   */
+  private static async getCustomerTrackQuoteFlow(
+    quoteId: string
+  ): Promise<FlowContext | null> {
+    const { data: quoteData } = await supabase
+      .from('quotes')
+      .select('quote_id, display_id, session_id')
+      .eq('quote_id', quoteId)
+      .single();
+
+    if (!quoteData) {
+      console.error('Could not find quote data for:', quoteId);
+      return null;
+    }
+
+    return {
+      flowId: 'track-quote',
+      context: {
+        quote_id: quoteData.quote_id,
+        conversation_id: quoteData.session_id,
+        conversationId: quoteData.session_id,
+        display_id: quoteData.display_id,
+      },
+      sessionTitle: getSessionTitle({
+        flowId: 'track-quote',
+        metadata: { context: { display_id: quoteData.display_id } },
+        quote: { display_id: quoteData.display_id },
+      }),
+    };
+  }
+
+  /**
+   * Customer track-ticket flow
+   */
+  private static async getCustomerTrackTicketFlow(
+    inquiryId: string
+  ): Promise<FlowContext | null> {
+    const { data: ticketData } = await supabase
+      .from('inquiries_v2')
+      .select('inquiry_id, display_id, inquiry_type')
+      .eq('inquiry_id', inquiryId)
+      .single();
+
+    if (!ticketData) {
+      console.error('Could not find ticket data for:', inquiryId);
+      return null;
+    }
+
+    return {
+      flowId: 'track-ticket',
+      context: {
+        inquiryId: ticketData.inquiry_id,
+        inquiry_id: ticketData.inquiry_id,
+        subject: ticketData.inquiry_type,
+        display_id: ticketData.display_id,
+      },
+      sessionTitle: getSessionTitle({
+        flowId: 'track-ticket',
+        metadata: { context: { display_id: ticketData.display_id } },
+        inquiry: { display_id: ticketData.display_id },
+      }),
+    };
+  }
+
+  /**
+   * Customer pay-order flow
+   */
+  private static async getCustomerPayOrderFlow(
+    orderId: string
+  ): Promise<FlowContext | null> {
+    const { data: orderData } = await supabase
+      .from('orders')
+      .select('order_id, display_id, total_amount')
+      .eq('order_id', orderId)
+      .single();
+
+    if (!orderData) {
+      console.error('Could not find order data for:', orderId);
+      return null;
+    }
+
+    return {
+      flowId: 'pay-order',
+      context: {
+        order_id: orderData.order_id,
+        display_id: orderData.display_id,
+        total_amount: orderData.total_amount?.toString(),
+      },
+      sessionTitle: getSessionTitle({
+        flowId: 'pay-order',
+        metadata: { context: { display_id: orderData.display_id } },
+        order: { display_id: orderData.display_id },
+      }),
+    };
+  }
+
+  /**
+   * Customer reupload-payment flow
+   */
+  private static async getCustomerReuploadPaymentFlow(
+    orderId: string
+  ): Promise<FlowContext | null> {
+    const { data: orderData } = await supabase
+      .from('orders')
+      .select('order_id, display_id, total_amount')
+      .eq('order_id', orderId)
+      .single();
+
+    if (!orderData) {
+      console.error('Could not find order data for:', orderId);
+      return null;
+    }
+
+    return {
+      flowId: 'reupload-payment',
+      context: {
+        order_id: orderData.order_id,
+        display_id: orderData.display_id,
+        total_amount: orderData.total_amount?.toString(),
+      },
+      sessionTitle: getSessionTitle({
+        flowId: 'reupload-payment',
+        metadata: { context: { display_id: orderData.display_id } },
+        order: { display_id: orderData.display_id },
+      }),
+    };
   }
 
   /**

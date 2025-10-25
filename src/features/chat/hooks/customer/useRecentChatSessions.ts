@@ -5,8 +5,9 @@
  * NOTE: Migrated to use chat_sessions_v2 (JSONB flow system)
  */
 import { useEffect } from 'react';
-import { getUserSessionsV2 } from '@features/chat/api/jsonbChatFlowApi';
+import { getUserSessions } from '@features/chat/api/sessionQueries';
 import { getSessionTitle } from '@features/chat/config/sessionTitleConfig';
+import { auth } from '@lib/supabase';
 
 export interface ConversationLike {
   id: string;
@@ -26,22 +27,39 @@ export function useRecentChatSessions(
   useEffect(() => {
     const loadRecentSessions = async () => {
       try {
-        // Fetch from chat_sessions_v2 using the JSONB flow API
-        const sessions = await getUserSessionsV2();
+        // Get current user ID
+        const { data: userData } = await auth.getUser();
+        if (!userData?.user?.id) return;
+
+        // Fetch from chat_sessions_v2 with FK relationships
+        const sessions = await getUserSessions(userData.user.id);
 
         if (sessions && sessions.length > 0) {
-          const mapped: ConversationLike[] = sessions.slice(0, 10).map(s => ({
-            id: s.sessionId,
-            title: getSessionTitle({
-              flowId: s.flowId || 'about',
-              metadata: s.metadata,
-            }),
-            createdAt: s.createdAt,
-            messages: [],
-            flowId: s.flowId || 'about',
-            status: s.status === 'ended' ? 'ended' : 'active',
-            icon: undefined,
-          }));
+          const mapped: ConversationLike[] = sessions.slice(0, 10).map(s => {
+            // Generate title with FK relationships for consistency
+            const title = getSessionTitle({
+              flowId: s.flowId,
+              metadata: {
+                title: s.metadata?.title,
+                context: {
+                  display_id: s.inquiry?.display_id || s.quote?.display_id || s.order?.display_id,
+                },
+              },
+              inquiry: s.inquiry,
+              quote: s.quote,
+              order: s.order,
+            });
+
+            return {
+              id: s.sessionId,
+              title,
+              createdAt: s.createdAt,
+              messages: [],
+              flowId: s.flowId,
+              status: s.status === 'ended' ? 'ended' : 'active',
+              icon: undefined,
+            };
+          });
 
           setConversations(prev => {
             const existingIds = new Set(prev.map(c => c.id));

@@ -223,7 +223,23 @@ const OrderHistory: React.FC = () => {
             created_at,
             flow_id,
             display_title,
-            metadata->context->display_id
+            metadata,
+            inquiry:inquiries_v2!inquiry_id(
+              inquiry_id,
+              display_id,
+              inquiry_type,
+              inquiry_status
+            ),
+            quote:quotes!quote_id(
+              quote_id,
+              display_id,
+              status
+            ),
+            order:orders!order_id(
+              order_id,
+              display_id,
+              status
+            )
           `
           )
           .order('created_at', { ascending: false })
@@ -241,11 +257,13 @@ const OrderHistory: React.FC = () => {
               title: getSessionTitle({
                 flowId: session.flow_id,
                 metadata: {
-                  title: session.display_title,
                   context: {
-                    display_id: session.display_id,
+                    display_id: session.metadata?.context?.display_id || session.inquiry?.display_id || session.quote?.display_id || session.order?.display_id,
                   },
                 },
+                inquiry: session.inquiry,
+                quote: session.quote,
+                order: session.order,
               }),
               createdAt: new Date(session.created_at).getTime(),
               messages: [], // Messages will be loaded when switching to conversation
