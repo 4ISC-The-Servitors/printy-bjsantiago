@@ -279,8 +279,8 @@ const QuoteHistory: React.FC = () => {
               description = specs[0].spec_data.description;
             }
 
-            // Get quoted price from accepted proposals via quotes table
-            if (quote.status === 'accepted' && quote.proposal_id) {
+            // Get quoted price from proposals for any quote that has a proposal
+            if (quote.proposal_id) {
               const { data: proposal, error: proposalError } = await supabase
                 .from('quote_proposals')
                 .select('quoted_price')
@@ -358,8 +358,8 @@ const QuoteHistory: React.FC = () => {
     }
 
     if (quote.quoted_price) {
-      metadata['quoted price'] =
-        `₱${Number(quote.quoted_price).toLocaleString()}`;
+      // Pass as 'total' so HistoryItemCard displays it in the pricing row
+      metadata.total = `₱${Number(quote.quoted_price).toLocaleString()}`;
     }
 
     if (quote.endedAt) {
