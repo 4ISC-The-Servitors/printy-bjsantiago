@@ -52,7 +52,6 @@ export class FlowTriggerService {
   private static async getQuoteFlow(
     sessionId: string
   ): Promise<FlowContext | null> {
-    console.log('🔍 Checking quote status for session_id:', sessionId);
 
     const { data: quoteData, error: quoteError } = await supabase
       .from('quotes')
@@ -65,11 +64,9 @@ export class FlowTriggerService {
       return null;
     }
 
-    console.log('📊 Quote status:', quoteData.status);
 
     // ACCEPTED quotes → admin-create-order flow
     if (quoteData.status === 'accepted') {
-      console.log('✅ Quote is accepted - using admin-create-order flow');
 
       // Get the accepted proposal for context
       const { data: proposalData, error: proposalError } = await supabase
@@ -91,7 +88,6 @@ export class FlowTriggerService {
       };
 
       if (proposalData) {
-        console.log('📋 Found accepted proposal:', proposalData.proposal_id);
         context.proposal_id = proposalData.proposal_id;
       } else {
         console.error('⚠️ No accepted proposal found for session:', sessionId);
@@ -106,7 +102,6 @@ export class FlowTriggerService {
     }
 
     // NON-ACCEPTED quotes → admin-quote-propose flow
-    console.log('📝 Quote is not accepted - checking for saved specs');
 
     const { data: savedSpecs } = await supabase
       .from('quote_specs')
@@ -118,13 +113,7 @@ export class FlowTriggerService {
     const hasSavedSpecs = savedSpecs && savedSpecs.length > 0;
 
     if (hasSavedSpecs) {
-      console.log(
-        '📋 Found saved specs - using admin-quote-propose flow with saved specs context'
-      );
     } else {
-      console.log(
-        '📝 No saved specs found - using admin-quote-propose flow for new specs'
-      );
     }
 
     return {
@@ -145,10 +134,6 @@ export class FlowTriggerService {
   private static async getTicketFlow(
     inquiryId: string
   ): Promise<FlowContext | null> {
-    console.log(
-      '🔍 Tickets topic detected - using admin-review-ticket flow for inquiry_id:',
-      inquiryId
-    );
 
     // Fetch ticket data for display ID
     const { data: ticketData } = await supabase
@@ -172,10 +157,6 @@ export class FlowTriggerService {
   private static async getOrderFlow(
     orderId: string
   ): Promise<FlowContext | null> {
-    console.log(
-      '🔍 Orders topic detected - checking order status for order_id:',
-      orderId
-    );
 
     const { data: orderData, error: orderError } = await supabase
       .from('orders')
@@ -188,13 +169,9 @@ export class FlowTriggerService {
       return null;
     }
 
-    console.log('📊 Order status:', orderData.status);
 
     // VERIFYING_PAYMENT status → admin-verify-payment flow
     if (orderData.status === 'verifying_payment') {
-      console.log(
-        '✅ Order is in verifying_payment status - using admin-verify-payment flow'
-      );
 
       return {
         flowId: 'admin-verify-payment',
@@ -256,17 +233,11 @@ export class FlowTriggerService {
 
     // 2. Page changed (e.g., tickets → quotes)
     if (currentPage !== newPage) {
-      console.log(
-        `🔄 Page changed: ${currentPage} → ${newPage}, resetting chat`
-      );
       return true;
     }
 
     // 3. Entity changed within same page (e.g., different quote)
     if (currentEntityId !== newEntityId) {
-      console.log(
-        `🔄 Entity changed: ${currentEntityId} → ${newEntityId}, resetting chat`
-      );
       return true;
     }
 

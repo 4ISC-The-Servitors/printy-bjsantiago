@@ -8,7 +8,6 @@ interface LogoutButtonProps {
 
 const LogoutButton: React.FC<LogoutButtonProps> = ({ onClick }) => {
   const handleClick = () => {
-    console.log('LogoutButton handleClick called');
     onClick();
   };
 

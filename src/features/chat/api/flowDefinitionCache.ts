@@ -37,7 +37,6 @@ class FlowDefinitionCache {
 
     this.warmupPromise = (async () => {
       try {
-        console.log('[FlowDefinitionCache] Warming up cache...');
 
         // Fetch all active flow definitions
         const { data, error } = await supabase
@@ -58,9 +57,6 @@ class FlowDefinitionCache {
             });
           }
 
-          console.log(
-            `[FlowDefinitionCache] Cache warmed up with ${data.length} flow definitions`
-          );
         }
 
         this.isWarmedUp = true;
@@ -79,11 +75,9 @@ class FlowDefinitionCache {
     // Check cache first
     const cached = this.cache.get(flowId);
     if (cached) {
-      console.log(`[FlowDefinitionCache] Cache HIT for flow: ${flowId}`);
       return cached.definition;
     }
 
-    console.log(`[FlowDefinitionCache] Cache MISS for flow: ${flowId}`);
 
     // Fetch from database
     try {
@@ -121,10 +115,8 @@ class FlowDefinitionCache {
    */
   invalidate(flowId?: string): void {
     if (flowId) {
-      console.log(`[FlowDefinitionCache] Invalidating flow: ${flowId}`);
       this.cache.delete(flowId);
     } else {
-      console.log('[FlowDefinitionCache] Invalidating all flows');
       this.cache.clear();
       this.isWarmedUp = false;
       this.warmupPromise = null;

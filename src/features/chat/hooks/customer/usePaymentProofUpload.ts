@@ -53,13 +53,6 @@ export function usePaymentProofUpload(): UsePaymentProofUploadResult {
         }
 
         // Update order with payment proof URL and timestamp
-        console.log('Updating database with:', {
-          payment_proof: uploadResult.url,
-          payment_proof_uploaded_at: new Date().toISOString(),
-          status: 'verifying_payment',
-          orderId,
-          customerId: user.id,
-        });
 
         const { error: updateError } = await supabase
           .from('orders')
@@ -81,7 +74,6 @@ export function usePaymentProofUpload(): UsePaymentProofUploadResult {
           return;
         }
 
-        console.log('Database update successful');
 
         // Success
         onSuccess?.(uploadResult.url);

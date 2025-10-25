@@ -2,7 +2,6 @@ import { supabase } from '@lib/supabase';
 import type { ActionHandler } from '@features/chat/types';
 
 export const displayQRCodeDetails: ActionHandler = async () => {
-  console.log('[displayQRCodeDetails] Action called');
   const messages: Array<{
     id: string;
     role: 'printy';
@@ -52,7 +51,6 @@ export const displayQRCodeDetails: ActionHandler = async () => {
       messageText += `${method.image_url}\n\n`;
     });
 
-    console.log('[displayQRCodeDetails] Pushing message:', messageText);
     messages.push({
       id: crypto.randomUUID(),
       role: 'printy',
@@ -60,7 +58,6 @@ export const displayQRCodeDetails: ActionHandler = async () => {
       ts: Date.now(),
     });
 
-    console.log('[displayQRCodeDetails] Returning messages:', messages.length);
     return { messages };
   } catch (error) {
     console.error('[displayQRCodeDetails] Error:', error);

@@ -42,13 +42,6 @@ export const TicketItem: React.FC<TicketItemProps> = ({
   onViewInChat,
 }) => {
   // Debug logging
-  console.log('TicketItem received ticket:', {
-    inquiry_id: ticket.inquiry_id,
-    display_id: ticket.display_id,
-    received_at: ticket.received_at,
-    updated_at: ticket.updated_at,
-    inquiry_status: ticket.inquiry_status,
-  });
 
   // Get responsive layout classes
   const { getTicketCardLayout } = useResponsiveLayout();

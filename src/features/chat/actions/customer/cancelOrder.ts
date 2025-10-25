@@ -108,7 +108,6 @@ export async function cancelOrder(
       }
 
       // Create notifications for admins about order cancellation
-      console.log('[cancelOrder] Starting notification creation process...');
       try {
         // Get customer name for the notification
         const { data: customerData } = await supabase
@@ -122,11 +121,9 @@ export async function cancelOrder(
             'Customer'
           : 'Customer';
 
-        console.log('[cancelOrder] Got customer name:', customerName);
 
         // Get all admin users
         const adminIds = await getAllAdminIds();
-        console.log('[cancelOrder] Got admin IDs:', adminIds);
 
         if (adminIds.length > 0) {
           // Create notification for each admin
@@ -140,10 +137,6 @@ export async function cancelOrder(
             category: 'order',
           }));
 
-          console.log(
-            '[cancelOrder] Creating admin notifications:',
-            notifications
-          );
 
           const { error: notifError } = await supabase
             .from('notifications')
@@ -155,11 +148,6 @@ export async function cancelOrder(
               notifError
             );
           } else {
-            console.log(
-              '[cancelOrder] Created notifications for',
-              adminIds.length,
-              'admins'
-            );
           }
         }
       } catch (notifErr) {

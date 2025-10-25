@@ -155,7 +155,6 @@ export async function createOrder(
       };
     }
 
-    console.log('[createOrder] Successfully created order:', order);
 
     return {
       messages: [

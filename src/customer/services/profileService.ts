@@ -44,7 +44,6 @@ export class ProfileService {
    */
   static async getProfile(customerId: string): Promise<CustomerProfile | null> {
     try {
-      console.log('Fetching profile for customer ID:', customerId);
 
       // Check if Supabase is available
       if (!supabase) {
@@ -82,11 +81,9 @@ export class ProfileService {
       }
 
       if (!customerData) {
-        console.log('No customer data found for ID:', customerId);
         return null;
       }
 
-      console.log('Customer data fetched successfully:', customerData);
 
       // Fetch address parts by joining related tables from location
       let address: CustomerProfile['address'] = {
@@ -171,7 +168,6 @@ export class ProfileService {
         address,
       };
 
-      console.log('Profile created successfully:', profile);
       return profile;
     } catch (error) {
       console.error('Error in ProfileService.getProfile:', error);

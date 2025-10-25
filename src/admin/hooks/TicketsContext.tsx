@@ -27,8 +27,7 @@ export const TicketsProvider: React.FC<{ children: React.ReactNode }> = ({
     useAdvancedFallbacks: true,
   });
 
-  const updateTicket = (ticketId: string, updates: Partial<AdminTicketRow>) => {
-    console.log('updateTicket called:', ticketId, updates);
+  const updateTicket = (_ticketId: string, _updates: Partial<AdminTicketRow>) => {
 
     // Optimistic update would go here if we had access to setTickets
     // For now, we'll rely on the real-time subscription to update the UI

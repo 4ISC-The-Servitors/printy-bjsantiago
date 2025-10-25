@@ -96,7 +96,6 @@ export function useAdminQuotes(options: LoadQuotesOptions = {}) {
         return;
       }
 
-      console.debug('[useAdminQuotes] Fetched quotes:', data?.length || 0);
 
       // Build a lookup of latest proposal by session_id
       const sessionIds: string[] = (data || [])

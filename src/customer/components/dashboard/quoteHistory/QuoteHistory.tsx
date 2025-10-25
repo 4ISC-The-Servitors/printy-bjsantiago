@@ -327,9 +327,8 @@ const QuoteHistory: React.FC = () => {
     loadQuotes();
   }, []);
 
-  const handleItemClick = (quote: Quote) => {
+  const handleItemClick = (_quote: Quote) => {
     // TODO: Navigate to quote details or open chat
-    console.log('Quote clicked:', quote.displayId);
   };
 
   // Build actions for each quote

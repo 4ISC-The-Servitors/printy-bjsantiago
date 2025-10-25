@@ -24,8 +24,7 @@ export const OrdersProvider: React.FC<{ children: React.ReactNode }> = ({
     pageSize: 100, // Load more orders for the context
   });
 
-  const updateOrder = (orderId: string, updates: Partial<AdminOrderRow>) => {
-    console.log('updateOrder called:', orderId, updates);
+  const updateOrder = (_orderId: string, _updates: Partial<AdminOrderRow>) => {
 
     // Optimistic update - update local state immediately
     // Note: This assumes the orders state is accessible from the hook

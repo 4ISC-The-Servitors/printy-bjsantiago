@@ -39,7 +39,6 @@ import type {
 export async function acceptQuoteProposal(
   params: ActionExecutionParams
 ): Promise<ActionExecutionResult> {
-  console.log('[acceptQuoteProposal] Action called with params:', params);
   const { actionNode, context } = params;
   const messages: Array<{
     id: string;
@@ -64,9 +63,6 @@ export async function acceptQuoteProposal(
 
   // If conversationId is a quote_id, we need to find the actual session_id
   if (conversationId && conversationId.length > 30) {
-    console.log(
-      '[acceptQuoteProposal] conversationId looks like quote_id, finding session_id...'
-    );
 
     // Query quotes table to get the session_id for this quote
     const { data: quoteData } = await supabase
@@ -77,7 +73,6 @@ export async function acceptQuoteProposal(
 
     if (quoteData?.session_id) {
       conversationId = quoteData.session_id;
-      console.log('[acceptQuoteProposal] Found session_id:', conversationId);
     } else {
       console.error(
         '[acceptQuoteProposal] No session_id found for quote_id:',
@@ -95,10 +90,6 @@ export async function acceptQuoteProposal(
 
   try {
     // Update quotes status to 'accepted'
-    console.log(
-      '[acceptQuoteProposal] Updating quotes for session_id:',
-      conversationId
-    );
 
     const { data: quoteData, error: quoteError } = await supabase
       .from('quotes')
@@ -110,11 +101,6 @@ export async function acceptQuoteProposal(
       .eq('session_id', conversationId)
       .select();
 
-    console.log('[acceptQuoteProposal] quotes update result:', {
-      data: quoteData,
-      error: quoteError,
-      count: quoteData?.length,
-    });
 
     if (quoteError) {
       console.error('Error updating quotes:', quoteError);
@@ -134,10 +120,6 @@ export async function acceptQuoteProposal(
       );
     }
 
-    console.log(
-      '[AcceptQuote] Quote proposal accepted for conversation:',
-      conversationId
-    );
 
     // Create notifications for admins
     try {
@@ -157,15 +139,10 @@ export async function acceptQuoteProposal(
       const quoteDisplayId = quoteData?.[0]?.display_id || 'Unknown';
 
       // Get all admin users using RPC (bypasses RLS)
-      const { data: admins, error: adminError } = await supabase.rpc(
+      const { data: admins, error: _adminError } = await supabase.rpc(
         'get_admin_customer_ids'
       );
 
-      console.log('[AcceptQuote] Admin query result:', {
-        admins,
-        adminError,
-        count: admins?.length,
-      });
 
       if (admins && admins.length > 0) {
         // Create notification for each admin
@@ -179,20 +156,12 @@ export async function acceptQuoteProposal(
           category: 'quote',
         }));
 
-        console.log(
-          '[AcceptQuote] Attempting to insert notifications:',
-          notifications
-        );
 
-        const { data: insertedNotifs, error: notifError } = await supabase
+        const { data: _insertedNotifs, error: notifError } = await supabase
           .from('notifications')
           .insert(notifications)
           .select();
 
-        console.log('[AcceptQuote] Notification insert result:', {
-          insertedNotifs,
-          notifError,
-        });
 
         if (notifError) {
           console.error(
@@ -200,11 +169,6 @@ export async function acceptQuoteProposal(
             notifError
           );
         } else {
-          console.log(
-            '[AcceptQuote] Created notifications for',
-            admins.length,
-            'admins'
-          );
         }
       }
     } catch (notifErr) {

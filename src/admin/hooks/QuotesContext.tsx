@@ -24,8 +24,7 @@ export const QuotesProvider: React.FC<{ children: React.ReactNode }> = ({
   const loading = false;
   const error = null;
 
-  const updateQuote = (quoteId: string, updates: Partial<AdminQuoteRow>) => {
-    console.log('updateQuote called:', quoteId, updates);
+  const updateQuote = (_quoteId: string, _updates: Partial<AdminQuoteRow>) => {
     // Implementation would go here if needed
   };
 

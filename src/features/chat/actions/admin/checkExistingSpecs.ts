@@ -71,10 +71,6 @@ export async function checkExistingSpecs(
 
   try {
     // Check for existing specs
-    console.log(
-      '[checkExistingSpecs] Checking for existing specs for session_id:',
-      conversationId
-    );
     const { data: existingSpecs, error: specError } = await supabase
       .from('quote_specs')
       .select('spec_id, created_at, spec_data')
@@ -94,7 +90,6 @@ export async function checkExistingSpecs(
     }
 
     const hasExistingSpecs = existingSpecs && existingSpecs.length > 0;
-    console.log('[checkExistingSpecs] Found existing specs:', hasExistingSpecs);
 
     // Store the result in context for the flow to use
     context.has_existing_specs = hasExistingSpecs;

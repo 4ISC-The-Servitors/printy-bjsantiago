@@ -39,9 +39,6 @@ export async function displayProposalSpecs(
 
   // If conversationId is a quote_id, we need to find the actual session_id
   if (conversationId && conversationId.length > 30) {
-    console.log(
-      '[displayProposalSpecs] conversationId looks like quote_id, finding session_id...'
-    );
 
     // Query quotes table to get the session_id for this quote
     const { data: quoteData } = await supabase
@@ -52,7 +49,6 @@ export async function displayProposalSpecs(
 
     if (quoteData?.session_id) {
       conversationId = quoteData.session_id;
-      console.log('[displayProposalSpecs] Found session_id:', conversationId);
     }
   }
 

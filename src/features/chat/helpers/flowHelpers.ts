@@ -143,10 +143,6 @@ export async function processPendingQuoteAction(
   conversationId: string
 ): Promise<void> {
   try {
-    console.log(
-      `[ProcessPendingQuote] Processing ${action} for conversation:`,
-      conversationId
-    );
 
     // Get customer ID from the session FIRST
     const { data: sessionData, error: sessionError } = await supabase
@@ -206,19 +202,10 @@ export async function processPendingQuoteAction(
       return;
     }
 
-    console.log(
-      `[ProcessPendingQuote] Proposal status updated to ${newStatus}`
-    );
 
     // Update quote status in quotes table with customer_id
-    console.log(
-      `[ProcessPendingQuote] Updating quote status to ${newStatus} for session_id:`,
-      conversationId,
-      'with customer_id:',
-      actingCustomerId
-    );
 
-    const { data: updateResult, error: quoteError } = await supabase
+    const { data: _updateResult, error: quoteError } = await supabase
       .from('quotes')
       .update({
         status: newStatus,
@@ -234,14 +221,6 @@ export async function processPendingQuoteAction(
         quoteError
       );
     } else {
-      console.log(
-        `[ProcessPendingQuote] Quote status update result:`,
-        updateResult
-      );
-      console.log(
-        `[ProcessPendingQuote] Quote status updated to ${newStatus} with updated_by=`,
-        actingCustomerId
-      );
     }
   } catch (error) {
     console.error(

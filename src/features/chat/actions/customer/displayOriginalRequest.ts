@@ -25,7 +25,6 @@ import type {
 export async function displayOriginalRequest(
   params: ActionExecutionParams
 ): Promise<ActionExecutionResult> {
-  console.log('[displayOriginalRequest] Action called with params:', params);
 
   const { actionNode, context, sessionId: _sessionId } = params;
   const messages: Array<{
@@ -41,9 +40,6 @@ export async function displayOriginalRequest(
 
   // If conversationId is a quote_id, we need to find the actual session_id
   if (conversationId && conversationId.length > 30) {
-    console.log(
-      '[displayOriginalRequest] conversationId looks like quote_id, finding session_id...'
-    );
 
     // Query quotes table to get the session_id for this quote
     const { data: quoteData } = await supabase
@@ -54,11 +50,9 @@ export async function displayOriginalRequest(
 
     if (quoteData?.session_id) {
       conversationId = quoteData.session_id;
-      console.log('[displayOriginalRequest] Found session_id:', conversationId);
     }
   }
 
-  console.log('[displayOriginalRequest] Final conversationId:', conversationId);
 
   if (!conversationId) {
     messages.push({
@@ -71,10 +65,6 @@ export async function displayOriginalRequest(
   }
 
   try {
-    console.log(
-      '[displayOriginalRequest] Loading messages for session:',
-      conversationId
-    );
 
     // Use the same RPC function that admin uses for proper decryption
     const { data: allMessages, error: msgError } = await supabase.rpc(
@@ -82,14 +72,6 @@ export async function displayOriginalRequest(
       { p_session_id: conversationId }
     );
 
-    console.log('[displayOriginalRequest] Messages loaded:', {
-      count: allMessages?.length,
-      error: msgError,
-      messages: allMessages?.map((m: any) => ({
-        sender_role: m.sender_role,
-        message_text: m.message_text?.substring(0, 50) + '...',
-      })),
-    });
 
     let originalRequestText = 'Your Original Request:\n\n';
     if (!msgError && allMessages && allMessages.length > 0) {
@@ -97,10 +79,6 @@ export async function displayOriginalRequest(
         (m: any) => m.sender_role === 'customer'
       );
 
-      console.log(
-        '[displayOriginalRequest] Customer messages found:',
-        customerOnlyMessages.length
-      );
 
       if (customerOnlyMessages.length > 0) {
         // Messages are already decrypted by the RPC function
@@ -108,10 +86,6 @@ export async function displayOriginalRequest(
           .map((m: any) => m.message_text)
           .join('\n');
         originalRequestText += requestText || 'No original request found.';
-        console.log(
-          '[displayOriginalRequest] Decoded message:',
-          requestText.substring(0, 100) + '...'
-        );
       } else {
         originalRequestText += 'No original request found.';
       }
@@ -151,9 +125,5 @@ export async function displayOriginalRequest(
     });
   }
 
-  console.log(
-    '[displayOriginalRequest] Action completed, returning messages:',
-    messages.length
-  );
   return { messages };
 }

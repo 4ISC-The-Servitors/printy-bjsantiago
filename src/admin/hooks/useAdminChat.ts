@@ -261,12 +261,6 @@ export const useAdminChat = (): UseAdminChatReturn => {
     );
 
     if (shouldReset) {
-      console.log(
-        '🎯 useAdminChat opening with page:',
-        page,
-        'entityId:',
-        orderId
-      );
 
       // Reset chat state
       setMessages([]);
@@ -302,8 +296,6 @@ export const useAdminChat = (): UseAdminChatReturn => {
 
           ({ flowId, context, sessionTitle } = flowContext);
 
-          console.log(`🚀 Starting flow: ${flowId}`);
-          console.log('📋 Context:', context);
 
           // Validate that the flow is appropriate for this page
           if (!FlowTriggerService.validateContext(page, flowId)) {
@@ -312,16 +304,13 @@ export const useAdminChat = (): UseAdminChatReturn => {
           }
 
           // Load flow definition
-          console.log(`🔍 Loading ${flowId} flow definition...`);
           const flowDef = await getFlowDefinition(flowId);
           if (!flowDef) {
             console.error(`Failed to load flow definition for ${flowId}`);
             return;
           }
-          console.log('✅ Flow definition loaded');
 
           // Start the flow
-          console.log(`🚀 Starting ${flowId} flow...`);
           start = await JsonbFlowProcessor.startFlow({
             flowId,
             customerId:
@@ -330,7 +319,6 @@ export const useAdminChat = (): UseAdminChatReturn => {
             flowDefinition: flowDef,
             initialContext: context,
           });
-          console.log('✅ Flow started successfully');
           setDbSessionId(start.sessionId);
         } catch (error) {
           console.error(`❌ Error starting flow:`, error);

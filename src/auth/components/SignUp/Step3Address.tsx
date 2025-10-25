@@ -201,7 +201,6 @@ const Step3Address: React.FC<Props> = ({
             variant="ghost"
             size="sm"
             className="text-brand-primary hover:text-brand-primary-700 underline p-0 h-auto"
-            onClick={() => console.log('Show terms of service')}
           >
             Terms of Service
           </Button>{' '}
@@ -210,7 +209,6 @@ const Step3Address: React.FC<Props> = ({
             variant="ghost"
             size="sm"
             className="text-brand-primary hover:text-brand-primary-700 underline p-0 h-auto"
-            onClick={() => console.log('Show privacy policy')}
           >
             Privacy Policy
           </Button>

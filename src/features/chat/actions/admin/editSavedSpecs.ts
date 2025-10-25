@@ -74,10 +74,6 @@ export async function editSavedSpecs(
 
   try {
     // Load latest saved spec for this customer quote session
-    console.log(
-      '[editSavedSpecs] Fetching latest spec for customer quote session_id:',
-      conversationId
-    );
     const { data: existingSpecs, error: specError } = await supabase
       .from('quote_specs')
       .select('*')
@@ -85,11 +81,6 @@ export async function editSavedSpecs(
       .order('created_at', { ascending: false })
       .limit(1);
 
-    console.log('[editSavedSpecs] Query result:', {
-      found: existingSpecs?.length || 0,
-      error: specError,
-      sessionId: conversationId,
-    });
 
     if (specError) {
       console.error('[editSavedSpecs] Error fetching specs:', specError);
@@ -106,12 +97,8 @@ export async function editSavedSpecs(
     if (existingSpecs && existingSpecs.length > 0) {
       // Use the latest saved spec data
       specData = existingSpecs[0].spec_data;
-      console.log('[editSavedSpecs] Loaded existing spec data:', specData);
     } else {
       // Fallback to empty spec if no saved data found
-      console.log(
-        '[editSavedSpecs] No saved specs found, using empty template'
-      );
       specData = {
         product_name: '',
         service_code: '',

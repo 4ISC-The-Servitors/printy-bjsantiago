@@ -64,22 +64,18 @@ const AccountSettings: React.FC = () => {
   }, [navigate]);
 
   const fetchProfileData = useCallback(async () => {
-    console.log('fetchProfileData called, user:', user);
 
     // Prevent multiple simultaneous calls
     if (fetchingRef.current) {
-      console.log('Already fetching, skipping...');
       return;
     }
 
     if (!user?.id) {
-      console.log('No user ID, setting loading to false');
       setLoading(false);
       return;
     }
 
     try {
-      console.log('Starting to fetch profile data...');
       fetchingRef.current = true;
       setLoading(true);
 
@@ -95,7 +91,6 @@ const AccountSettings: React.FC = () => {
         timeoutPromise,
       ])) as any;
 
-      console.log('Profile service returned:', profile);
 
       if (profile) {
         const displayName = ProfileService.getDisplayName(
@@ -120,10 +115,8 @@ const AccountSettings: React.FC = () => {
           customerType: profile.customer_type,
         };
 
-        console.log('Setting user data:', userDataToSet);
         setUserData(userDataToSet);
       } else {
-        console.log('No profile found, using fallback data');
         // Fallback to empty data if profile not found
         const fallbackData = {
           displayName: '',
@@ -140,7 +133,6 @@ const AccountSettings: React.FC = () => {
           lastName: '',
           customerType: '',
         };
-        console.log('Setting fallback user data:', fallbackData);
         setUserData(fallbackData);
       }
 
@@ -153,7 +145,6 @@ const AccountSettings: React.FC = () => {
         ticketUpdates: true,
       });
 
-      console.log('Profile data fetch completed successfully');
     } catch (error) {
       console.error('Error fetching profile data:', error);
       toast.error(
@@ -178,7 +169,6 @@ const AccountSettings: React.FC = () => {
         customerType: '',
       });
     } finally {
-      console.log('Setting loading to false');
       fetchingRef.current = false;
       setLoading(false);
     }

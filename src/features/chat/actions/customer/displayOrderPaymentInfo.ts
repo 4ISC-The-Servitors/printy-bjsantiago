@@ -5,7 +5,6 @@ export const displayOrderPaymentInfo: ActionHandler = async ({
   customerId,
   context,
 }) => {
-  console.log('[displayOrderPaymentInfo] Action called');
   const messages: Array<{
     id: string;
     role: 'printy';
@@ -57,7 +56,6 @@ export const displayOrderPaymentInfo: ActionHandler = async ({
 
     // Format the payment info message
     const paymentInfo = `Your total balance for ${order.display_id} is ₱${parseFloat(order.total_amount).toFixed(2)}.`;
-    console.log('[displayOrderPaymentInfo] Pushing message:', paymentInfo);
 
     messages.push({
       id: crypto.randomUUID(),
@@ -66,10 +64,6 @@ export const displayOrderPaymentInfo: ActionHandler = async ({
       ts: Date.now(),
     });
 
-    console.log(
-      '[displayOrderPaymentInfo] Returning messages:',
-      messages.length
-    );
     return { messages };
   } catch (error) {
     console.error('[displayOrderPaymentInfo] Error:', error);

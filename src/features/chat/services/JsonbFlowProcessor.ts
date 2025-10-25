@@ -76,12 +76,6 @@ export class JsonbFlowProcessor {
       throw new Error('Failed to start conversation');
     }
 
-    console.log('[JsonbFlowProcessor.startFlow] Starting flow:', {
-      flowId,
-      customerId,
-      initialContext,
-      initial_node: flowDefinition.initial_node,
-    });
 
     // ✅ PHASE 3 OPTIMIZATION: Create SessionStateManager for batched metadata updates
     // This reduces 5-8 sequential database writes to 1 batched write at the end
@@ -93,10 +87,6 @@ export class JsonbFlowProcessor {
       },
     });
 
-    console.log(
-      '[JsonbFlowProcessor.startFlow] StateManager context initialized:',
-      stateManager.getContext()
-    );
 
     // Resolve starting node, with auto-skip if initial context already provides required input
     let currentNodeId = flowDefinition.initial_node;
@@ -196,11 +186,6 @@ export class JsonbFlowProcessor {
           const conditionalNode = initialNode as ConditionalNode;
           const conditionValue = updatedContext[conditionalNode.condition];
 
-          console.log('[StartFlow] Processing conditional node:', {
-            condition: conditionalNode.condition,
-            value: conditionValue,
-            cases: conditionalNode.cases,
-          });
 
           // Find matching case
           const nextNodeId =
@@ -208,30 +193,18 @@ export class JsonbFlowProcessor {
             conditionalNode.cases['default'];
 
           if (nextNodeId) {
-            console.log('[StartFlow] Conditional branch to:', nextNodeId);
             currentNodeId = nextNodeId;
             stateManager.setCurrentNode(currentNodeId);
             initialNode = flowDefinition.nodes[currentNodeId];
 
             // If the conditional leads to an action node, execute it immediately
             if (initialNode && initialNode.type === 'action') {
-              console.log(
-                '[JsonbFlowProcessor.startFlow] Executing action from conditional:',
-                {
-                  actionNode: (initialNode as ActionNode).action,
-                  context: updatedContext,
-                }
-              );
               const actionResult = await this.executeAction({
                 actionNode: initialNode as ActionNode,
                 sessionId,
                 customerId,
                 context: updatedContext,
               });
-              console.log(
-                '[JsonbFlowProcessor.startFlow] Action result:',
-                actionResult
-              );
               bootMessages.push(...actionResult.messages);
 
               // ✅ FIX: Save action messages to database
@@ -257,18 +230,10 @@ export class JsonbFlowProcessor {
               }
             }
           } else {
-            console.log(
-              '[StartFlow] No matching case found for condition:',
-              conditionValue
-            );
           }
         }
         // If the next node is an action, execute it immediately
         else if (initialNode && initialNode.type === 'action') {
-          console.log(
-            '[StartFlow] Processing action node after advance:',
-            currentNodeId
-          );
           const actionResult = await this.executeAction({
             actionNode: initialNode as ActionNode,
             sessionId,
@@ -308,7 +273,6 @@ export class JsonbFlowProcessor {
       typeof initialNode.message === 'string' &&
       initialNode.message.trim().length > 0
     ) {
-      console.log('📝 Adding initial message:', initialNode.message);
       bootMessages.push({
         id: crypto.randomUUID(),
         role: 'printy',
@@ -386,11 +350,6 @@ export class JsonbFlowProcessor {
           const freshContext = stateManager.getContext();
           const conditionValue = freshContext[conditionalNode.condition];
 
-          console.log('[Conditional] Evaluating condition:', {
-            condition: conditionalNode.condition,
-            value: conditionValue,
-            cases: conditionalNode.cases,
-          });
 
           // Find matching case
           const nextNodeId =
@@ -398,12 +357,10 @@ export class JsonbFlowProcessor {
             conditionalNode.cases['default'];
 
           if (nextNodeId) {
-            console.log('[Conditional] Branching to:', nextNodeId);
             currentNodeId = nextNodeId;
             stateManager.setCurrentNode(currentNodeId);
             currentNode = flowDefinition.nodes[currentNodeId];
           } else {
-            console.log('[Conditional] No matching case found, breaking out');
             // No matching case, break out
             break;
           }
@@ -465,11 +422,6 @@ export class JsonbFlowProcessor {
 
         if (shouldUseActionQuickReplies) {
           quickReplies = actionResult.quickReplies;
-          console.log(
-            '[startFlow] Using action quickReplies:',
-            actionNode.action,
-            quickReplies
-          );
 
           // ✅ CRITICAL FIX: Store quickReplies in session metadata
           // This allows processInput to access them for routing
@@ -589,35 +541,18 @@ export class JsonbFlowProcessor {
     // ✅ FIX: Check for pending quick replies from previous action first
     // This handles dynamic quick replies returned by actions (like Accept/Reject quote)
     const currentContext = stateManager.getContext();
-    console.log('[ProcessInput] Full context:', currentContext);
     const pendingQuickReplies = currentContext._pending_quick_replies;
-    console.log(
-      '[ProcessInput] Pending quick replies from context:',
-      pendingQuickReplies
-    );
     let optionMatched = false;
 
     if (pendingQuickReplies && Array.isArray(pendingQuickReplies)) {
-      console.log(
-        '[ProcessInput] Checking pending quick replies:',
-        pendingQuickReplies
-      );
-      console.log('[ProcessInput] User input:', userInput);
 
       const selectedQuickReply = pendingQuickReplies.find((qr: any) => {
         const labelMatch = qr.label?.toLowerCase() === userInput.toLowerCase();
         const valueMatch = qr.value?.toLowerCase() === userInput.toLowerCase();
-        console.log(
-          `[ProcessInput] Checking quick reply "${qr.label}": labelMatch=${labelMatch}, valueMatch=${valueMatch}`
-        );
         return labelMatch || valueMatch;
       });
 
       if (selectedQuickReply && selectedQuickReply.next) {
-        console.log(
-          '[ProcessInput] Quick reply matched! Moving to:',
-          selectedQuickReply.next
-        );
         stateManager.setCurrentNode(selectedQuickReply.next);
 
         // Clear pending quick replies after use
@@ -635,19 +570,13 @@ export class JsonbFlowProcessor {
       (currentNode.type === 'message' || currentNode.type === 'action') &&
       currentNode.options
     ) {
-      console.log('[ProcessInput] Current node options:', currentNode.options);
-      console.log('[ProcessInput] User input:', userInput);
 
       const selectedOption = currentNode.options.find(opt => {
         const labelMatch = opt.label.toLowerCase() === userInput.toLowerCase();
         const valueMatch = opt.value?.toLowerCase() === userInput.toLowerCase();
-        console.log(
-          `[ProcessInput] Checking option "${opt.label}": labelMatch=${labelMatch}, valueMatch=${valueMatch}`
-        );
         return labelMatch || valueMatch;
       });
 
-      console.log('[ProcessInput] Selected option:', selectedOption);
 
       if (selectedOption) {
         // Store option value if specified
@@ -659,29 +588,17 @@ export class JsonbFlowProcessor {
 
         // Move to next node
         if (selectedOption.next) {
-          console.log(
-            '[ProcessInput] Moving to next node:',
-            selectedOption.next
-          );
           stateManager.setCurrentNode(selectedOption.next);
         }
 
         optionMatched = true;
       } else {
-        console.log(
-          '[ProcessInput] No matching option found for input:',
-          userInput
-        );
       }
     }
 
     // ✅ FIX: Handle quick reply selections from action results
     // This handles cases where actions return dynamic quick replies (like show_customer_orders)
     if (currentNode.type === 'action' && userInput) {
-      console.log(
-        '[ProcessInput] Checking for action quick reply selection:',
-        userInput
-      );
 
       // Check if this input matches any quick reply that would have been returned by an action
       // We look for order IDs in the format ORD-XXXXXX or special values like 'no_order'
@@ -689,10 +606,6 @@ export class JsonbFlowProcessor {
         /^ORD-\d+$/.test(userInput) || userInput === 'no_order';
 
       if (isOrderSelection) {
-        console.log(
-          '[ProcessInput] Detected order quick reply selection:',
-          userInput
-        );
 
         // Store the order selection in context
         stateManager.updateContext({
@@ -701,10 +614,6 @@ export class JsonbFlowProcessor {
 
         // Move to create_ticket node
         stateManager.setCurrentNode('create_ticket');
-        console.log(
-          '[ProcessInput] Moving to create_ticket node for order:',
-          userInput
-        );
       }
     }
 
@@ -795,7 +704,6 @@ export class JsonbFlowProcessor {
       }
     } else if (nextNode.type === 'conditional') {
       // Handle conditional node
-      console.log('Processing conditional node:', nextNode.condition);
       const conditionalNode = nextNode as ConditionalNode;
 
       // ✅ PHASE 3 OPTIMIZATION: Use in-memory context from stateManager
@@ -803,11 +711,6 @@ export class JsonbFlowProcessor {
       const freshContext = stateManager.getContext();
       const conditionValue = freshContext[conditionalNode.condition];
 
-      console.log('[Conditional] Evaluating condition:', {
-        condition: conditionalNode.condition,
-        value: conditionValue,
-        cases: conditionalNode.cases,
-      });
 
       // Find matching case
       const nextNodeId =
@@ -815,7 +718,6 @@ export class JsonbFlowProcessor {
         conditionalNode.cases['default'];
 
       if (nextNodeId) {
-        console.log('[Conditional] Branching to:', nextNodeId);
         stateManager.setCurrentNode(nextNodeId);
 
         // Process the next node immediately
@@ -933,48 +835,21 @@ export class JsonbFlowProcessor {
       const freshMetadata = freshSession.metadata as SessionMetadata;
 
       // Process pending quote actions when reaching acknowledgement messages
-      console.log('[ProcessInput] Checking for pending quote actions:', {
-        currentNodeId: freshMetadata.current_node_id,
-        hasPendingAction: !!freshMetadata.context?.pending_quote_action,
-        hasPendingConversationId:
-          !!freshMetadata.context?.pending_conversation_id,
-        pendingAction: freshMetadata.context?.pending_quote_action,
-        pendingConversationId: freshMetadata.context?.pending_conversation_id,
-        fullContext: freshMetadata.context,
-      });
 
       const isAcceptedOrRejectedNode =
         freshMetadata.current_node_id === 'quote_accepted' ||
         freshMetadata.current_node_id === 'quote_rejected';
-      console.log(
-        '[ProcessInput] Is accepted/rejected node?',
-        isAcceptedOrRejectedNode
-      );
-      console.log(
-        '[ProcessInput] Has pending action?',
-        !!freshMetadata.context?.pending_quote_action
-      );
-      console.log(
-        '[ProcessInput] Has pending conversation ID?',
-        !!freshMetadata.context?.pending_conversation_id
-      );
 
       if (
         isAcceptedOrRejectedNode &&
         freshMetadata.context?.pending_quote_action &&
         freshMetadata.context?.pending_conversation_id
       ) {
-        console.log(
-          '[ProcessInput] All conditions met! Processing pending quote action...'
-        );
         await processPendingQuoteAction(
           freshMetadata.context.pending_quote_action,
           freshMetadata.context.pending_conversation_id
         );
       } else {
-        console.log(
-          '[ProcessInput] Conditions not met for processing pending action'
-        );
       }
     }
 
@@ -1012,11 +887,6 @@ export class JsonbFlowProcessor {
 
       if (shouldUseActionQuickReplies) {
         quickReplies = actionResult.quickReplies;
-        console.log(
-          '[continueFlow] Using action quickReplies:',
-          nextNode.action,
-          quickReplies
-        );
 
         // ✅ CRITICAL FIX: Store quickReplies in session metadata
         // This allows processInput to access them for routing
@@ -1027,7 +897,6 @@ export class JsonbFlowProcessor {
         // ✅ CRITICAL: Flush metadata to database immediately
         // This ensures quickReplies are persisted for the next processInput call
         await stateManager.flush();
-        console.log('[continueFlow] Flushed quickReplies to database');
       }
     }
 
@@ -1050,13 +919,6 @@ export class JsonbFlowProcessor {
   }) {
     const { actionNode, sessionId, customerId, context } = params;
 
-    console.log('[JsonbFlowProcessor.executeAction] Starting:', {
-      action: actionNode.action,
-      sessionId,
-      customerId,
-      context,
-      action_config: actionNode.action_config,
-    });
 
     const messages: Array<{
       id: string;
@@ -1072,7 +934,6 @@ export class JsonbFlowProcessor {
       typeof actionNode.message === 'string' &&
       actionNode.message.trim().length > 0
     ) {
-      console.log('[JsonbFlowProcessor] Node message:', actionNode.message);
       messages.push({
         id: crypto.randomUUID(),
         role: 'printy',
@@ -1080,23 +941,12 @@ export class JsonbFlowProcessor {
         ts: Date.now(),
       });
     } else {
-      console.log('[JsonbFlowProcessor] No node message (empty or not string)');
     }
 
     // Look up the action handler
     const handler = actionHandlers[actionNode.action];
 
     if (handler) {
-      console.log(
-        '[JsonbFlowProcessor] Executing action handler:',
-        actionNode.action
-      );
-      console.log('[JsonbFlowProcessor] Handler params:', {
-        actionNode,
-        sessionId,
-        customerId,
-        context,
-      });
 
       try {
         // Execute the handler
@@ -1107,14 +957,6 @@ export class JsonbFlowProcessor {
           context,
         });
 
-        console.log(
-          '[JsonbFlowProcessor] Action result messages:',
-          result.messages.length
-        );
-        console.log(
-          '[JsonbFlowProcessor] Action result context:',
-          result.context
-        );
         messages.push(...result.messages);
 
         // ✅ FIX: Return context updates and quick replies from action results

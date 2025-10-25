@@ -38,9 +38,6 @@ export async function showQuoteDecisionPrompt(
     ts: Date.now(),
   });
 
-  console.log(
-    '[showQuoteDecisionPrompt] Returning warning message and options'
-  );
 
   // Return with quick reply options
   return {

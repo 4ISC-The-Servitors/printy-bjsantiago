@@ -81,19 +81,26 @@ const RecentQuotes: React.FC<RecentQuotesProps> = ({ recentQuote }) => {
           </div>
         </div>
 
-        {/* Row 2: Action */}
-        <div className={layout.structure.row2}>
-          <div className={layout.leftSection} />
-          <div className={layout.rightSection}>
-            <TrackQuoteButton
-              conversationId={recentQuote.id}
-              subject={recentQuote.displayId}
-              status={recentQuote.status}
-            />
+        {/* Row 2: Amount only */}
+        {recentQuote.quotedPrice && (
+          <div className={layout.structure.row2}>
+            <div className={layout.leftSection} />
+            <div className={layout.rightSection}>
+              <div className={layout.amount}>{recentQuote.quotedPrice}</div>
+            </div>
           </div>
+        )}
+
+        {/* Row 3: Action buttons - bottom-right only */}
+        <div className="flex justify-end mt-3">
+          <TrackQuoteButton
+            conversationId={recentQuote.id}
+            subject={recentQuote.displayId}
+            status={recentQuote.status}
+          />
         </div>
 
-        {/* Row 3: Dates (stacked) */}
+        {/* Row 4: Dates (stacked) */}
         <div className="mt-1">
           <div
             className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}

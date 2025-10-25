@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { getCustomerQuotes } from '@features/chat/api/sessionQueries';
+import { formatCurrency } from '@shared/utils/priceFormatter';
 import type { RecentQuote } from '@shared/types/customer';
 
 export function useRecentQuote(customerId?: string) {
@@ -22,12 +23,18 @@ export function useRecentQuote(customerId?: string) {
         const latestQuote = quotes[0]; // Most recent quote
 
         if (latestQuote) {
+          let quotedPrice: string | undefined;
+          if (latestQuote.quoted_price) {
+            quotedPrice = formatCurrency(Number(latestQuote.quoted_price));
+          }
+
           setRecentQuote({
             id: latestQuote.quote_id,
             displayId:
               latestQuote.displayId ||
               latestQuote.quote_id.slice(0, 8).toUpperCase(),
             status: latestQuote.status as any, // Type casting due to v2 schema differences
+            quotedPrice,
             createdAt: latestQuote.createdAt,
             updatedAt: latestQuote.updatedAt || latestQuote.createdAt,
             endedAt: latestQuote.endedAt,

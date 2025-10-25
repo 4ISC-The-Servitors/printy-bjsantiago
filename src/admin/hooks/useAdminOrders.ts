@@ -92,7 +92,6 @@ export function useAdminOrders(options: LoadOrdersOptions = {}) {
         return;
       }
 
-      console.debug('[useAdminOrders] Fetched orders:', data?.length || 0);
 
       // Transform the data to match the expected interface
       const normalized: AdminOrderRow[] = (data || []).map((order: any) => {

@@ -48,7 +48,6 @@ export async function fetchTicketDetails(
       return { messages };
     }
 
-    console.log('[fetchTicketDetails] Looking for inquiry with ID:', inquiryId);
 
     // Fetch inquiry details using inquiry_id from context
     const { data: inquiry, error: inquiryError } = await supabase
@@ -84,14 +83,9 @@ export async function fetchTicketDetails(
       return { messages };
     }
 
-    console.log('[fetchTicketDetails] Found inquiry:', inquiry);
 
     // Fetch all messages for the original session (where the inquiry was created) using RPC for proper decryption
     const originalSessionId = inquiry.session_id;
-    console.log(
-      '[fetchTicketDetails] Fetching messages for original session:',
-      originalSessionId
-    );
 
     const { data: chatMessages, error: messagesError } = await supabase.rpc(
       'api_fetch_chat_messages_v2',
@@ -136,12 +130,6 @@ export async function fetchTicketDetails(
           msg.sender_role === 'admin' // Admin replies
       );
 
-      console.log(
-        '[fetchTicketDetails] Filtered messages:',
-        relevantMessages.length,
-        'out of',
-        chatMessages.length
-      );
 
       if (relevantMessages.length > 0) {
         // Deduplicate messages by content and sender to avoid showing repeated messages
@@ -149,12 +137,6 @@ export async function fetchTicketDetails(
         const uniqueMessages: any[] = [];
 
         for (const msg of relevantMessages) {
-          console.log('[fetchTicketDetails] Processing message:', {
-            message_id: msg.message_id,
-            sender_role: msg.sender_role,
-            message_text: msg.message_text,
-            node_id: msg.node_id,
-          });
 
           // Use the decrypted message_text from RPC function
           let decryptedText = msg.message_text || '[No message content]';
@@ -175,10 +157,6 @@ export async function fetchTicketDetails(
             }
           }
 
-          console.log(
-            '[fetchTicketDetails] Using decrypted message:',
-            decryptedText
-          );
 
           // Create a unique key for deduplication (sender + content)
           const messageKey = `${msg.sender_role}:${decryptedText}`;
@@ -307,10 +285,6 @@ export async function sendCustomerReply(
     }
 
     // Update inquiry status to pending_admin_reply using inquiry_id
-    console.log(
-      '[sendCustomerReply] Updating inquiry status to pending_admin_reply for inquiry_id:',
-      inquiryId
-    );
     const { data: updateData, error: statusError } = await supabase
       .from('inquiries_v2')
       .update({
@@ -323,12 +297,7 @@ export async function sendCustomerReply(
     if (statusError) {
       console.error('[sendCustomerReply] Error updating status:', statusError);
     } else {
-      console.log('[sendCustomerReply] Status update result:', updateData);
       if (updateData && updateData.length > 0) {
-        console.log(
-          '[sendCustomerReply] Status updated successfully to:',
-          updateData[0].inquiry_status
-        );
       } else {
         console.error(
           '[sendCustomerReply] No rows were updated - inquiry_id might not exist or no permission'
@@ -337,9 +306,6 @@ export async function sendCustomerReply(
     }
 
     // Create notifications for admins about customer reply
-    console.log(
-      '[sendCustomerReply] Starting notification creation process...'
-    );
     try {
       // Get customer name for the notification
       const { data: customerData } = await supabase
@@ -353,7 +319,6 @@ export async function sendCustomerReply(
           'Customer'
         : 'Customer';
 
-      console.log('[sendCustomerReply] Got customer name:', customerName);
 
       // Get ticket display_id for notification
       const { data: ticketData } = await supabase
@@ -367,7 +332,6 @@ export async function sendCustomerReply(
 
       // Get all admin users
       const adminIds = await getAllAdminIds();
-      console.log('[sendCustomerReply] Got admin IDs:', adminIds);
 
       if (adminIds.length > 0) {
         // Create notification for each admin
@@ -381,10 +345,6 @@ export async function sendCustomerReply(
           category: 'ticket',
         }));
 
-        console.log(
-          '[sendCustomerReply] Creating admin notifications:',
-          notifications
-        );
 
         const { error: notifError } = await supabase
           .from('notifications')
@@ -396,11 +356,6 @@ export async function sendCustomerReply(
             notifError
           );
         } else {
-          console.log(
-            '[sendCustomerReply] Created notifications for',
-            adminIds.length,
-            'admins'
-          );
         }
       }
     } catch (notifErr) {
@@ -523,7 +478,6 @@ export async function resolveTicket(
       .eq('session_id', originalSessionId);
 
     // Create notifications for admins about ticket resolution
-    console.log('[resolveTicket] Starting notification creation process...');
     try {
       // Get customer name for the notification
       const { data: customerData } = await supabase
@@ -537,7 +491,6 @@ export async function resolveTicket(
           'Customer'
         : 'Customer';
 
-      console.log('[resolveTicket] Got customer name:', customerName);
 
       // Get ticket display_id for notification
       const { data: ticketData } = await supabase
@@ -551,7 +504,6 @@ export async function resolveTicket(
 
       // Get all admin users
       const adminIds = await getAllAdminIds();
-      console.log('[resolveTicket] Got admin IDs:', adminIds);
 
       if (adminIds.length > 0) {
         // Create notification for each admin
@@ -565,10 +517,6 @@ export async function resolveTicket(
           category: 'ticket',
         }));
 
-        console.log(
-          '[resolveTicket] Creating admin notifications:',
-          notifications
-        );
 
         const { error: notifError } = await supabase
           .from('notifications')
@@ -580,11 +528,6 @@ export async function resolveTicket(
             notifError
           );
         } else {
-          console.log(
-            '[resolveTicket] Created notifications for',
-            adminIds.length,
-            'admins'
-          );
         }
       }
     } catch (notifErr) {

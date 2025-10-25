@@ -25,6 +25,7 @@ export interface RecentQuote {
   id: string;
   displayId: string;
   status: 'active' | 'spec_proposed' | 'accepted' | 'rejected' | 'ended';
+  quotedPrice?: string;
   createdAt: number;
   updatedAt: number;
   endedAt?: number;

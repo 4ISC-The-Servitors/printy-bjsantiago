@@ -153,7 +153,6 @@ export async function denyPayment(
       }
 
       // Create notification for customer about payment denial
-      console.log('[denyPayment] Starting notification creation process...');
       try {
         // Get admin name for the notification
         const { data: adminData } = await supabase
@@ -167,7 +166,6 @@ export async function denyPayment(
             'Admin'
           : 'Admin';
 
-        console.log('[denyPayment] Got admin name:', adminName);
 
         // Create notification for customer
         const notification = {
@@ -180,10 +178,6 @@ export async function denyPayment(
           category: 'order',
         };
 
-        console.log(
-          '[denyPayment] Creating customer notification:',
-          notification
-        );
 
         const { error: notifError } = await supabase
           .from('notifications')
@@ -195,7 +189,6 @@ export async function denyPayment(
             notifError
           );
         } else {
-          console.log('[denyPayment] Created notification for customer');
         }
       } catch (notifErr) {
         console.error(

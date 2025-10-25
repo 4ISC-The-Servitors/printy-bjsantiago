@@ -48,19 +48,10 @@ export function useCustomerConversations() {
     async (flowId: string, title: string, ctx?: any) => {
       setIsTyping(true);
       try {
-        console.log('[useCustomerConversations] initializeFlow called:', {
-          flowId,
-          title,
-          ctx,
-        });
 
         // Use the flow ID as-is since track-ticket already exists in the database
         const resolvedFlowId = flowId;
 
-        console.log(
-          '[useCustomerConversations] Resolved flow ID:',
-          resolvedFlowId
-        );
 
         // Get customer ID
         const { data: userData } = await auth.getUser();
@@ -70,7 +61,6 @@ export function useCustomerConversations() {
           throw new Error('User not authenticated');
         }
 
-        console.log('[useCustomerConversations] Customer ID:', customerId);
 
         // Fetch flow definition from database
         const flowDefinition = await getFlowDefinition(resolvedFlowId);
@@ -78,14 +68,6 @@ export function useCustomerConversations() {
           throw new Error(`Flow ${resolvedFlowId} not found in database`);
         }
 
-        console.log(
-          '[useCustomerConversations] Flow definition loaded:',
-          flowDefinition.flow_id
-        );
-        console.log(
-          '[useCustomerConversations] Initial context being passed:',
-          ctx
-        );
 
         // Start the JSONB flow, pass initial context when present (e.g., order_id/display_id)
         const result = await JsonbFlowProcessor.startFlow({
@@ -95,7 +77,6 @@ export function useCustomerConversations() {
           initialContext: ctx || {},
         });
 
-        console.log('[useCustomerConversations] Flow started, result:', result);
 
         // ✅ Phase 1 Fix: Save title to database for persistence across refreshes
         // Fetch existing metadata to merge with new title
@@ -116,10 +97,6 @@ export function useCustomerConversations() {
           })
           .eq('session_id', result.sessionId);
 
-        console.log(
-          '[useCustomerConversations] Title saved to database:',
-          title
-        );
 
         // Map messages to ChatMessage format
         const mappedMessages: ChatMessage[] = result.messages.map(m => ({
@@ -166,7 +143,6 @@ export function useCustomerConversations() {
 
   const handleSend = useCallback(
     async (text: string) => {
-      console.log('[handleSend] Called with text:', text);
       if (!activeId || !sessionId) return;
 
       const userMessage: ChatMessage = {
@@ -314,13 +290,11 @@ export function useCustomerConversations() {
 
   const handleQuickReply = useCallback(
     (value: string) => {
-      console.log('[handleQuickReply] Quick reply clicked with value:', value);
       const normalized = (value ?? '').trim().toLowerCase();
       if (normalized === 'end chat' || normalized === 'end') {
         void endChatWithSequence();
         return;
       }
-      console.log('[handleQuickReply] Sending to handleSend:', value);
       void handleSend(value);
     },
     [handleSend, endChatWithSequence]

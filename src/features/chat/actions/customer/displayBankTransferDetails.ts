@@ -2,7 +2,6 @@ import { supabase } from '@lib/supabase';
 import type { ActionHandler } from '@features/chat/types';
 
 export const displayBankTransferDetails: ActionHandler = async () => {
-  console.log('[displayBankTransferDetails] Action called');
   const messages: Array<{
     id: string;
     role: 'printy';
@@ -52,7 +51,6 @@ export const displayBankTransferDetails: ActionHandler = async () => {
       messageText += `${method.image_url}\n\n`;
     });
 
-    console.log('[displayBankTransferDetails] Pushing message:', messageText);
     messages.push({
       id: crypto.randomUUID(),
       role: 'printy',
@@ -60,10 +58,6 @@ export const displayBankTransferDetails: ActionHandler = async () => {
       ts: Date.now(),
     });
 
-    console.log(
-      '[displayBankTransferDetails] Returning messages:',
-      messages.length
-    );
     return { messages };
   } catch (error) {
     console.error('[displayBankTransferDetails] Error:', error);

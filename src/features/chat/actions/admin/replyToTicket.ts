@@ -71,10 +71,6 @@ export async function sendAdminReply(
     }
 
     // Update inquiry status to pending_customer_reply
-    console.log(
-      '[sendAdminReply] Updating inquiry status to pending_customer_reply for inquiry_id:',
-      inquiryId
-    );
     const { data: updateData, error: statusError } = await supabase
       .from('inquiries_v2')
       .update({
@@ -87,12 +83,7 @@ export async function sendAdminReply(
     if (statusError) {
       console.error('[sendAdminReply] Error updating status:', statusError);
     } else {
-      console.log('[sendAdminReply] Status update result:', updateData);
       if (updateData && updateData.length > 0) {
-        console.log(
-          '[sendAdminReply] Status updated successfully to:',
-          updateData[0].inquiry_status
-        );
       } else {
         console.error('[sendAdminReply] No rows were updated');
       }

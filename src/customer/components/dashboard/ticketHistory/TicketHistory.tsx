@@ -281,9 +281,8 @@ const TicketHistory: React.FC = () => {
     loadTickets();
   }, []);
 
-  const handleItemClick = (ticket: Ticket) => {
+  const handleItemClick = (_ticket: Ticket) => {
     // TODO: Navigate to ticket details page or open chat
-    console.log('Ticket clicked:', ticket.displayId);
   };
 
   // Build actions for each ticket

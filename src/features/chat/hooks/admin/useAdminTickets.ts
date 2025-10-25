@@ -106,12 +106,6 @@ export function useAdminTickets(options: LoadInquiriesOptions = {}) {
         if (res.error) throw res.error;
 
         rows = (res.data as any[]) || [];
-        console.debug(
-          '[useAdminTickets] table: inquiries, rows:',
-          rows.length,
-          'Sample row:',
-          rows[0]
-        );
       }
 
       const normalized: AdminTicketRow[] = (rows || []).map(row => {
@@ -140,13 +134,6 @@ export function useAdminTickets(options: LoadInquiriesOptions = {}) {
           customer_last_name: last || null,
         } as AdminTicketRow;
 
-        // Debug first row
-        if (rows.indexOf(row) === 0) {
-          console.debug(
-            '[useAdminTickets] Normalized first row:',
-            normalizedRow
-          );
-        }
 
         return normalizedRow;
       });

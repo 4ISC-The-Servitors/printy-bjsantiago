@@ -137,10 +137,6 @@ export async function displayAcceptedProposal(
       messages.push(`Admin Notes: ${proposal.notes}`);
     }
 
-    console.log(
-      '[displayAcceptedProposal] Displaying proposal:',
-      proposal.proposal_id
-    );
 
     return {
       messages: [

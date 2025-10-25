@@ -72,7 +72,9 @@ export interface QuoteWithSession {
   display_id: string;
   customer_id: string;
   status: string;
+  proposal_id?: string;
   total_price?: number;
+  quoted_price?: number;
   created_at: string;
   updated_at?: string;
   session_id?: string;
@@ -552,6 +554,7 @@ export async function getCustomerQuotes(
       display_id,
       customer_id,
       status,
+      proposal_id,
       created_at,
       updated_at,
       ended_at,
@@ -572,23 +575,52 @@ export async function getCustomerQuotes(
     return [];
   }
 
-  return data.map(quote => ({
-    quote_id: quote.quote_id,
-    display_id: quote.display_id,
-    customer_id: quote.customer_id,
-    status: quote.status,
-    created_at: quote.created_at,
-    updated_at: quote.updated_at,
-    ended_at: quote.ended_at,
-    session_id: quote.session_id,
-    session: Array.isArray(quote.session) ? quote.session[0] : quote.session,
-    // Additional fields for hooks
-    quoteId: quote.quote_id,
-    displayId: quote.display_id,
-    createdAt: new Date(quote.created_at).getTime(),
-    updatedAt: quote.updated_at
-      ? new Date(quote.updated_at).getTime()
-      : undefined,
-    endedAt: quote.ended_at ? new Date(quote.ended_at).getTime() : undefined,
-  }));
+  // Get quoted prices for quotes that have proposals
+  const quotesWithPrices = await Promise.all(
+    data.map(async quote => {
+      let quotedPrice: number | undefined;
+
+      // Get quoted price from quote_proposals for any quote that has a proposal
+      if (quote.proposal_id) {
+        const { data: proposal, error: proposalError } = await supabase
+          .from('quote_proposals')
+          .select('quoted_price')
+          .eq('proposal_id', quote.proposal_id)
+          .maybeSingle();
+
+        if (proposalError) {
+          console.warn(
+            'Error fetching proposal for quote:',
+            quote.quote_id,
+            proposalError
+          );
+        } else {
+          quotedPrice = proposal?.quoted_price;
+        }
+      }
+
+      return {
+        quote_id: quote.quote_id,
+        display_id: quote.display_id,
+        customer_id: quote.customer_id,
+        status: quote.status,
+        created_at: quote.created_at,
+        updated_at: quote.updated_at,
+        ended_at: quote.ended_at,
+        session_id: quote.session_id,
+        session: Array.isArray(quote.session) ? quote.session[0] : quote.session,
+        quoted_price: quotedPrice,
+        // Additional fields for hooks
+        quoteId: quote.quote_id,
+        displayId: quote.display_id,
+        createdAt: new Date(quote.created_at).getTime(),
+        updatedAt: quote.updated_at
+          ? new Date(quote.updated_at).getTime()
+          : undefined,
+        endedAt: quote.ended_at ? new Date(quote.ended_at).getTime() : undefined,
+      };
+    })
+  );
+
+  return quotesWithPrices;
 }

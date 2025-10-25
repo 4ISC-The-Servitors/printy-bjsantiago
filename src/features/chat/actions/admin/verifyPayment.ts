@@ -150,7 +150,6 @@ export async function verifyPayment(
       }
 
       // Create notification for customer about payment verification
-      console.log('[verifyPayment] Starting notification creation process...');
       try {
         // Get admin name for the notification
         const { data: adminData } = await supabase
@@ -164,7 +163,6 @@ export async function verifyPayment(
             'Admin'
           : 'Admin';
 
-        console.log('[verifyPayment] Got admin name:', adminName);
 
         // Create notification for customer
         const notification = {
@@ -177,10 +175,6 @@ export async function verifyPayment(
           category: 'order',
         };
 
-        console.log(
-          '[verifyPayment] Creating customer notification:',
-          notification
-        );
 
         const { error: notifError } = await supabase
           .from('notifications')
@@ -192,7 +186,6 @@ export async function verifyPayment(
             notifError
           );
         } else {
-          console.log('[verifyPayment] Created notification for customer');
         }
       } catch (notifErr) {
         console.error(

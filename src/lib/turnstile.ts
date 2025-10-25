@@ -17,10 +17,9 @@ const debugFlag = String(
   (import.meta as any).env?.VITE_TURNSTILE_DEBUG ?? 'false'
 ).toLowerCase();
 const debugOn = !['false', '0', 'no', 'off', ''].includes(debugFlag.trim());
-function dbg(...args: unknown[]) {
+function dbg(..._args: unknown[]) {
   if (debugOn) {
     // eslint-disable-next-line no-console
-    console.info('[turnstile]', ...args);
   }
 }
 

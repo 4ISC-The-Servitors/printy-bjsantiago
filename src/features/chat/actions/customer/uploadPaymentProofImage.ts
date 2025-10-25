@@ -1,7 +1,6 @@
 import type { ActionHandler } from '@features/chat/types';
 
 export const uploadPaymentProofImage: ActionHandler = async () => {
-  console.log('[uploadPaymentProofImage] Action called');
   const messages: Array<{
     id: string;
     role: 'printy';
@@ -18,6 +17,5 @@ export const uploadPaymentProofImage: ActionHandler = async () => {
     ts: Date.now(),
   });
 
-  console.log('[uploadPaymentProofImage] Returning instructions message');
   return { messages };
 };

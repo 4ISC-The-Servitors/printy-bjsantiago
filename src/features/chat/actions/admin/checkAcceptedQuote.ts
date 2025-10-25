@@ -64,7 +64,6 @@ export async function checkAcceptedQuote(
       };
     }
 
-    console.log('[checkAcceptedQuote] Quote status:', quote.status);
 
     // Store quote status in context for conditional evaluation
     const quoteStatus =

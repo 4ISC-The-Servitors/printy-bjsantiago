@@ -69,7 +69,6 @@ export async function displayQuotePrice(
 
     const formattedPrice = `₱${Number(proposal.quoted_price).toLocaleString()}`;
 
-    console.log('[displayQuotePrice] Displaying price:', formattedPrice);
 
     return {
       messages: [

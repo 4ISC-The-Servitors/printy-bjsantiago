@@ -161,25 +161,19 @@ const OrderHistory: React.FC = () => {
   // Enhanced file upload handler that uses payment proof upload for payment flows
   const handleFileUpload = useCallback(
     async (files: FileList) => {
-      console.log('File upload triggered:', files);
-      console.log('Is payment flow:', isPaymentFlow);
-      console.log('Active conversation:', activeConversation);
 
       if (isPaymentFlow && activeConversation) {
         // Get order ID from payment flow context
         let orderId = activeConversation.context?.order_id;
 
-        console.log('Using order ID:', orderId);
 
         if (orderId && typeof orderId === 'string') {
           // Use payment proof upload for payment flows
-          console.log('Starting payment proof upload...');
           await handlePaymentProofUpload(
             files,
             orderId,
             url => {
               // Send the uploaded file URL to the chat
-              console.log('Upload successful, sending URL to chat:', url);
               sendViaHook(String(url));
             },
             error => {
@@ -194,7 +188,6 @@ const OrderHistory: React.FC = () => {
         }
       } else {
         // Use regular chat attachments for other flows
-        console.log('Using regular chat attachments');
         handleAttachFiles(files);
       }
     },
@@ -344,9 +337,8 @@ const OrderHistory: React.FC = () => {
     loadOrders();
   }, []);
 
-  const handleItemClick = (order: Order) => {
+  const handleItemClick = (_order: Order) => {
     // TODO: Navigate to order details page
-    console.log('Order clicked:', order.displayId);
   };
 
   // Build actions for each order

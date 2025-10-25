@@ -91,7 +91,6 @@ const ChatHistory: React.FC = () => {
 
   const openConversation = (id: string) => {
     // Store session ID in localStorage and navigate
-    console.log('ChatHistory: Opening conversation:', id);
     localStorage.setItem('pendingSessionId', id);
     navigate('/customer');
   };

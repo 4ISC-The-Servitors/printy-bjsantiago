@@ -51,7 +51,6 @@ import { insertMessageV2 } from '@features/chat/api/jsonbChatFlowApi';
 export async function createInquiry(
   params: ActionExecutionParams
 ): Promise<ActionExecutionResult> {
-  console.log('[createInquiry] Action started with params:', params);
 
   const { actionNode, context, customerId, sessionId } = params;
   const messages: Array<{
@@ -70,11 +69,6 @@ export async function createInquiry(
   const issueDetails = String(context[detailsKey] || '');
   const orderDisplayId = context[orderIdKey] || null;
 
-  console.log('[createInquiry] Extracted values:', {
-    inquiryType,
-    issueDetails,
-    orderDisplayId,
-  });
 
   if (!issueDetails) {
     messages.push({
@@ -104,14 +98,6 @@ export async function createInquiry(
   // If orderDisplayId is 'no_order', the issue is not related to a specific order - proceed without linking
 
   // Create inquiry in v2 table - let database auto-generate display_id
-  console.log('[createInquiry] Creating inquiry with data:', {
-    customer_id: customerId,
-    inquiry_type: inquiryType,
-    inquiry_status: 'new',
-    session_id: sessionId,
-    order_id: actualOrderId,
-    updated_by: customerId,
-  });
 
   const { data: inquiryData, error } = await supabase
     .from('inquiries_v2')
@@ -137,12 +123,10 @@ export async function createInquiry(
     return { messages };
   }
 
-  console.log('[createInquiry] Inquiry created successfully:', inquiryData);
 
   const inquiryId = inquiryData?.inquiry_id;
   let displayId = inquiryData?.display_id;
 
-  console.log('[createInquiry] Starting notification creation process...');
 
   // Create notifications for admins about the new ticket
   try {
@@ -158,11 +142,9 @@ export async function createInquiry(
         'Customer'
       : 'Customer';
 
-    console.log('[createInquiry] Got customer name:', customerName);
 
     // Get all admin users
     const adminIds = await getAllAdminIds();
-    console.log('[createInquiry] Got admin IDs:', adminIds);
 
     if (adminIds.length > 0) {
       // Create notification for each admin
@@ -176,10 +158,6 @@ export async function createInquiry(
         category: 'ticket',
       }));
 
-      console.log(
-        '[createInquiry] Creating admin notifications:',
-        notifications
-      );
 
       const { error: notifError } = await supabase
         .from('notifications')
@@ -191,11 +169,6 @@ export async function createInquiry(
           notifError
         );
       } else {
-        console.log(
-          '[createInquiry] Created notifications for',
-          adminIds.length,
-          'admins'
-        );
       }
     }
   } catch (notifErr) {

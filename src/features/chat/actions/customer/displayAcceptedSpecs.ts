@@ -5,7 +5,6 @@ export const displayAcceptedSpecs: ActionHandler = async ({
   customerId,
   context,
 }) => {
-  console.log('[displayAcceptedSpecs] Action called');
   const messages: Array<{
     id: string;
     role: 'printy';
@@ -93,7 +92,6 @@ export const displayAcceptedSpecs: ActionHandler = async ({
 
     if (proposal.spec_final) {
       specs = proposal.spec_final;
-      console.log('[displayAcceptedSpecs] Using spec_final from proposal');
     } else if (proposal.spec_id) {
       // Fetch from quote_specs table
       const { data: specData, error: specError } = await supabase
@@ -104,7 +102,6 @@ export const displayAcceptedSpecs: ActionHandler = async ({
 
       if (specData && !specError) {
         specs = specData.spec_data;
-        console.log('[displayAcceptedSpecs] Using spec_data from quote_specs');
       }
     }
 
@@ -192,7 +189,6 @@ export const displayAcceptedSpecs: ActionHandler = async ({
       specsMessage += `\n\nNotes: ${proposal.notes}`;
     }
 
-    console.log('[displayAcceptedSpecs] Pushing specs message');
     messages.push({
       id: crypto.randomUUID(),
       role: 'printy',
@@ -200,7 +196,6 @@ export const displayAcceptedSpecs: ActionHandler = async ({
       ts: Date.now(),
     });
 
-    console.log('[displayAcceptedSpecs] Returning messages:', messages.length);
     return { messages };
   } catch (error) {
     console.error('[displayAcceptedSpecs] Error:', error);

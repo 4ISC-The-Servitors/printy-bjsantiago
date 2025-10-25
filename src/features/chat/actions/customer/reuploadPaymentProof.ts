@@ -133,9 +133,6 @@ export async function reuploadPaymentProof(
       }
 
       // Create notifications for admins about payment proof reupload
-      console.log(
-        '[reuploadPaymentProof] Starting notification creation process...'
-      );
       try {
         // Get customer name for the notification
         const { data: customerData } = await supabase
@@ -149,11 +146,9 @@ export async function reuploadPaymentProof(
             'Customer'
           : 'Customer';
 
-        console.log('[reuploadPaymentProof] Got customer name:', customerName);
 
         // Get all admin users
         const adminIds = await getAllAdminIds();
-        console.log('[reuploadPaymentProof] Got admin IDs:', adminIds);
 
         if (adminIds.length > 0) {
           // Create notification for each admin
@@ -167,10 +162,6 @@ export async function reuploadPaymentProof(
             category: 'order',
           }));
 
-          console.log(
-            '[reuploadPaymentProof] Creating admin notifications:',
-            notifications
-          );
 
           const { error: notifError } = await supabase
             .from('notifications')
@@ -182,11 +173,6 @@ export async function reuploadPaymentProof(
               notifError
             );
           } else {
-            console.log(
-              '[reuploadPaymentProof] Created notifications for',
-              adminIds.length,
-              'admins'
-            );
           }
         }
       } catch (notifErr) {

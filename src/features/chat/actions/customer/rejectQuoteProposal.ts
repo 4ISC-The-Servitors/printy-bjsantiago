@@ -40,7 +40,6 @@ import type {
 export async function rejectQuoteProposal(
   params: ActionExecutionParams
 ): Promise<ActionExecutionResult> {
-  console.log('[rejectQuoteProposal] Action called with params:', params);
   const { actionNode, context } = params;
   const messages: Array<{
     id: string;
@@ -65,9 +64,6 @@ export async function rejectQuoteProposal(
 
   // If conversationId is a quote_id, we need to find the actual session_id
   if (conversationId && conversationId.length > 30) {
-    console.log(
-      '[rejectQuoteProposal] conversationId looks like quote_id, finding session_id...'
-    );
 
     // Query quotes table to get the session_id for this quote
     const { data: quoteData } = await supabase
@@ -78,7 +74,6 @@ export async function rejectQuoteProposal(
 
     if (quoteData?.session_id) {
       conversationId = quoteData.session_id;
-      console.log('[rejectQuoteProposal] Found session_id:', conversationId);
     } else {
       console.error(
         '[rejectQuoteProposal] No session_id found for quote_id:',
@@ -106,11 +101,6 @@ export async function rejectQuoteProposal(
       .eq('session_id', conversationId)
       .select();
 
-    console.log('[rejectQuoteProposal] quotes update result:', {
-      data: quoteData,
-      error: quoteError,
-      count: quoteData?.length,
-    });
 
     if (quoteError) {
       console.error('Error updating quotes:', quoteError);
@@ -130,10 +120,6 @@ export async function rejectQuoteProposal(
       );
     }
 
-    console.log(
-      '[RejectQuote] Quote proposal rejected for conversation:',
-      conversationId
-    );
 
     // Create notifications for admins
     try {
@@ -153,15 +139,9 @@ export async function rejectQuoteProposal(
       const quoteDisplayId = quoteData?.[0]?.display_id || 'Unknown';
 
       // Get all admin users using RPC (bypasses RLS)
-      const { data: admins, error: adminError } = await supabase.rpc(
+      const { data: admins } = await supabase.rpc(
         'get_admin_customer_ids'
       );
-
-      console.log('[RejectQuote] Admin query result:', {
-        admins,
-        adminError,
-        count: admins?.length,
-      });
 
       if (admins && admins.length > 0) {
         // Create notification for each admin
@@ -175,20 +155,10 @@ export async function rejectQuoteProposal(
           category: 'quote',
         }));
 
-        console.log(
-          '[RejectQuote] Attempting to insert notifications:',
-          notifications
-        );
-
-        const { data: insertedNotifs, error: notifError } = await supabase
+        const { error: notifError } = await supabase
           .from('notifications')
           .insert(notifications)
           .select();
-
-        console.log('[RejectQuote] Notification insert result:', {
-          insertedNotifs,
-          notifError,
-        });
 
         if (notifError) {
           console.error(
@@ -196,11 +166,7 @@ export async function rejectQuoteProposal(
             notifError
           );
         } else {
-          console.log(
-            '[RejectQuote] Created notifications for',
-            admins.length,
-            'admins'
-          );
+          // Notifications created successfully
         }
       }
     } catch (notifErr) {

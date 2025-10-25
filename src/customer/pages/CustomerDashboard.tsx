@@ -150,18 +150,8 @@ const CustomerDashboard: React.FC = () => {
   // Check for pending session ID from localStorage and open conversation
   useEffect(() => {
     const pendingSessionId = localStorage.getItem('pendingSessionId');
-    console.log(
-      'Dashboard: Checking for pending session ID:',
-      pendingSessionId
-    );
-    console.log(
-      'Dashboard: switchConversationHook available:',
-      !!switchConversationHook
-    );
-    console.log('Dashboard: conversations loaded:', conversations.length);
 
     if (pendingSessionId && switchConversationHook) {
-      console.log('Dashboard: Opening session:', pendingSessionId);
 
       // Check if conversation exists in current list
       const existingConversation = conversations.find(
@@ -169,21 +159,14 @@ const CustomerDashboard: React.FC = () => {
       );
 
       if (existingConversation) {
-        console.log('Dashboard: Conversation found in list, switching...');
         // Clear the pending session ID
         localStorage.removeItem('pendingSessionId');
         // Switch to the conversation
         switchConversationHook(pendingSessionId);
       } else if (conversations.length > 0) {
         // Conversations have loaded but the specific one isn't found
-        console.log(
-          'Dashboard: Conversations loaded but specific conversation not found, clearing pending session ID'
-        );
         localStorage.removeItem('pendingSessionId');
       } else {
-        console.log(
-          'Dashboard: Conversation not found in list, waiting for conversations to load...'
-        );
         // Don't clear the pending session ID yet, wait for conversations to load
         // The effect will run again when conversations.length changes
       }
@@ -300,13 +283,6 @@ const CustomerDashboard: React.FC = () => {
   // Enhanced file upload handler that uses payment proof upload for payment flows
   const handleFileUpload = useCallback(
     async (files: FileList) => {
-      console.log('File upload triggered:', files);
-      console.log('Is payment flow:', isPaymentFlow);
-      console.log('Recent order ID:', recentOrder?.id);
-      console.log(
-        'Active conversation:',
-        conversations.find(c => c.id === activeId)
-      );
 
       if (isPaymentFlow && activeConversation) {
         // Get order ID from payment flow context or fallback to recent order
@@ -317,17 +293,14 @@ const CustomerDashboard: React.FC = () => {
           orderId = activeConversation.context.orderId;
         }
 
-        console.log('Using order ID:', orderId);
 
         if (orderId) {
           // Use payment proof upload for payment flows
-          console.log('Starting payment proof upload...');
           await handlePaymentProofUpload(
             files,
             orderId,
             url => {
               // Send the uploaded file URL to the chat
-              console.log('Upload successful, sending URL to chat:', url);
               sendViaHook(url);
             },
             error => {
@@ -342,7 +315,6 @@ const CustomerDashboard: React.FC = () => {
         }
       } else {
         // Use regular chat attachments for other flows
-        console.log('Using regular chat attachments');
         handleAttachFiles(files);
       }
     },

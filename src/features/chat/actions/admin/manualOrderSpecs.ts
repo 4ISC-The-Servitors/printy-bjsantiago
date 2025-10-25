@@ -87,27 +87,6 @@ export async function manualOrderSpecs(
   }
 
   // Open Spec Editor with minimal default structure
-  console.log('[manualOrderSpecs] Opening spec editor with params:', {
-    conversationId,
-    sessionId,
-    specData: {
-      product_name: '',
-      service_code: '',
-      category: '',
-      description: '',
-      size: '',
-      materials: [],
-      color: '',
-      finishing: [],
-      others: [],
-      quantity: undefined,
-      quoted_price: undefined,
-      artwork: '',
-      deadline: '',
-      notes: '',
-    },
-    language: 'en',
-  });
 
   openSpecEditor({
     conversationId,
@@ -131,7 +110,6 @@ export async function manualOrderSpecs(
     sessionId,
   });
 
-  console.log('[manualOrderSpecs] Spec editor event dispatched');
 
   // Avoid duplicating the node's own message; no extra messages returned.
   return { messages };

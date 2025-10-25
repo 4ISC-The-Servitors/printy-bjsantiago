@@ -88,10 +88,6 @@ export async function sendQuoteProposal(
   }
 
   // Load latest saved spec for this customer quote session
-  console.log(
-    '[sendQuoteProposal] Fetching specs for customer quote session_id:',
-    conversationId
-  );
   const { data: existingSpecs, error: specError } = await supabase
     .from('quote_specs')
     .select('*')
@@ -99,11 +95,6 @@ export async function sendQuoteProposal(
     .order('created_at', { ascending: false })
     .limit(1);
 
-  console.log('[sendQuoteProposal] Query result:', {
-    found: existingSpecs?.length || 0,
-    error: specError,
-    sessionId: conversationId,
-  });
 
   if (specError) {
     console.error('[sendQuoteProposal] Error fetching specs:', specError);

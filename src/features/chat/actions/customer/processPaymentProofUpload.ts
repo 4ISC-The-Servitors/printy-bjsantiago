@@ -6,7 +6,6 @@ export const processPaymentProofUpload: ActionHandler = async ({
   customerId,
   context,
 }) => {
-  console.log('[processPaymentProofUpload] Action called');
   const messages: Array<{
     id: string;
     role: 'printy';
@@ -95,9 +94,6 @@ export const processPaymentProofUpload: ActionHandler = async ({
     }
 
     // Create notifications for admins about payment proof upload
-    console.log(
-      '[processPaymentProofUpload] Starting notification creation process...'
-    );
     try {
       // Get customer name for the notification
       const { data: customerData } = await supabase
@@ -111,14 +107,9 @@ export const processPaymentProofUpload: ActionHandler = async ({
           'Customer'
         : 'Customer';
 
-      console.log(
-        '[processPaymentProofUpload] Got customer name:',
-        customerName
-      );
 
       // Get all admin users
       const adminIds = await getAllAdminIds();
-      console.log('[processPaymentProofUpload] Got admin IDs:', adminIds);
 
       if (adminIds.length > 0) {
         // Create notification for each admin
@@ -132,10 +123,6 @@ export const processPaymentProofUpload: ActionHandler = async ({
           category: 'order',
         }));
 
-        console.log(
-          '[processPaymentProofUpload] Creating admin notifications:',
-          notifications
-        );
 
         const { error: notifError } = await supabase
           .from('notifications')
@@ -147,11 +134,6 @@ export const processPaymentProofUpload: ActionHandler = async ({
             notifError
           );
         } else {
-          console.log(
-            '[processPaymentProofUpload] Created notifications for',
-            adminIds.length,
-            'admins'
-          );
         }
       }
     } catch (notifErr) {
@@ -165,9 +147,6 @@ export const processPaymentProofUpload: ActionHandler = async ({
     // Don't add success message here - let the payment_uploaded node handle it
     // This prevents duplicate messages
 
-    console.log(
-      '[processPaymentProofUpload] Payment proof processed successfully'
-    );
     return { messages };
   } catch (error) {
     console.error('[processPaymentProofUpload] Error:', error);
