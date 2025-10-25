@@ -7,6 +7,7 @@
     "dev": "vite --host",
     "dev:verbose": "vite --host --logLevel info",
     "build": "tsc -b && vite build",
+    "type-check:functions": "tsc -p tsconfig.functions.json --noEmit",
     "lint": "eslint .",
     "preview": "vite preview",
     "type-check": "tsc --noEmit",
@@ -19,6 +20,7 @@
     "archive:yearly": "node --env-file=.env.backup --experimental-strip-types scripts/archive/yearlyArchive.ts"
   },
   "dependencies": {
+    "@netlify/functions": "^5.0.0",
     "@supabase/auth-ui-react": "^0.4.7",
     "@supabase/auth-ui-shared": "^0.1.8",
     "@supabase/supabase-js": "^2.76.1",

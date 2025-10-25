@@ -4,16 +4,7 @@ export type LLMMessage = {
   content: string;
 };
 
-const BASE_URL =
-  import.meta.env.VITE_LLM_BASE_URL || 'https://api.cohere.ai/v1';
-const MODEL = import.meta.env.VITE_LLM_MODEL || 'command-light';
-const API_KEY = import.meta.env.VITE_COHERE_API_KEY || '';
-
-function ensureKeyIfNeeded() {
-  if (!API_KEY) {
-    throw new Error('Missing LLM_API_KEY for Cohere.');
-  }
-}
+// Calls are routed via Netlify Function to keep API keys server-side
 
 export async function generateJSON(messages: LLMMessage[], forceJson = false) {
   return generateWithCohere(messages, forceJson);
@@ -24,45 +15,18 @@ export async function generateWithCohere(
   forceJson = false,
   modelOverride?: string
 ): Promise<any> {
-  ensureKeyIfNeeded();
-
-  // Cohere expects the last message as 'message' and previous as 'chat_history'
-  const lastMessage = messages[messages.length - 1];
-  const chatHistory = messages.slice(0, -1).map(m => ({
-    role: m.role === 'user' ? 'USER' : 'CHATBOT',
-    message: m.content,
-  }));
-
-  const res = await fetch(`${BASE_URL}/chat`, {
+  // Try /api first; if 404 (redirect missing), fallback to direct Netlify path
+  const tryFetch = async (url: string) => fetch(url, {
     method: 'POST',
-    headers: {
-      Authorization: `Bearer ${API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: modelOverride || MODEL,
-      message: lastMessage.content,
-      chat_history: chatHistory,
-      temperature: 0.2,
-      ...(forceJson ? { response_format: { type: 'json_object' } } : {}),
-    }),
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ messages, forceJson, model: modelOverride }),
   });
-
+  let res = await tryFetch('/api/llm-chat');
+  if (res.status === 404) res = await tryFetch('/.netlify/functions/llm-chat');
+  
   if (!res.ok) {
     const errorText = await res.text();
-    let errorMessage = `Cohere error ${res.status}`;
-    try {
-      const errorJson = JSON.parse(errorText);
-      errorMessage += `: ${errorJson.message}`;
-      if (errorJson.message?.includes('model') && !modelOverride) {
-        // If model error and no override was specified, try with command-light
-        console.warn('Retrying with command-light model...');
-        return generateWithCohere(messages, forceJson, 'command-light');
-      }
-    } catch {
-      errorMessage += `: ${errorText}`;
-    }
-    throw new Error(errorMessage);
+    throw new Error(`LLM error ${res.status}: ${errorText}`);
   }
 
   const data = await res.json();

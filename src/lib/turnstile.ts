@@ -13,9 +13,8 @@ let turnstileScriptLoaded: Promise<void> | null = null;
 let preToken: { action: string; token: string; ts: number } | null = null;
 const inlineWidgetIds: Record<string, string> = {};
 const inlineTokens: Record<string, { token: string; ts: number }> = {};
-const debugFlag = String(
-  (import.meta as any).env?.VITE_TURNSTILE_DEBUG ?? 'false'
-).toLowerCase();
+const inlineWidgetConfigs: Record<string, { action: string; appearance: 'always' | 'interaction-only' }> = {};
+const debugFlag = String((import.meta as any).env?.VITE_TURNSTILE_DEBUG ?? 'false').toLowerCase();
 const debugOn = !['false', '0', 'no', 'off', ''].includes(debugFlag.trim());
 function dbg(..._args: unknown[]) {
   if (debugOn) {
@@ -121,8 +120,6 @@ export async function getTurnstileToken(action: string) {
   return token;
 }
 
-import { supabase } from './supabase';
-
 export async function renderInlineTurnstile(
   containerId: string,
   action: string,
@@ -144,14 +141,26 @@ export async function renderInlineTurnstile(
 
   const turnstile = await ensureTurnstile();
 
+  // If already rendered on this container, prefer reset if same config; otherwise remove then render
   try {
     const existing = inlineWidgetIds[containerId];
-    if (existing && window.turnstile?.remove) {
-      dbg('Removing existing widget', existing);
-      window.turnstile.remove(existing);
+    const cfg = inlineWidgetConfigs[containerId];
+    if (existing) {
+      if (cfg && cfg.action === action && cfg.appearance === appearance && window.turnstile?.reset) {
+        dbg('Resetting existing widget', existing);
+        window.turnstile.reset(existing);
+        // If caller provided a success handler and we already have a fresh token, surface it
+        const fresh = getFreshInlineToken(action);
+        if (fresh) onSuccess?.(fresh);
+        return;
+      }
+      if (window.turnstile?.remove) {
+        dbg('Removing existing widget (config changed)', existing);
+        window.turnstile.remove(existing);
+      }
     }
   } catch (e) {
-    dbg('Error removing existing widget', e);
+    dbg('Error handling existing widget', e);
   }
 
   dbg('Rendering turnstile widget');
@@ -176,6 +185,7 @@ export async function renderInlineTurnstile(
 
   dbg('Widget rendered with ID', widgetId);
   inlineWidgetIds[containerId] = widgetId;
+  inlineWidgetConfigs[containerId] = { action, appearance };
 }
 
 function getFreshInlineToken(action: string, maxAgeMs = 60000): string | null {
@@ -195,6 +205,17 @@ async function getTurnstileTokenInteractive(action: string) {
   const inlineHost = document.getElementById('turnstile-signin');
   const host = inlineHost ?? document.createElement('div');
   let overlay: HTMLDivElement | null = null;
+  // If using inline host and a widget already exists, remove it to avoid duplicate render errors
+  try {
+    if (inlineHost) {
+      const existing = inlineWidgetIds['turnstile-signin'];
+      if (existing && (window as any).turnstile?.remove) {
+        dbg('Removing existing inline widget before interactive render', existing);
+        (window as any).turnstile.remove(existing);
+        delete inlineWidgetIds['turnstile-signin'];
+      }
+    }
+  } catch {}
   if (!inlineHost) {
     overlay = document.createElement('div');
     overlay.style.position = 'fixed';
@@ -253,7 +274,14 @@ async function getTurnstileTokenInteractive(action: string) {
   });
 }
 
+let pendingVerify: Promise<{ token: string }> | null = null;
+
 export async function assertHumanTurnstile(action: string) {
+  if (pendingVerify) {
+    dbg('reusing pending verify promise for', action);
+    return pendingVerify;
+  }
+  pendingVerify = (async () => {
   // Feature flags: allow bypass per action for troubleshooting
   const globalEnable = String(
     (import.meta as any).env?.VITE_TURNSTILE_ENABLED ?? 'true'
@@ -287,6 +315,8 @@ export async function assertHumanTurnstile(action: string) {
   if (inlineToken) {
     dbg('using inline token for', action);
     token = inlineToken;
+    // Consume inline token to avoid reuse (Turnstile tokens are single-use)
+    delete inlineTokens[action];
   } else {
     // Token acquisition with a soft timeout to avoid indefinite waits
     dbg('acquiring token for', action);
@@ -304,17 +334,55 @@ export async function assertHumanTurnstile(action: string) {
     }
   }
   dbg('token acquired length', token?.length ?? 0);
-  const { data, error } = await supabase.functions.invoke('verify-turnstile', {
-    body: { token, action },
-  });
-  dbg('verify-turnstile response', {
-    ok: data?.ok ?? false,
-    error: Boolean(error),
-  });
-  if (error || !data?.ok) {
+  // Call Netlify Function instead of Supabase Edge Function, with one retry on duplicate/timeout
+  const verifyOnce = async (tok: string) => {
+    // Try /api first; if 404, fallback to direct /.netlify/functions path
+    const endpoints = ['/api/verify-turnstile', '/.netlify/functions/verify-turnstile'];
+    for (const url of endpoints) {
+      try {
+        const resp = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: tok, action }),
+        });
+        // If 404, try the next endpoint
+        if (resp.status === 404) continue;
+        try {
+          const json = (await resp.json()) as { ok?: boolean; data?: Record<string, unknown> };
+          return { ok: Boolean(json?.ok), respOk: resp.ok, json } as { ok: boolean; respOk: boolean; json: any };
+        } catch {
+          return { ok: false, respOk: resp.ok, json: null } as { ok: boolean; respOk: boolean; json: any };
+        }
+      } catch {
+        // ignore and try next
+      }
+    }
+    return { ok: false, respOk: false, json: null } as { ok: boolean; respOk: boolean; json: any };
+  };
+
+  let result = await verifyOnce(token);
+  if (!result.ok) {
+    const codes: string[] | undefined = (result.json?.data?.['error-codes'] as string[] | undefined) || undefined;
+    dbg('verify-turnstile not ok; codes:', codes || []);
+    const shouldRetry = Array.isArray(codes) && (codes.includes('timeout-or-duplicate') || codes.includes('invalid-input-response'));
+    if (shouldRetry) {
+      try {
+        const fresh = await getTurnstileTokenInteractive(action);
+        result = await verifyOnce(fresh);
+      } catch {}
+    }
+  }
+  if (!result.ok) {
     throw new Error('Failed human verification');
   }
   return { token } as { token: string };
+  })();
+  try {
+    const out = await pendingVerify;
+    return out;
+  } finally {
+    pendingVerify = null;
+  }
 }
 
 export async function primeTurnstile(action: string) {

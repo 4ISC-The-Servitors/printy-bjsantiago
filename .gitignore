@@ -79,3 +79,5 @@ forContext/
 .claude/
 chatFlows/
 .vscode/
+# Local Netlify folder
+.netlify
