@@ -17,7 +17,7 @@ export const FLOW_TITLES: Record<string, string> = {
   'issue-ticket': 'Ask Assistance',
   'services-offered': 'Services Offered',
   'faqs': 'FAQs',
-  'about-us': 'About B.J. Santiago',
+  'about-us': 'About B.J. Santiago Inc. ',
 
   // Admin flows (verified in database)
   'admin-quote-propose': 'Quote Proposal',

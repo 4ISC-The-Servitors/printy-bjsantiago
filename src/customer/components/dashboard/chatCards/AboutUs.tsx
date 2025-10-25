@@ -16,7 +16,7 @@ const AboutUs: React.FC<CardProps> = ({ onClick }) => {
         <Info className="w-6 h-6" />
       </div>
       <Text variant="h3" weight="semibold" className="device-text-heading mb-2">
-        About Us
+        About B.J. Santiago Inc.
       </Text>
       <Text variant="p" size="xs" color="muted">
         Learn about B.J. Santiago Inc.

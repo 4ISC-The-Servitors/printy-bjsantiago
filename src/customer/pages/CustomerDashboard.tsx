@@ -263,10 +263,9 @@ const CustomerDashboardContent: React.FC = () => {
 
   const handleTopic = (key: TopicKey) => {
     const cfg = topicConfig[key];
-    // Use centralized title configuration for consistency
+    // Use centralized title configuration from FLOW_TITLES mapping
     const title = getSessionTitle({
       flowId: cfg.flowId,
-      metadata: { title: cfg.label }, // Pass topicConfig label as fallback
     });
     initializeFlow(cfg.flowId, title);
     // Dispatch event for notification visibility

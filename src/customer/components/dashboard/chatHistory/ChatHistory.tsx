@@ -169,30 +169,48 @@ const ChatHistory: React.FC = () => {
         if (!userData?.user?.id) return;
 
         const list = await getUserSessions(userData.user.id);
-        const convs: Conversation[] = list.map(s => ({
-          id: s.sessionId,
-          title: getSessionTitle({
-            flowId: s.flowId,
-            metadata: {
-              title: s.metadata?.title,
-              context: {
+        const convs: Conversation[] = list.map(s => {
+          // Generate title with FK relationships for consistency
+          // For sessions with metadata.context (like track-quote with subject), preserve it
+          // For sessions with FK relationships (like track-ticket), use display_id from FK
+          const displayIdFromFK =
+            s.inquiry?.display_id ||
+            s.quote?.display_id ||
+            s.order?.display_id;
+          const context = s.metadata?.context
+            ? {
+                ...s.metadata.context,
                 display_id:
-                  s.inquiry?.display_id ||
-                  s.quote?.display_id ||
-                  s.order?.display_id,
-              },
-            },
-            inquiry: s.inquiry,
-            quote: s.quote,
-            order: s.order,
-          }),
-          createdAt: s.createdAt,
-          updatedAt: s.createdAt, // getUserSessions doesn't return updatedAt, use createdAt
-          messages: [],
-          status: (s.status === 'ended' ? 'ended' : 'active') as
-            | 'active'
-            | 'ended',
-        }));
+                  s.metadata.context.display_id ||
+                  s.metadata.context.subject ||
+                  displayIdFromFK,
+              }
+            : displayIdFromFK
+              ? { display_id: displayIdFromFK }
+              : undefined;
+
+          return {
+            id: s.sessionId,
+            title: getSessionTitle({
+              flowId: s.flowId,
+              metadata: s.metadata
+                ? {
+                    ...s.metadata,
+                    context,
+                  }
+                : undefined,
+              inquiry: s.inquiry,
+              quote: s.quote,
+              order: s.order,
+            }),
+            createdAt: s.createdAt,
+            updatedAt: s.createdAt, // getUserSessions doesn't return updatedAt, use createdAt
+            messages: [],
+            status: (s.status === 'ended' ? 'ended' : 'active') as
+              | 'active'
+              | 'ended',
+          };
+        });
         setConversations(convs);
       } catch (e) {
         console.error('ChatHistory load sessions error', e);
