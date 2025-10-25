@@ -29,7 +29,7 @@ import SidebarPanel from '@customer/components/shared/sidebar/SidebarPanel';
 import LogoutButton from '@customer/components/shared/sidebar/LogoutButton';
 import LogoutModal from '@customer/components/shared/sidebar/LogoutModal';
 import { useLogoutWithToast } from '@/auth/hooks/useLogoutWithToast';
-import { useCustomerConversations } from '@features/chat/hooks/customer/useCustomerConversations';
+import { useCustomerConversationsContext } from '@features/chat/hooks/customer/CustomerConversationsProvider';
 import { useDashboardChatEvents } from '@features/chat/hooks/customer/useDashboardChatEvents';
 import { useRecentChatSessions } from '@features/chat/hooks/customer/useRecentChatSessions';
 import { useChatAttachments } from '@features/chat/hooks/shared/useChatAttachments';
@@ -72,7 +72,7 @@ const TicketHistory: React.FC = () => {
     switchConversation: switchConversationHook,
     setActiveId,
     setConversations,
-  } = useCustomerConversations();
+  } = useCustomerConversationsContext();
 
   // Memoize toast instance to prevent re-creating array on every render
   const toastInstance = useMemo(

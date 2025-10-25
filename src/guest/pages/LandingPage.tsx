@@ -196,8 +196,11 @@ const LandingPage: React.FC = () => {
     }
   };
 
-  const handleQuickReply = (value: string) => {
-    handleSend(value);
+  const handleQuickReply = (value: string | { value: string; label: string }) => {
+    // Handle both string and object formats
+    const data = typeof value === 'string' ? { value, label: value } : value;
+    // Use the label for display but the value for routing
+    handleSend(data.label);
   };
 
   const handleEndChat = () => {

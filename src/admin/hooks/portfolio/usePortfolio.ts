@@ -1,34 +1,70 @@
-// BACKEND_TODO: Replace mock portfolio getters with Supabase `services` table queries.
-// - Hydrate services from DB; add realtime subscriptions.
-// - Remove getPortfolioServices/getServicesByCategory once backend is live.
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useAdminChat } from '@admin/hooks/useAdminChat';
-import { getPortfolioServices, getServicesByCategory } from '@data/services'; // DELETE when Supabase is wired
+import { fetchAllServices, fetchServicesByCategory } from '@features/api/servicesApi';
 
-export type ServiceStatus = 'Active' | 'Inactive' | 'Retired';
+export type ServiceStatus = 'active' | 'inactive' | 'retired';
 
 export interface Service {
-  id: string;
-  name: string;
-  code: string;
+  service_id: string;
+  service_name: string;
+  display_id: string;
   status: ServiceStatus;
 }
 
 export interface ServiceCategory {
-  id: string;
-  name: string;
-  count: number;
+  category_id: string;
+  category_name: string;
+  service_count: number;
   services: Service[];
 }
 
 export const usePortfolio = () => {
   const [services, setServices] = useState<Service[]>([]);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
+  const [portfolioData, setPortfolioData] = useState<ServiceCategory[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const mockPortfolioData: ServiceCategory[] = useMemo(
-    () => getServicesByCategory(getPortfolioServices()),
-    []
-  );
+  // Load services data
+  useEffect(() => {
+    const loadServices = async () => {
+      try {
+        setIsLoading(true);
+        const [allServices, categories] = await Promise.all([
+          fetchAllServices(),
+          fetchServicesByCategory()
+        ]);
+        
+        // Transform to legacy format for compatibility
+        const transformedServices: Service[] = allServices.map(s => ({
+          service_id: s.service_id,
+          service_name: s.service_name,
+          display_id: s.display_id,
+          status: s.status
+        }));
+        
+        const transformedCategories: ServiceCategory[] = categories.map(c => ({
+          category_id: c.category_id,
+          category_name: c.category_name,
+          service_count: c.service_count,
+          services: c.services.map(s => ({
+            service_id: s.service_id,
+            service_name: s.service_name,
+            display_id: s.display_id,
+            status: s.status
+          }))
+        }));
+        
+        setServices(transformedServices);
+        setPortfolioData(transformedCategories);
+      } catch (error) {
+        console.error('Error loading services:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadServices();
+  }, []);
 
   const {
     chatOpen,
@@ -42,28 +78,53 @@ export const usePortfolio = () => {
     handleQuickReply,
   } = useAdminChat();
 
-  useEffect(() => {
-    setServices(getPortfolioServices());
-  }, []);
-
   const updateService = useCallback(
     (serviceId: string, updates: Partial<Service>) => {
       setServices(prev =>
-        prev.map(s => (s.id === serviceId ? { ...s, ...updates } : s))
+        prev.map(s => (s.service_id === serviceId ? { ...s, ...updates } : s))
       );
     },
     []
   );
 
-  const refreshServices = useCallback(() => {
-    setServices(getPortfolioServices());
+  const refreshServices = useCallback(async () => {
+    try {
+      const [allServices, categories] = await Promise.all([
+        fetchAllServices(),
+        fetchServicesByCategory()
+      ]);
+      
+      const transformedServices: Service[] = allServices.map(s => ({
+        service_id: s.service_id,
+        service_name: s.service_name,
+        display_id: s.display_id,
+        status: s.status
+      }));
+      
+      const transformedCategories: ServiceCategory[] = categories.map(c => ({
+        category_id: c.category_id,
+        category_name: c.category_name,
+        service_count: c.service_count,
+        services: c.services.map(s => ({
+          service_id: s.service_id,
+          service_name: s.service_name,
+          display_id: s.display_id,
+          status: s.status
+        }))
+      }));
+      
+      setServices(transformedServices);
+      setPortfolioData(transformedCategories);
+    } catch (error) {
+      console.error('Error refreshing services:', error);
+    }
   }, []);
 
   const handleServiceSelect = useCallback((service: Service) => {
     setSelectedServices(prev =>
-      prev.includes(service.id)
-        ? prev.filter(id => id !== service.id)
-        : [...prev, service.id]
+      prev.includes(service.service_id)
+        ? prev.filter(id => id !== service.service_id)
+        : [...prev, service.service_id]
     );
   }, []);
 
@@ -72,7 +133,7 @@ export const usePortfolio = () => {
       // Open chat focused on a single service
       handleChatOpenWithTopic(
         'portfolio',
-        service.id,
+        service.service_id,
         updateService,
         services,
         refreshServices
@@ -126,11 +187,11 @@ export const usePortfolio = () => {
 
   const getStatusColor = useCallback((status: ServiceStatus) => {
     switch (status) {
-      case 'Active':
+      case 'active':
         return 'bg-green-100 text-green-800';
-      case 'Inactive':
+      case 'inactive':
         return 'bg-yellow-100 text-yellow-800';
-      case 'Retired':
+      case 'retired':
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -139,8 +200,9 @@ export const usePortfolio = () => {
   return {
     // data
     services,
-    mockPortfolioData,
+    portfolioData,
     selectedServices,
+    isLoading,
 
     // selection
     setSelectedServices,

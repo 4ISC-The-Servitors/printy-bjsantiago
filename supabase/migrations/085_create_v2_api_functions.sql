@@ -1,9 +1,8 @@
--- API functions for chat_sessions_v2, chat_messages_v2, and chat_flows_v2
--- These are required by the JsonbFlowProcessor and jsonbChatFlowApi
+-- Migration: Create v2 API functions if they don't exist
+-- These functions are required for the JSONB chat flow system
 
 -- Ensure required extensions exist
 create extension if not exists pgcrypto;
-create extension if not exists supabase_vault;
 
 -- 1) Get flow definition from chat_flows_v2
 create or replace function public.api_get_flow_definition(p_flow_id text)
@@ -35,7 +34,6 @@ as $$
 declare
   v_message_id uuid;
   v_customer_id uuid;
-  v_enc_key text;
 begin
   -- Get session customer_id
   select customer_id into v_customer_id
@@ -51,10 +49,7 @@ begin
     raise exception 'not authorized';
   end if;
 
-  -- Get encryption key
-  v_enc_key := vault.get_secret('enc_key_v1');
-
-  -- Insert encrypted message
+  -- Insert message as plain bytea (not encrypted)
   insert into public.chat_messages_v2 (
     session_id,
     sender_role,
@@ -64,7 +59,7 @@ begin
   values (
     p_session_id,
     p_role,
-    pgp_sym_encrypt(p_text, v_enc_key),
+    p_text::bytea,
     jsonb_build_object('node_id', p_node_id)
   )
   returning message_id into v_message_id;
@@ -105,12 +100,12 @@ begin
     raise exception 'not authorized';
   end if;
 
-  -- Return decrypted messages
+  -- Return messages (convert bytea to text, no decryption needed)
   return query
   select
     m.message_id,
     m.sender_role,
-    priv.decrypt_text(m.message_text_enc) as message_text,
+    convert_from(m.message_text_enc, 'UTF8') as message_text,
     m.sent_at,
     (m.metadata->>'node_id')::text as node_id
   from public.chat_messages_v2 m
@@ -179,77 +174,5 @@ $$;
 
 grant execute on function public.api_get_session_metadata_v2(uuid) to authenticated, service_role;
 
--- 6) Create secure view for chat_messages_v2 (similar to legacy chat_messages_secure)
-create or replace view public.chat_messages_v2_secure as
-select
-  m.message_id,
-  m.session_id,
-  m.sender_role,
-  priv.decrypt_text(m.message_text_enc) as message_text,
-  m.sent_at,
-  m.metadata
-from public.chat_messages_v2 m;
-
-grant select on public.chat_messages_v2_secure to authenticated, service_role;
-
--- 7) Enable RLS on chat_sessions_v2 and chat_messages_v2
-alter table public.chat_sessions_v2 enable row level security;
-alter table public.chat_messages_v2 enable row level security;
-alter table public.chat_flows_v2 enable row level security;
-
--- RLS Policies for chat_sessions_v2
-drop policy if exists "Users can view their own sessions" on public.chat_sessions_v2;
-create policy "Users can view their own sessions"
-  on public.chat_sessions_v2
-  for select
-  using (customer_id = auth.uid() or priv.is_admin());
-
-drop policy if exists "Users can insert their own sessions" on public.chat_sessions_v2;
-create policy "Users can insert their own sessions"
-  on public.chat_sessions_v2
-  for insert
-  with check (customer_id = auth.uid() or priv.is_admin());
-
-drop policy if exists "Users can update their own sessions" on public.chat_sessions_v2;
-create policy "Users can update their own sessions"
-  on public.chat_sessions_v2
-  for update
-  using (customer_id = auth.uid() or priv.is_admin());
-
--- RLS Policies for chat_messages_v2
-drop policy if exists "Users can view messages from their sessions" on public.chat_messages_v2;
-create policy "Users can view messages from their sessions"
-  on public.chat_messages_v2
-  for select
-  using (
-    exists (
-      select 1 from public.chat_sessions_v2 s
-      where s.session_id = chat_messages_v2.session_id
-        and (s.customer_id = auth.uid() or priv.is_admin())
-    )
-  );
-
-drop policy if exists "Users can insert messages to their sessions" on public.chat_messages_v2;
-create policy "Users can insert messages to their sessions"
-  on public.chat_messages_v2
-  for insert
-  with check (
-    exists (
-      select 1 from public.chat_sessions_v2 s
-      where s.session_id = chat_messages_v2.session_id
-        and (s.customer_id = auth.uid() or priv.is_admin())
-    )
-  );
-
--- RLS Policies for chat_flows_v2 (read-only for all authenticated users)
-drop policy if exists "All users can view active flows" on public.chat_flows_v2;
-create policy "All users can view active flows"
-  on public.chat_flows_v2
-  for select
-  using (active = true);
-
-drop policy if exists "Only admins can modify flows" on public.chat_flows_v2;
-create policy "Only admins can modify flows"
-  on public.chat_flows_v2
-  for all
-  using (priv.is_admin());
+comment on function public.api_get_user_sessions_v2() is 
+'Returns customer chat sessions excluding ticket conversation reply sessions. Ticket reply sessions are internal and only appear within Track Ticket conversation history.';

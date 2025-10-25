@@ -8,7 +8,7 @@ import { formatShortTime, formatRelativeTimeLabel } from '@shared/utils';
 interface MessageGroupProps {
   messages: ChatMessage[];
   quickReplies?: QuickReply[];
-  onQuickReply?: (value: string) => void;
+  onQuickReply?: (value: string | { value: string; label: string }) => void;
   onEndChat?: () => void;
   readOnly?: boolean; // Indicates if conversation has ended - no animation
   isHistorical?: boolean; // Indicates if these are existing messages from database - no typing animation
@@ -114,7 +114,7 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({
 
   return (
     <div className={`space-y-2 ${isBot ? 'text-left' : 'text-right'}`}>
-      {visibleMessages.map(m => {
+      {visibleMessages.map((m, index) => {
         const preserveNewlines =
           isBot &&
           /Order .* — Status: /.test(m.text) &&
@@ -124,7 +124,7 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({
 
         return (
           <MessageBubble
-            key={m.id}
+            key={`${m.id}-${m.ts}-${index}`}
             role={m.role}
             text={cleanText}
             timestamp={formatRelativeTime(m.ts, m.ts === mostRecentTs)}

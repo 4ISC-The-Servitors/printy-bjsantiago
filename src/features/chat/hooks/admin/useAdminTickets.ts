@@ -40,61 +40,30 @@ export function useAdminTickets(options: LoadInquiriesOptions = {}) {
       let rows: any[] = [];
 
       if (useAdvancedFallbacks) {
-        // Advanced fallback logic from desktop/mobile components
-        // Primary: admin RPC (includes customer names, decrypts message)
+        // Try admin RPC first (if available)
         const { data, error } = await supabase.rpc('api_inquiries_admin_list', {
           p_limit: pageSize,
           p_offset: from,
         });
 
-        if (!error && Array.isArray(data)) {
+        // Only use RPC if it succeeds - otherwise fall back to direct query
+        if (!error && Array.isArray(data) && data.length > 0) {
           rows = data as any[];
         } else {
-          // Fallback A: per-user list (if admin flag not present)
-          const { data: userRows, error: userErr } = await supabase.rpc(
-            'api_inquiries_for_user',
-            { p_limit: pageSize, p_offset: from }
-          );
-          if (!userErr && Array.isArray(userRows)) {
-            rows = userRows as any[];
-          } else {
-            // Fallback B: direct read from inquiries_v2 with customer join
-            const { data: viewRows, error: viewErr } = await supabase
-              .from('inquiries_v2')
-              .select(
-                'inquiry_id, display_id, customer_id, inquiry_type, inquiry_status, received_at, updated_at, order_id, session_id, customer:customer_id(first_name,last_name,customer_type)'
-              )
-              .order('updated_at', { ascending: false })
-              .range(from, from + pageSize - 1);
-            if (!viewErr && Array.isArray(viewRows)) rows = viewRows as any[];
-            if (viewErr && error) {
-              // If all failed, surface the primary error
-              throw error;
-            }
-          }
-        }
-
-        // If the admin RPC returned zero rows (e.g., not an admin), try fallbacks
-        if ((rows || []).length === 0) {
-          const { data: userRows } = await supabase.rpc(
-            'api_inquiries_for_user',
-            { p_limit: pageSize, p_offset: from }
-          );
-          if (Array.isArray(userRows) && userRows.length > 0)
-            rows = userRows as any[];
-          if (rows.length === 0) {
-            const { data: viewRows } = await supabase
-              .from('inquiries_v2')
-              .select(
-                'inquiry_id, display_id, customer_id, inquiry_type, inquiry_status, received_at, updated_at, order_id, session_id, customer:customer_id(first_name,last_name,customer_type)'
-              )
-              .order('updated_at', { ascending: false })
-              .range(from, from + pageSize - 1);
-            if (Array.isArray(viewRows)) rows = viewRows as any[];
+          // Fallback: direct read from inquiries_v2 with customer join
+          const { data: viewRows, error: viewErr } = await supabase
+            .from('inquiries_v2')
+            .select(
+              'inquiry_id, display_id, customer_id, inquiry_type, inquiry_status, received_at, updated_at, order_id, session_id, customer:customer_id(first_name,last_name,customer_type)'
+            )
+            .order('updated_at', { ascending: false })
+            .range(from, from + pageSize - 1);
+          if (!viewErr && Array.isArray(viewRows)) {
+            rows = viewRows as any[];
           }
         }
       } else {
-        // Use real inquiries_v2 table only with proper customer join
+        // Direct query: inquiries_v2 with proper customer join
         const res = await supabase
           .from('inquiries_v2')
           .select(

@@ -5,9 +5,9 @@ import { formatStatus } from '@shared/utils/statusFormatter';
 import { MessageSquare } from 'lucide-react';
 
 interface Service {
-  id: string;
-  code: string;
-  name: string;
+  service_id: string;
+  display_id: string;
+  service_name: string;
   status: string;
 }
 
@@ -25,13 +25,13 @@ export const ServiceItem: React.FC<ServiceItemProps> = ({
   return (
     <div
       className="relative flex items-center justify-between p-6 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors min-h-[80px]"
-      onMouseEnter={() => onHover(service.id)}
+      onMouseEnter={() => onHover(service.service_id)}
       onMouseLeave={() => onHover(null)}
     >
       <div className="flex items-center gap-4 min-w-0 flex-1">
         <div className="min-w-0 flex-1">
           <Text variant="p" size="sm" color="muted" className="truncate">
-            {service.code}
+            {service.display_id}
           </Text>
           <Text
             variant="p"
@@ -39,7 +39,7 @@ export const ServiceItem: React.FC<ServiceItemProps> = ({
             weight="medium"
             className="truncate text-gray-900"
           >
-            {service.name}
+            {service.service_name}
           </Text>
           <div className="flex items-center gap-2 mt-2">
             <Badge
@@ -60,7 +60,7 @@ export const ServiceItem: React.FC<ServiceItemProps> = ({
           threeD
           className="min-h-[44px] min-w-[44px]"
           title="Chat about this service"
-          onClick={() => onViewInChat(service.id)}
+          onClick={() => onViewInChat(service.service_id)}
         >
           <MessageSquare className="h-4 w-4" />
         </Button>

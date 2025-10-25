@@ -24,7 +24,7 @@ export const TicketsProvider: React.FC<{ children: React.ReactNode }> = ({
   const { tickets, loading, error, reload } = useAdminTickets({
     page: 1,
     pageSize: 100, // Load more tickets for the context
-    useAdvancedFallbacks: true,
+    useAdvancedFallbacks: false, // Disabled to avoid 404 errors from inaccessible RPC functions
   });
 
   const updateTicket = (_ticketId: string, _updates: Partial<AdminTicketRow>) => {

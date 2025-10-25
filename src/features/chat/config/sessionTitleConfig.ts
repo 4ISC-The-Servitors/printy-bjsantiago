@@ -22,11 +22,14 @@ export const FLOW_TITLES: Record<string, string> = {
   'admin-verify-payment': 'Verify Payment',
   'admin-review-ticket': 'Review Ticket',
 
+  // Service flows
+  'services-offered': 'Services Offered',
+  'guest-services-offered': 'Services Offered',
+
   // Flows not in database - commented out
   //'cancel-order': 'Cancel Order', // Not in chat_flows_v2
   //'about': 'About B.J. Santiago', // Not in chat_flows_v2
   //'faqs': 'FAQs', // Not in chat_flows_v2
-  //'services': 'Services Offered', // Not in chat_flows_v2
 };
 
 interface SessionTitleParams {

@@ -28,7 +28,7 @@ import { useChatAttachments } from '@features/chat/hooks/shared/useChatAttachmen
 import { usePaymentProofUpload } from '@/features/chat/hooks/customer/usePaymentProofUpload';
 import { useDeviceUtils } from '@shared/hooks/ui';
 // Chat feature hooks
-import { useCustomerConversations } from '@features/chat/hooks/customer/useCustomerConversations';
+import { CustomerConversationsProvider, useCustomerConversationsContext } from '@features/chat/hooks/customer/CustomerConversationsProvider';
 import { getSessionTitle } from '@features/chat/config/sessionTitleConfig';
 
 // ---------------- Types / Config ----------------
@@ -55,7 +55,7 @@ const topicConfig: Record<
   servicesOffered: {
     label: 'Services Offered',
     icon: <Settings className="w-6 h-6" />,
-    flowId: 'services',
+    flowId: 'services-offered',
     description: 'Browse our printing services and capabilities',
   },
   placeOrder: {
@@ -98,15 +98,13 @@ type Conversation = ConversationItem;
 // Use full customer flows registry
 
 // ---------------- Component ----------------
-// Customer landing experience: shows recent activity and provides chat entrypoints.
-// Manages two chat implementations:
-// 1) In-memory scripted flows (e.g., payment)
-// 2) Database-backed flow for 'About Us' using chat_flow tables
-const CustomerDashboard: React.FC = () => {
+// Inner component that uses the context
+const CustomerDashboardContent: React.FC = () => {
   const { logout, toasts, toast } = useLogoutWithToast();
   const { isMobileOrTablet } = useDeviceUtils();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
+  // ✅ Use context instead of hook directly (prevents duplicate instances)
   const {
     messages,
     isTyping,
@@ -120,7 +118,7 @@ const CustomerDashboard: React.FC = () => {
     switchConversation: switchConversationHook,
     setActiveId,
     setConversations,
-  } = useCustomerConversations();
+  } = useCustomerConversationsContext();
 
   // Memoize toast instance to prevent re-creating array on every render
   const toastInstance = useMemo(
@@ -206,6 +204,7 @@ const CustomerDashboard: React.FC = () => {
             metadata->context->display_id
           `
           )
+          .is('metadata->ticket_conversation', null)
           .order('created_at', { ascending: false })
           .limit(10);
 
@@ -565,6 +564,15 @@ const CustomerDashboard: React.FC = () => {
         onConfirm={confirmLogout}
       />
     </>
+  );
+};
+
+// Main component wrapped with provider
+const CustomerDashboard: React.FC = () => {
+  return (
+    <CustomerConversationsProvider>
+      <CustomerDashboardContent />
+    </CustomerConversationsProvider>
   );
 };
 

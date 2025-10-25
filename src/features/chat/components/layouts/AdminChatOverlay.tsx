@@ -14,7 +14,7 @@ export interface AdminChatOverlayProps {
   isTyping?: boolean;
   quickReplies?: QuickReply[];
   onSend: (text: string) => void;
-  onQuickReply?: (value: string) => void;
+  onQuickReply?: (value: string | { value: string; label: string }) => void;
   onEndChat?: () => void;
   readOnly?: boolean;
   sessionId?: string;

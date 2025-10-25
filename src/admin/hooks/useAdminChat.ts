@@ -37,7 +37,7 @@ export interface UseAdminChatReturn {
   handleShowConversation: (conversationId: string) => Promise<void>;
   endChatWithDelay: () => void;
   handleSendMessage: (text: string) => void;
-  handleQuickReply: (value: string) => void;
+  handleQuickReply: (value: string | { value: string; label: string }) => void;
   readOnly: boolean;
   dbSessionId: string | null;
   currentConversationId: string | null;
@@ -438,10 +438,14 @@ export const useAdminChat = (): UseAdminChatReturn => {
       setViewingHistorical(true);
       setReadOnly(true);
       setQuickReplies([]);
-      setDbSessionId(conversationId);
-
+      
+      // For database-loaded conversations, the conversation ID is the session ID
+      // For locally created conversations, use the stored sessionId
+      const sessionId = conv.sessionId || conversationId;
+      setDbSessionId(sessionId);
+      
       try {
-        const historicalMessages = await loadHistoricalMessages(conversationId);
+        const historicalMessages = await loadHistoricalMessages(sessionId);
         setMessages(historicalMessages);
       } catch (error) {
         console.error('Failed to load historical messages:', error);
@@ -560,8 +564,9 @@ export const useAdminChat = (): UseAdminChatReturn => {
     }
   };
 
-  const handleQuickReply = (v: string) => {
-    const val = v.trim();
+  const handleQuickReply = (v: string | { value: string; label: string }) => {
+    // Handle both old string format and new object format
+    const val = typeof v === 'string' ? v.trim() : v.value.trim();
     if (val.toLowerCase() === 'end chat') {
       setMessages([]);
       return;

@@ -96,6 +96,28 @@ export async function fetchTicketDetails(
       console.error('Error fetching messages:', messagesError);
     }
 
+    // Also fetch messages from ticket conversation sessions (admin/customer replies)
+    const { data: ticketConversations, error: ticketError } = await supabase
+      .from('chat_sessions_v2')
+      .select('session_id')
+      .eq('customer_id', params.customerId)
+      .eq('metadata->>inquiry_id', inquiryId)
+      .eq('metadata->>ticket_conversation', true);
+
+    let ticketMessages: any[] = [];
+    if (!ticketError && ticketConversations && ticketConversations.length > 0) {
+      // Fetch messages from all ticket conversation sessions
+      for (const ticketSession of ticketConversations) {
+        const { data: ticketChatMessages } = await supabase.rpc(
+          'api_fetch_chat_messages_v2',
+          { p_session_id: ticketSession.session_id }
+        );
+        if (ticketChatMessages) {
+          ticketMessages.push(...ticketChatMessages);
+        }
+      }
+    }
+
     // Fetch order display_id if order_id is present
     let orderDisplayId = inquiry.order_id;
     if (inquiry.order_id) {
@@ -121,10 +143,16 @@ export async function fetchTicketDetails(
     conversationText += `Conversation History:\n`;
     conversationText += `${'='.repeat(40)}\n\n`;
 
+    // Combine original session messages and ticket conversation messages
+    const allMessages = [
+      ...(chatMessages || []),
+      ...ticketMessages
+    ].sort((a, b) => new Date(a.sent_at).getTime() - new Date(b.sent_at).getTime()); // Sort by sent_at
+
     // Display conversation messages
-    if (chatMessages && chatMessages.length > 0) {
+    if (allMessages && allMessages.length > 0) {
       // Filter to only show customer input messages and admin replies (skip system messages)
-      const relevantMessages = chatMessages.filter(
+      const relevantMessages = allMessages.filter(
         (msg: any) =>
           msg.sender_role === 'customer' || // All customer messages (including replies)
           msg.sender_role === 'admin' // Admin replies
@@ -242,10 +270,10 @@ export async function sendCustomerReply(
       return { messages };
     }
 
-    // Get the original session_id from the inquiry
+    // Get the original session_id and customer_id from the inquiry
     const { data: inquiry } = await supabase
       .from('inquiries_v2')
-      .select('session_id')
+      .select('session_id, customer_id')
       .eq('inquiry_id', inquiryId)
       .single();
 
@@ -264,10 +292,51 @@ export async function sendCustomerReply(
     }
 
     const originalSessionId = inquiry.session_id;
+    const customerId = inquiry.customer_id;
 
-    // Store customer reply in chat_messages_v2 using the original session with proper encryption
+    if (!originalSessionId || !customerId) {
+      console.error('[sendCustomerReply] Missing session_id or customer_id in inquiry');
+      messages.push({
+        id: crypto.randomUUID(),
+        role: 'printy',
+        text: 'Session information not found. Please try again.',
+        ts: Date.now(),
+      });
+      return { messages };
+    }
+
+    // Create a separate ticket conversation session (marked as ended so it doesn't appear in Recent Chats)
+    const { data: ticketSession, error: sessionError } = await supabase
+      .from('chat_sessions_v2')
+      .insert({
+        flow_id: 'track-ticket',
+        customer_id: customerId,
+        status: 'ended', // Mark as ended so it doesn't appear in Recent Chats
+        metadata: {
+          ticket_conversation: true,
+          original_session_id: originalSessionId,
+          inquiry_id: inquiryId,
+          conversation_type: 'ticket_reply',
+          customer_chat: true
+        }
+      })
+      .select('session_id')
+      .single();
+
+    if (sessionError || !ticketSession?.session_id) {
+      console.error('Error creating ticket conversation session for customer reply:', sessionError);
+      messages.push({
+        id: crypto.randomUUID(),
+        role: 'printy',
+        text: 'Failed to create conversation session. Please try again.',
+        ts: Date.now(),
+      });
+      return { messages };
+    }
+
+    // Store customer reply in the ticket conversation session
     const result = await insertMessageV2({
-      sessionId: originalSessionId,
+      sessionId: ticketSession.session_id,
       text: customerReply,
       role: 'customer',
       nodeId: 'customer_reply',
@@ -285,24 +354,16 @@ export async function sendCustomerReply(
     }
 
     // Update inquiry status to pending_admin_reply using inquiry_id
-    const { data: updateData, error: statusError } = await supabase
+    const { error: statusError } = await supabase
       .from('inquiries_v2')
       .update({
         inquiry_status: 'pending_admin_reply',
         updated_by: params.customerId, // Track that customer replied to ticket
       })
-      .eq('inquiry_id', inquiryId)
-      .select('inquiry_id, inquiry_status');
+      .eq('inquiry_id', inquiryId);
 
     if (statusError) {
-      console.error('[sendCustomerReply] Error updating status:', statusError);
-    } else {
-      if (updateData && updateData.length > 0) {
-      } else {
-        console.error(
-          '[sendCustomerReply] No rows were updated - inquiry_id might not exist or no permission'
-        );
-      }
+      console.error('[sendCustomerReply] Error updating inquiry status:', statusError);
     }
 
     // Create notifications for admins about customer reply
@@ -437,6 +498,53 @@ export async function resolveTicket(
 
     const originalSessionId = inquiry.session_id;
 
+    // Get customer_id from inquiry
+    const { data: inquiryFull } = await supabase
+      .from('inquiries_v2')
+      .select('customer_id')
+      .eq('inquiry_id', inquiryId)
+      .single();
+
+    if (!inquiryFull?.customer_id) {
+      console.error('[resolveTicket] No customer_id found for inquiry:', inquiryId);
+      messages.push({
+        id: crypto.randomUUID(),
+        role: 'printy',
+        text: 'Failed to mark ticket as resolved. Please try again.',
+        ts: Date.now(),
+      });
+      return { messages };
+    }
+
+    // Create a ticket conversation session for the resolution (same as replies)
+    const { data: ticketSession, error: sessionError } = await supabase
+      .from('chat_sessions_v2')
+      .insert({
+        flow_id: 'track-ticket', // Use existing track-ticket flow
+        customer_id: inquiryFull.customer_id, // Required for RLS policy
+        status: 'ended', // Mark as ended so it doesn't appear in Recent Chats
+        metadata: {
+          ticket_conversation: true,
+          original_session_id: originalSessionId,
+          inquiry_id: inquiryId,
+          conversation_type: 'ticket_resolution',
+          customer_chat: true
+        }
+      })
+      .select('session_id')
+      .single();
+
+    if (sessionError || !ticketSession?.session_id) {
+      console.error('Error creating ticket conversation session for resolution:', sessionError);
+      messages.push({
+        id: crypto.randomUUID(),
+        role: 'printy',
+        text: 'Failed to create conversation session. Please try again.',
+        ts: Date.now(),
+      });
+      return { messages };
+    }
+
     // Update inquiry status to resolved using inquiry_id and set resolved_at timestamp
     const { error: statusError } = await supabase
       .from('inquiries_v2')
@@ -458,24 +566,19 @@ export async function resolveTicket(
       return { messages };
     }
 
-    // Insert confirmation message into the original session
+    // Insert confirmation message into the ticket conversation session
     const confirmMessage =
       'Ticket marked as resolved. Thank you for using our support!';
-    const encryptedMessage = new TextEncoder().encode(confirmMessage);
-    await supabase.from('chat_messages_v2').insert({
-      session_id: originalSessionId,
-      sender_role: 'printy',
-      message_text_enc: encryptedMessage,
+    const result = await insertMessageV2({
+      sessionId: ticketSession.session_id,
+      text: confirmMessage,
+      role: 'printy',
+      nodeId: 'mark_resolved', // Use the existing mark_resolved node from track-ticket flow
     });
 
-    // End the original session
-    await supabase
-      .from('chat_sessions_v2')
-      .update({
-        status: 'ended',
-        ended_at: new Date().toISOString(),
-      })
-      .eq('session_id', originalSessionId);
+    if (!result.messageId) {
+      console.error('Error saving resolution message');
+    }
 
     // Create notifications for admins about ticket resolution
     try {

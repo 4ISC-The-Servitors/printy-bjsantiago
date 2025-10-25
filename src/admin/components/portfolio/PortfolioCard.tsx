@@ -52,12 +52,12 @@ const PortfolioCard: React.FC = () => {
         </div>
         <div className="p-8 space-y-6">
           {categoriesAll.map(cat => (
-            <div key={cat.id} className="border border-gray-200 rounded-lg">
+            <div key={cat.category_id} className="border border-gray-200 rounded-lg">
               <button
                 type="button"
                 className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
-                onClick={() => toggleAllCategory(cat.id)}
-                aria-expanded={openAllCategoryId === cat.id}
+                onClick={() => toggleAllCategory(cat.category_id)}
+                aria-expanded={openAllCategoryId === cat.category_id}
               >
                 <div className="flex items-baseline gap-3 mt-1">
                   <Text
@@ -66,23 +66,23 @@ const PortfolioCard: React.FC = () => {
                     weight="medium"
                     className="text-gray-900"
                   >
-                    {cat.name}
+                    {cat.category_name}
                   </Text>
                   <Badge size="sm" variant="secondary">
-                    {cat.count}
+                    {cat.service_count}
                   </Badge>
                 </div>
                 <ChevronDown
-                  className={`w-4 h-4 text-gray-400 transition-transform ${openAllCategoryId === cat.id ? 'rotate-180' : ''}`}
+                  className={`w-4 h-4 text-gray-400 transition-transform ${openAllCategoryId === cat.category_id ? 'rotate-180' : ''}`}
                   aria-hidden="true"
                 />
               </button>
-              {openAllCategoryId === cat.id && (
+              {openAllCategoryId === cat.category_id && (
                 <div className="border-t border-gray-200 p-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {cat.services.map(s => (
                       <ServiceItem
-                        key={s.id}
+                        key={s.service_id}
                         service={s}
                         onHover={setHoveredServiceId}
                         onViewInChat={viewInChat}
@@ -110,12 +110,12 @@ const PortfolioCard: React.FC = () => {
         </div>
         <div className="p-8 space-y-6">
           {categoriesOffered.map(cat => (
-            <div key={cat.id} className="border border-gray-200 rounded-lg">
+            <div key={cat.category_id} className="border border-gray-200 rounded-lg">
               <button
                 type="button"
                 className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
-                onClick={() => toggleOfferedCategory(cat.id)}
-                aria-expanded={openOfferedCategoryId === cat.id}
+                onClick={() => toggleOfferedCategory(cat.category_id)}
+                aria-expanded={openOfferedCategoryId === cat.category_id}
               >
                 <div className="flex items-baseline gap-3 mt-1">
                   <Text
@@ -124,23 +124,23 @@ const PortfolioCard: React.FC = () => {
                     weight="medium"
                     className="text-gray-900"
                   >
-                    {cat.name}
+                    {cat.category_name}
                   </Text>
                   <Badge size="sm" variant="secondary">
-                    {cat.count}
+                    {cat.service_count}
                   </Badge>
                 </div>
                 <ChevronDown
-                  className={`w-4 h-4 text-gray-400 transition-transform ${openOfferedCategoryId === cat.id ? 'rotate-180' : ''}`}
+                  className={`w-4 h-4 text-gray-400 transition-transform ${openOfferedCategoryId === cat.category_id ? 'rotate-180' : ''}`}
                   aria-hidden="true"
                 />
               </button>
-              {openOfferedCategoryId === cat.id && (
+              {openOfferedCategoryId === cat.category_id && (
                 <div className="border-t border-gray-200 p-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {cat.services.map(s => (
                       <div
-                        key={s.id}
+                        key={s.service_id}
                         className="flex items-center justify-between p-6 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors min-h-[80px]"
                       >
                         <div className="flex items-center gap-4 min-w-0 flex-1">
@@ -151,7 +151,7 @@ const PortfolioCard: React.FC = () => {
                               color="muted"
                               className="truncate"
                             >
-                              {s.code}
+                              {s.display_id}
                             </Text>
                             <Text
                               variant="p"
@@ -159,7 +159,7 @@ const PortfolioCard: React.FC = () => {
                               weight="medium"
                               className="truncate text-gray-900"
                             >
-                              {s.name}
+                              {s.service_name}
                             </Text>
                             <div className="flex items-center gap-2 mt-2">
                               <Badge

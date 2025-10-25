@@ -13,23 +13,34 @@ export function buildQuickReplies(node: FlowNode): Array<{
   label: string;
   value: string;
 }> {
+  console.log('[buildQuickReplies] Building quick replies for node:', {
+    type: node.type,
+    hasOptions: !!(node as any).options,
+    optionsCount: (node as any).options?.length || 0
+  });
+
   if (node.type === 'message' && node.options) {
-    return node.options.map((opt, i) => ({
+    const quickReplies = node.options.map((opt, i) => ({
       id: `qr-${i}`,
       label: opt.label,
       value: opt.label,
     }));
+    console.log('[buildQuickReplies] Message node quick replies:', quickReplies);
+    return quickReplies;
   }
 
   if (node.type === 'action' && node.options) {
-    return node.options.map((opt, i) => ({
+    const quickReplies = node.options.map((opt, i) => ({
       id: `qr-${i}`,
       label: opt.label,
       value: opt.label,
     }));
+    console.log('[buildQuickReplies] Action node quick replies:', quickReplies);
+    return quickReplies;
   }
 
   // Default quick reply
+  console.log('[buildQuickReplies] Using default quick reply');
   return [{ id: 'qr-end', label: 'End Chat', value: 'End Chat' }];
 }
 
@@ -48,8 +59,13 @@ export function getFlowOwner(
   return fallback;
 }
 
+// ✅ IDEMPOTENCY: Track recent message insertions to prevent duplicates
+const recentInsertions = new Map<string, number>();
+const IDEMPOTENCY_WINDOW = 5000; // 5 seconds
+
 /**
  * Insert a message to chat_messages_v2
+ * Includes idempotency check to prevent duplicate insertions
  */
 export async function insertMessage(params: {
   sessionId: string;
@@ -57,8 +73,45 @@ export async function insertMessage(params: {
   role: 'customer' | 'admin' | 'printy';
   nodeId?: string;
 }): Promise<void> {
-  // Note: This should use the RPC function to encrypt the message
-  // For now, using a placeholder - you'll need to implement api_insert_chat_message_v2
+  // ✅ IDEMPOTENCY KEY: Unique identifier for this exact message
+  const idempotencyKey = `${params.sessionId}:${params.role}:${params.nodeId}:${params.text}`;
+  const now = Date.now();
+
+  // Check if we recently inserted this exact message
+  const lastInsertTime = recentInsertions.get(idempotencyKey);
+  if (lastInsertTime && (now - lastInsertTime) < IDEMPOTENCY_WINDOW) {
+    console.warn(`[insertMessage] ⚠️ DUPLICATE PREVENTED - Same message inserted ${now - lastInsertTime}ms ago:`, {
+      text: params.text.substring(0, 50),
+      role: params.role,
+      nodeId: params.nodeId,
+    });
+    return; // Skip duplicate insertion
+  }
+
+  // ✅ DEBUG: Log every RPC call to track duplicates
+  const callId = crypto.randomUUID().substring(0, 8);
+  console.log(`[insertMessage ${callId}] 🔵 CALLING RPC:`, {
+    text: params.text,
+    role: params.role,
+    nodeId: params.nodeId,
+    sessionId: params.sessionId,
+    timestamp: now,
+    stack: new Error().stack?.split('\n').slice(2, 5).join('\n')
+  });
+
+  // Mark this message as being inserted
+  recentInsertions.set(idempotencyKey, now);
+
+  // Clean up old entries (garbage collection)
+  if (recentInsertions.size > 100) {
+    const cutoff = now - IDEMPOTENCY_WINDOW;
+    for (const [key, time] of recentInsertions.entries()) {
+      if (time < cutoff) {
+        recentInsertions.delete(key);
+      }
+    }
+  }
+
   const { error } = await supabase.rpc('api_insert_chat_message_v2', {
     p_session_id: params.sessionId,
     p_text: params.text,
@@ -67,9 +120,13 @@ export async function insertMessage(params: {
   });
 
   if (error) {
-    console.error('Failed to insert message:', error);
+    console.error(`[insertMessage ${callId}] ❌ RPC FAILED:`, error);
+    // Remove from tracking if failed
+    recentInsertions.delete(idempotencyKey);
     throw new Error(`Failed to insert message: ${error.message}`);
   }
+
+  console.log(`[insertMessage ${callId}] ✅ RPC SUCCESS`);
 }
 
 /**

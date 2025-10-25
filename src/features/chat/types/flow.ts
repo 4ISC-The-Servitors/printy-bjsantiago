@@ -35,7 +35,9 @@ export type ActionType =
   | 'display_order_payment_info'
   | 'display_payment_methods'
   | 'upload_payment_proof_image'
-  | 'show_customer_orders';
+  | 'show_customer_orders'
+  | 'display_service_categories'
+  | 'display_services_by_category';
 
 export interface CreateQuoteConversationConfig {
   details_key: string;

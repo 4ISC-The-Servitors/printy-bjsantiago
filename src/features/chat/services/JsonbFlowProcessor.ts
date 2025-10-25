@@ -44,6 +44,7 @@ export class JsonbFlowProcessor {
       quote_id?: string; // ADD THIS
     };
   }) {
+    console.log('[JsonbFlowProcessor] Starting flow:', params.flowId);
     const { flowId, customerId, flowDefinition, initialContext } = params;
 
     // Create chat session
@@ -91,6 +92,8 @@ export class JsonbFlowProcessor {
     // Resolve starting node, with auto-skip if initial context already provides required input
     let currentNodeId = flowDefinition.initial_node;
     let initialNode = flowDefinition.nodes[currentNodeId];
+    
+    console.log('[JsonbFlowProcessor] Initial node:', currentNodeId, 'Type:', initialNode?.type);
     if (!initialNode) {
       throw new Error(`Initial node ${flowDefinition.initial_node} not found`);
     }
@@ -141,6 +144,7 @@ export class JsonbFlowProcessor {
     }
 
     // If we land on an action node (e.g., verify_order), execute it immediately
+    let lastActionResult: any = null; // Track last action result for quick replies
     if (initialNode.type === 'action') {
       const actionResult = await this.executeAction({
         actionNode: initialNode as ActionNode,
@@ -149,6 +153,12 @@ export class JsonbFlowProcessor {
         context: (initialContext || {}) as any,
       });
       bootMessages.push(...actionResult.messages);
+
+      // ✅ Store last action result for quick replies
+      lastActionResult = {
+        result: actionResult,
+        node: initialNode,
+      };
 
       // ✅ FIX: Save action messages to database
       for (const message of actionResult.messages) {
@@ -288,7 +298,6 @@ export class JsonbFlowProcessor {
     }
 
     // Auto-advance if initial node has a next and does NOT require input (common for admin flows)
-    let lastActionResult: any = null; // Track last action result for quick replies
     if (
       initialNode.type === 'message' &&
       initialNode.next &&
@@ -311,7 +320,7 @@ export class JsonbFlowProcessor {
           });
           bootMessages.push(...actionResult.messages);
 
-          // ✅ Store last action result for quick replies
+          // ✅ Update last action result for quick replies
           lastActionResult = {
             result: actionResult,
             node: currentNode,
@@ -390,15 +399,31 @@ export class JsonbFlowProcessor {
       }
     }
 
-    // Build quick replies from final node
-    let quickReplies = buildQuickReplies(flowDefinition.nodes[currentNodeId]);
-
     // ✅ FIX: Use action quick replies if the last executed action provided them
     // This allows actions to dynamically provide quick replies (like Accept/Reject quote)
+    let quickReplies: Array<{ id: string; label: string; value: string }> = [];
+    
+    console.log('[startFlow] Checking for action quick replies:', {
+      hasLastActionResult: !!lastActionResult,
+      lastActionResultKeys: lastActionResult ? Object.keys(lastActionResult) : [],
+      hasResult: !!(lastActionResult?.result),
+      resultKeys: lastActionResult?.result ? Object.keys(lastActionResult.result) : [],
+      hasQuickReplies: !!(lastActionResult?.result?.quickReplies),
+      quickRepliesCount: lastActionResult?.result?.quickReplies?.length || 0
+    });
+    
     try {
       if (lastActionResult && lastActionResult.result?.quickReplies) {
         const actionNode = lastActionResult.node as ActionNode;
         const actionResult = lastActionResult.result;
+
+        console.log('[startFlow] Processing action result:', {
+          actionName: actionNode?.action,
+          hasNext: !!actionNode?.next,
+          nextNode: actionNode?.next,
+          quickRepliesCount: actionResult.quickReplies?.length || 0,
+          quickReplies: actionResult.quickReplies
+        });
 
         // Check if action has validation errors
         const hasValidationErrors = actionResult.messages?.some(
@@ -418,17 +443,31 @@ export class JsonbFlowProcessor {
           !actionNode.next ||
           actionNode.action === 'display_quoted_price' ||
           actionNode.action === 'show_quote_decision_prompt' ||
-          actionNode.action === 'show_customer_orders';
+          actionNode.action === 'show_customer_orders' ||
+          actionNode.action === 'display_service_categories';
+
+        console.log('[startFlow] Action quick replies decision:', {
+          hasValidationErrors,
+          hasNextNode: !!actionNode.next,
+          actionName: actionNode.action,
+          shouldUseActionQuickReplies,
+          quickRepliesCount: actionResult.quickReplies?.length || 0
+        });
 
         if (shouldUseActionQuickReplies) {
           quickReplies = actionResult.quickReplies;
+          console.log('[startFlow] ✅ Using action quick replies:', quickReplies);
 
           // ✅ CRITICAL FIX: Store quickReplies in session metadata
           // This allows processInput to access them for routing
           stateManager.updateContext({
             _pending_quick_replies: actionResult.quickReplies,
           });
+        } else {
+          console.log('[startFlow] ❌ Not using action quick replies, will fall back to node quick replies');
         }
+      } else {
+        console.log('[startFlow] No action result or quick replies available');
       }
     } catch (qrError) {
       console.error(
@@ -436,6 +475,12 @@ export class JsonbFlowProcessor {
         qrError
       );
       // Fall back to node-based quick replies if error occurs
+    }
+
+    // Fallback to node quick replies if no action quick replies were used
+    if (quickReplies.length === 0) {
+      quickReplies = buildQuickReplies(flowDefinition.nodes[currentNodeId]);
+      console.log('[startFlow] Using node quick replies:', quickReplies);
     }
 
     // Build fallback message if bootMessages is empty and initialNode has a valid string message
@@ -506,6 +551,7 @@ export class JsonbFlowProcessor {
     }
 
     // Insert user message with correct sender role (customer/admin)
+    console.log('[JsonbFlowProcessor] Inserting user message:', { sessionId, text: userInput, role: senderRole, nodeId: metadata.current_node_id });
     await insertMessage({
       sessionId,
       text: userInput,
@@ -538,75 +584,86 @@ export class JsonbFlowProcessor {
       });
     }
 
-    // ✅ FIX: Check for pending quick replies from previous action first
-    // This handles dynamic quick replies returned by actions (like Accept/Reject quote)
+    // ✅ FIX: Only check for quick reply matches when the current node is designed for quick reply interaction
+    // This prevents regular text input from being incorrectly processed as quick reply selections
     const currentContext = stateManager.getContext();
     const pendingQuickReplies = currentContext._pending_quick_replies;
     let optionMatched = false;
 
-    if (pendingQuickReplies && Array.isArray(pendingQuickReplies)) {
+    // Only process quick reply matching if:
+    // 1. There are pending quick replies from a previous action, OR
+    // 2. The current node has options defined (indicating it expects option selection)
+    const shouldProcessQuickReplies = 
+      (pendingQuickReplies && Array.isArray(pendingQuickReplies) && pendingQuickReplies.length > 0) ||
+      ((currentNode.type === 'message' || currentNode.type === 'action') && 
+       'options' in currentNode && 
+       currentNode.options && 
+       currentNode.options.length > 0);
 
-      const selectedQuickReply = pendingQuickReplies.find((qr: any) => {
-        const labelMatch = qr.label?.toLowerCase() === userInput.toLowerCase();
-        const valueMatch = qr.value?.toLowerCase() === userInput.toLowerCase();
-        return labelMatch || valueMatch;
-      });
-
-      if (selectedQuickReply && selectedQuickReply.next) {
-        stateManager.setCurrentNode(selectedQuickReply.next);
-
-        // Clear pending quick replies after use
-        stateManager.updateContext({
-          _pending_quick_replies: null,
+    if (shouldProcessQuickReplies) {
+      // First check pending quick replies from previous action
+      if (pendingQuickReplies && Array.isArray(pendingQuickReplies)) {
+        const selectedQuickReply = pendingQuickReplies.find((qr: any) => {
+          const labelMatch = qr.label?.toLowerCase() === userInput.toLowerCase();
+          const valueMatch = qr.value?.toLowerCase() === userInput.toLowerCase();
+          return labelMatch || valueMatch;
         });
 
-        optionMatched = true;
-      }
-    }
+        if (selectedQuickReply && selectedQuickReply.next) {
+          stateManager.setCurrentNode(selectedQuickReply.next);
 
-    // Handle option selection from node definition (fallback if no quick reply matched)
-    if (
-      !optionMatched &&
-      (currentNode.type === 'message' || currentNode.type === 'action') &&
-      currentNode.options
-    ) {
-
-      const selectedOption = currentNode.options.find(opt => {
-        const labelMatch = opt.label.toLowerCase() === userInput.toLowerCase();
-        const valueMatch = opt.value?.toLowerCase() === userInput.toLowerCase();
-        return labelMatch || valueMatch;
-      });
-
-
-      if (selectedOption) {
-        // Store option value if specified
-        if (selectedOption.value && selectedOption.store_as) {
+          // Clear pending quick replies after use
           stateManager.updateContext({
-            [selectedOption.store_as]: selectedOption.value,
+            _pending_quick_replies: null,
           });
-        }
 
-        // Move to next node
-        if (selectedOption.next) {
-          stateManager.setCurrentNode(selectedOption.next);
+          optionMatched = true;
         }
+      }
 
-        optionMatched = true;
-      } else {
+      // Handle option selection from node definition (fallback if no quick reply matched)
+      if (
+        !optionMatched &&
+        (currentNode.type === 'message' || currentNode.type === 'action') &&
+        currentNode.options
+      ) {
+        const selectedOption = currentNode.options.find(opt => {
+          const labelMatch = opt.label.toLowerCase() === userInput.toLowerCase();
+          const valueMatch = opt.value?.toLowerCase() === userInput.toLowerCase();
+          return labelMatch || valueMatch;
+        });
+
+        if (selectedOption) {
+          // Store option value if specified
+          if (selectedOption.value && selectedOption.store_as) {
+            stateManager.updateContext({
+              [selectedOption.store_as]: selectedOption.value,
+            });
+          }
+
+          // Move to next node
+          if (selectedOption.next) {
+            stateManager.setCurrentNode(selectedOption.next);
+          }
+
+          optionMatched = true;
+        }
       }
     }
 
     // ✅ FIX: Handle quick reply selections from action results
-    // This handles cases where actions return dynamic quick replies (like show_customer_orders)
-    if (currentNode.type === 'action' && userInput) {
-
+    // This handles cases where actions return dynamic quick replies (like show_customer_orders, display_service_categories)
+    // Only process this if we haven't already matched an option and the current node is an action
+    if (!optionMatched && currentNode.type === 'action' && userInput) {
       // Check if this input matches any quick reply that would have been returned by an action
       // We look for order IDs in the format ORD-XXXXXX or special values like 'no_order'
       const isOrderSelection =
         /^ORD-\d+$/.test(userInput) || userInput === 'no_order';
 
-      if (isOrderSelection) {
+      // Check if this input matches a service category selection (format: "category_id|category_name")
+      const isCategorySelection = userInput.includes('|');
 
+      if (isOrderSelection) {
         // Store the order selection in context
         stateManager.updateContext({
           order_id: userInput,
@@ -614,6 +671,16 @@ export class JsonbFlowProcessor {
 
         // Move to create_ticket node
         stateManager.setCurrentNode('create_ticket');
+        optionMatched = true;
+      } else if (isCategorySelection && (currentNode.action === 'display_service_categories' || currentNode.action === 'display_services_by_category')) {
+        // Store the category selection in context
+        stateManager.updateContext({
+          selected_category: userInput,
+        });
+
+        // Move to category_dynamic node
+        stateManager.setCurrentNode('category_dynamic');
+        optionMatched = true;
       }
     }
 
@@ -629,6 +696,8 @@ export class JsonbFlowProcessor {
     // Get the new current node after transition
     const currentNodeId = stateManager.getCurrentNodeId();
     const nextNode = flowDefinition.nodes[currentNodeId];
+    console.log('[JsonbFlowProcessor] Current node after transition:', currentNodeId, 'Type:', nextNode?.type);
+    
     if (!nextNode) {
       throw new Error(`Next node ${currentNodeId} not found`);
     }
@@ -636,11 +705,20 @@ export class JsonbFlowProcessor {
     // Execute action if the next node is an action node
     let actionResult: any = null;
     if (nextNode.type === 'action') {
+      console.log('[JsonbFlowProcessor] Executing action:', nextNode.action);
+      
       actionResult = await this.executeAction({
         actionNode: nextNode as ActionNode,
         sessionId,
         customerId,
         context: stateManager.getContext(),
+      });
+
+      console.log('[JsonbFlowProcessor] Action result:', {
+        action: nextNode.action,
+        messagesCount: actionResult.messages?.length || 0,
+        quickRepliesCount: actionResult.quickReplies?.length || 0,
+        hasContext: !!actionResult.context
       });
 
       responses.push(...actionResult.messages);
@@ -856,15 +934,26 @@ export class JsonbFlowProcessor {
     // Get updated node for quick replies
     const finalNodeId = stateManager.getCurrentNodeId();
     const finalNode = flowDefinition.nodes[finalNodeId];
-    let quickReplies = buildQuickReplies(finalNode);
+    console.log('[JsonbFlowProcessor] Final node for quick replies:', finalNodeId, 'Type:', finalNode?.type);
+    
+    let quickReplies: Array<{ id: string; label: string; value: string }> = [];
 
-    // ✅ FIX: Include quick replies from action results if available
+    // ✅ FIX: Check for action quick replies FIRST before falling back to node quick replies
     // This allows actions to provide dynamic quick replies (like order selection)
+    console.log('[JsonbFlowProcessor] Checking for action quick replies:', {
+      nextNodeType: nextNode?.type,
+      hasActionResult: !!actionResult,
+      hasQuickReplies: !!(actionResult?.quickReplies),
+      actionName: nextNode?.type === 'action' ? (nextNode as ActionNode).action : undefined
+    });
+    
     if (
       nextNode.type === 'action' &&
       actionResult &&
       actionResult.quickReplies
     ) {
+      console.log('[JsonbFlowProcessor] Action provided quick replies:', actionResult.quickReplies);
+      
       // Use action quick replies if available
       // Check if action has validation errors or if the action is designed to provide quick replies
       const hasValidationErrors = actionResult.messages.some(
@@ -882,11 +971,20 @@ export class JsonbFlowProcessor {
       const shouldUseActionQuickReplies =
         hasValidationErrors ||
         !nextNode.next ||
-        nextNode.action === 'show_customer_orders' ||
-        nextNode.action === 'show_quote_decision_prompt';
+        (nextNode as ActionNode).action === 'show_customer_orders' ||
+        (nextNode as ActionNode).action === 'show_quote_decision_prompt' ||
+        (nextNode as ActionNode).action === 'display_service_categories' ||
+        (nextNode as ActionNode).action === 'display_services_by_category';
+
+      console.log('[JsonbFlowProcessor] Should use action quick replies:', shouldUseActionQuickReplies, {
+        hasValidationErrors,
+        hasNextNode: !!nextNode.next,
+        action: (nextNode as ActionNode).action
+      });
 
       if (shouldUseActionQuickReplies) {
         quickReplies = actionResult.quickReplies;
+        console.log('[JsonbFlowProcessor] Using action quick replies:', quickReplies);
 
         // ✅ CRITICAL FIX: Store quickReplies in session metadata
         // This allows processInput to access them for routing
@@ -899,6 +997,19 @@ export class JsonbFlowProcessor {
         await stateManager.flush();
       }
     }
+
+    // Fallback to node quick replies if no action quick replies were used
+    if (quickReplies.length === 0) {
+      quickReplies = buildQuickReplies(finalNode);
+      console.log('[JsonbFlowProcessor] Using node quick replies:', quickReplies);
+    }
+
+    console.log('[JsonbFlowProcessor] Final result:', {
+      messagesCount: responses.length,
+      quickRepliesCount: quickReplies.length,
+      quickReplies: quickReplies,
+      currentNodeId: finalNodeId
+    });
 
     return {
       messages: responses,

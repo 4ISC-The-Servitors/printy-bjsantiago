@@ -51,9 +51,71 @@ export async function sendAdminReply(
   }
 
   try {
-    // Store admin reply in chat_messages_v2 (in customer's original session) using proper encryption
+    // Get customer_id and original session info
+    let customerId = null;
+    let originalSessionId = customerSessionId;
+    
+    if (customerSessionId) {
+      const { data: originalSession } = await supabase
+        .from('chat_sessions_v2')
+        .select('customer_id')
+        .eq('session_id', customerSessionId)
+        .single();
+      customerId = originalSession?.customer_id;
+    } else if (inquiryId) {
+      // Fallback: get both from inquiry
+      const { data: inquiry } = await supabase
+        .from('inquiries_v2')
+        .select('customer_id, session_id')
+        .eq('inquiry_id', inquiryId)
+        .single();
+      customerId = inquiry?.customer_id;
+      originalSessionId = inquiry?.session_id;
+    }
+
+    if (!customerId) {
+      console.error('Could not find customer_id for admin reply');
+      messages.push({
+        id: crypto.randomUUID(),
+        role: 'printy',
+        text: 'Customer information not found. Please try again.',
+        ts: Date.now(),
+      });
+      return { messages };
+    }
+
+    // Create a separate ticket conversation session (marked as ended so it doesn't appear in Recent Chats)
+    const { data: ticketSession, error: sessionError } = await supabase
+      .from('chat_sessions_v2')
+      .insert({
+        flow_id: 'track-ticket',
+        customer_id: customerId,
+        status: 'ended', // Mark as ended so it doesn't appear in Recent Chats
+        metadata: {
+          ticket_conversation: true,
+          original_session_id: originalSessionId,
+          inquiry_id: inquiryId,
+          conversation_type: 'ticket_reply',
+          admin_chat: true
+        }
+      })
+      .select('session_id')
+      .single();
+
+    if (sessionError || !ticketSession?.session_id) {
+      console.error('Error creating ticket conversation session for admin reply:', sessionError);
+      messages.push({
+        id: crypto.randomUUID(),
+        role: 'printy',
+        text: 'Failed to create conversation session. Please try again.',
+        ts: Date.now(),
+      });
+      return { messages };
+    }
+
+    // Store admin reply in the ticket conversation session
     const result = await insertMessageV2({
-      sessionId: customerSessionId,
+      sessionId: ticketSession.session_id,
       text: adminReply,
       role: 'admin',
       nodeId: 'admin_reply',
@@ -71,21 +133,17 @@ export async function sendAdminReply(
     }
 
     // Update inquiry status to pending_customer_reply
-    const { data: updateData, error: statusError } = await supabase
-      .from('inquiries_v2')
-      .update({
-        inquiry_status: 'pending_customer_reply',
-        updated_by: await getAdminUserId(), // Track that admin replied to ticket
-      })
-      .eq('inquiry_id', inquiryId)
-      .select('inquiry_id, inquiry_status');
+    if (inquiryId) {
+      const { error: statusError } = await supabase
+        .from('inquiries_v2')
+        .update({
+          inquiry_status: 'pending_customer_reply',
+          updated_by: await getAdminUserId(), // Track that admin replied to ticket
+        })
+        .eq('inquiry_id', inquiryId);
 
-    if (statusError) {
-      console.error('[sendAdminReply] Error updating status:', statusError);
-    } else {
-      if (updateData && updateData.length > 0) {
-      } else {
-        console.error('[sendAdminReply] No rows were updated');
+      if (statusError) {
+        console.error('[sendAdminReply] Error updating inquiry status:', statusError);
       }
     }
 

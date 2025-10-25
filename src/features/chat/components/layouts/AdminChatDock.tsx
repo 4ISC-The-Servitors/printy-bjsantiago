@@ -13,7 +13,7 @@ export interface AdminChatDockProps {
   isTyping?: boolean;
   quickReplies?: QuickReply[];
   onSend: (text: string) => void;
-  onQuickReply?: (value: string) => void;
+  onQuickReply?: (value: string | { value: string; label: string }) => void;
   onEndChat?: () => void;
   onAttachFiles?: (files: FileList) => void;
   readOnly?: boolean;

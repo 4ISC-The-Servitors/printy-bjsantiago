@@ -22,7 +22,7 @@ export interface ChatPanelProps {
   onAttachFiles?: (files: FileList) => void;
   onBack?: () => void;
   quickReplies?: QuickReply[];
-  onQuickReply?: (value: string) => void;
+  onQuickReply?: (data: { value: string; label: string }) => void;
   inputPlaceholder?: string;
   onEndChat?: () => void;
   showAttach?: boolean;

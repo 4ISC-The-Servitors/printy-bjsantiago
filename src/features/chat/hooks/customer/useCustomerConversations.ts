@@ -3,7 +3,7 @@
  * Small hook that composes core state for customer-side chat.
  * Uses JSONB-based flows.
  */
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useRef } from 'react';
 import { useConversationState } from '@features/chat/hooks/shared/useConversationState';
 import { auth, supabase } from '@lib/supabase';
 import { JsonbFlowProcessor } from '@features/chat/services/JsonbFlowProcessor';
@@ -17,6 +17,14 @@ import type { ChatMessage, ChatRole } from '@features/chat/types/chat';
 // Helper to map JSONB roles to ChatRole
 function mapRole(role: 'customer' | 'admin' | 'printy'): ChatRole {
   return role === 'customer' ? 'user' : 'printy';
+}
+
+// Helper to extract display label from value (e.g., "uuid|Category Name" -> "Category Name")
+function extractDisplayText(text: string): string {
+  if (text.includes('|')) {
+    return text.split('|')[1].trim();
+  }
+  return text;
 }
 
 export function useCustomerConversations() {
@@ -38,6 +46,14 @@ export function useCustomerConversations() {
   // JSONB flow state
   const [sessionId, setSessionIdState] = useState<string | null>(null);
   const [_currentNodeId, setCurrentNodeIdState] = useState<string | null>(null);
+
+  // ✅ DUPLICATE PREVENTION: Track if message is currently being processed
+  // Prevents concurrent calls when quick reply buttons are clicked multiple times
+  const isProcessingRef = useRef<boolean>(false);
+  const instanceIdRef = useRef<string>(crypto.randomUUID());
+
+  // Debug log on mount
+  console.log('[useCustomerConversations] Hook instance created:', instanceIdRef.current);
 
   const updateInputPlaceholder = useCallback(() => {
     // Use a generic placeholder for DB-backed flows
@@ -143,25 +159,27 @@ export function useCustomerConversations() {
 
   const handleSend = useCallback(
     async (text: string) => {
-      if (!activeId || !sessionId) return;
-
-      const userMessage: ChatMessage = {
-        id: crypto.randomUUID(),
-        role: 'user',
+      console.log('[useCustomerConversations] handleSend called:', {
         text,
-        ts: Date.now(),
-      };
+        instanceId: instanceIdRef.current,
+        isProcessing: isProcessingRef.current,
+        activeId,
+        sessionId
+      });
 
-      // Add user message to UI
-      setMessages(prev => [...prev, userMessage]);
-      setConversations(prev =>
-        prev.map(c =>
-          c.id === activeId
-            ? { ...c, messages: [...c.messages, userMessage] }
-            : c
-        )
-      );
+      if (!activeId || !sessionId) {
+        console.log('[useCustomerConversations] No activeId or sessionId, returning');
+        return;
+      }
 
+      // ✅ DUPLICATE PREVENTION: Ignore if already processing
+      if (isProcessingRef.current) {
+        console.log('[useCustomerConversations] ❌ DUPLICATE DETECTED - Already processing, skipping duplicate send');
+        return;
+      }
+
+      console.log('[useCustomerConversations] ✅ Setting isProcessing = true');
+      isProcessingRef.current = true;
       setIsTyping(true);
       setQuickReplies([]);
 
@@ -173,27 +191,30 @@ export function useCustomerConversations() {
         const flowDefinition = await getFlowDefinition(conv.flowId);
         if (!flowDefinition) return;
 
-        // Process input through JSONB flow
+        // Process input through JSONB flow (this will insert user message to DB)
         const result = await JsonbFlowProcessor.processInput({
           sessionId,
           userInput: text,
           flowDefinition,
         });
 
-        // Map bot responses to ChatMessage format
-        const mappedResponses: ChatMessage[] = result.messages.map(m => ({
+        // Fetch all messages from database to ensure consistency (includes user message)
+        const allMessages = await fetchSessionMessagesV2(sessionId);
+        console.log('[useCustomerConversations] Fetched messages from DB:', allMessages);
+        const mappedMessages: ChatMessage[] = allMessages.map(m => ({
           id: m.id,
           role: mapRole(m.role),
           text: m.text,
           ts: m.ts,
         }));
 
-        // Update UI with bot responses
-        setMessages(prev => [...prev, ...mappedResponses]);
+        console.log('[useCustomerConversations] Mapped messages for UI:', mappedMessages);
+        // Update UI with all messages from database
+        setMessages(mappedMessages);
         setConversations(prev =>
           prev.map(c =>
             c.id === activeId
-              ? { ...c, messages: [...c.messages, ...mappedResponses] }
+              ? { ...c, messages: mappedMessages }
               : c
           )
         );
@@ -215,7 +236,9 @@ export function useCustomerConversations() {
       } catch (error) {
         console.error('Failed to send message:', error);
       } finally {
+        console.log('[useCustomerConversations] ✅ Setting isProcessing = false (handleSend)');
         setIsTyping(false);
+        isProcessingRef.current = false;
       }
     },
     [
@@ -267,7 +290,7 @@ export function useCustomerConversations() {
         const mappedFetched: ChatMessage[] = fetched.map(m => ({
           id: m.id,
           role: mapRole(m.role as any),
-          text: m.text,
+          text: m.role === 'customer' ? extractDisplayText(m.text) : m.text, // Clean UUID for user messages
           ts: m.ts,
         }));
         setMessages(mappedFetched);
@@ -289,15 +312,100 @@ export function useCustomerConversations() {
   }, [activeId, sessionId, setMessages, setConversations, setQuickReplies]);
 
   const handleQuickReply = useCallback(
-    (value: string) => {
-      const normalized = (value ?? '').trim().toLowerCase();
+    async (value: string | { value: string; label: string }) => {
+      // Handle both string and object formats
+      const data = typeof value === 'string' ? { value, label: value } : value;
+
+      console.log('[useCustomerConversations] handleQuickReply called:', {
+        data,
+        instanceId: instanceIdRef.current,
+        isProcessing: isProcessingRef.current,
+        activeId,
+        sessionId
+      });
+
+      const normalized = (data.label ?? '').trim().toLowerCase();
       if (normalized === 'end chat' || normalized === 'end') {
+        console.log('[useCustomerConversations] End chat detected, calling endChatWithSequence');
         void endChatWithSequence();
         return;
       }
-      void handleSend(value);
+
+      if (!activeId || !sessionId) {
+        console.log('[useCustomerConversations] No activeId or sessionId, returning');
+        return;
+      }
+
+      // ✅ DUPLICATE PREVENTION: Ignore if already processing
+      if (isProcessingRef.current) {
+        console.log('[useCustomerConversations] ❌ DUPLICATE DETECTED - Already processing, skipping duplicate quick reply');
+        return;
+      }
+
+      console.log('[useCustomerConversations] ✅ Setting isProcessing = true');
+      isProcessingRef.current = true;
+      setIsTyping(true);
+      setQuickReplies([]);
+
+      try {
+        // Get flow definition
+        const conv = conversations.find(c => c.id === activeId);
+        if (!conv) return;
+
+        const flowDefinition = await getFlowDefinition(conv.flowId);
+        if (!flowDefinition) return;
+
+        // Process input through JSONB flow using the VALUE for routing (this will insert user message to DB)
+        const result = await JsonbFlowProcessor.processInput({
+          sessionId,
+          userInput: data.value, // Use value for routing (contains UUID|CategoryName)
+          flowDefinition,
+        });
+
+        // Fetch all messages from database to ensure consistency (includes user message)
+        const allMessages = await fetchSessionMessagesV2(sessionId);
+        console.log('[useCustomerConversations] QuickReply - Fetched messages from DB:', allMessages);
+        const mappedMessages: ChatMessage[] = allMessages.map(m => ({
+          id: m.id,
+          role: mapRole(m.role),
+          text: m.text,
+          ts: m.ts,
+        }));
+
+        console.log('[useCustomerConversations] QuickReply - Mapped messages for UI:', mappedMessages);
+        // Update UI with all messages from database
+        setMessages(mappedMessages);
+        setConversations(prev =>
+          prev.map(c =>
+            c.id === activeId
+              ? { ...c, messages: mappedMessages }
+              : c
+          )
+        );
+
+        setQuickReplies(result.quickReplies);
+        setCurrentNodeIdState(result.currentNodeId);
+
+        // Check if conversation ended
+        const updatedNode = flowDefinition.nodes[result.currentNodeId];
+        if (updatedNode && updatedNode.type === 'end') {
+          setConversations(prev =>
+            prev.map(c =>
+              c.id === activeId ? { ...c, status: 'ended' as const } : c
+            )
+          );
+        }
+
+        updateInputPlaceholder();
+      } catch (error) {
+        console.error('Failed to process quick reply:', error);
+      } finally {
+        console.log('[useCustomerConversations] ✅ Setting isProcessing = false (handleQuickReply)');
+        setIsTyping(false);
+        isProcessingRef.current = false;
+      }
     },
-    [handleSend, endChatWithSequence]
+    [endChatWithSequence, activeId, sessionId, conversations, setMessages, setConversations, setIsTyping, setQuickReplies, updateInputPlaceholder]
   );
 
   const endChat = useCallback(
@@ -347,7 +455,7 @@ export function useCustomerConversations() {
           const mappedFetched: ChatMessage[] = fetched.map(m => ({
             id: m.id,
             role: mapRole(m.role as any),
-            text: m.text,
+            text: m.role === 'customer' ? extractDisplayText(m.text) : m.text, // Clean UUID for user messages
             ts: m.ts,
           }));
           setMessages(mappedFetched);
@@ -390,7 +498,7 @@ export function useCustomerConversations() {
         const mappedMessages: ChatMessage[] = fetched.map(m => ({
           id: m.id,
           role: mapRole(m.role as any),
-          text: m.text,
+          text: m.role === 'customer' ? extractDisplayText(m.text) : m.text, // Clean UUID for user messages
           ts: m.ts,
           isHistorical: true, // Mark all loaded messages as historical to prevent typing animations
         }));

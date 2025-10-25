@@ -46,7 +46,6 @@ import type {
   ActionExecutionResult,
 } from '@features/chat/types';
 import { ChatEndService } from '../../services/ChatEndService';
-import { insertMessageV2 } from '@features/chat/api/jsonbChatFlowApi';
 
 export async function createInquiry(
   params: ActionExecutionParams
@@ -191,13 +190,6 @@ export async function createInquiry(
     displayId = inquiryId;
   }
 
-  // Store issue details in chat_messages_v2 for conversation history using proper encryption
-  await insertMessageV2({
-    sessionId,
-    text: issueDetails,
-    role: 'customer',
-    nodeId: 'collect_details',
-  });
 
   // Update session with inquiry_id FK and metadata
   await supabase

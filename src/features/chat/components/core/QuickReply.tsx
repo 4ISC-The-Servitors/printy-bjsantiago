@@ -5,7 +5,7 @@ import { auth } from '@lib/supabase';
 
 interface QuickReplyGridProps {
   replies: QuickReply[];
-  onQuickReply?: (value: string) => void;
+  onQuickReply?: (data: { value: string; label: string }) => void;
   onEndChat?: () => void;
   userRole?: 'admin' | 'customer';
   sessionId?: string;
@@ -74,16 +74,34 @@ export const QuickReplyGrid: React.FC<QuickReplyGridProps> = ({
       {replies.map((reply, index) => {
         const isEnd = endLabels.has(reply.label.trim().toLowerCase());
         const handleClick = () => {
+          console.log('[QuickReply] Button clicked:', {
+            reply,
+            isEnd,
+            timestamp: Date.now()
+          });
+
           if (isEnd) {
+            console.log('[QuickReply] Calling handleEndChat');
             void handleEndChat();
           } else {
-            onQuickReply?.(reply.value);
+            // Extract the label from the value if it contains a pipe (category_id|category_name)
+            // Otherwise, just use the value as-is
+            const displayLabel = reply.value.includes('|')
+              ? reply.value.split('|')[1]
+              : reply.label;
+
+            console.log('[QuickReply] Calling onQuickReply with:', { value: reply.value, label: displayLabel });
+
+            // Pass both value (for routing) and label (for display) as an object
+            // The handler will extract what it needs
+            onQuickReply?.({ value: reply.value, label: displayLabel });
           }
         };
 
         return (
           <button
             key={index}
+            type="button"
             onClick={handleClick}
             className={`
               btn-3d px-4 py-2.5 rounded-lg text-xs sm:text-sm font-medium

@@ -2,7 +2,6 @@ import React, {
   createContext,
   useContext,
   useMemo,
-  useRef,
   useState,
   useEffect,
 } from 'react';
@@ -53,7 +52,6 @@ export const AdminConversationsProvider: React.FC<{
 }> = ({ children }) => {
   const [conversations, setConversations] = useState<AdminConversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
-  const idCounter = useRef(0);
 
   // Load admin chat sessions from database
   const loadAdminChatSessions = async () => {
@@ -82,8 +80,9 @@ export const AdminConversationsProvider: React.FC<{
         `
         )
         .or(
-          'metadata->admin_chat.eq.true,flow_id.eq.admin-quote-propose,inquiry_id.not.is.null'
+          'metadata->admin_chat.eq.true,flow_id.eq.admin-quote-propose'
         )
+        .is('metadata->ticket_conversation', null)
         .order('created_at', { ascending: false })
         .limit(20);
 
@@ -164,7 +163,7 @@ export const AdminConversationsProvider: React.FC<{
   }, []);
 
   const startConversation = (title: string) => {
-    const id = `admin-conv-${Date.now()}-${++idCounter.current}`;
+    const id = crypto.randomUUID();
     const conv: AdminConversation = {
       id,
       title,

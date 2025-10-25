@@ -72,7 +72,7 @@ export async function fetchTicketForAdmin(
     }
 
     // Fetch all messages from chat_messages_v2 using RPC for proper decryption
-    const { data: allMessages, error: messagesError } = await supabase.rpc(
+    const { data: originalMessages, error: messagesError } = await supabase.rpc(
       'api_fetch_chat_messages_v2',
       { p_session_id: inquiry.session_id }
     );
@@ -81,9 +81,38 @@ export async function fetchTicketForAdmin(
       console.error('Error fetching customer messages:', messagesError);
     }
 
-    // Check if this is a pending_admin_reply or resolved status - if so, show full conversation history
+    // Also fetch messages from ticket conversation sessions (admin/customer replies)
+    const { data: ticketConversations, error: ticketError } = await supabase
+      .from('chat_sessions_v2')
+      .select('session_id')
+      .eq('customer_id', inquiry.customer_id)
+      .eq('metadata->>inquiry_id', inquiryId)
+      .eq('metadata->>ticket_conversation', true);
+
+    let ticketMessages: any[] = [];
+    if (!ticketError && ticketConversations && ticketConversations.length > 0) {
+      // Fetch messages from all ticket conversation sessions
+      for (const ticketSession of ticketConversations) {
+        const { data: ticketChatMessages } = await supabase.rpc(
+          'api_fetch_chat_messages_v2',
+          { p_session_id: ticketSession.session_id }
+        );
+        if (ticketChatMessages) {
+          ticketMessages.push(...ticketChatMessages);
+        }
+      }
+    }
+
+    // Combine original session messages and ticket conversation messages
+    const allMessages = [
+      ...(originalMessages || []),
+      ...ticketMessages
+    ].sort((a, b) => new Date(a.sent_at).getTime() - new Date(b.sent_at).getTime()); // Sort by sent_at
+
+    // Check if this is a pending reply or resolved status - if so, show full conversation history
     const shouldShowFullHistory =
       inquiry.inquiry_status === 'pending_admin_reply' ||
+      inquiry.inquiry_status === 'pending_customer_reply' ||
       inquiry.inquiry_status === 'resolved';
 
     let customerDescription = 'No description provided';
@@ -184,8 +213,12 @@ export async function fetchTicketForAdmin(
     let ticketInfo = '';
 
     if (shouldShowFullHistory) {
-      // For pending admin reply or resolved, show ticket info with full conversation history
-      ticketInfo = `TICKET UPDATE - ${formatStatus(inquiry.inquiry_status)}
+      // For pending replies or resolved, show ticket info with full conversation history
+      const header = inquiry.inquiry_status === 'resolved' 
+        ? 'TICKET RESOLVED' 
+        : 'TICKET UPDATE';
+      
+      ticketInfo = `${header} - ${formatStatus(inquiry.inquiry_status)}
 
 Ticket ID: ${inquiry.display_id}
 Customer: ${customerName}

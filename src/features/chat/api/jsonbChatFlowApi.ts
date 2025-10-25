@@ -139,6 +139,7 @@ export async function fetchSessionMessagesV2(sessionId: string): Promise<
     nodeId?: string | null;
   }>
 > {
+  console.log('[fetchSessionMessagesV2] Fetching messages for session:', sessionId);
   const { data, error } = await supabase.rpc('api_fetch_chat_messages_v2', {
     p_session_id: sessionId,
   });
@@ -148,13 +149,17 @@ export async function fetchSessionMessagesV2(sessionId: string): Promise<
     return [];
   }
 
-  return (data as any[]).map(msg => ({
+  const messages = (data as any[]).map(msg => ({
     id: msg.message_id,
     role: msg.sender_role,
     text: msg.message_text,
     ts: new Date(msg.sent_at).getTime(),
     nodeId: msg.node_id,
   }));
+
+  console.log('[fetchSessionMessagesV2] Raw messages from DB:', data);
+  console.log('[fetchSessionMessagesV2] Mapped messages:', messages);
+  return messages;
 }
 
 /**

@@ -10,7 +10,7 @@ interface GuestChatPanelProps {
   onAttachFiles?: (files: FileList) => void;
   onBack?: () => void;
   quickReplies?: QuickReply[];
-  onQuickReply?: (value: string) => void;
+  onQuickReply?: (value: string | { value: string; label: string }) => void;
   inputPlaceholder?: string;
   onEndChat?: () => void;
   showAttach?: boolean;

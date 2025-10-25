@@ -16,7 +16,7 @@ const TicketsContent: React.FC = () => {
   const { tickets: ticketsAll } = useAdminTickets({
     page: 1,
     pageSize: 1000, // Large page size to get all tickets for client-side filtering
-    useAdvancedFallbacks: true,
+    useAdvancedFallbacks: false, // Disabled to avoid 404 errors from inaccessible RPC functions
   });
 
   // Responsive hooks

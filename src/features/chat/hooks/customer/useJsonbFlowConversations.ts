@@ -99,6 +99,7 @@ export function useJsonbFlowConversations() {
    */
   const sendMessage = useCallback(
     async (text: string) => {
+      console.log('[useJsonbFlowConversations] sendMessage called with:', text);
       if (!activeId || !sessionId) return;
 
       const userMessage: Message = {
@@ -109,6 +110,7 @@ export function useJsonbFlowConversations() {
       };
 
       // Add user message to UI
+      console.log('[useJsonbFlowConversations] Adding user message to UI:', userMessage);
       setMessages(prev => [...prev, userMessage]);
       setConversations(prev =>
         prev.map(c =>
@@ -136,6 +138,8 @@ export function useJsonbFlowConversations() {
           flowDefinition,
         });
 
+        console.log('[useJsonbFlowConversations] JsonbFlowProcessor result:', result);
+        console.log('[useJsonbFlowConversations] Adding bot responses to UI:', result.messages);
         // Update UI with bot responses
         setMessages(prev => [...prev, ...result.messages]);
         setConversations(prev =>
