@@ -26,7 +26,6 @@ export async function ticketChangeStatus(
   }> = [];
 
   const newStatus = String(context['ticket_status'] || '');
-  const customerSessionId = context['customer_session_id'];
   const inquiryId = context['inquiry_id'];
 
   // Validate status
@@ -77,24 +76,9 @@ export async function ticketChangeStatus(
       return { messages };
     }
 
-    // Insert status change notification in customer's session (if available)
+    // Status change notifications are handled by the database trigger (notifications table)
+    // Do NOT insert messages into the original session - this pollutes the conversation
     const statusLabel = formatStatusLabel(newStatus);
-
-    if (customerSessionId) {
-      const notificationText = `Ticket status changed to: ${statusLabel}`;
-      const encryptedMessage = new TextEncoder().encode(notificationText);
-
-      await supabase.from('chat_messages_v2').insert({
-        session_id: customerSessionId,
-        sender_role: 'printy',
-        message_text_enc: encryptedMessage,
-        metadata: {
-          action: 'status_change',
-          old_status: context['previous_status'],
-          new_status: newStatus,
-        },
-      });
-    }
 
     messages.push({
       id: crypto.randomUUID(),
