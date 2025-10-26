@@ -4,6 +4,7 @@ import { supabase } from '@lib/supabase';
 import { useToast } from '@lib/useToast';
 import { useResponsiveClasses } from '@shared/hooks/ui';
 import { useResponsivePageSize } from '@shared/hooks/ui/useResponsivePageSize';
+import { useNotificationSound } from '@shared/hooks';
 import {
   type UINotificationItem,
   startNotificationListener,
@@ -18,6 +19,7 @@ const AdminDashboard: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [, toast] = useToast();
   const { textClasses } = useResponsiveClasses();
+  const { playSound } = useNotificationSound({ enabled: true, volume: 0.3 });
 
   // Responsive pagination state
   const [page, setPage] = useState(1);
@@ -64,15 +66,20 @@ const AdminDashboard: React.FC = () => {
     loadNotifications();
 
     // Set up real-time listener
-    const cleanup = startNotificationListener(user.id, toast, item => {
-      setNotifications(prev => [item, ...prev]);
-      if (!item.isRead) {
-        setUnreadCount(prev => prev + 1);
-      }
-    });
+    const cleanup = startNotificationListener(
+      user.id,
+      toast,
+      item => {
+        setNotifications(prev => [item, ...prev]);
+        if (!item.isRead) {
+          setUnreadCount(prev => prev + 1);
+        }
+      },
+      playSound
+    );
 
     return cleanup;
-  }, [user]);
+  }, [user, playSound]);
 
   const handleMarkAsRead = async (id: string) => {
     await markNotificationAsRead(id);

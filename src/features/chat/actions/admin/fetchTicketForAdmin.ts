@@ -11,7 +11,7 @@ import type {
   ActionExecutionResult,
 } from '@features/chat/types';
 import { formatShortDate } from '@shared/utils/dateFormatter';
-import { formatInquiryType } from '@shared/utils/statusFormatter';
+import { formatInquiryType, formatOrderStatus } from '@shared/utils/statusFormatter';
 
 /**
  * Fetch ticket details for admin review
@@ -200,7 +200,7 @@ export async function fetchTicketForAdmin(
         .single();
 
       if (orderData) {
-        orderInfo = `\n\nRelated Order: ${orderData.display_id}\nStatus: ${orderData.status}\nAmount: ₱${orderData.total_amount}`;
+        orderInfo = `\n\nRelated Order: ${orderData.display_id}\nStatus: ${formatOrderStatus(orderData.status)}\nAmount: ₱${orderData.total_amount}`;
       }
     }
 
@@ -232,10 +232,7 @@ Customer inquiry type: ${formatInquiryType(inquiry.inquiry_type)}${orderInfo}${c
 
 Ticket ID: ${inquiry.display_id}
 Customer: ${customerName}
-Status: ${formatStatus(inquiry.inquiry_status)}
-Received: ${formatShortDate(inquiry.received_at)}
-
-Customer inquiry type: ${formatInquiryType(inquiry.inquiry_type)}
+Inquiry type: ${formatInquiryType(inquiry.inquiry_type)}
 
 Customer description:
 ${customerDescription}${orderInfo}`;

@@ -59,12 +59,14 @@ export function timeAgoLabel(date: string): string {
  * @param userId - Current user ID
  * @param toast - Toast controller (from useToast)
  * @param pushItem - Function to push the new notification to state/UI
+ * @param playSound - Optional function to play notification sound
  * @returns Cleanup function to unsubscribe
  */
 export function startNotificationListener(
   userId: string,
   toast: any,
-  pushItem: (item: UINotificationItem) => void
+  pushItem: (item: UINotificationItem) => void,
+  playSound?: () => void
 ): Cleanup {
   const channel = supabase
     .channel(`notifications:${userId}`)
@@ -88,6 +90,9 @@ export function startNotificationListener(
           timestamp: timeAgoLabel(notif.created_at),
           isRead: notif.is_read,
         };
+
+        // Play sound notification
+        playSound?.();
 
         // Show a toast popup with different levels
         switch (notif.type) {

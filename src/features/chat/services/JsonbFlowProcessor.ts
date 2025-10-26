@@ -612,6 +612,18 @@ export class JsonbFlowProcessor {
         if (selectedQuickReply && selectedQuickReply.next) {
           stateManager.setCurrentNode(selectedQuickReply.next);
 
+          // ✅ FIX: Store value using store_as property if provided
+          if (selectedQuickReply.store_as && selectedQuickReply.value) {
+            console.log('[JsonbFlowProcessor] Storing quick reply value using store_as:', {
+              store_as: selectedQuickReply.store_as,
+              value: selectedQuickReply.value,
+              selectedQuickReply
+            });
+            stateManager.updateContext({
+              [selectedQuickReply.store_as]: selectedQuickReply.value,
+            });
+          }
+
           // Clear pending quick replies after use
           stateManager.updateContext({
             _pending_quick_replies: null,

@@ -208,6 +208,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
               onEndChat={endChatWithDelay}
               readOnly={readOnly}
               sessionId={dbSessionId || undefined}
+              conversationId={currentConversationId || undefined}
               toast={[toasts, toast]}
             />
           }

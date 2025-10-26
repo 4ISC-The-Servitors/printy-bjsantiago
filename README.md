@@ -2,6 +2,17 @@
 
 ## 📄 Changelogs
 
+### 2025-10-26-Andeng
+ - fixed ticket reply sessions duplicating
+ - fixed session title logic, centralized
+ - added feedback (chat_session_feedback) for admin and customer chats
+ - fixed kpi for feedback in superadmin
+ - improved customer UI/UX, to follow admin
+ - migrated services offered into db
+ - updated admin portfolio page to reflect whats in db
+ - added about b.j. santiago, faqs, services offered chat flows for customer and guest, to follow place order for valued only (?)
+ - added notification sounds (might be broken sometimes??)
+
 ### 2025-10-24-Andeng
 
 - corrected notif triggers for admin and customer: kulang na lang for delivery/pickup/completed order status updates
