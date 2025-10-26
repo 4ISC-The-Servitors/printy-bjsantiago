@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { X, Minus } from 'lucide-react';
 import { Button, Text } from '@shared/components';
 import { MessageGroup, TypingIndicator, ChatInput } from '../core';
+import { SessionFeedback } from '../feedback';
 import { useChatLoadingToast } from '@features/chat/hooks/shared/useChatLoadingToast';
 import type { ChatMessage, QuickReply } from '@features/chat/types';
 
@@ -18,6 +19,7 @@ export interface AdminChatDockProps {
   onAttachFiles?: (files: FileList) => void;
   readOnly?: boolean;
   sessionId?: string;
+  conversationId?: string;
   toast?: [any, any]; // Toast instance from parent
 }
 
@@ -42,6 +44,7 @@ export const AdminChatDock: React.FC<AdminChatDockProps> = ({
 }) => {
   const [input, setInput] = useState('');
   const [showContent, setShowContent] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { showChatLoadingToast, clearLoadingToasts } =
     useChatLoadingToast(toast);
@@ -132,6 +135,23 @@ export const AdminChatDock: React.FC<AdminChatDockProps> = ({
     }
   }, [messages, isTyping]);
 
+  // Show feedback widget when session is ended and scroll to it
+  useEffect(() => {
+    if (readOnly && sessionId) {
+      setShowFeedback(true);
+      
+      // Scroll to bottom to show feedback UI after a brief delay
+      if (scrollRef.current) {
+        setTimeout(() => {
+          scrollRef.current?.scrollTo({
+            top: scrollRef.current.scrollHeight,
+            behavior: 'smooth'
+          });
+        }, 100);
+      }
+    }
+  }, [readOnly, sessionId]);
+
   const handleSubmit = () => {
     const text = input.trim();
     if (!text || readOnly) return;
@@ -186,9 +206,20 @@ export const AdminChatDock: React.FC<AdminChatDockProps> = ({
             onQuickReply={onQuickReply}
             onEndChat={onEndChat}
             readOnly={readOnly}
+            userRole={'admin'}
+            sessionId={sessionId}
           />
         ))}
         {isTyping && <TypingIndicator />}
+        
+        {/* Feedback Widget - Show when session ended and not yet submitted */}
+        {readOnly && showFeedback && sessionId && (
+          <SessionFeedback
+            sessionId={sessionId}
+            userRole="admin"
+            onSubmitted={() => setShowFeedback(false)}
+          />
+        )}
       </div>
 
       {/* Footer */}

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { X, Minus } from 'lucide-react';
 import { Button, Text } from '@shared/components';
 import { MessageGroup, TypingIndicator, ChatInput } from '../core';
+import { SessionFeedback } from '../feedback';
 import { ChatEndService } from '@features/chat/services/ChatEndService';
 import { useChatLoadingToast } from '@features/chat/hooks/shared/useChatLoadingToast';
 import type { ChatMessage, QuickReply } from '@features/chat/types';
@@ -44,6 +45,7 @@ export const CustomerChatOverlay: React.FC<CustomerChatOverlayProps> = ({
   const [input, setInput] = useState('');
   const [minimized, setMinimized] = useState(false);
   const [showContent, setShowContent] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { showChatLoadingToast, clearLoadingToasts } =
     useChatLoadingToast(toast);
@@ -185,6 +187,13 @@ export const CustomerChatOverlay: React.FC<CustomerChatOverlayProps> = ({
     }
   }, [messages, isTyping]);
 
+  // Show feedback widget when session is ended
+  useEffect(() => {
+    if (readOnly && sessionId) {
+      setShowFeedback(true);
+    }
+  }, [readOnly, sessionId]);
+
   const handleSubmit = () => {
     const text = input.trim();
     if (!text || readOnly) return;
@@ -253,6 +262,15 @@ export const CustomerChatOverlay: React.FC<CustomerChatOverlayProps> = ({
             />
           ))}
           {isTyping && <TypingIndicator />}
+          
+          {/* Feedback Widget - Show when session ended and not yet submitted */}
+          {readOnly && showFeedback && sessionId && (
+            <SessionFeedback
+              sessionId={sessionId}
+              userRole="customer"
+              onSubmitted={() => setShowFeedback(false)}
+            />
+          )}
         </div>
 
         {/* Footer */}

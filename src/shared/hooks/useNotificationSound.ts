@@ -41,10 +41,30 @@ export function useNotificationSound(
 
     const audio = new Audio('/mixkit-software-interface-start-2574.wav');
     audio.volume = volume;
+    audio.preload = 'auto';
     audioRef.current = audio;
 
+    // Unlock audio on first user interaction
+    const unlockAudio = () => {
+      audio.play()
+        .then(() => {
+          audio.pause();
+          audio.currentTime = 0;
+        })
+        .catch(() => {
+          // Expected - browser may still block
+        });
+    };
+
+    // Try to unlock on various user interactions
+    document.addEventListener('click', unlockAudio, { once: true });
+    document.addEventListener('keydown', unlockAudio, { once: true });
+    document.addEventListener('touchstart', unlockAudio, { once: true });
+
     return () => {
-      // Cleanup on unmount
+      document.removeEventListener('click', unlockAudio);
+      document.removeEventListener('keydown', unlockAudio);
+      document.removeEventListener('touchstart', unlockAudio);
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current = null;
@@ -53,32 +73,32 @@ export function useNotificationSound(
   }, [volume]);
 
   const playSound = useCallback(() => {
-      if (!enabled) return;
+    if (!enabled) return;
 
-      try {
-        const audio = audioRef.current;
-        if (!audio) {
-          // Create audio on demand if not already created
-          const newAudio = new Audio('/mixkit-software-interface-start-2574.wav');
-          newAudio.volume = volume;
-          audioRef.current = newAudio;
-          newAudio.play().catch(error => {
-            console.warn('Failed to play notification sound:', error);
-          });
-          return;
-        }
-
-        // Reset to beginning and play
-        audio.currentTime = 0;
-        audio.play().catch(error => {
-          console.warn('Failed to play notification sound:', error);
+    try {
+      const audio = audioRef.current;
+      if (!audio) {
+        // Create audio on demand if not already created
+        const newAudio = new Audio('/mixkit-software-interface-start-2574.wav');
+        newAudio.volume = volume;
+        audioRef.current = newAudio;
+        
+        // Try to play, but don't log autoplay errors
+        newAudio.play().catch(() => {
+          // Silently fail for autoplay restrictions
         });
-      } catch (error) {
-        console.warn('Failed to play notification sound:', error);
+        return;
       }
-    },
-    [enabled, volume]
-  );
+
+      // Reset to beginning and play
+      audio.currentTime = 0;
+      audio.play().catch(() => {
+        // Silently fail for autoplay restrictions - user hasn't interacted yet
+      });
+    } catch (error) {
+      // Silently handle errors
+    }
+  }, [enabled, volume]);
 
   return { playSound };
 }

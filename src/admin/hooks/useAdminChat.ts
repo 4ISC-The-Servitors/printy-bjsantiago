@@ -52,7 +52,6 @@ export const useAdminChat = (): UseAdminChatReturn => {
     conversations,
     startConversation,
     addMessage: addConvMessage,
-    endConversation,
     loadAdminChatSessions,
     loadHistoricalMessages,
   } = useAdminConversations();
@@ -163,21 +162,8 @@ export const useAdminChat = (): UseAdminChatReturn => {
 
             setQuickReplies([]);
 
-            // Close after a delay
-            setTimeout(() => {
-              if (currentConversationId) {
-                endConversation(currentConversationId);
-                setCurrentConversationId(null);
-              }
-              setDbSessionId(null);
-              setReadOnly(false);
-              setChatOpen(false);
-              setMessages([]);
-              setCurrentPage(null);
-              setCurrentEntityId(null);
-              // Dispatch event for notification visibility
-              window.dispatchEvent(new CustomEvent('admin-chat-closed'));
-            }, 2000);
+            // Set read-only mode so feedback can be shown (no auto-close)
+            setReadOnly(true);
           }
         }
       } catch (error) {

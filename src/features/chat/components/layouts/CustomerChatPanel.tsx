@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { X, Minus } from 'lucide-react';
 import { Button, Text } from '@shared/components';
 import { MessageGroup, TypingIndicator, ChatInput } from '../core';
+import { SessionFeedback } from '../feedback';
 import { useChatLoadingToast } from '@features/chat/hooks/shared/useChatLoadingToast';
 import type { ChatMessage, QuickReply } from '@features/chat/types';
 
@@ -46,6 +47,7 @@ export const CustomerChatPanel: React.FC<CustomerChatPanelProps> = ({
 }) => {
   const [input, setInput] = useState('');
   const [showContent, setShowContent] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { showChatLoadingToast, clearLoadingToasts } =
     useChatLoadingToast(toast);
@@ -149,6 +151,13 @@ export const CustomerChatPanel: React.FC<CustomerChatPanelProps> = ({
       });
     }
   }, [messages, isTyping]);
+
+  // Show feedback widget when session is ended
+  useEffect(() => {
+    if (readOnly && sessionId) {
+      setShowFeedback(true);
+    }
+  }, [readOnly, sessionId]);
 
   // Show loading toast FIRST, then delay showing the actual chat
   // Track if this is the initial render with a sessionId
@@ -272,6 +281,15 @@ export const CustomerChatPanel: React.FC<CustomerChatPanelProps> = ({
           />
         ))}
         {isTyping && <TypingIndicator />}
+        
+        {/* Feedback Widget - Show when session ended and not yet submitted */}
+        {readOnly && showFeedback && sessionId && (
+          <SessionFeedback
+            sessionId={sessionId}
+            userRole="customer"
+            onSubmitted={() => setShowFeedback(false)}
+          />
+        )}
       </div>
 
       {/* Footer */}
