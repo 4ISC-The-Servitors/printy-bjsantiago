@@ -43,6 +43,7 @@ import type {
   ActionExecutionParams,
   ActionExecutionResult,
 } from '@features/chat/types';
+import { formatOrderStatus } from '@shared/utils/statusFormatter';
 
 export async function createOrder(
   params: ActionExecutionParams
@@ -155,13 +156,23 @@ export async function createOrder(
       };
     }
 
+    // Update quote status to 'ended' after successful order creation
+    const { error: quoteUpdateError } = await supabase
+      .from('quotes')
+      .update({ status: 'ended' })
+      .eq('quote_id', quoteId);
+
+    if (quoteUpdateError) {
+      console.error('[createOrder] Error updating quote status:', quoteUpdateError);
+      // Continue execution even if quote status update fails
+    }
 
     return {
       messages: [
         {
           id: crypto.randomUUID(),
           role: 'printy',
-          text: `Order created successfully!\nOrder ID: ${order.display_id || order.order_id}\nTotal Amount: ₱${Number(order.total_amount).toLocaleString()}\nStatus: ${order.status}\n\nThe customer will now be able to upload their payment proof.`,
+          text: `Order created successfully!\nOrder ID: ${order.display_id || order.order_id}\nTotal Amount: ₱${Number(order.total_amount).toLocaleString()}\nStatus: ${formatOrderStatus(order.status as string)}\n\nThe customer will now be able to upload their payment proof.`,
           ts: Date.now(),
         },
       ],
