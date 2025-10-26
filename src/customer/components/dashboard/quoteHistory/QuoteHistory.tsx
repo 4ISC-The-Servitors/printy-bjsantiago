@@ -253,8 +253,8 @@ const QuoteHistory: React.FC = () => {
   const renderQuoteActions = (quote: Quote) => {
     const statusLower = quote.status.toLowerCase();
 
-    // Only show track button for quotes that are not accepted or rejected
-    if (statusLower !== 'accepted' && statusLower !== 'rejected') {
+    // Only show track button for quotes that have a proposal sent (not active, accepted, or rejected)
+    if (statusLower !== 'accepted' && statusLower !== 'rejected' && statusLower !== 'active' && statusLower !== 'ended') {
       return (
         <TrackQuoteButton
           conversationId={quote.id}

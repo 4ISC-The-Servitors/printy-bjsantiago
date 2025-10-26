@@ -97,6 +97,7 @@ const RecentQuotes: React.FC<RecentQuotesProps> = ({ recentQuote }) => {
             conversationId={recentQuote.id}
             subject={recentQuote.displayId}
             status={recentQuote.status}
+            displayId={recentQuote.displayId}
           />
         </div>
 

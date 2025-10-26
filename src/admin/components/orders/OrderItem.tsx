@@ -2,15 +2,11 @@ import React from 'react';
 import { Badge, Button } from '@admin/components/shared';
 import { getOrderStatusBadgeVariant } from '@shared/utils/statusColors';
 import { formatOrderStatus } from '@shared/utils';
-import {
-  formatOrderDateDesktop,
-  formatOrderDateTablet,
-  formatOrderDateMobile,
-} from '@shared/utils';
-import { formatRelativeTimeLabel } from '@shared/utils';
+import { formatDateWithTimeDesktop } from '@shared/utils/dateFormatter';
+import { formatRelativeTimeLabel } from '@shared/utils/timeFormatter';
 import { MessageSquare } from 'lucide-react';
 import type { AdminOrderRow } from '@admin/hooks/useAdminOrders';
-// Removed useResponsiveLayout - using device-* classes instead
+import { useResponsiveClasses } from '@shared/hooks/ui';
 
 // Use AdminOrderRow type instead of local Order interface
 type Order = AdminOrderRow;
@@ -26,7 +22,8 @@ export const OrderItem: React.FC<OrderItemProps> = ({
   onHover,
   onViewInChat,
 }) => {
-  // Using device-* classes for responsive layout
+  // Get responsive classes
+  const { textClasses } = useResponsiveClasses();
 
   // Show Urgent badge for valued customers
   const showUrgentBadge = order.customer_type === 'valued';
@@ -34,29 +31,21 @@ export const OrderItem: React.FC<OrderItemProps> = ({
   // Get display ID with fallback to UUID
   const displayId = order.display_id || order.id;
 
-  // Format dates responsively
-  const createdDateDesktop = formatOrderDateDesktop(order.created_at);
-  const createdDateTablet = formatOrderDateTablet(order.created_at);
-  const createdDateMobile = formatOrderDateMobile(order.created_at);
+  // Format dates with time
+  const createdDate = formatDateWithTimeDesktop(order.created_at);
 
   // Use completed_at if status is 'completed', otherwise use updated_at
   const isCompleted = order.status === 'completed';
-  const lastActionDate =
+  const lastActionDateSource =
     isCompleted && order.completed_at ? order.completed_at : order.updated_at;
   const lastActionLabel = isCompleted ? 'Completed' : 'Updated';
 
   // For "Updated" dates, use relative time format; for "Completed" dates, use regular date format
-  const useRelativeTime = !isCompleted && lastActionDate;
+  const useRelativeTime = !isCompleted && lastActionDateSource;
 
-  const lastActionDateDesktop = useRelativeTime
-    ? formatRelativeTimeLabel(lastActionDate)
-    : formatOrderDateDesktop(lastActionDate);
-  const lastActionDateTablet = useRelativeTime
-    ? formatRelativeTimeLabel(lastActionDate)
-    : formatOrderDateTablet(lastActionDate);
-  const lastActionDateMobile = useRelativeTime
-    ? formatRelativeTimeLabel(lastActionDate)
-    : formatOrderDateMobile(lastActionDate);
+  const lastActionDate = useRelativeTime
+    ? formatRelativeTimeLabel(lastActionDateSource)
+    : formatDateWithTimeDesktop(lastActionDateSource);
 
   return (
     <div
@@ -109,20 +98,21 @@ export const OrderItem: React.FC<OrderItemProps> = ({
       </div>
 
       {/* Row 3: Chat Button and Dates */}
-      <div className="flex items-center justify-between gap-2 sm:gap-3 md:gap-4 lg:gap-6">
-        <div className="flex-1 min-w-0">
-          <span className="hidden lg:inline">
-            Ordered: {createdDateDesktop} • {lastActionLabel}:{' '}
-            {lastActionDateDesktop}
-          </span>
-          <span className="hidden sm:inline lg:hidden">
-            Ordered: {createdDateTablet} • {lastActionLabel}:{' '}
-            {lastActionDateTablet}
-          </span>
-          <span className="sm:hidden">
-            Ordered: {createdDateMobile} • {lastActionLabel}:{' '}
-            {lastActionDateMobile}
-          </span>
+      <div className="flex items-start justify-between gap-2 sm:gap-3 md:gap-4 lg:gap-6">
+        {/* Dates stacked vertically */}
+        <div className="flex-1 min-w-0 mt-1">
+          <div
+            className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
+          >
+            <span className="font-medium">Ordered:</span>
+            <span className="truncate">{createdDate}</span>
+          </div>
+          <div
+            className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
+          >
+            <span className="font-medium">{lastActionLabel}:</span>
+            <span className="truncate">{lastActionDate}</span>
+          </div>
         </div>
 
         <Button
