@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { auth } from '@lib/supabase';
 import ResponsivePageLayout from '@customer/components/shared/layouts/ResponsivePageLayout';
 import HistoryItemCard from '@customer/components/shared/cards/HistoryItemCard';
 import {
@@ -18,8 +17,6 @@ import {
 } from '@shared/hooks/ui/useResponsiveClasses';
 import { useResponsivePageSize } from '@shared/hooks/ui/useResponsivePageSize';
 import type { ChatMessage } from '@features/chat/types/chat';
-import { getUserSessions } from '@features/chat/api/sessionQueries';
-import { getSessionTitle } from '@features/chat/config/sessionTitleConfig';
 import type { FilterConfig } from '@shared/types/filters';
 import { CustomerHistoryLoading } from '@customer/components/loadingStates';
 
@@ -50,7 +47,6 @@ const ChatHistory: React.FC = () => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
 
   // Chat state management
   const { logout, toasts, toast } = useLogoutWithToast();
@@ -131,7 +127,7 @@ const ChatHistory: React.FC = () => {
   }, [search, filter]);
 
   // Use shared session cache instead of individual query
-  const { sessions: cachedSessions } = useCustomerSessionCache();
+  const { sessions: cachedSessions, loading: isLoading } = useCustomerSessionCache();
 
   // Convert cached sessions to Conversation format
   useEffect(() => {
@@ -175,69 +171,6 @@ const ChatHistory: React.FC = () => {
   const openConversation = (id: string) => {
     switchConversationHook(id);
   };
-
-  // Load conversations from DB (using chat_sessions_v2)
-  useEffect(() => {
-    (async () => {
-      setIsLoading(true);
-      try {
-        const { data: userData } = await auth.getUser();
-        if (!userData?.user?.id) {
-          setIsLoading(false);
-          return;
-        }
-
-        const list = await getUserSessions(userData.user.id);
-        const convs: Conversation[] = list.map(s => {
-          // Generate title with FK relationships for consistency
-          // For sessions with metadata.context (like track-quote with subject), preserve it
-          // For sessions with FK relationships (like track-ticket), use display_id from FK
-          const displayIdFromFK =
-            s.inquiry?.display_id ||
-            s.quote?.display_id ||
-            s.order?.display_id;
-          const context = s.metadata?.context
-            ? {
-                ...s.metadata.context,
-                display_id:
-                  s.metadata.context.display_id ||
-                  s.metadata.context.subject ||
-                  displayIdFromFK,
-              }
-            : displayIdFromFK
-              ? { display_id: displayIdFromFK }
-              : undefined;
-
-          return {
-            id: s.sessionId,
-            title: getSessionTitle({
-              flowId: s.flowId,
-              metadata: s.metadata
-                ? {
-                    ...s.metadata,
-                    context,
-                  }
-                : undefined,
-              inquiry: s.inquiry,
-              quote: s.quote,
-              order: s.order,
-            }),
-            createdAt: s.createdAt,
-            updatedAt: s.createdAt, // getUserSessions doesn't return updatedAt, use createdAt
-            messages: [],
-            status: (s.status === 'ended' ? 'ended' : 'active') as
-              | 'active'
-              | 'ended',
-          };
-        });
-        setConversations(convs);
-      } catch (e) {
-        console.error('ChatHistory load sessions error', e);
-      } finally {
-        setIsLoading(false);
-      }
-    })();
-  }, []);
 
   // Chat history content
   const chatHistoryContent = isLoading ? (

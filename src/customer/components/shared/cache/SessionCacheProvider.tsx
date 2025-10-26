@@ -68,6 +68,7 @@ export const SessionCacheProvider: React.FC<SessionCacheProviderProps> = ({
           )
         `)
         .eq('customer_id', customerId)
+        .is('metadata->ticket_conversation', null)
         .order('created_at', { ascending: false });
 
       if (sessionError) {
@@ -76,7 +77,13 @@ export const SessionCacheProvider: React.FC<SessionCacheProviderProps> = ({
         return;
       }
 
-      const processedSessions: ConversationItem[] = (sessionData || []).map(session => {
+      const processedSessions: ConversationItem[] = (sessionData || [])
+        .filter(session => {
+          // Defense-in-depth: Filter out ticket conversation sessions
+          const metadata = session.metadata as any || {};
+          return !metadata.ticket_conversation;
+        })
+        .map(session => {
         const metadata = session.metadata as any || {};
 
         // Generate session title - handle array types from Supabase joins

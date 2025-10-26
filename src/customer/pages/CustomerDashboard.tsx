@@ -23,7 +23,6 @@ import { useLogoutWithToast } from '@/auth/hooks/useLogoutWithToast';
 import { useRecentOrder } from '@customer/hooks/useRecentOrder';
 import { useRecentTicket } from '@customer/hooks/useRecentTicket';
 import { useRecentQuote } from '@customer/hooks/useRecentQuote';
-import { useRecentChatSessions } from '@features/chat/hooks/customer/useRecentChatSessions';
 import { useDashboardChatEvents } from '@features/chat/hooks/customer/useDashboardChatEvents';
 import { useChatAttachments } from '@features/chat/hooks/shared/useChatAttachments';
 import { usePaymentProofUpload } from '@/features/chat/hooks/customer/usePaymentProofUpload';
@@ -117,7 +116,6 @@ const CustomerDashboardContent: React.FC = () => {
     initializeFlow: initializeFlowHook,
     switchConversation: switchConversationHook,
     setActiveId,
-    setConversations,
   } = useCustomerConversationsContext();
 
   // Memoize toast instance to prevent re-creating array on every render
@@ -173,7 +171,6 @@ const CustomerDashboardContent: React.FC = () => {
 
   const { data: recentQuote, loading: loadingRecentQuote } =
     useRecentQuote(customerId);
-  useRecentChatSessions(setConversations);
 
   // Check for signin success toast
   useEffect(() => {
@@ -186,9 +183,6 @@ const CustomerDashboardContent: React.FC = () => {
   // Determine loading based on data hooks
   const isLoading =
     loadingRecentOrder || loadingRecentTicket || loadingRecentQuote;
-
-  // NOTE: Session loading is handled by useRecentChatSessions hook
-  // No need to manually load sessions here
 
   // ---------------- Chat logic ----------------
   // Initialize flow via useCustomerConversations

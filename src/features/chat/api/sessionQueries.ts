@@ -99,6 +99,25 @@ export interface QuoteWithSession {
 
 /**
  * Get all sessions for a user with their related inquiry and quote data
+ *
+ * @internal - Should only be called by SessionCacheProvider
+ * @deprecated For application code, use useSessionCache() or useCustomerConversations() instead
+ *
+ * ⚠️ WARNING: This function is part of the internal session loading mechanism.
+ * Direct use in application code will cause duplicate queries and performance issues.
+ *
+ * @param userId - The customer's user ID
+ * @returns Array of sessions with FK relationships populated
+ *
+ * @example
+ * // ❌ DON'T use directly in components
+ * const sessions = await getUserSessions(userId);
+ *
+ * // ✅ DO use via SessionCache
+ * const { sessions } = useSessionCache();
+ *
+ * // ✅ OR use via CustomerConversations
+ * const { conversations } = useCustomerConversationsContext();
  */
 export async function getUserSessions(
   userId: string
@@ -131,6 +150,7 @@ export async function getUserSessions(
     `
     )
     .eq('customer_id', userId)
+    .is('metadata->ticket_conversation', null)
     .order('created_at', { ascending: false });
 
   if (error) {
