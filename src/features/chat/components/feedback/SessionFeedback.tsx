@@ -65,7 +65,7 @@ export const SessionFeedback: React.FC<SessionFeedbackProps> = ({
         // Rating prompt
         <div className="flex flex-col items-center gap-3 py-2">
           <p className="text-sm font-medium text-neutral-700 text-center">
-            How did I do? Help us improve your experience!
+            How did Printy do? Help us improve your experience!
           </p>
           
           <div className="flex gap-1">
