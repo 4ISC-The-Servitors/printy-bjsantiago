@@ -6,7 +6,7 @@ import type { RecentQuote } from '@shared/types/customer';
 import StatusBadge from './StatusBadge';
 import TrackQuoteButton from './TrackQuoteButton';
 import { formatShortDate } from '@shared/utils/dateFormatter';
-import { formatRelativeTimeLabel } from '@shared/utils/timeFormatter';
+import { formatRelativeTimeLabel, formatShortTime } from '@shared/utils/timeFormatter';
 
 interface RecentQuotesProps {
   recentQuote: RecentQuote | null;
@@ -107,7 +107,7 @@ const RecentQuotes: React.FC<RecentQuotesProps> = ({ recentQuote }) => {
           >
             <span className="font-medium">Created:</span>
             <span className="truncate">
-              {formatShortDate(recentQuote.createdAt)}
+              {formatShortDate(recentQuote.createdAt)} • {formatShortTime(recentQuote.createdAt)}
             </span>
           </div>
           <div
@@ -124,7 +124,7 @@ const RecentQuotes: React.FC<RecentQuotesProps> = ({ recentQuote }) => {
             >
               <span className="font-medium">Ended:</span>
               <span className="truncate">
-                {formatShortDate(recentQuote.endedAt)}
+                {formatShortDate(recentQuote.endedAt)} • {formatShortTime(recentQuote.endedAt)}
               </span>
             </div>
           )}
@@ -134,7 +134,7 @@ const RecentQuotes: React.FC<RecentQuotesProps> = ({ recentQuote }) => {
             >
               <span className="font-medium">Accepted:</span>
               <span className="truncate">
-                {formatShortDate(recentQuote.acceptedAt)}
+                {formatShortDate(recentQuote.acceptedAt)} • {formatShortTime(recentQuote.acceptedAt)}
               </span>
             </div>
           )}
@@ -144,7 +144,7 @@ const RecentQuotes: React.FC<RecentQuotesProps> = ({ recentQuote }) => {
             >
               <span className="font-medium">Rejected:</span>
               <span className="truncate">
-                {formatShortDate(recentQuote.rejectedAt)}
+                {formatShortDate(recentQuote.rejectedAt)} • {formatShortTime(recentQuote.rejectedAt)}
               </span>
             </div>
           )}

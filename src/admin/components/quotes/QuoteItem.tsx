@@ -3,9 +3,9 @@ import { Badge, Button } from '@admin/components/shared';
 import { getQuoteStatusBadgeVariant } from '@shared/utils/statusColors';
 import { formatQuoteStatus } from '@shared/utils/statusFormatter';
 import {
-  formatOrderDateDesktop,
-  formatOrderDateTablet,
-  formatOrderDateMobile,
+  formatDateWithTimeDesktop,
+  formatDateWithTimeTablet,
+  formatDateWithTimeMobile,
 } from '@shared/utils/dateFormatter';
 import { formatRelativeTimeLabel } from '@shared/utils/timeFormatter';
 import { MessageSquare } from 'lucide-react';
@@ -33,10 +33,10 @@ export const QuoteItem: React.FC<QuoteItemProps> = ({
   // Get display ID with fallback to UUID
   const displayId = quote.display_id || quote.id;
 
-  // Format dates responsively
-  const createdDateDesktop = formatOrderDateDesktop(quote.created_at);
-  const createdDateTablet = formatOrderDateTablet(quote.created_at);
-  const createdDateMobile = formatOrderDateMobile(quote.created_at);
+  // Format dates responsively with time
+  const createdDateDesktop = formatDateWithTimeDesktop(quote.created_at);
+  const createdDateTablet = formatDateWithTimeTablet(quote.created_at);
+  const createdDateMobile = formatDateWithTimeMobile(quote.created_at);
 
   // Use ended_at if status is 'ended', otherwise use updated_at
   const isEnded = quote.status === 'ended';
@@ -49,18 +49,18 @@ export const QuoteItem: React.FC<QuoteItemProps> = ({
 
   const lastActionDateDesktop = useRelativeTime
     ? formatRelativeTimeLabel(lastActionDate)
-    : formatOrderDateDesktop(lastActionDate);
+    : formatDateWithTimeDesktop(lastActionDate);
   const lastActionDateTablet = useRelativeTime
     ? formatRelativeTimeLabel(lastActionDate)
-    : formatOrderDateTablet(lastActionDate);
+    : formatDateWithTimeTablet(lastActionDate);
   const lastActionDateMobile = useRelativeTime
     ? formatRelativeTimeLabel(lastActionDate)
-    : formatOrderDateMobile(lastActionDate);
+    : formatDateWithTimeMobile(lastActionDate);
 
-  // For accepted/rejected dates, always use regular date format (not relative time)
-  const acceptedRejectedDateDesktop = formatOrderDateDesktop(quote.updated_at);
-  const acceptedRejectedDateTablet = formatOrderDateTablet(quote.updated_at);
-  const acceptedRejectedDateMobile = formatOrderDateMobile(quote.updated_at);
+  // For accepted/rejected dates, always use date with time format (not relative time)
+  const acceptedRejectedDateDesktop = formatDateWithTimeDesktop(quote.updated_at);
+  const acceptedRejectedDateTablet = formatDateWithTimeTablet(quote.updated_at);
+  const acceptedRejectedDateMobile = formatDateWithTimeMobile(quote.updated_at);
 
   return (
     <div

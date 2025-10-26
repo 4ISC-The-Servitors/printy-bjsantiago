@@ -3,9 +3,9 @@ import { Badge, Button } from '@admin/components/shared';
 import { getTicketStatusBadgeVariant } from '@shared/utils/statusColors';
 import { formatTicketStatus, formatInquiryType } from '@shared/utils/statusFormatter';
 import {
-  formatOrderDateDesktop,
-  formatOrderDateTablet,
-  formatOrderDateMobile,
+  formatDateWithTimeDesktop,
+  formatDateWithTimeTablet,
+  formatDateWithTimeMobile,
 } from '@shared/utils/dateFormatter';
 import { formatRelativeTimeLabel } from '@shared/utils/timeFormatter';
 import { MessageSquare } from 'lucide-react';
@@ -67,15 +67,15 @@ export const TicketItem: React.FC<TicketItemProps> = ({
   // Format inquiry type for display
   const inquiryType = formatInquiryType(ticket.inquiry_type || 'other');
 
-  // Format both received and updated dates responsively
+  // Format both received and updated dates responsively with time
   const receivedDateDesktop = ticket.received_at
-    ? formatOrderDateDesktop(ticket.received_at)
+    ? formatDateWithTimeDesktop(ticket.received_at)
     : '—';
   const receivedDateTablet = ticket.received_at
-    ? formatOrderDateTablet(ticket.received_at)
+    ? formatDateWithTimeTablet(ticket.received_at)
     : '—';
   const receivedDateMobile = ticket.received_at
-    ? formatOrderDateMobile(ticket.received_at)
+    ? formatDateWithTimeMobile(ticket.received_at)
     : '—';
 
   // Use relative time format for updated dates
