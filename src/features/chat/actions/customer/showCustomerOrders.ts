@@ -36,6 +36,7 @@ import type {
   ActionExecutionParams,
   ActionExecutionResult,
 } from '@features/chat/types';
+import type { QuickReply } from '@features/chat/types/service';
 
 export async function showCustomerOrders(
   params: ActionExecutionParams
@@ -78,8 +79,7 @@ export async function showCustomerOrders(
       };
     }
 
-    const quickReplies: Array<{ label: string; value: string; next: string }> =
-      [];
+    const quickReplies: QuickReply[] = [];
 
     if (orders && orders.length > 0) {
       // Simple message asking for order selection
@@ -100,6 +100,7 @@ export async function showCustomerOrders(
           label: orderDisplay,
           value: order.display_id,
           next: 'create_ticket',
+          store_as: 'order_id',
         });
       });
 
@@ -108,6 +109,7 @@ export async function showCustomerOrders(
         label: 'My issue is not order related',
         value: 'no_order',
         next: 'create_ticket',
+        store_as: 'order_id',
       });
     } else {
       // No active orders found
@@ -122,6 +124,7 @@ export async function showCustomerOrders(
         label: 'Continue without order',
         value: 'no_order',
         next: 'create_ticket',
+        store_as: 'order_id',
       });
     }
 

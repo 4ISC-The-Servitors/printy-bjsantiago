@@ -31,6 +31,7 @@ export interface QuickReply {
   label: string;
   value: string;
   next: string;
+  store_as?: string;
 }
 
 export interface ActionExecutionResult {
