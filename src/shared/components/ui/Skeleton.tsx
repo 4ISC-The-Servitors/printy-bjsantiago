@@ -10,7 +10,7 @@ export interface SkeletonProps extends React.HTMLAttributes<HTMLDivElement> {
 
 const Skeleton = React.forwardRef<HTMLDivElement, SkeletonProps>(
   ({ variant = 'text', width, height, className, ...props }, ref) => {
-    const baseClasses = 'skeleton rounded';
+    const baseClasses = 'skeleton rounded bg-neutral-100';
 
     return (
       <div

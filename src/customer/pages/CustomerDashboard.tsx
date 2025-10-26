@@ -15,13 +15,14 @@ import DashboardGrid from '@customer/components/dashboard/DashboardGrid';
 import ChatCards from '@customer/components/dashboard/chatCards/ChatCards';
 import RecentCard from '@customer/components/dashboard/RecentCard';
 // Shared UI components
-import { ToastContainer, Text, PageLoading } from '@shared/components';
+import { ToastContainer, Text } from '@shared/components';
 import Notification from '@shared/components/feedback/Notification';
+// Loading states
+import { CustomerDashboardLoading } from '@customer/components/loadingStates';
 import { useLogoutWithToast } from '@/auth/hooks/useLogoutWithToast';
 import { useRecentOrder } from '@customer/hooks/useRecentOrder';
 import { useRecentTicket } from '@customer/hooks/useRecentTicket';
 import { useRecentQuote } from '@customer/hooks/useRecentQuote';
-import { useRecentChatSessions } from '@features/chat/hooks/customer/useRecentChatSessions';
 import { useDashboardChatEvents } from '@features/chat/hooks/customer/useDashboardChatEvents';
 import { useChatAttachments } from '@features/chat/hooks/shared/useChatAttachments';
 import { usePaymentProofUpload } from '@/features/chat/hooks/customer/usePaymentProofUpload';
@@ -101,6 +102,7 @@ const CustomerDashboardContent: React.FC = () => {
   const { isMobileOrTablet } = useDeviceUtils();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
+
   // ✅ Use context instead of hook directly (prevents duplicate instances)
   const {
     messages,
@@ -114,7 +116,6 @@ const CustomerDashboardContent: React.FC = () => {
     initializeFlow: initializeFlowHook,
     switchConversation: switchConversationHook,
     setActiveId,
-    setConversations,
   } = useCustomerConversationsContext();
 
   // Memoize toast instance to prevent re-creating array on every render
@@ -170,7 +171,6 @@ const CustomerDashboardContent: React.FC = () => {
 
   const { data: recentQuote, loading: loadingRecentQuote } =
     useRecentQuote(customerId);
-  useRecentChatSessions(setConversations);
 
   // Check for signin success toast
   useEffect(() => {
@@ -183,9 +183,6 @@ const CustomerDashboardContent: React.FC = () => {
   // Determine loading based on data hooks
   const isLoading =
     loadingRecentOrder || loadingRecentTicket || loadingRecentQuote;
-
-  // NOTE: Session loading is handled by useRecentChatSessions hook
-  // No need to manually load sessions here
 
   // ---------------- Chat logic ----------------
   // Initialize flow via useCustomerConversations
@@ -287,7 +284,7 @@ const CustomerDashboardContent: React.FC = () => {
       {/* Notification Bell - Fixed Position for dashboard only */}
       <Notification />
       {isLoading ? (
-        <PageLoading variant="dashboard" />
+        <CustomerDashboardLoading />
       ) : activeId ? (
         <>
           {/* Desktop/Laptop chat panel */}

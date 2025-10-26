@@ -21,6 +21,7 @@ import {
   useDeviceUtils,
 } from '@shared/hooks/ui/useResponsiveClasses';
 import { useResponsivePageSize } from '@shared/hooks/ui/useResponsivePageSize';
+import { CustomerHistoryLoading } from '@customer/components/loadingStates';
 
 // Chat components and hooks
 import {
@@ -33,11 +34,8 @@ import LogoutModal from '@customer/components/shared/sidebar/LogoutModal';
 import { useLogoutWithToast } from '@/auth/hooks/useLogoutWithToast';
 import { useCustomerConversationsContext } from '@features/chat/hooks/customer/CustomerConversationsProvider';
 import { useDashboardChatEvents } from '@features/chat/hooks/customer/useDashboardChatEvents';
-import { useRecentChatSessions } from '@features/chat/hooks/customer/useRecentChatSessions';
 import { useChatAttachments } from '@features/chat/hooks/shared/useChatAttachments';
 import { usePaymentProofUpload } from '@/features/chat/hooks/customer/usePaymentProofUpload';
-import { getSessionTitle } from '@features/chat/config/sessionTitleConfig';
-import type { ConversationItem } from '@features/chat/hooks/shared/useConversationState';
 
 interface Order {
   id: string;
@@ -56,6 +54,7 @@ const OrderHistory: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Chat state management
   const { logout, toasts, toast } = useLogoutWithToast();
@@ -73,7 +72,6 @@ const OrderHistory: React.FC = () => {
     initializeFlow: initializeFlowHook,
     switchConversation: switchConversationHook,
     setActiveId,
-    setConversations,
   } = useCustomerConversationsContext();
 
   // Memoize toast instance to prevent re-creating array on every render
@@ -129,9 +127,6 @@ const OrderHistory: React.FC = () => {
   useEffect(() => {
     setCurrentPage(1);
   }, [search, filter]);
-
-  // Chat functionality
-  useRecentChatSessions(setConversations);
 
   // Initialize flow via useCustomerConversations
   const initializeFlow = (flowId: string, title: string, ctx: unknown = {}) => {
@@ -209,97 +204,18 @@ const OrderHistory: React.FC = () => {
     await logout('/auth/signin');
   };
 
-  // Load recent chat sessions from database for the sidebar list (initial)
-  useEffect(() => {
-    const loadRecentSessions = async () => {
-      try {
-        const { data: sessions, error } = await supabase
-          .from('chat_sessions_v2')
-          .select(
-            `
-            session_id,
-            customer_id,
-            status,
-            created_at,
-            flow_id,
-            display_title,
-            metadata,
-            inquiry:inquiries_v2!inquiry_id(
-              inquiry_id,
-              display_id,
-              inquiry_type,
-              inquiry_status
-            ),
-            quote:quotes!quote_id(
-              quote_id,
-              display_id,
-              status
-            ),
-            order:orders!order_id(
-              order_id,
-              display_id,
-              status
-            )
-          `
-          )
-          .order('created_at', { ascending: false })
-          .limit(10);
-
-        if (error) {
-          console.error('Error fetching sessions:', error);
-          return;
-        }
-
-        if (sessions && sessions.length > 0) {
-          const sessionConversations: ConversationItem[] = sessions.map(
-            (session: any) => ({
-              id: session.session_id,
-              title: getSessionTitle({
-                flowId: session.flow_id,
-                metadata: {
-                  context: {
-                    display_id: session.metadata?.context?.display_id || session.inquiry?.display_id || session.quote?.display_id || session.order?.display_id,
-                  },
-                },
-                inquiry: session.inquiry,
-                quote: session.quote,
-                order: session.order,
-              }),
-              createdAt: new Date(session.created_at).getTime(),
-              messages: [], // Messages will be loaded when switching to conversation
-              flowId: session.flow_id || 'about',
-              status: session.status === 'ended' ? 'ended' : 'active',
-              icon: undefined,
-            })
-          );
-
-          setConversations(prev => {
-            // Merge with existing conversations, avoiding duplicates
-            const existingIds = new Set(prev.map(c => c.id));
-            const newConversations = sessionConversations.filter(
-              c => !existingIds.has(c.id)
-            );
-            return [...newConversations, ...prev].sort(
-              (a, b) => b.createdAt - a.createdAt
-            );
-          });
-        }
-      } catch (e) {
-        console.error('loadRecentSessions error', e);
-      }
-    };
-
-    loadRecentSessions();
-  }, []);
-
   // Load orders from database
   useEffect(() => {
     const loadOrders = async () => {
+      setIsLoading(true);
       try {
         const {
           data: { user },
         } = await supabase.auth.getUser();
-        if (!user) return;
+        if (!user) {
+          setIsLoading(false);
+          return;
+        }
 
         const { data, error } = await supabase
           .from('orders')
@@ -321,6 +237,7 @@ const OrderHistory: React.FC = () => {
 
         if (error) {
           console.error('Error loading orders:', error);
+          setIsLoading(false);
           return;
         }
 
@@ -349,6 +266,8 @@ const OrderHistory: React.FC = () => {
         setOrders(orderList);
       } catch (error) {
         console.error('Error loading orders:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -407,7 +326,9 @@ const OrderHistory: React.FC = () => {
   };
 
   // Order history content
-  const orderHistoryContent = (
+  const orderHistoryContent = isLoading ? (
+    <CustomerHistoryLoading title="Order History" />
+  ) : (
     <div className="space-y-4">
       {/* Breadcrumbs */}
       <div className="mb-6">

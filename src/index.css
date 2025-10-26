@@ -666,12 +666,15 @@
   .skeleton {
     background: linear-gradient(
       90deg,
-      var(--neutral-100) 25%,
-      var(--neutral-200) 50%,
-      var(--neutral-100) 75%
+      #f5f5f5 0%,
+      #e5e5e5 20%,
+      #f5f5f5 40%,
+      #f5f5f5 60%,
+      #e5e5e5 80%,
+      #f5f5f5 100%
     );
     background-size: 200% 100%;
-    animation: skeleton-loading 1.5s infinite;
+    animation: skeleton-loading 1.5s ease-in-out infinite;
   }
 
   @keyframes skeleton-loading {

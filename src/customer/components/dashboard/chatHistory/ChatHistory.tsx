@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { auth } from '@lib/supabase';
 import ResponsivePageLayout from '@customer/components/shared/layouts/ResponsivePageLayout';
 import HistoryItemCard from '@customer/components/shared/cards/HistoryItemCard';
 import {
@@ -18,9 +17,8 @@ import {
 } from '@shared/hooks/ui/useResponsiveClasses';
 import { useResponsivePageSize } from '@shared/hooks/ui/useResponsivePageSize';
 import type { ChatMessage } from '@features/chat/types/chat';
-import { getUserSessions } from '@features/chat/api/sessionQueries';
-import { getSessionTitle } from '@features/chat/config/sessionTitleConfig';
 import type { FilterConfig } from '@shared/types/filters';
+import { CustomerHistoryLoading } from '@customer/components/loadingStates';
 
 // Chat components and hooks
 import {
@@ -33,8 +31,8 @@ import LogoutModal from '@customer/components/shared/sidebar/LogoutModal';
 import { useLogoutWithToast } from '@/auth/hooks/useLogoutWithToast';
 import { useCustomerConversationsContext } from '@features/chat/hooks/customer/CustomerConversationsProvider';
 import { useDashboardChatEvents } from '@features/chat/hooks/customer/useDashboardChatEvents';
-import { useRecentChatSessions } from '@features/chat/hooks/customer/useRecentChatSessions';
 import { useChatAttachments } from '@features/chat/hooks/shared/useChatAttachments';
+import { useCustomerSessionCache } from '@customer/components/shared/cache/SessionCacheProvider';
 
 interface Conversation {
   id: string;
@@ -66,7 +64,6 @@ const ChatHistory: React.FC = () => {
     initializeFlow: initializeFlowHook,
     switchConversation: switchConversationHook,
     setActiveId,
-    setConversations: setRecentConversations,
   } = useCustomerConversationsContext();
 
   // Memoize toast instance to prevent re-creating array on every render
@@ -129,8 +126,22 @@ const ChatHistory: React.FC = () => {
     setCurrentPage(1);
   }, [search, filter]);
 
-  // Chat functionality
-  useRecentChatSessions(setRecentConversations);
+  // Use shared session cache instead of individual query
+  const { sessions: cachedSessions, loading: isLoading } = useCustomerSessionCache();
+
+  // Convert cached sessions to Conversation format
+  useEffect(() => {
+    const convertedConversations: Conversation[] = cachedSessions.map(session => ({
+      id: session.id,
+      title: session.title,
+      createdAt: session.createdAt,
+      updatedAt: session.createdAt, // Use created_at as fallback since we don't have updated_at in cache
+      messages: session.messages,
+      status: session.status,
+    }));
+    // Update the conversations state for filtering and display
+    setConversations(convertedConversations);
+  }, [cachedSessions]);
 
   // Initialize flow via useCustomerConversations
   const initializeFlow = (flowId: string, title: string, ctx: unknown = {}) => {
@@ -161,65 +172,10 @@ const ChatHistory: React.FC = () => {
     switchConversationHook(id);
   };
 
-  // Load conversations from DB (using chat_sessions_v2)
-  useEffect(() => {
-    (async () => {
-      try {
-        const { data: userData } = await auth.getUser();
-        if (!userData?.user?.id) return;
-
-        const list = await getUserSessions(userData.user.id);
-        const convs: Conversation[] = list.map(s => {
-          // Generate title with FK relationships for consistency
-          // For sessions with metadata.context (like track-quote with subject), preserve it
-          // For sessions with FK relationships (like track-ticket), use display_id from FK
-          const displayIdFromFK =
-            s.inquiry?.display_id ||
-            s.quote?.display_id ||
-            s.order?.display_id;
-          const context = s.metadata?.context
-            ? {
-                ...s.metadata.context,
-                display_id:
-                  s.metadata.context.display_id ||
-                  s.metadata.context.subject ||
-                  displayIdFromFK,
-              }
-            : displayIdFromFK
-              ? { display_id: displayIdFromFK }
-              : undefined;
-
-          return {
-            id: s.sessionId,
-            title: getSessionTitle({
-              flowId: s.flowId,
-              metadata: s.metadata
-                ? {
-                    ...s.metadata,
-                    context,
-                  }
-                : undefined,
-              inquiry: s.inquiry,
-              quote: s.quote,
-              order: s.order,
-            }),
-            createdAt: s.createdAt,
-            updatedAt: s.createdAt, // getUserSessions doesn't return updatedAt, use createdAt
-            messages: [],
-            status: (s.status === 'ended' ? 'ended' : 'active') as
-              | 'active'
-              | 'ended',
-          };
-        });
-        setConversations(convs);
-      } catch (e) {
-        console.error('ChatHistory load sessions error', e);
-      }
-    })();
-  }, []);
-
   // Chat history content
-  const chatHistoryContent = (
+  const chatHistoryContent = isLoading ? (
+    <CustomerHistoryLoading title="Chat History" />
+  ) : (
     <div className="space-y-4">
       {/* Breadcrumbs */}
       <div className="mb-6">

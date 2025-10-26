@@ -3,10 +3,11 @@
  * Context provider to share customer conversation state across components
  * Prevents duplicate hook instances and message duplication
  */
-import React, { createContext, useContext, useMemo } from 'react';
+import React, { createContext, useContext, useMemo, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { useCustomerConversations } from './useCustomerConversations';
 import type { ChatMessage, QuickReply } from '@features/chat/types';
+import { useSessionCache } from '@customer/components/shared/cache/SessionCacheProvider';
 
 interface ConversationItem {
   id: string;
@@ -40,6 +41,32 @@ const CustomerConversationsContext = createContext<CustomerConversationsContextV
 
 export function CustomerConversationsProvider({ children }: { children: ReactNode }) {
   const conversationState = useCustomerConversations();
+  const { sessions } = useSessionCache();
+
+  // Initialize conversations from SessionCache on mount and when sessions change
+  useEffect(() => {
+    if (sessions && sessions.length > 0) {
+      // Map SessionCache format to ConversationItem format
+      const mappedConversations: ConversationItem[] = sessions.map(session => ({
+        id: session.id,
+        title: session.title,
+        createdAt: session.createdAt,
+        messages: session.messages || [],
+        flowId: session.flowId || 'about',
+        status: session.status,
+        icon: session.icon,
+        context: session.context,
+      }));
+
+      // Initialize conversations state
+      conversationState.setConversations(prev => {
+        // Merge with existing conversations to preserve any that were added during runtime
+        const existingIds = new Set(prev.map(c => c.id));
+        const newConversations = mappedConversations.filter(c => !existingIds.has(c.id));
+        return [...newConversations, ...prev];
+      });
+    }
+  }, [sessions]); // Re-run when sessions from cache change
 
   // ✅ Memoize the context value to prevent unnecessary re-renders
   // This ensures child components don't re-render when parent re-renders

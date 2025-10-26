@@ -5,11 +5,8 @@ import LogoutButton from '../sidebar/LogoutButton';
 import LogoutModal from '../sidebar/LogoutModal';
 import MobileSidebarMenu from '../sidebar/MobileSidebarMenu';
 import MobileSidebarTrigger from '../sidebar/MobileSidebarTrigger';
-import {
-  useRecentChatSessions,
-  type ConversationLike,
-} from '@customer/hooks/useRecentChatSessions';
 import { useLogoutWithToast } from '@auth/hooks/useLogoutWithToast';
+import { useCustomerConversationsContext } from '@features/chat/hooks/customer/CustomerConversationsProvider';
 
 interface ResponsivePageLayoutProps {
   showSidebar?: boolean; // Default: true
@@ -44,12 +41,9 @@ const ResponsivePageLayout: React.FC<ResponsivePageLayoutProps> = ({
 }) => {
   const navigate = useNavigate();
   const { logout } = useLogoutWithToast();
+  const { conversations } = useCustomerConversationsContext();
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const [conversations, setConversations] = useState<ConversationLike[]>([]);
-
-  // Load recent chat sessions for sidebar
-  useRecentChatSessions(setConversations);
 
   const handleSwitchConversation = (id: string) => {
     setIsMobileSidebarOpen(false);
