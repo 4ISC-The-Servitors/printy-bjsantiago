@@ -124,9 +124,9 @@ export const QuoteItem: React.FC<QuoteItemProps> = ({
           threeD
           aria-label={`Ask about ${displayId}`}
           onClick={() => onViewInChat(quote.id)}
-          className={layout.chatButton}
+          className="shrink-0"
         >
-          <MessageSquare className={layout.chatIcon} />
+          <MessageSquare className="w-4 h-4" />
         </Button>
       </div>
     </div>

@@ -1024,4 +1024,16 @@
     @apply md:px-4 md:py-1.5 md:text-base; /* Laptop: large badge */
     @apply lg:px-5 lg:py-2 lg:text-lg; /* Desktop: largest badge */
   }
+
+  /* Admin-specific utilities */
+  /* Ensure tooltips always render on top */
+  .tooltip-wrapper {
+    position: relative;
+    z-index: 50;
+  }
+
+  .tooltip-content {
+    z-index: 99999 !important;
+    pointer-events: none;
+  }
 }

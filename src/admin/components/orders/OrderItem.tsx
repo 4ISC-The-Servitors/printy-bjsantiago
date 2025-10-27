@@ -23,7 +23,7 @@ export const OrderItem: React.FC<OrderItemProps> = ({
   onViewInChat,
 }) => {
   // Get responsive classes
-  const { textClasses } = useResponsiveClasses();
+  const { textClasses, badgeClasses } = useResponsiveClasses();
 
   // Show Urgent badge for valued customers
   const showUrgentBadge = order.customer_type === 'valued';
@@ -57,11 +57,11 @@ export const OrderItem: React.FC<OrderItemProps> = ({
       <div className="flex items-center justify-between gap-2 sm:gap-3 md:gap-4 lg:gap-6 mb-2 sm:mb-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1 sm:gap-2 md:gap-3 min-w-0">
-            <span className="device-text-caption font-semibold text-neutral-900 whitespace-nowrap">
+            <span className={`${textClasses.caption} font-semibold text-neutral-900 whitespace-nowrap`}>
               {displayId}
             </span>
             <span className="text-neutral-400">•</span>
-            <span className="device-text-caption font-medium text-neutral-700 truncate">
+            <span className={`${textClasses.caption} font-medium text-neutral-700 truncate`}>
               {order.product_name}
             </span>
           </div>
@@ -69,13 +69,13 @@ export const OrderItem: React.FC<OrderItemProps> = ({
 
         <div className="flex items-center gap-1 sm:gap-2 md:gap-3 shrink-0">
           {showUrgentBadge && (
-            <Badge variant="error" className="device-badge-sm">
+            <Badge variant="error" className={`${badgeClasses.text} ${badgeClasses.padding}`}>
               Urgent
             </Badge>
           )}
           <Badge
             variant={getOrderStatusBadgeVariant(order.status)}
-            className="device-badge-sm"
+            className={`${badgeClasses.text} ${badgeClasses.padding}`}
           >
             {formatOrderStatus(order.status)}
           </Badge>
@@ -85,13 +85,13 @@ export const OrderItem: React.FC<OrderItemProps> = ({
       {/* Row 2: Customer Name | Amount */}
       <div className="flex items-center justify-between gap-2 sm:gap-3 md:gap-4 lg:gap-6 mb-2 sm:mb-3">
         <div className="flex-1 min-w-0">
-          <span className="device-text-caption font-medium text-neutral-700">
+          <span className={`${textClasses.caption} font-medium text-neutral-700`}>
             {order.customer_name}
           </span>
         </div>
 
         <div className="text-right">
-          <div className="device-text-caption font-semibold text-neutral-900">
+          <div className={`${textClasses.caption} font-semibold text-neutral-900`}>
             {order.total_amount}
           </div>
         </div>

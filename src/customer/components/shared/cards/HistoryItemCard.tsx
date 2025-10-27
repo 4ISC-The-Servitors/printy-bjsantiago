@@ -174,7 +174,12 @@ const HistoryItemCard: React.FC<HistoryItemCardProps> = ({
           <span className="font-medium">
             {type === 'chat' ? 'Ended:' : 'Updated:'}
           </span>
-          <span className="truncate">{formatRelativeTimeLabel(updatedAt)}</span>
+          <span className="truncate">
+            {type === 'chat' 
+              ? `${formatShortDate(updatedAt)} • ${formatShortTime(updatedAt)}`
+              : formatRelativeTimeLabel(updatedAt)
+            }
+          </span>
         </div>
         {metadata?.['payment verified'] && (
           <div

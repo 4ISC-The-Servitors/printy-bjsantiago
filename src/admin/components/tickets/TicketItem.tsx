@@ -113,16 +113,16 @@ export const TicketItem: React.FC<TicketItemProps> = ({
           <span className={layout.customerName}>{customerName}</span>
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-3 md:gap-4 shrink-0">
+        <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
           <Button
             variant="secondary"
             size="sm"
             threeD
             aria-label={`Ask about ${displayId}`}
             onClick={() => onViewInChat(ticket.inquiry_id)}
-            className={layout.chatButton}
+            className="shrink-0"
           >
-            <MessageSquare className={layout.chatIcon} />
+            <MessageSquare className="w-4 h-4" />
           </Button>
         </div>
       </div>

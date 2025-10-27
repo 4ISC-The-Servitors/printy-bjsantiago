@@ -88,6 +88,16 @@ export const FILTER_CONFIGS = {
     showStatusFilter: false,
     showRoleFilter: true,
   } as FilterConfig,
+
+  chats: {
+    statusOptions: [
+      { value: 'active', label: 'Active' },
+      { value: 'ended', label: 'Ended' },
+    ],
+    showDateRange: true,
+    showStatusFilter: true,
+    showRoleFilter: false,
+  } as FilterConfig,
 } as const;
 
 export type FilterConfigKey = keyof typeof FILTER_CONFIGS;

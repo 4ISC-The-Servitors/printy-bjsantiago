@@ -187,31 +187,24 @@ const AdminDashboard: React.FC = () => {
                       <div className="flex items-center gap-2 mb-1">
                         <Text
                           variant="p"
-                          size="base"
                           weight="medium"
-                          className="text-gray-900"
+                          className={`${textClasses.caption} text-gray-900`}
                         >
                           {notification.title}
                         </Text>
                         {!notification.isRead && (
-                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                          <div className="w-2 h-2 bg-blue-500 rounded-full shrink-0"></div>
                         )}
                       </div>
                       <Text
                         variant="p"
-                        size="sm"
-                        color="muted"
-                        className="mb-2"
+                        className={`${textClasses.caption} text-gray-600 mb-2`}
                       >
                         {notification.message}
                       </Text>
                       <div className="flex items-center gap-2">
-                        <Text variant="p" size="xs" color="muted">
+                        <Text className={`${textClasses.caption} text-gray-500`}>
                           {notification.timestamp}
-                        </Text>
-                        <span className="text-xs text-gray-400">•</span>
-                        <Text variant="p" size="xs" color="muted">
-                          {notification.category}
                         </Text>
                       </div>
                     </div>
