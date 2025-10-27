@@ -24,7 +24,7 @@ export interface BottomNavbarProps {
  * Bottom navigation bar for admin
  * Consistent across desktop and mobile
  * Contains: Dashboard, Orders, Tickets, Portfolio, Quotes
- * Settings & Logout are in the collapsible sidebar
+ * Chats, Settings & Logout are in the collapsible sidebar
  */
 export const BottomNavbar: React.FC<BottomNavbarProps> = ({ onNavigate }) => {
   const location = useLocation();
@@ -69,12 +69,12 @@ export const BottomNavbar: React.FC<BottomNavbarProps> = ({ onNavigate }) => {
   ];
 
   return (
-    <nav
+      <nav
       className="fixed bottom-0 left-0 right-0 lg:left-14 z-20 bg-white border-t border-neutral-200 shadow-sm"
       aria-label="Admin navigation"
     >
-      <div className="mx-auto max-w-screen-xl px-2 py-2">
-        <div className="grid grid-cols-5 gap-1">
+      <div className="mx-auto max-w-screen-xl px-2 md:px-6 lg:px-8 py-2 md:py-3">
+        <div className="grid grid-cols-5 gap-2 sm:gap-4">
           {navItems.map(item => {
             const isActive = activeRoute === item.id;
             const Icon = item.icon;
@@ -85,13 +85,14 @@ export const BottomNavbar: React.FC<BottomNavbarProps> = ({ onNavigate }) => {
                 variant="ghost"
                 size="sm"
                 onClick={() => onNavigate(item.id)}
-                className={`flex flex-col items-center gap-1 min-h-[56px] ${
+                className={`flex flex-col items-center justify-center gap-0.5 md:gap-2 min-h-[48px] md:min-h-[56px] px-1 md:px-2 ${
                   isActive ? 'text-brand-primary' : 'text-neutral-600'
                 }`}
                 aria-current={isActive ? 'page' : undefined}
+                aria-label={item.label}
               >
-                <Icon className="h-5 w-5" />
-                <Text variant="p" size="xs" className="hidden sm:block">
+                <Icon className={`h-5 w-5 flex-shrink-0 ${isActive ? 'text-brand-primary' : 'text-neutral-600'}`} />
+                <Text variant="p" size="xs" className="text-center leading-tight hidden md:block">
                   {item.label}
                 </Text>
               </Button>

@@ -31,7 +31,7 @@ export const DesktopLayout: React.FC<DesktopLayoutProps> = ({
   return (
     <div className="h-screen bg-gradient-to-br from-neutral-50 to-brand-primary-50 flex">
       {/* Icon Sidebar */}
-      <aside className="hidden lg:flex w-14 flex-col bg-white">
+      <aside className="hidden lg:flex w-14 flex-col bg-white border-r border-neutral-200 sticky top-0 h-screen" style={{ zIndex: 99998 }}>
         <SidebarPanel
           onSettings={onSettings}
           onLogout={onLogout}
@@ -40,8 +40,8 @@ export const DesktopLayout: React.FC<DesktopLayoutProps> = ({
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col pb-[72px]">
-        <div className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className="flex-1 flex flex-col pb-16 lg:pb-20">
+        <div className="flex-1 overflow-y-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-5 md:py-6">
           {children}
         </div>
       </main>

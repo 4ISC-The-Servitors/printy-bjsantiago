@@ -30,7 +30,7 @@ const LandingPage: React.FC = () => {
     });
   };
 
-  const initializeFlow = async (flowKey: 'about' | 'faqs' | 'place-order') => {
+  const initializeFlow = async (flowKey: 'about' | 'faqs' | 'guest-services-offered') => {
     setIsTyping(true);
     setMessages([]);
     setQuickReplies([]);
@@ -40,7 +40,7 @@ const LandingPage: React.FC = () => {
       const flowIdMap: Record<string, string> = {
         about: 'guest-about-us',
         faqs: 'guest-faqs',
-        'place-order': 'guest-place-order', // This would need to be created separately
+        'guest-services-offered': 'guest-services-offered',
       };
 
       const flowId = flowIdMap[flowKey];
@@ -71,24 +71,80 @@ const LandingPage: React.FC = () => {
 
       // Process initial node
       const initialNode = flowDefinition.nodes[flowDefinition.initial_node];
-      if (initialNode && initialNode.type === 'message') {
-        const botMessage: ChatMessage = {
-          id: crypto.randomUUID(),
-          role: 'printy',
-          text: initialNode.message as string,
-          ts: Date.now(),
-        };
-        setMessages([botMessage]);
+      if (initialNode) {
+        if (initialNode.type === 'message') {
+          const botMessage: ChatMessage = {
+            id: crypto.randomUUID(),
+            role: 'printy',
+            text: initialNode.message as string,
+            ts: Date.now(),
+          };
+          setMessages([botMessage]);
 
-        // Set quick replies from initial node options
-        if (initialNode.options) {
-          const replies = initialNode.options.map((option, index) => ({
-            id: `qr-${index}`,
-            label: option.label,
-            value: option.label,
-          }));
-          setQuickReplies(replies);
-        }
+          // Set quick replies from initial node options
+          if (initialNode.options) {
+            const replies = initialNode.options.map((option, index) => ({
+              id: `qr-${index}`,
+              label: option.label,
+              value: option.label,
+            }));
+            setQuickReplies(replies);
+          }
+                          } else if (initialNode.type === 'action' && initialNode.action === 'display_service_categories') {
+            // Handle display_service_categories action for guest users
+            try {
+              // Fetch active service categories
+              const { data: categories, error } = await supabase
+                .from('service_categories')
+                .select('category_id, category_name, description')
+                .eq('is_active', true)
+                .order('display_order', { ascending: true });
+
+              if (error || !categories || categories.length === 0) {
+                const botMessage: ChatMessage = {
+                  id: crypto.randomUUID(),
+                  role: 'printy',
+                  text: 'No service categories are available at the moment.',
+                  ts: Date.now(),
+                };
+                setMessages([botMessage]);
+              } else {
+                // Add welcome message
+                const welcomeMessage: ChatMessage = {
+                  id: crypto.randomUUID(),
+                  role: 'printy',
+                  text: "Hi! I'm Printy, B.J. Santiago's bot assistant. Here you can browse all our active printing services organized by category. What would you like to explore?",
+                  ts: Date.now(),
+                };
+                setMessages([welcomeMessage]);
+
+                // Generate quick replies for categories
+                const replies = categories.map((category, index) => ({
+                  id: `cat-${index}`,
+                  label: category.category_name,
+                  value: category.category_id,
+                }));
+                
+                // Add End Chat option
+                replies.push({
+                  id: 'end-chat',
+                  label: 'End Chat',
+                  value: 'end',
+                });
+                
+                setQuickReplies(replies);
+              }
+            } catch (error) {
+              console.error('Error fetching categories:', error);
+              const botMessage: ChatMessage = {
+                id: crypto.randomUUID(),
+                role: 'printy',
+                text: 'Something went wrong while loading service categories. Please try again.',
+                ts: Date.now(),
+              };
+              setMessages([botMessage]);
+            }
+          }
       }
 
       setIsChatOpen(true);
@@ -115,22 +171,142 @@ const LandingPage: React.FC = () => {
 
     setMessages(prev => [...prev, userMessage]);
     setIsTyping(true);
+    
+    // Store quickReplies before clearing
+    const previousQuickReplies = [...quickReplies];
     setQuickReplies([]);
 
     try {
-      // Find matching option in current node
       const currentNode = currentFlow.nodes[currentNodeId];
-      if (
-        currentNode &&
-        currentNode.type === 'message' &&
-        currentNode.options
-      ) {
+      
+      // Handle services flow - check if we're in category selection mode
+      // ONLY detect services flow if we have 'cat-' prefixed replies (category buttons)
+      const isServicesFlow = previousQuickReplies.length > 0 && 
+        previousQuickReplies.some(qr => qr.id?.startsWith('cat-')) &&
+        !previousQuickReplies.some(qr => qr.id?.startsWith('qr-'));
+      
+      if (isServicesFlow) {
+        // Handle End Chat option
+        if (text.trim().toLowerCase() === 'end chat') {
+          const endNode = currentFlow.nodes['end'];
+          if (endNode && endNode.type === 'end') {
+            const endMessage: ChatMessage = {
+              id: crypto.randomUUID(),
+              role: 'printy',
+              text: endNode.message as string,
+              ts: Date.now(),
+            };
+            setMessages(prev => [...prev, endMessage]);
+            setQuickReplies([]);
+          }
+          return;
+        }
+        
+        // This is a category selection from the services flow
+        // Find the matching category by label (case-insensitive, partial match)
+        const normalizedText = text.trim().toLowerCase();
+        let selectedCategory = previousQuickReplies.find(qr => 
+          qr.label.toLowerCase() === normalizedText
+        );
+        
+        // If no exact match, try to find by checking if any category label contains the input
+        if (!selectedCategory) {
+          selectedCategory = previousQuickReplies.find(qr => 
+            qr.label.toLowerCase().includes(normalizedText) && qr.value !== 'end'
+          );
+        }
+        
+        if (selectedCategory && selectedCategory.value !== 'end') {
+          // Fetch services for this category
+          try {
+            const { data: services, error } = await supabase
+              .from('printing_services')
+              .select('service_name, description')
+              .eq('category_id', selectedCategory.value)
+              .eq('status', 'active');
+
+            if (error || !services || services.length === 0) {
+              const botMessage: ChatMessage = {
+                id: crypto.randomUUID(),
+                role: 'printy',
+                text: `No active services found in the ${selectedCategory.label} category.`,
+                ts: Date.now(),
+              };
+              setMessages(prev => [...prev, botMessage]);
+              
+              // Show category options again
+              const { data: categories } = await supabase
+                .from('service_categories')
+                .select('category_id, category_name')
+                .eq('is_active', true)
+                .order('display_order', { ascending: true });
+
+              if (categories) {
+                const replies = categories.map((cat, idx) => ({
+                  id: `cat-${idx}`,
+                  label: cat.category_name,
+                  value: cat.category_id,
+                }));
+                
+                // Add End Chat option
+                replies.push({
+                  id: 'end-chat',
+                  label: 'End Chat',
+                  value: 'end',
+                });
+                
+                setQuickReplies(replies);
+              }
+                         } else {
+               // Display services
+               const servicesText = services
+                 .map(s => `• ${s.service_name}${s.description ? ` - ${s.description}` : ''}`)
+                 .join('\n');
+               
+                               const botMessage: ChatMessage = {
+                  id: crypto.randomUUID(),
+                  role: 'printy',
+                  text: `Here are our ${selectedCategory.label} services:\n\n${servicesText}`,
+                  ts: Date.now(),
+                };
+               setMessages(prev => [...prev, botMessage]);
+
+               // Show category options again so user can browse more
+               const { data: categories } = await supabase
+                 .from('service_categories')
+                 .select('category_id, category_name')
+                 .eq('is_active', true)
+                 .order('display_order', { ascending: true });
+
+               if (categories) {
+                 const replies = categories.map((cat, idx) => ({
+                   id: `cat-${idx}`,
+                   label: cat.category_name,
+                   value: cat.category_id,
+                 }));
+                 
+                 // Add End Chat option
+                 replies.push({
+                   id: 'end-chat',
+                   label: 'End Chat',
+                   value: 'end',
+                 });
+                 
+                 setQuickReplies(replies);
+               }
+             }
+          } catch (error) {
+            console.error('Error fetching services:', error);
+          }
+        }
+      }
+      // Handle regular message node flow
+      else if (currentNode && currentNode.type === 'message' && currentNode.options) {
         const selectedOption = currentNode.options.find(
           option => option.label.toLowerCase() === text.trim().toLowerCase()
         );
 
         if (selectedOption) {
-          // Move to next node
           const nextNodeId = selectedOption.next;
           if (nextNodeId) {
             setCurrentNodeId(nextNodeId);
@@ -146,7 +322,6 @@ const LandingPage: React.FC = () => {
                 };
                 setMessages(prev => [...prev, botMessage]);
 
-                // Set quick replies for next node
                 if (nextNode.options) {
                   const replies = nextNode.options.map((option, index) => ({
                     id: `qr-${index}`,
@@ -168,7 +343,6 @@ const LandingPage: React.FC = () => {
             }
           }
         } else {
-          // No matching option found
           const errorMessage: ChatMessage = {
             id: crypto.randomUUID(),
             role: 'printy',
@@ -177,7 +351,6 @@ const LandingPage: React.FC = () => {
           };
           setMessages(prev => [...prev, errorMessage]);
 
-          // Restore quick replies for current node
           if (currentNode.options) {
             const replies = currentNode.options.map((option, index) => ({
               id: `qr-${index}`,
@@ -212,17 +385,19 @@ const LandingPage: React.FC = () => {
       {
         id: crypto.randomUUID(),
         role: 'printy' as ChatRole,
-        text: 'Thank you for chatting with Printy! Have a great day. 👋',
+        text: 'Thank you for chatting with Printy! Have a great day.',
         ts: Date.now(),
       },
     ]);
-    // Close panel and reset state deterministically (no delay)
-    setIsChatOpen(false);
-    setMessages([]);
-    setCurrentFlow(null);
-    setCurrentNodeId('');
-    setChatTitle('Chat');
-    setInputPlaceholder('Type a message...');
+    // Close panel and reset state after 3 seconds
+    setTimeout(() => {
+      setIsChatOpen(false);
+      setMessages([]);
+      setCurrentFlow(null);
+      setCurrentNodeId('');
+      setChatTitle('Chat');
+      setInputPlaceholder('Type a message...');
+    }, 3000);
   };
 
   return (
@@ -402,7 +577,7 @@ const LandingPage: React.FC = () => {
             {!isChatOpen ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
                 <ActionCard
-                  title="About Us"
+                  title="About B.J. Santiago Inc."
                   description="Learn about our company history and values"
                   icon={<Users className="w-6 h-6" />}
                   onClick={() => initializeFlow('about')}
@@ -419,14 +594,7 @@ const LandingPage: React.FC = () => {
                   title="Services Offered"
                   description="Explore our printing solutions"
                   icon={<Award className="w-6 h-6" />}
-                  onClick={() => initializeFlow('about')}
-                />
-
-                <ActionCard
-                  title="Place an Order"
-                  description="Start your printing project"
-                  icon={<Printer className="w-6 h-6" />}
-                  onClick={() => initializeFlow('place-order')}
+                  onClick={() => initializeFlow('guest-services-offered')}
                 />
               </div>
             ) : (

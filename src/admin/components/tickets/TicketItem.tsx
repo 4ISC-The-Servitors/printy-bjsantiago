@@ -2,14 +2,10 @@ import React from 'react';
 import { Badge, Button } from '@admin/components/shared';
 import { getTicketStatusBadgeVariant } from '@shared/utils/statusColors';
 import { formatTicketStatus, formatInquiryType } from '@shared/utils/statusFormatter';
-import {
-  formatOrderDateDesktop,
-  formatOrderDateTablet,
-  formatOrderDateMobile,
-} from '@shared/utils/dateFormatter';
+import { formatDateWithTimeDesktop } from '@shared/utils/dateFormatter';
 import { formatRelativeTimeLabel } from '@shared/utils/timeFormatter';
 import { MessageSquare } from 'lucide-react';
-import { useResponsiveLayout } from '@shared/hooks/ui';
+import { useResponsiveLayout, useResponsiveClasses } from '@shared/hooks/ui';
 
 interface Ticket {
   inquiry_id: string;
@@ -23,6 +19,7 @@ interface Ticket {
   customer_type?: string | null;
   received_at?: string | null;
   updated_at?: string | null;
+  resolved_at?: string | null;
   order_id?: string | null;
   session_id?: string | null;
   customer?: {
@@ -45,6 +42,7 @@ export const TicketItem: React.FC<TicketItemProps> = ({
 
   // Get responsive layout classes
   const { getTicketCardLayout } = useResponsiveLayout();
+  const { textClasses } = useResponsiveClasses();
   const layout = getTicketCardLayout;
 
   // Show Urgent badge for valued customers
@@ -67,26 +65,19 @@ export const TicketItem: React.FC<TicketItemProps> = ({
   // Format inquiry type for display
   const inquiryType = formatInquiryType(ticket.inquiry_type || 'other');
 
-  // Format both received and updated dates responsively
-  const receivedDateDesktop = ticket.received_at
-    ? formatOrderDateDesktop(ticket.received_at)
-    : '—';
-  const receivedDateTablet = ticket.received_at
-    ? formatOrderDateTablet(ticket.received_at)
-    : '—';
-  const receivedDateMobile = ticket.received_at
-    ? formatOrderDateMobile(ticket.received_at)
+  // Format both received and updated dates with time
+  const receivedDate = ticket.received_at
+    ? formatDateWithTimeDesktop(ticket.received_at)
     : '—';
 
   // Use relative time format for updated dates
-  const updatedDateDesktop = ticket.updated_at
+  const updatedDate = ticket.updated_at
     ? formatRelativeTimeLabel(ticket.updated_at)
     : '—';
-  const updatedDateTablet = ticket.updated_at
-    ? formatRelativeTimeLabel(ticket.updated_at)
-    : '—';
-  const updatedDateMobile = ticket.updated_at
-    ? formatRelativeTimeLabel(ticket.updated_at)
+
+  // Format resolved dates with time
+  const resolvedDate = ticket.resolved_at
+    ? formatDateWithTimeDesktop(ticket.resolved_at)
     : '—';
 
   return (
@@ -122,44 +113,44 @@ export const TicketItem: React.FC<TicketItemProps> = ({
           <span className={layout.customerName}>{customerName}</span>
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-3 md:gap-4 shrink-0">
+        <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
           <Button
             variant="secondary"
             size="sm"
             threeD
             aria-label={`Ask about ${displayId}`}
             onClick={() => onViewInChat(ticket.inquiry_id)}
-            className={layout.chatButton}
+            className="shrink-0"
           >
-            <MessageSquare className={layout.chatIcon} />
+            <MessageSquare className="w-4 h-4" />
           </Button>
         </div>
       </div>
 
-      {/* Row 3: Dates */}
-      <div className={layout.structure.row3}>
-        <div className={layout.dates}>
-          <span className="hidden lg:inline">
-            Received: {receivedDateDesktop}
-            {ticket.updated_at && ticket.updated_at !== ticket.received_at && (
-              <span className="ml-2">• Updated: {updatedDateDesktop}</span>
-            )}
-          </span>
-          <span className="hidden sm:inline lg:hidden">
-            Received: {receivedDateTablet}
-            {ticket.updated_at && ticket.updated_at !== ticket.received_at && (
-              <span className="ml-2">• Updated: {updatedDateTablet}</span>
-            )}
-          </span>
-          <span className="sm:hidden">
-            Received: {receivedDateMobile}
-            {ticket.updated_at && ticket.updated_at !== ticket.received_at && (
-              <span className="ml-1 text-xs">
-                • Updated: {updatedDateMobile}
-              </span>
-            )}
-          </span>
+      {/* Row 3: Dates (stacked vertically) */}
+      <div className="mt-1">
+        <div
+          className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
+        >
+          <span className="font-medium">Received:</span>
+          <span className="truncate">{receivedDate}</span>
         </div>
+        {ticket.updated_at && ticket.updated_at !== ticket.received_at && (
+          <div
+            className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
+          >
+            <span className="font-medium">Updated:</span>
+            <span className="truncate">{updatedDate}</span>
+          </div>
+        )}
+        {ticket.resolved_at && (
+          <div
+            className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
+          >
+            <span className="font-medium">Resolved:</span>
+            <span className="truncate">{resolvedDate}</span>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -11,7 +11,7 @@ export interface ChatEndServiceOptions {
 
 export class ChatEndService {
   private static readonly DEFAULT_END_MESSAGE =
-    'Thanks for choosing B.J. Santiago! Have a great day!';
+    'Thanks for chatting with Printy! Have a great day!';
 
   /**
    * Unified method to end chat sessions consistently

@@ -19,11 +19,11 @@ export const SidebarPanel: React.FC<SidebarPanelProps> = ({
   onLogout,
 }) => {
   return (
-    <div className="h-full flex flex-col bg-white border-r border-neutral-200">
+    <div className="h-full flex flex-col bg-white border-r border-neutral-200 sticky top-0" style={{ zIndex: 99998 }}>
       {/* Top Group: Printy Logo + Chats Button */}
-      <div className="p-2 pt-4 shrink-0 space-y-1">
+      <div className="flex flex-col items-center gap-2 shrink-0 p-2 pt-4 z-10">
         {/* Printy Logo */}
-        <div className="w-10 h-10 rounded-lg bg-brand-primary text-white flex items-center justify-center mx-auto mb-2">
+        <div className="w-10 h-10 rounded-lg bg-brand-primary text-white flex items-center justify-center mb-2">
           <Bot className="w-6 h-6" />
         </div>
 
@@ -34,7 +34,7 @@ export const SidebarPanel: React.FC<SidebarPanelProps> = ({
               variant="ghost"
               size="sm"
               onClick={onViewAllChats}
-              className="w-full h-12 flex items-center justify-center hover:bg-neutral-100"
+              className="w-10 h-10 p-0 flex items-center justify-center hover:bg-neutral-100 rounded-lg transition-colors"
               aria-label="View all chats"
             >
               <MessageSquare className="w-5 h-5 text-neutral-700" />
@@ -47,13 +47,13 @@ export const SidebarPanel: React.FC<SidebarPanelProps> = ({
       <div className="flex-1" />
 
       {/* Bottom Group: Settings + Logout */}
-      <div className="p-2 pb-2 space-y-1">
+      <div className="flex flex-col items-center gap-2 p-2 pb-4 z-10">
         <Tooltip label="Settings" position="right">
           <Button
             variant="ghost"
             size="sm"
             onClick={onSettings}
-            className="w-full h-12 flex items-center justify-center hover:bg-neutral-100"
+            className="w-10 h-10 p-0 flex items-center justify-center hover:bg-neutral-100 rounded-lg transition-colors"
             aria-label="Settings"
           >
             <Settings className="w-5 h-5 text-neutral-700" />
@@ -65,7 +65,7 @@ export const SidebarPanel: React.FC<SidebarPanelProps> = ({
             variant="ghost"
             size="sm"
             onClick={onLogout}
-            className="w-full h-12 flex items-center justify-center hover:bg-neutral-100"
+            className="w-10 h-10 p-0 flex items-center justify-center hover:bg-neutral-100 rounded-lg transition-colors"
             aria-label="Logout"
           >
             <LogOut className="w-5 h-5 text-neutral-700" />

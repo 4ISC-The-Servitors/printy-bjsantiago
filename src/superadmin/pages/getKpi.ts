@@ -1,8 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
-
-// Configuration is now correctly reading environment variables for Supabase
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+import { supabase } from '@lib/supabase';
 
 // --- GLOBAL CONFIGURATION CONSTANTS ---
 
@@ -26,11 +22,6 @@ const ORDER_STATUS_INQUIRY_FLOW_IDS = [
   'track-quote',
   'ask-assistance',
 ];
-
-// --- DEBUG INITIALIZATION ---
-console.log('--- Supabase Client Initialization ---');
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
-// ----------------------------
 
 /**
  * Interface for standard date range filtering.
@@ -214,11 +205,30 @@ export async function getAverageCustomerSatisfactionScore(
   console.log(
     `[KPI 3] Fetching Avg CSAT for range: ${range.startDate} to ${range.endDate}`
   );
-  console.warn(
-    '[KPI 3 WARNING] CSAT calculation is currently disabled/non-functional because the feedback column is missing from the chat_sessions_v2 table. Returning 0.'
-  );
-  return 0;
-}
+
+  // ADDED BY ANDENG, IDK IF THIS WILL WORK
+  const exclusiveEndDate = getNextDayString(range.endDate);
+
+  const { data, error } = await supabase
+    .from('chat_session_feedback')
+    .select('rating')
+    .gte('submitted_at', range.startDate)
+    .lt('submitted_at', exclusiveEndDate);
+
+  if (error) {
+    console.error('[KPI 3 ERROR] Failed to fetch feedback:', error);
+    return null;
+  }
+
+  if (!data || data.length === 0) {
+    console.warn('[KPI 3 WARNING] No feedback data found in the range.');
+    return 0;
+  }
+
+  const avgRating = data.reduce((sum, f) => sum + f.rating, 0) / data.length;
+  console.log(`[KPI 3 SUCCESS] Calculated average CSAT: ${avgRating.toFixed(2)}`);
+  return avgRating;
+}   // ADDED BY ANDENG, IDK IF THIS WILL WORK
 
 // --- KPI 4: Escalation Rate ---
 export async function getEscalationRate(

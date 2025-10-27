@@ -3,6 +3,7 @@ import { supabase } from '@lib/supabase';
 import { useToast } from '@lib/useToast';
 import { useResponsiveClasses, useDeviceUtils } from '@shared/hooks/ui';
 import { useNotificationVisibility } from '@shared/hooks/ui/useNotificationVisibility';
+import { useNotificationSound } from '@shared/hooks';
 import { Bell } from 'lucide-react';
 import {
   type UINotificationItem,
@@ -24,6 +25,7 @@ const Notification: React.FC = () => {
   const { textClasses, iconClasses } = useResponsiveClasses();
   const { isMobileOrTablet } = useDeviceUtils();
   const { isVisible } = useNotificationVisibility();
+  const { playSound } = useNotificationSound({ enabled: true, volume: 0.3 });
 
   // Get current user
   const [user, setUser] = useState<any>(null);
@@ -51,15 +53,20 @@ const Notification: React.FC = () => {
     loadNotifications();
 
     // Set up real-time listener
-    const cleanup = startNotificationListener(user.id, toast, item => {
-      setNotifications(prev => [item, ...prev]);
-      if (!item.isRead) {
-        setUnreadCount(prev => prev + 1);
-      }
-    });
+    const cleanup = startNotificationListener(
+      user.id,
+      toast,
+      item => {
+        setNotifications(prev => [item, ...prev]);
+        if (!item.isRead) {
+          setUnreadCount(prev => prev + 1);
+        }
+      },
+      playSound
+    );
 
     return cleanup;
-  }, [user]);
+  }, [user, playSound]);
 
   const handleMarkAsRead = async (id: string) => {
     await markNotificationAsRead(id);

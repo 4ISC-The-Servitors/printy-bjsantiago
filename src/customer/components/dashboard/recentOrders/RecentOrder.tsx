@@ -7,7 +7,7 @@ import StatusBadge from './StatusBadge';
 import PayNowButton from './PayNowButton';
 import ReuploadPaymentButton from './ReuploadPaymentButton';
 import { formatShortDate } from '@shared/utils/dateFormatter';
-import { formatRelativeTimeLabel } from '@shared/utils/timeFormatter';
+import { formatRelativeTimeLabel, formatShortTime } from '@shared/utils/timeFormatter';
 
 interface RecentOrderProps {
   recentOrder: RecentOrderType | null;
@@ -131,7 +131,7 @@ const RecentOrder: React.FC<RecentOrderProps> = ({ recentOrder }) => {
           >
             <span className="font-medium">Created:</span>
             <span className="truncate">
-              {formatShortDate(recentOrder.createdAt)}
+              {formatShortDate(recentOrder.createdAt)} • {formatShortTime(recentOrder.createdAt)}
             </span>
           </div>
           <div
@@ -148,7 +148,7 @@ const RecentOrder: React.FC<RecentOrderProps> = ({ recentOrder }) => {
             >
               <span className="font-medium">Payment Verified:</span>
               <span className="truncate">
-                {formatShortDate(recentOrder.paymentVerifiedAt)}
+                {formatShortDate(recentOrder.paymentVerifiedAt)} • {formatShortTime(recentOrder.paymentVerifiedAt)}
               </span>
             </div>
           )}
@@ -158,7 +158,7 @@ const RecentOrder: React.FC<RecentOrderProps> = ({ recentOrder }) => {
             >
               <span className="font-medium">Completed:</span>
               <span className="truncate">
-                {formatShortDate(recentOrder.completedAt)}
+                {formatShortDate(recentOrder.completedAt)} • {formatShortTime(recentOrder.completedAt)}
               </span>
             </div>
           )}

@@ -4,6 +4,7 @@ import { supabase } from '@lib/supabase';
 import { useToast } from '@lib/useToast';
 import { useResponsiveClasses } from '@shared/hooks/ui';
 import { useResponsivePageSize } from '@shared/hooks/ui/useResponsivePageSize';
+import { useNotificationSound } from '@shared/hooks';
 import {
   type UINotificationItem,
   startNotificationListener,
@@ -18,6 +19,7 @@ const AdminDashboard: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [, toast] = useToast();
   const { textClasses } = useResponsiveClasses();
+  const { playSound } = useNotificationSound({ enabled: true, volume: 0.3 });
 
   // Responsive pagination state
   const [page, setPage] = useState(1);
@@ -64,15 +66,20 @@ const AdminDashboard: React.FC = () => {
     loadNotifications();
 
     // Set up real-time listener
-    const cleanup = startNotificationListener(user.id, toast, item => {
-      setNotifications(prev => [item, ...prev]);
-      if (!item.isRead) {
-        setUnreadCount(prev => prev + 1);
-      }
-    });
+    const cleanup = startNotificationListener(
+      user.id,
+      toast,
+      item => {
+        setNotifications(prev => [item, ...prev]);
+        if (!item.isRead) {
+          setUnreadCount(prev => prev + 1);
+        }
+      },
+      playSound
+    );
 
     return cleanup;
-  }, [user]);
+  }, [user, playSound]);
 
   const handleMarkAsRead = async (id: string) => {
     await markNotificationAsRead(id);
@@ -180,31 +187,24 @@ const AdminDashboard: React.FC = () => {
                       <div className="flex items-center gap-2 mb-1">
                         <Text
                           variant="p"
-                          size="base"
                           weight="medium"
-                          className="text-gray-900"
+                          className={`${textClasses.caption} text-gray-900`}
                         >
                           {notification.title}
                         </Text>
                         {!notification.isRead && (
-                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                          <div className="w-2 h-2 bg-blue-500 rounded-full shrink-0"></div>
                         )}
                       </div>
                       <Text
                         variant="p"
-                        size="sm"
-                        color="muted"
-                        className="mb-2"
+                        className={`${textClasses.caption} text-gray-600 mb-2`}
                       >
                         {notification.message}
                       </Text>
                       <div className="flex items-center gap-2">
-                        <Text variant="p" size="xs" color="muted">
+                        <Text className={`${textClasses.caption} text-gray-500`}>
                           {notification.timestamp}
-                        </Text>
-                        <span className="text-xs text-gray-400">•</span>
-                        <Text variant="p" size="xs" color="muted">
-                          {notification.category}
                         </Text>
                       </div>
                     </div>

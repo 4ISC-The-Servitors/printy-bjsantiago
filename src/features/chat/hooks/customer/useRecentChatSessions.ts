@@ -1,8 +1,16 @@
 /**
  * useRecentChatSessions
- * Loads recent chat sessions for the sidebar and merges with existing list.
  *
- * NOTE: Migrated to use chat_sessions_v2 (JSONB flow system)
+ * ⚠️ DEPRECATED: This hook is now a no-op and should be removed from all components.
+ *
+ * Sessions are automatically loaded by SessionCacheProvider at CustomerRoot level.
+ * All session data is available via CustomerConversationsContext.
+ *
+ * Migration:
+ * - REMOVE calls to useRecentChatSessions(setConversations)
+ * - Sessions automatically available via useCustomerConversationsContext()
+ *
+ * @deprecated Since 2025-10-26 - Will be removed in future version
  */
 import { useEffect } from 'react';
 import { getUserSessions } from '@features/chat/api/sessionQueries';

@@ -191,7 +191,7 @@ export function useJsonbFlowConversations() {
           const goodbyeMessage: Message = {
             id: `goodbye-${Date.now()}`,
             role: 'printy',
-            text: 'Thanks for choosing B.J. Santiago! Have a great day!',
+            text: 'Thanks for chatting with Printy! Have a great day!',
             ts: Date.now(),
           };
 

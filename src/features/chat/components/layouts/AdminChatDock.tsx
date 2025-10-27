@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { X, Minus } from 'lucide-react';
 import { Button, Text } from '@shared/components';
 import { MessageGroup, TypingIndicator, ChatInput } from '../core';
+import { SessionFeedback } from '../feedback';
+import { getSessionFeedback } from '@features/chat/api';
 import { useChatLoadingToast } from '@features/chat/hooks/shared/useChatLoadingToast';
 import type { ChatMessage, QuickReply } from '@features/chat/types';
 
@@ -18,6 +20,7 @@ export interface AdminChatDockProps {
   onAttachFiles?: (files: FileList) => void;
   readOnly?: boolean;
   sessionId?: string;
+  conversationId?: string;
   toast?: [any, any]; // Toast instance from parent
 }
 
@@ -42,6 +45,7 @@ export const AdminChatDock: React.FC<AdminChatDockProps> = ({
 }) => {
   const [input, setInput] = useState('');
   const [showContent, setShowContent] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { showChatLoadingToast, clearLoadingToasts } =
     useChatLoadingToast(toast);
@@ -132,6 +136,34 @@ export const AdminChatDock: React.FC<AdminChatDockProps> = ({
     }
   }, [messages, isTyping]);
 
+  // Show feedback widget when session is ended and scroll to it, but only if not already submitted
+  useEffect(() => {
+    if (readOnly && sessionId) {
+      const checkFeedback = async () => {
+        const feedback = await getSessionFeedback(sessionId);
+        if (feedback && !feedback.isSubmitted) {
+          setShowFeedback(true);
+          
+          // Scroll to bottom to show feedback UI after a brief delay
+          if (scrollRef.current) {
+            setTimeout(() => {
+              scrollRef.current?.scrollTo({
+                top: scrollRef.current.scrollHeight,
+                behavior: 'smooth'
+              });
+            }, 100);
+          }
+        } else {
+          setShowFeedback(false);
+        }
+      };
+      void checkFeedback();
+    } else {
+      // Reset when sessionId changes or readOnly becomes false
+      setShowFeedback(false);
+    }
+  }, [readOnly, sessionId]);
+
   const handleSubmit = () => {
     const text = input.trim();
     if (!text || readOnly) return;
@@ -186,9 +218,20 @@ export const AdminChatDock: React.FC<AdminChatDockProps> = ({
             onQuickReply={onQuickReply}
             onEndChat={onEndChat}
             readOnly={readOnly}
+            userRole={'admin'}
+            sessionId={sessionId}
           />
         ))}
         {isTyping && <TypingIndicator />}
+        
+        {/* Feedback Widget - Show when session ended and not yet submitted */}
+        {readOnly && showFeedback && sessionId && (
+          <SessionFeedback
+            sessionId={sessionId}
+            userRole="admin"
+            onSubmitted={() => setShowFeedback(false)}
+          />
+        )}
       </div>
 
       {/* Footer */}

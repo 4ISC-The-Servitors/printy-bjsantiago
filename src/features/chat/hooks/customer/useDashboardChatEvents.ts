@@ -158,7 +158,8 @@ export function useDashboardChatEvents(
 
       if (!conversationId) return;
 
-      // Use centralized title generation with context
+      // Use centralized title generation with context for the title display
+      // This is ONLY for the title - actions will still use conversationId
       const title = getSessionTitle({
         flowId: 'track-quote',
         metadata: {
@@ -169,6 +170,7 @@ export function useDashboardChatEvents(
         quote: { display_id: displayId },
       });
 
+      // Pass conversationId for actions (NOT quoteId) - this ensures actions work correctly
       initializeFlow('track-quote', title, {
         conversation_id: conversationId,
         conversationId,
