@@ -14,6 +14,7 @@ import {
 import PayNowButton from '@customer/components/dashboard/recentOrders/PayNowButton';
 import ReuploadPaymentButton from '@customer/components/dashboard/recentOrders/ReuploadPaymentButton';
 import { formatShortDate } from '@shared/utils/dateFormatter';
+import { formatShortTime } from '@shared/utils/timeFormatter';
 import { useGenericSearchFilter } from '@shared/hooks/ui/useGenericSearchFilter';
 import { FILTER_CONFIGS } from '@shared/types/filters';
 import {
@@ -315,11 +316,11 @@ const OrderHistory: React.FC = () => {
     }
 
     if (order.paymentVerifiedAt) {
-      metadata['payment verified'] = formatShortDate(order.paymentVerifiedAt);
+      metadata['payment verified'] = `${formatShortDate(order.paymentVerifiedAt)} • ${formatShortTime(order.paymentVerifiedAt)}`;
     }
 
     if (order.completedAt) {
-      metadata.completed = formatShortDate(order.completedAt);
+      metadata.completed = `${formatShortDate(order.completedAt)} • ${formatShortTime(order.completedAt)}`;
     }
 
     return metadata;

@@ -9,6 +9,7 @@ export type AdminTicketRow = {
   customer_id: string | null;
   received_at: string | null;
   updated_at: string | null;
+  resolved_at?: string | null;
   order_id?: string | null;
   session_id?: string | null;
   customer_full_name?: string | null;
@@ -54,7 +55,7 @@ export function useAdminTickets(options: LoadInquiriesOptions = {}) {
           const { data: viewRows, error: viewErr } = await supabase
             .from('inquiries_v2')
             .select(
-              'inquiry_id, display_id, customer_id, inquiry_type, inquiry_status, received_at, updated_at, order_id, session_id, customer:customer_id(first_name,last_name,customer_type)'
+              'inquiry_id, display_id, customer_id, inquiry_type, inquiry_status, received_at, updated_at, resolved_at, order_id, session_id, customer:customer_id(first_name,last_name,customer_type)'
             )
             .order('updated_at', { ascending: false })
             .range(from, from + pageSize - 1);
@@ -67,7 +68,7 @@ export function useAdminTickets(options: LoadInquiriesOptions = {}) {
         const res = await supabase
           .from('inquiries_v2')
           .select(
-            'inquiry_id,display_id,inquiry_status,inquiry_type,customer_id,received_at,updated_at,order_id,session_id,customer:customer_id(first_name,last_name,customer_type)'
+            'inquiry_id,display_id,inquiry_status,inquiry_type,customer_id,received_at,updated_at,resolved_at,order_id,session_id,customer:customer_id(first_name,last_name,customer_type)'
           )
           .order('received_at', { ascending: false })
           .range(from, from + pageSize - 1);
@@ -96,6 +97,7 @@ export function useAdminTickets(options: LoadInquiriesOptions = {}) {
           customer_id: (row as any).customer_id ?? null,
           received_at: (row as any).received_at ?? null,
           updated_at: (row as any).updated_at ?? null,
+          resolved_at: (row as any).resolved_at ?? null,
           order_id: (row as any).order_id ?? null,
           session_id: (row as any).session_id ?? null,
           customer_full_name: full,

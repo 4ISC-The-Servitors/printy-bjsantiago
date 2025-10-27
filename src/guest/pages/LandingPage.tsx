@@ -180,11 +180,10 @@ const LandingPage: React.FC = () => {
       const currentNode = currentFlow.nodes[currentNodeId];
       
       // Handle services flow - check if we're in category selection mode
-      // Detect if we have category replies (they have 'cat-' id or UUID values)
+      // ONLY detect services flow if we have 'cat-' prefixed replies (category buttons)
       const isServicesFlow = previousQuickReplies.length > 0 && 
-        (previousQuickReplies.some(qr => qr.id?.startsWith('cat-')) || 
-         previousQuickReplies.some(qr => qr.id === 'end-chat') ||
-         previousQuickReplies.some(qr => qr.value && qr.value.length > 10));
+        previousQuickReplies.some(qr => qr.id?.startsWith('cat-')) &&
+        !previousQuickReplies.some(qr => qr.id?.startsWith('qr-'));
       
       if (isServicesFlow) {
         // Handle End Chat option
@@ -578,7 +577,7 @@ const LandingPage: React.FC = () => {
             {!isChatOpen ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
                 <ActionCard
-                  title="About Us"
+                  title="About B.J. Santiago Inc."
                   description="Learn about our company history and values"
                   icon={<Users className="w-6 h-6" />}
                   onClick={() => initializeFlow('about')}

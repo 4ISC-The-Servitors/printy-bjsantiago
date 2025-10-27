@@ -34,6 +34,7 @@ import { useCustomerConversationsContext } from '@features/chat/hooks/customer/C
 import { useDashboardChatEvents } from '@features/chat/hooks/customer/useDashboardChatEvents';
 import { useChatAttachments } from '@features/chat/hooks/shared/useChatAttachments';
 import { formatShortDate } from '@shared/utils/dateFormatter';
+import { formatShortTime } from '@shared/utils/timeFormatter';
 
 interface Quote {
   id: string;
@@ -252,8 +253,8 @@ const QuoteHistory: React.FC = () => {
   const renderQuoteActions = (quote: Quote) => {
     const statusLower = quote.status.toLowerCase();
 
-    // Only show track button for quotes that are not accepted or rejected
-    if (statusLower !== 'accepted' && statusLower !== 'rejected') {
+    // Only show track button for quotes that have a proposal sent (not active, accepted, or rejected)
+    if (statusLower !== 'accepted' && statusLower !== 'rejected' && statusLower !== 'active' && statusLower !== 'ended') {
       return (
         <TrackQuoteButton
           conversationId={quote.id}
@@ -281,15 +282,15 @@ const QuoteHistory: React.FC = () => {
     }
 
     if (quote.endedAt) {
-      metadata.ended = formatShortDate(quote.endedAt);
+      metadata.ended = `${formatShortDate(quote.endedAt)} • ${formatShortTime(quote.endedAt)}`;
     }
 
     if (quote.acceptedAt) {
-      metadata.accepted = formatShortDate(quote.acceptedAt);
+      metadata.accepted = `${formatShortDate(quote.acceptedAt)} • ${formatShortTime(quote.acceptedAt)}`;
     }
 
     if (quote.rejectedAt) {
-      metadata.rejected = formatShortDate(quote.rejectedAt);
+      metadata.rejected = `${formatShortDate(quote.rejectedAt)} • ${formatShortTime(quote.rejectedAt)}`;
     }
 
     return metadata;

@@ -3,6 +3,7 @@ import { X, Minus } from 'lucide-react';
 import { Button, Text } from '@shared/components';
 import { MessageGroup, TypingIndicator, ChatInput } from '../core';
 import { SessionFeedback } from '../feedback';
+import { getSessionFeedback } from '@features/chat/api';
 import { ChatEndService } from '@features/chat/services/ChatEndService';
 import { useChatLoadingToast } from '@features/chat/hooks/shared/useChatLoadingToast';
 import type { ChatMessage, QuickReply } from '@features/chat/types';
@@ -187,10 +188,21 @@ export const CustomerChatOverlay: React.FC<CustomerChatOverlayProps> = ({
     }
   }, [messages, isTyping]);
 
-  // Show feedback widget when session is ended
+  // Show feedback widget when session is ended, but only if not already submitted
   useEffect(() => {
     if (readOnly && sessionId) {
-      setShowFeedback(true);
+      const checkFeedback = async () => {
+        const feedback = await getSessionFeedback(sessionId);
+        if (feedback && !feedback.isSubmitted) {
+          setShowFeedback(true);
+        } else {
+          setShowFeedback(false);
+        }
+      };
+      void checkFeedback();
+    } else {
+      // Reset when sessionId changes or readOnly becomes false
+      setShowFeedback(false);
     }
   }, [readOnly, sessionId]);
 

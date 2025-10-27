@@ -19,11 +19,12 @@ const Tooltip: React.FC<TooltipProps> = ({
   children,
 }) => {
   return (
-    <div className="relative group inline-flex">
+    <div className="tooltip-wrapper group inline-flex" style={{ zIndex: 99999 }}>
       {children}
       <div
         role="tooltip"
-        className={`pointer-events-none absolute whitespace-nowrap rounded-md bg-neutral-900 text-white text-xs px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-md z-[9999] ${positionClasses[position]}`}
+        className={`tooltip-content pointer-events-none absolute whitespace-nowrap rounded-md bg-neutral-900 text-white text-xs px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg ${positionClasses[position]}`}
+        style={{ zIndex: 99999 }}
       >
         {label}
       </div>

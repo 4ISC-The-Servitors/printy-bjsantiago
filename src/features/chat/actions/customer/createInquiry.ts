@@ -256,7 +256,7 @@ export async function endCustomerChat(
       sessionId,
       userId: customerId,
       userType: 'customer',
-      endMessage: 'Thank you for chatting with us. Have a great day!',
+      endMessage: 'Thanks for chatting with Printy! Have a great day!',
     });
 
     if (!result.success) {

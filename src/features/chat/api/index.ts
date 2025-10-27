@@ -13,3 +13,8 @@ export {
   updateSessionMetadata,
   getSessionCustomerId,
 } from './jsonbChatFlowApi';
+
+/**
+ * Feedback API exports
+ */
+export { submitSessionFeedback, getSessionFeedback } from './feedbackApi';

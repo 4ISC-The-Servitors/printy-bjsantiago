@@ -1,7 +1,7 @@
 import React from 'react';
 import { Badge } from '@shared/components';
 import { formatShortDate } from '@shared/utils/dateFormatter';
-import { formatRelativeTimeLabel } from '@shared/utils/timeFormatter';
+import { formatRelativeTimeLabel, formatShortTime } from '@shared/utils/timeFormatter';
 import { useResponsiveLayout, useResponsiveClasses } from '@shared/hooks/ui';
 import {
   formatOrderStatus,
@@ -166,7 +166,7 @@ const HistoryItemCard: React.FC<HistoryItemCardProps> = ({
           className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
         >
           <span className="font-medium">Created:</span>
-          <span className="truncate">{formatShortDate(createdAt)}</span>
+          <span className="truncate">{formatShortDate(createdAt)} • {formatShortTime(createdAt)}</span>
         </div>
         <div
           className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
@@ -174,7 +174,12 @@ const HistoryItemCard: React.FC<HistoryItemCardProps> = ({
           <span className="font-medium">
             {type === 'chat' ? 'Ended:' : 'Updated:'}
           </span>
-          <span className="truncate">{formatRelativeTimeLabel(updatedAt)}</span>
+          <span className="truncate">
+            {type === 'chat' 
+              ? `${formatShortDate(updatedAt)} • ${formatShortTime(updatedAt)}`
+              : formatRelativeTimeLabel(updatedAt)
+            }
+          </span>
         </div>
         {metadata?.['payment verified'] && (
           <div

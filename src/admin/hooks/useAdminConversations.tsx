@@ -23,6 +23,7 @@ export interface AdminConversation {
   id: string;
   title: string;
   createdAt: number;
+  endedAt?: number; // When the chat ended (for ended chats)
   messages: AdminChatMessage[];
   status: 'active' | 'ended';
   icon?: React.ReactNode;
@@ -64,6 +65,7 @@ export const AdminConversationsProvider: React.FC<{
           flow_id,
           status,
           created_at,
+          ended_at,
           display_title,
           metadata->context->display_id,
           inquiry:inquiries_v2!inquiry_id(
@@ -119,6 +121,7 @@ export const AdminConversationsProvider: React.FC<{
               id: session.session_id,
               title,
               createdAt: new Date(session.created_at).getTime(),
+              endedAt: session.ended_at ? new Date(session.ended_at).getTime() : undefined,
               messages: [], // Messages will be loaded when switching to conversation
               status: session.status === 'ended' ? 'ended' : 'active',
               icon,

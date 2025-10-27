@@ -2,15 +2,11 @@ import React from 'react';
 import { Badge, Button } from '@admin/components/shared';
 import { getQuoteStatusBadgeVariant } from '@shared/utils/statusColors';
 import { formatQuoteStatus } from '@shared/utils/statusFormatter';
-import {
-  formatOrderDateDesktop,
-  formatOrderDateTablet,
-  formatOrderDateMobile,
-} from '@shared/utils/dateFormatter';
+import { formatDateWithTimeDesktop } from '@shared/utils/dateFormatter';
 import { formatRelativeTimeLabel } from '@shared/utils/timeFormatter';
 import { MessageSquare } from 'lucide-react';
 import type { AdminQuoteRow } from '@admin/hooks/useAdminQuotes';
-import { useResponsiveLayout } from '@shared/hooks/ui';
+import { useResponsiveLayout, useResponsiveClasses } from '@shared/hooks/ui';
 
 // Use AdminQuoteRow type instead of local Quote interface
 type Quote = AdminQuoteRow;
@@ -28,39 +24,30 @@ export const QuoteItem: React.FC<QuoteItemProps> = ({
 }) => {
   // Get responsive layout classes
   const { getQuoteCardLayout } = useResponsiveLayout();
+  const { textClasses } = useResponsiveClasses();
   const layout = getQuoteCardLayout;
 
   // Get display ID with fallback to UUID
   const displayId = quote.display_id || quote.id;
 
-  // Format dates responsively
-  const createdDateDesktop = formatOrderDateDesktop(quote.created_at);
-  const createdDateTablet = formatOrderDateTablet(quote.created_at);
-  const createdDateMobile = formatOrderDateMobile(quote.created_at);
+  // Format dates with time
+  const createdDate = formatDateWithTimeDesktop(quote.created_at);
 
   // Use ended_at if status is 'ended', otherwise use updated_at
   const isEnded = quote.status === 'ended';
-  const lastActionDate =
+  const lastActionDateSource =
     isEnded && quote.ended_at ? quote.ended_at : quote.updated_at;
   const lastActionLabel = isEnded ? 'Ended' : 'Updated';
 
   // For "Updated" dates, use relative time format; for "Ended" dates, use regular date format
-  const useRelativeTime = !isEnded && lastActionDate;
+  const useRelativeTime = !isEnded && lastActionDateSource;
 
-  const lastActionDateDesktop = useRelativeTime
-    ? formatRelativeTimeLabel(lastActionDate)
-    : formatOrderDateDesktop(lastActionDate);
-  const lastActionDateTablet = useRelativeTime
-    ? formatRelativeTimeLabel(lastActionDate)
-    : formatOrderDateTablet(lastActionDate);
-  const lastActionDateMobile = useRelativeTime
-    ? formatRelativeTimeLabel(lastActionDate)
-    : formatOrderDateMobile(lastActionDate);
+  const lastActionDate = useRelativeTime
+    ? formatRelativeTimeLabel(lastActionDateSource)
+    : formatDateWithTimeDesktop(lastActionDateSource);
 
-  // For accepted/rejected dates, always use regular date format (not relative time)
-  const acceptedRejectedDateDesktop = formatOrderDateDesktop(quote.updated_at);
-  const acceptedRejectedDateTablet = formatOrderDateTablet(quote.updated_at);
-  const acceptedRejectedDateMobile = formatOrderDateMobile(quote.updated_at);
+  // For accepted/rejected dates, always use date with time format (not relative time)
+  const acceptedRejectedDate = formatDateWithTimeDesktop(quote.updated_at);
 
   return (
     <div
@@ -99,37 +86,36 @@ export const QuoteItem: React.FC<QuoteItemProps> = ({
 
       {/* Row 3: Chat Button and Dates */}
       <div className={layout.structure.row3}>
-        <div className={layout.dates}>
-          <span className="hidden lg:inline">
-            Created: {createdDateDesktop} • {lastActionLabel}:{' '}
-            {lastActionDateDesktop}
-            {quote.status === 'accepted' && (
-              <> • Accepted: {acceptedRejectedDateDesktop}</>
-            )}
-            {quote.status === 'rejected' && (
-              <> • Rejected: {acceptedRejectedDateDesktop}</>
-            )}
-          </span>
-          <span className="hidden sm:inline lg:hidden">
-            Created: {createdDateTablet} • {lastActionLabel}:{' '}
-            {lastActionDateTablet}
-            {quote.status === 'accepted' && (
-              <> • Accepted: {acceptedRejectedDateTablet}</>
-            )}
-            {quote.status === 'rejected' && (
-              <> • Rejected: {acceptedRejectedDateTablet}</>
-            )}
-          </span>
-          <span className="sm:hidden">
-            Created: {createdDateMobile} • {lastActionLabel}:{' '}
-            {lastActionDateMobile}
-            {quote.status === 'accepted' && (
-              <> • Accepted: {acceptedRejectedDateMobile}</>
-            )}
-            {quote.status === 'rejected' && (
-              <> • Rejected: {acceptedRejectedDateMobile}</>
-            )}
-          </span>
+        {/* Dates stacked vertically */}
+        <div className="mt-1">
+          <div
+            className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
+          >
+            <span className="font-medium">Created:</span>
+            <span className="truncate">{createdDate}</span>
+          </div>
+          <div
+            className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
+          >
+            <span className="font-medium">{lastActionLabel}:</span>
+            <span className="truncate">{lastActionDate}</span>
+          </div>
+          {quote.status === 'accepted' && (
+            <div
+              className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
+            >
+              <span className="font-medium">Accepted:</span>
+              <span className="truncate">{acceptedRejectedDate}</span>
+            </div>
+          )}
+          {quote.status === 'rejected' && (
+            <div
+              className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
+            >
+              <span className="font-medium">Rejected:</span>
+              <span className="truncate">{acceptedRejectedDate}</span>
+            </div>
+          )}
         </div>
 
         <Button
@@ -138,9 +124,9 @@ export const QuoteItem: React.FC<QuoteItemProps> = ({
           threeD
           aria-label={`Ask about ${displayId}`}
           onClick={() => onViewInChat(quote.id)}
-          className={layout.chatButton}
+          className="shrink-0"
         >
-          <MessageSquare className={layout.chatIcon} />
+          <MessageSquare className="w-4 h-4" />
         </Button>
       </div>
     </div>
