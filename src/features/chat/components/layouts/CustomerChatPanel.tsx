@@ -153,7 +153,7 @@ export const CustomerChatPanel: React.FC<CustomerChatPanelProps> = ({
     }
   }, [messages, isTyping]);
 
-  // Show feedback widget when session is ended, but only if not already submitted
+  // Show feedback modal when session is ended, but only if not already submitted
   useEffect(() => {
     if (readOnly && sessionId) {
       const checkFeedback = async () => {
@@ -293,15 +293,6 @@ export const CustomerChatPanel: React.FC<CustomerChatPanelProps> = ({
           />
         ))}
         {isTyping && <TypingIndicator />}
-        
-        {/* Feedback Widget - Show when session ended and not yet submitted */}
-        {readOnly && showFeedback && sessionId && (
-          <SessionFeedback
-            sessionId={sessionId}
-            userRole="customer"
-            onSubmitted={() => setShowFeedback(false)}
-          />
-        )}
       </div>
 
       {/* Footer */}
@@ -326,6 +317,17 @@ export const CustomerChatPanel: React.FC<CustomerChatPanelProps> = ({
           )
         )}
       </div>
+
+      {/* Feedback Modal - Show when session ended and not yet submitted */}
+      {readOnly && showFeedback && sessionId && (
+        <SessionFeedback
+          sessionId={sessionId}
+          userRole="customer"
+          isOpen={showFeedback}
+          onClose={() => setShowFeedback(false)}
+          onSubmitted={() => setShowFeedback(false)}
+        />
+      )}
     </div>
   );
 };

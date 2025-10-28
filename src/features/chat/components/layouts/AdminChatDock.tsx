@@ -5,7 +5,7 @@ import { MessageGroup, TypingIndicator, ChatInput } from '../core';
 import { SessionFeedback } from '../feedback';
 import { getSessionFeedback } from '@features/chat/api';
 import { useChatLoadingToast } from '@features/chat/hooks/shared/useChatLoadingToast';
-import type { ChatMessage, QuickReply } from '@features/chat/types';
+import type { ChatMessage, QuickReply, ChatRole } from '@features/chat/types';
 
 export interface AdminChatDockProps {
   open: boolean;
@@ -56,7 +56,7 @@ export const AdminChatDock: React.FC<AdminChatDockProps> = ({
     const groups: { messages: ChatMessage[]; quickReplies?: QuickReply[] }[] =
       [];
     let currentGroup: ChatMessage[] = [];
-    let lastRole: 'user' | 'printy' | null = null;
+    let lastRole: ChatRole | null = null;
 
     const sorted = [...messages].sort((a, b) => a.ts - b.ts);
 
@@ -136,23 +136,19 @@ export const AdminChatDock: React.FC<AdminChatDockProps> = ({
     }
   }, [messages, isTyping]);
 
-  // Show feedback widget when session is ended and scroll to it, but only if not already submitted
+  // Check if this is a historical conversation (all messages are historical)
+  const isHistoricalConversation = useMemo(() => {
+    if (messages.length === 0) return false;
+    return messages.every(msg => msg.isHistorical === true);
+  }, [messages]);
+
+  // Show feedback when session is ended, but only if not already submitted
   useEffect(() => {
     if (readOnly && sessionId) {
       const checkFeedback = async () => {
         const feedback = await getSessionFeedback(sessionId);
         if (feedback && !feedback.isSubmitted) {
           setShowFeedback(true);
-          
-          // Scroll to bottom to show feedback UI after a brief delay
-          if (scrollRef.current) {
-            setTimeout(() => {
-              scrollRef.current?.scrollTo({
-                top: scrollRef.current.scrollHeight,
-                behavior: 'smooth'
-              });
-            }, 100);
-          }
         } else {
           setShowFeedback(false);
         }
@@ -224,11 +220,12 @@ export const AdminChatDock: React.FC<AdminChatDockProps> = ({
         ))}
         {isTyping && <TypingIndicator />}
         
-        {/* Feedback Widget - Show when session ended and not yet submitted */}
-        {readOnly && showFeedback && sessionId && (
+        {/* Inline feedback for historical conversations */}
+        {readOnly && showFeedback && sessionId && isHistoricalConversation && (
           <SessionFeedback
             sessionId={sessionId}
             userRole="admin"
+            isModal={false}
             onSubmitted={() => setShowFeedback(false)}
           />
         )}
@@ -254,6 +251,18 @@ export const AdminChatDock: React.FC<AdminChatDockProps> = ({
           />
         )}
       </div>
+
+      {/* Feedback Modal - Show for current conversation ending (not historical) */}
+      {readOnly && showFeedback && sessionId && !isHistoricalConversation && (
+        <SessionFeedback
+          sessionId={sessionId}
+          userRole="admin"
+          isOpen={showFeedback}
+          onClose={() => setShowFeedback(false)}
+          onSubmitted={() => setShowFeedback(false)}
+          isModal={true}
+        />
+      )}
     </aside>
   );
 };

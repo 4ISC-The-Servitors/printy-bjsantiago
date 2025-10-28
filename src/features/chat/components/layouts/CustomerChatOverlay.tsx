@@ -6,7 +6,7 @@ import { SessionFeedback } from '../feedback';
 import { getSessionFeedback } from '@features/chat/api';
 import { ChatEndService } from '@features/chat/services/ChatEndService';
 import { useChatLoadingToast } from '@features/chat/hooks/shared/useChatLoadingToast';
-import type { ChatMessage, QuickReply } from '@features/chat/types';
+import type { ChatMessage, QuickReply, ChatRole } from '@features/chat/types';
 
 export interface CustomerChatOverlayProps {
   open: boolean;
@@ -152,7 +152,7 @@ export const CustomerChatOverlay: React.FC<CustomerChatOverlayProps> = ({
     const groups: { messages: ChatMessage[]; quickReplies?: QuickReply[] }[] =
       [];
     let currentGroup: ChatMessage[] = [];
-    let lastRole: 'user' | 'printy' | null = null;
+    let lastRole: ChatRole | null = null;
 
     const sorted = [...messages].sort((a, b) => a.ts - b.ts);
 
@@ -190,7 +190,7 @@ export const CustomerChatOverlay: React.FC<CustomerChatOverlayProps> = ({
     }
   }, [messages, isTyping]);
 
-  // Show feedback widget when session is ended, but only if not already submitted
+  // Show feedback modal when session is ended, but only if not already submitted
   useEffect(() => {
     if (readOnly && sessionId) {
       const checkFeedback = async () => {
@@ -207,23 +207,6 @@ export const CustomerChatOverlay: React.FC<CustomerChatOverlayProps> = ({
       setShowFeedback(false);
     }
   }, [readOnly, sessionId]);
-
-  // Scroll to feedback UI when it appears
-  useEffect(() => {
-    if (showFeedback && scrollRef.current) {
-      // Use requestAnimationFrame to ensure the feedback UI is rendered
-      requestAnimationFrame(() => {
-        setTimeout(() => {
-          if (scrollRef.current) {
-            scrollRef.current.scrollTo({
-              top: scrollRef.current.scrollHeight,
-              behavior: 'smooth'
-            });
-          }
-        }, 200);
-      });
-    }
-  }, [showFeedback]);
 
   const handleSubmit = () => {
     const text = input.trim();
@@ -293,15 +276,6 @@ export const CustomerChatOverlay: React.FC<CustomerChatOverlayProps> = ({
             />
           ))}
           {isTyping && <TypingIndicator />}
-          
-          {/* Feedback Widget - Show when session ended and not yet submitted */}
-          {readOnly && showFeedback && sessionId && (
-            <SessionFeedback
-              sessionId={sessionId}
-              userRole="customer"
-              onSubmitted={() => setShowFeedback(false)}
-            />
-          )}
         </div>
 
         {/* Footer */}
@@ -325,6 +299,17 @@ export const CustomerChatOverlay: React.FC<CustomerChatOverlayProps> = ({
           )}
         </div>
       </div>
+
+      {/* Feedback Modal - Show when session ended and not yet submitted */}
+      {readOnly && showFeedback && sessionId && (
+        <SessionFeedback
+          sessionId={sessionId}
+          userRole="customer"
+          isOpen={showFeedback}
+          onClose={() => setShowFeedback(false)}
+          onSubmitted={() => setShowFeedback(false)}
+        />
+      )}
     </div>
   );
 };

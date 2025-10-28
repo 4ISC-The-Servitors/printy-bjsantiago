@@ -97,6 +97,7 @@ const RecentTickets: React.FC<RecentTicketsProps> = ({ recentTicket }) => {
               inquiryId={recentTicket.id}
               subject={recentTicket.subject}
               status={recentTicket.status}
+              displayId={recentTicket.displayId}
             />
           </div>
         </div>

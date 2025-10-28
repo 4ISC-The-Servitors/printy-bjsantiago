@@ -6,7 +6,7 @@ import { SessionFeedback } from '../feedback';
 import { getSessionFeedback } from '@features/chat/api';
 import { ChatEndService } from '@features/chat/services/ChatEndService';
 import { useChatLoadingToast } from '@features/chat/hooks/shared/useChatLoadingToast';
-import type { ChatMessage, QuickReply } from '@features/chat/types';
+import type { ChatMessage, QuickReply, ChatRole } from '@features/chat/types';
 
 export interface AdminChatOverlayProps {
   open: boolean;
@@ -174,7 +174,7 @@ export const AdminChatOverlay: React.FC<AdminChatOverlayProps> = ({
     const groups: { messages: ChatMessage[]; quickReplies?: QuickReply[] }[] =
       [];
     let currentGroup: ChatMessage[] = [];
-    let lastRole: 'user' | 'printy' | null = null;
+    let lastRole: ChatRole | null = null;
 
     const sorted = [...messages].sort((a, b) => a.ts - b.ts);
 
@@ -213,7 +213,13 @@ export const AdminChatOverlay: React.FC<AdminChatOverlayProps> = ({
     }
   }, [messages, isTyping]);
 
-  // Show feedback widget when session is ended, but only if not already submitted
+  // Check if this is a historical conversation (all messages are historical)
+  const isHistoricalConversation = useMemo(() => {
+    if (messages.length === 0) return false;
+    return messages.every(msg => msg.isHistorical === true);
+  }, [messages]);
+
+  // Show feedback when session is ended, but only if not already submitted
   useEffect(() => {
     if (readOnly && sessionId) {
       const checkFeedback = async () => {
@@ -230,23 +236,6 @@ export const AdminChatOverlay: React.FC<AdminChatOverlayProps> = ({
       setShowFeedback(false);
     }
   }, [readOnly, sessionId]);
-
-  // Scroll to feedback UI when it appears
-  useEffect(() => {
-    if (showFeedback && scrollRef.current) {
-      // Use requestAnimationFrame to ensure the feedback UI is rendered
-      requestAnimationFrame(() => {
-        setTimeout(() => {
-          if (scrollRef.current) {
-            scrollRef.current.scrollTo({
-              top: scrollRef.current.scrollHeight,
-              behavior: 'smooth'
-            });
-          }
-        }, 200);
-      });
-    }
-  }, [showFeedback]);
 
   const handleSubmit = () => {
     const text = input.trim();
@@ -317,11 +306,12 @@ export const AdminChatOverlay: React.FC<AdminChatOverlayProps> = ({
           ))}
           {isTyping && <TypingIndicator />}
           
-          {/* Feedback Widget - Show when session ended and not yet submitted */}
-          {readOnly && showFeedback && sessionId && (
+          {/* Inline feedback for historical conversations */}
+          {readOnly && showFeedback && sessionId && isHistoricalConversation && (
             <SessionFeedback
               sessionId={sessionId}
               userRole="admin"
+              isModal={false}
               onSubmitted={() => setShowFeedback(false)}
             />
           )}
@@ -348,6 +338,18 @@ export const AdminChatOverlay: React.FC<AdminChatOverlayProps> = ({
           )}
         </div>
       </div>
+
+      {/* Feedback Modal - Show for current conversation ending (not historical) */}
+      {readOnly && showFeedback && sessionId && !isHistoricalConversation && (
+        <SessionFeedback
+          sessionId={sessionId}
+          userRole="admin"
+          isOpen={showFeedback}
+          onClose={() => setShowFeedback(false)}
+          onSubmitted={() => setShowFeedback(false)}
+          isModal={true}
+        />
+      )}
     </div>
   );
 };
