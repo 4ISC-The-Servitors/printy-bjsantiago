@@ -54,7 +54,7 @@
  * - Used in conjunction with send_quote_proposal to send completed specs
  */
 
-import { openSpecEditor } from '@features/quote/specEditorEvents';
+import { openSpecEditor } from '@/features/chat/helpers/specEditorEvents';
 import type {
   ActionExecutionParams,
   ActionExecutionResult,

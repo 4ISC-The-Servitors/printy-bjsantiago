@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useAdminChat } from '@admin/hooks/useAdminChat';
-import { fetchAllServices, fetchServicesByCategory } from '@features/api/servicesApi';
+import { fetchAllServices, fetchServicesByCategory } from '@/features/chat/api/servicesApi';
 
 export type ServiceStatus = 'active' | 'inactive' | 'retired';
 

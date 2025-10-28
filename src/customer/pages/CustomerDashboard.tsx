@@ -418,6 +418,7 @@ const CustomerDashboardContent: React.FC = () => {
               onSend={sendViaHook}
               onQuickReply={quickReplyViaHook}
               onEndChat={endChatViaHook}
+              onAttachFiles={handleFileUpload}
               readOnly={
                 conversations.find(c => c.id === activeId)?.status === 'ended'
               }

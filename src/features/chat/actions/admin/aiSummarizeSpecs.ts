@@ -52,9 +52,9 @@
  */
 
 import { supabase } from '@lib/supabase';
-import { openSpecEditor } from '@features/quote/specEditorEvents';
-import { buildConversationPrompt } from '@features/quote/quoteAssistantPrompt';
-import { generateWithCohere } from '@features/api/shared/llmClient';
+import { openSpecEditor } from '@/features/chat/helpers/specEditorEvents';
+import { buildConversationPrompt } from '@/features/chat/helpers/quoteAssistantPrompt';
+import { generateWithCohere } from '@/features/chat/api/llmClient';
 import type {
   ActionExecutionParams,
   ActionExecutionResult,

@@ -1,4 +1,4 @@
-// src/features/api/llmClient.ts
+// src/features/chat/api/llmClient.ts
 export type LLMMessage = {
   role: 'system' | 'user' | 'assistant';
   content: string;

@@ -325,6 +325,7 @@ const ChatHistory: React.FC = () => {
               onSend={sendViaHook}
               onQuickReply={quickReplyViaHook}
               onEndChat={endChatViaHook}
+              onAttachFiles={handleAttachFiles}
               readOnly={
                 recentConversations.find(c => c.id === activeId)?.status ===
                 'ended'

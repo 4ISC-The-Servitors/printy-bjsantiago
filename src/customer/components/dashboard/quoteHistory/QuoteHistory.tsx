@@ -448,6 +448,7 @@ const QuoteHistory: React.FC = () => {
               onSend={sendViaHook}
               onQuickReply={quickReplyViaHook}
               onEndChat={endChatViaHook}
+              onAttachFiles={handleAttachFiles}
               readOnly={
                 conversations.find(c => c.id === activeId)?.status === 'ended'
               }

@@ -18,6 +18,7 @@ export interface CustomerChatOverlayProps {
   onSend: (text: string) => void;
   onQuickReply?: (value: string | { value: string; label: string }) => void;
   onEndChat?: () => void;
+  onAttachFiles?: (files: FileList) => void;
   readOnly?: boolean;
   sessionId?: string;
   conversationId?: string;
@@ -38,6 +39,7 @@ export const CustomerChatOverlay: React.FC<CustomerChatOverlayProps> = ({
   onSend,
   onQuickReply,
   onEndChat,
+  onAttachFiles,
   readOnly = false,
   sessionId,
   conversationId,
@@ -206,6 +208,23 @@ export const CustomerChatOverlay: React.FC<CustomerChatOverlayProps> = ({
     }
   }, [readOnly, sessionId]);
 
+  // Scroll to feedback UI when it appears
+  useEffect(() => {
+    if (showFeedback && scrollRef.current) {
+      // Use requestAnimationFrame to ensure the feedback UI is rendered
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          if (scrollRef.current) {
+            scrollRef.current.scrollTo({
+              top: scrollRef.current.scrollHeight,
+              behavior: 'smooth'
+            });
+          }
+        }, 200);
+      });
+    }
+  }, [showFeedback]);
+
   const handleSubmit = () => {
     const text = input.trim();
     if (!text || readOnly) return;
@@ -299,7 +318,8 @@ export const CustomerChatOverlay: React.FC<CustomerChatOverlayProps> = ({
               onChange={setInput}
               onSubmit={handleSubmit}
               placeholder="Type a message..."
-              showAttach={false}
+              showAttach={!!onAttachFiles}
+              onAttachFiles={onAttachFiles}
               disabled={readOnly}
             />
           )}

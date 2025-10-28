@@ -1,8 +1,8 @@
 import React from 'react';
 import { Card, Pagination } from '@admin/components/shared';
+import { AdminListSkeleton } from '@shared/components/feedback';
 import { useQuotesCard } from '@admin/hooks/useQuotesCard';
 import { QuoteItem } from './QuoteItem';
-import QuotesSkeleton from './QuotesSkeleton';
 import { useResponsiveLayout } from '@shared/hooks/ui';
 import type { AdminQuoteRow } from '@admin/hooks/useAdminQuotes';
 
@@ -30,7 +30,7 @@ const QuotesCard: React.FC<QuotesCardProps> = ({ filteredQuotes }) => {
 
   // Now we can do early return for loading state
   if (isLoading) {
-    return <QuotesSkeleton />;
+    return <AdminListSkeleton itemCount={5} showCheckbox={false} showAction={true} />;
   }
 
   return (

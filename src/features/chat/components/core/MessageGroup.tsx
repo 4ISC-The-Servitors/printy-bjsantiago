@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import MessageBubble from './MessageBubble';
 import { QuickReplyGrid } from './QuickReply';
 import TypingIndicator from './TypingIndicator';
@@ -112,29 +112,32 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({
   const visibleMessages =
     isBot && shouldAnimate ? messages.slice(0, visibleCount) : messages;
 
+  // Memoize processed messages to prevent creating new arrays on every render
+  const processedMessages = useMemo(() => {
+    return visibleMessages.map(m => ({
+      ...m,
+      imageUrls: extractImageUrls(m.text || ''),
+      cleanText: removeImageTokens(m.text || ''),
+      preserveNewlines: isBot &&
+        /Order .* — Status: /.test(m.text) &&
+        m.text.includes('Items:'),
+    }));
+  }, [visibleMessages, isBot]);
+
   return (
     <div className={`space-y-2 ${isBot ? 'text-left' : 'text-right'}`}>
-      {visibleMessages.map((m, index) => {
-        const preserveNewlines =
-          isBot &&
-          /Order .* — Status: /.test(m.text) &&
-          m.text.includes('Items:');
-        const imageUrls = extractImageUrls(m.text || '');
-        const cleanText = removeImageTokens(m.text || '');
-
-        return (
-          <MessageBubble
-            key={`${m.id}-${m.ts}-${index}`}
-            role={m.role}
-            text={cleanText}
-            timestamp={formatRelativeTime(m.ts, m.ts === mostRecentTs)}
-            imageUrls={imageUrls}
-            preserveNewlines={preserveNewlines}
-            showAvatar={true}
-            showTimestamp={true}
-          />
-        );
-      })}
+      {processedMessages.map((m, index) => (
+        <MessageBubble
+          key={`${m.id}-${m.ts}-${index}`}
+          role={m.role}
+          text={m.cleanText}
+          timestamp={formatRelativeTime(m.ts, m.ts === mostRecentTs)}
+          imageUrls={m.imageUrls}
+          preserveNewlines={m.preserveNewlines}
+          showAvatar={true}
+          showTimestamp={true}
+        />
+      ))}
 
       {/* Show typing indicator while bot is "typing" (only during animation) */}
       {isBot && shouldAnimate && showTyping && <TypingIndicator />}

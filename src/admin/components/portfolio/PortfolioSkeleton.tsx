@@ -1,6 +1,18 @@
 import React from 'react';
-import { Card } from '@admin/components/shared';
+import { Card, Skeleton } from '@admin/components/shared';
 
+/**
+ * PortfolioSkeleton Component
+ *
+ * Loading skeleton for the Portfolio page showing service items.
+ * Updated to use the Skeleton component instead of raw animate-pulse.
+ *
+ * Features:
+ * - Consistent with design system using Skeleton component
+ * - Matches actual service item structure
+ * - Includes pagination skeleton
+ * - Follows UX guidelines from loading-states.md
+ */
 export const PortfolioSkeleton: React.FC = () => {
   return (
     <div className="relative">
@@ -15,17 +27,19 @@ export const PortfolioSkeleton: React.FC = () => {
               <div className="flex items-center gap-4 min-w-0 flex-1 pl-6">
                 <div className="min-w-0 flex-1 space-y-2">
                   {/* Service code skeleton */}
-                  <div className="h-4 w-20 bg-gray-200 rounded animate-pulse" />
+                  <Skeleton variant="text" width="80px" height="16px" />
                   {/* Service name skeleton */}
-                  <div className="h-5 w-48 bg-gray-200 rounded animate-pulse" />
+                  <Skeleton variant="text" width="192px" height="20px" />
                   {/* Status badge skeleton */}
-                  <div className="h-6 w-20 bg-gray-200 rounded-full animate-pulse mt-2" />
+                  <div className="mt-2">
+                    <Skeleton variant="rectangular" width="80px" height="24px" className="rounded-full" />
+                  </div>
                 </div>
               </div>
 
               {/* Right side: Action button skeleton */}
               <div className="text-right flex-shrink-0 ml-4">
-                <div className="h-11 w-11 bg-gray-200 rounded-lg animate-pulse" />
+                <Skeleton variant="rectangular" width="44px" height="44px" className="rounded-lg" />
               </div>
             </div>
           ))}
@@ -34,12 +48,12 @@ export const PortfolioSkeleton: React.FC = () => {
 
       {/* Pagination skeleton */}
       <div className="flex items-center justify-between gap-4 px-4 py-4">
-        <div className="h-10 w-24 bg-gray-200 rounded animate-pulse" />
+        <Skeleton variant="rectangular" width="96px" height="40px" className="rounded" />
         <div className="flex gap-2">
-          <div className="h-10 w-10 bg-gray-200 rounded animate-pulse" />
-          <div className="h-10 w-10 bg-gray-200 rounded animate-pulse" />
+          <Skeleton variant="rectangular" width="40px" height="40px" className="rounded" />
+          <Skeleton variant="rectangular" width="40px" height="40px" className="rounded" />
         </div>
-        <div className="h-10 w-24 bg-gray-200 rounded animate-pulse" />
+        <Skeleton variant="rectangular" width="96px" height="40px" className="rounded" />
       </div>
     </div>
   );

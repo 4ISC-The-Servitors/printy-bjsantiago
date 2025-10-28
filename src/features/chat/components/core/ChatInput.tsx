@@ -1,6 +1,7 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { Send, Paperclip } from 'lucide-react';
 import { Button } from '@shared/components';
+import { useDeviceUtils } from '@shared/hooks/ui';
 
 export interface ChatInputProps {
   value: string;
@@ -26,18 +27,56 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   disabled = false,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { isMobileOrTablet } = useDeviceUtils();
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  // Auto-resize textarea based on content
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    // Reset height to auto to get the correct scrollHeight
+    textarea.style.height = 'auto';
+    // Set height to scrollHeight, but cap at max height (roughly 6 lines)
+    const maxHeight = 144; // 6 lines × 24px line-height
+    const newHeight = Math.min(textarea.scrollHeight, maxHeight);
+    textarea.style.height = `${newHeight}px`;
+  }, [value]);
+
+  const handleSubmit = (e?: React.FormEvent) => {
+    if (e) {
+      e.preventDefault();
+    }
     if (!disabled && value.trim()) {
       onSubmit(e);
+      // Reset textarea height after submitting
+      if (textareaRef.current) {
+        textareaRef.current.style.height = 'auto';
+      }
     }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // On mobile/tablet: Enter always creates new line, only Send button submits
+    // On desktop/laptop: Enter submits message, Shift+Enter creates new line
+    if (e.key === 'Enter' && !e.shiftKey) {
+      if (!isMobileOrTablet) {
+        // Desktop/laptop: Enter submits
+        e.preventDefault();
+        handleSubmit();
+      }
+      // Mobile/tablet: Allow default behavior (new line)
+    }
+    // Shift+Enter always creates new line (default behavior)
   };
 
   return (
     <form
-      onSubmit={handleSubmit}
-      className="p-4 flex items-center gap-3 relative"
+      onSubmit={e => {
+        e.preventDefault();
+        handleSubmit(e);
+      }}
+      className="p-4 flex items-end gap-3 relative"
     >
       {showAttach && (
         <>
@@ -69,13 +108,17 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         </>
       )}
 
-      <div className="flex-1 chat-input-container-3d relative">
-        <input
+      <div className="flex-1 chat-input-container-3d relative flex items-center">
+        <textarea
+          ref={textareaRef}
           value={value}
           onChange={e => onChange(e.target.value)}
+          onKeyDown={handleKeyDown}
           placeholder={placeholder}
           disabled={disabled}
-          className="w-full h-12 px-4 input-3d border-0 bg-transparent shadow-none focus:shadow-none focus:border-0 text-base disabled:opacity-50 disabled:cursor-not-allowed"
+          rows={1}
+          className="w-full min-h-[48px] max-h-[144px] px-4 py-3 input-3d border-0 bg-transparent shadow-none focus:shadow-none focus:border-0 text-base disabled:opacity-50 disabled:cursor-not-allowed resize-none overflow-y-auto"
+          style={{ height: 'auto' }}
         />
       </div>
 
@@ -84,11 +127,11 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         variant="primary"
         size="md"
         threeD
-        className="h-12 px-6"
+        className="h-12 min-h-[48px] px-4 sm:px-6 shrink-0"
         disabled={disabled || !value.trim()}
       >
-        <Send className="w-5 h-5 mr-2" />
-        Send
+        <Send className="w-5 h-5 sm:mr-2" />
+        <span className="hidden sm:inline">Send</span>
       </Button>
     </form>
   );

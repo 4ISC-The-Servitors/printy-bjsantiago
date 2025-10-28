@@ -40,7 +40,7 @@
  */
 
 import { supabase } from '@lib/supabase';
-import { openSpecEditor } from '@features/quote/specEditorEvents';
+import { openSpecEditor } from '@/features/chat/helpers/specEditorEvents';
 import type {
   ActionExecutionParams,
   ActionExecutionResult,

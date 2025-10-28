@@ -1,8 +1,8 @@
 import React from 'react';
 import { Card, Pagination } from '@admin/components/shared';
+import { AdminListSkeleton } from '@shared/components/feedback';
 import { useTicketsCard } from '@admin/hooks/useTicketsCard';
 import { TicketItem } from './TicketItem';
-import { TicketsSkeleton } from './TicketsSkeleton';
 import { useResponsiveLayout } from '@shared/hooks/ui';
 
 interface TicketsCardProps {
@@ -32,7 +32,7 @@ const TicketsCard: React.FC<TicketsCardProps> = ({ filteredTickets }) => {
   }, [filteredTickets?.length, pageSize, page, setPage]);
 
   if (isLoading) {
-    return <TicketsSkeleton />;
+    return <AdminListSkeleton itemCount={5} showCheckbox={true} showAction={true} />;
   }
 
   return (

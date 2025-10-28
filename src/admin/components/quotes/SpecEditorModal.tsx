@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { SPEC_EDITOR_OPEN } from '@features/quote/specEditorEvents';
-import type { SpecData } from '@features/quote/quoteAssistantPrompt';
+import { SPEC_EDITOR_OPEN } from '@/features/chat/helpers/specEditorEvents';
+import type { SpecData } from '@/features/chat/helpers/quoteAssistantPrompt';
 import { supabase } from '@lib/supabase';
 import { Modal } from '@admin/components/shared';
 import SpecEditorForm, { type SpecFormData } from './SpecEditorForm';

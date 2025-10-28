@@ -4,7 +4,7 @@ import {
   fetchActiveServices, 
   fetchServicesByCategory,
   fetchActiveServicesByCategory
-} from '@features/api/servicesApi';
+} from '@features/chat/api/servicesApi';
 import type { ServiceWithCategory, ServiceCategoryWithCount } from '@shared/types/service';
 // Selection removed
 import { useAdmin } from '@admin/hooks/AdminContext';

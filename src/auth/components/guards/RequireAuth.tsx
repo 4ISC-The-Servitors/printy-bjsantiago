@@ -2,7 +2,6 @@ import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/auth/hooks/AuthContext';
 import { getHomePath, type Role } from '@/auth/hooks/AuthContext';
-import { PageLoading } from '@shared/components';
 
 export const RequireAuth: React.FC<{
   allowed: Role[];
@@ -11,8 +10,8 @@ export const RequireAuth: React.FC<{
   const { loading, session, role } = useAuth();
   const location = useLocation();
 
-  // Show loading state while checking authentication instead of blank screen
-  if (loading) return <PageLoading variant="minimal" />;
+  // Show null while checking authentication - pages have their own loading states
+  if (loading) return null;
 
   // Redirect to signin if not authenticated
   if (!session)

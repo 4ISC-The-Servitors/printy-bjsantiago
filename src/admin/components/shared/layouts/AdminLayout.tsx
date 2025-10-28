@@ -6,6 +6,7 @@ import { X } from 'lucide-react';
 import { useDeviceUtils } from '@shared/hooks/ui';
 import { useToast } from '@lib/useToast';
 import { useAdminChat } from '@admin/hooks/useAdminChat';
+import { useChatAttachments } from '@features/chat/hooks/shared/useChatAttachments';
 import type { NavRoute } from '../navigation';
 import DesktopLayout from './DesktopLayout';
 import MobileLayout from './MobileLayout';
@@ -47,6 +48,9 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     dbSessionId,
     currentConversationId,
   } = useAdminChat();
+
+  // Handle file attachments for admin chat
+  const { handleAttachFiles } = useChatAttachments(handleSendMessage);
 
   // Listen for admin-chat-open custom events from ticket cards
   useEffect(() => {
@@ -179,6 +183,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
               onSend={handleSendMessage}
               onQuickReply={handleQuickReply}
               onEndChat={endChatWithDelay}
+              onAttachFiles={handleAttachFiles}
               readOnly={readOnly}
               toast={[toasts, toast]}
               sessionId={dbSessionId || undefined}
@@ -206,6 +211,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
               onSend={handleSendMessage}
               onQuickReply={handleQuickReply}
               onEndChat={endChatWithDelay}
+              onAttachFiles={handleAttachFiles}
               readOnly={readOnly}
               sessionId={dbSessionId || undefined}
               conversationId={currentConversationId || undefined}

@@ -1,8 +1,8 @@
 import React from 'react';
 import { Card, Pagination } from '@admin/components/shared';
+import { AdminListSkeleton } from '@shared/components/feedback';
 import { useOrdersCard } from '@admin/hooks/useOrdersCard';
 import { OrderItem } from './OrderItem';
-import { OrdersSkeleton } from './OrdersSkeleton';
 import { useResponsiveLayout } from '@shared/hooks';
 import type { AdminOrderRow } from '@admin/hooks/useAdminOrders';
 
@@ -30,7 +30,7 @@ const OrdersCard: React.FC<OrdersCardProps> = ({ filteredOrders }) => {
 
   // Now we can do early return for loading state
   if (isLoading) {
-    return <OrdersSkeleton />;
+    return <AdminListSkeleton itemCount={5} showCheckbox={true} showAction={true} />;
   }
 
   return (

@@ -12,4 +12,4 @@ export { AdminContext, useAdmin } from './AdminContext';
 export { OrdersProvider, useOrders } from './OrdersContext';
 
 // Portfolio hooks
-export { usePortfolio } from './portfolio/usePortfolio';
+export { usePortfolio } from './usePortfolio';

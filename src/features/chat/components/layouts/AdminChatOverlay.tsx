@@ -18,6 +18,7 @@ export interface AdminChatOverlayProps {
   onSend: (text: string) => void;
   onQuickReply?: (value: string | { value: string; label: string }) => void;
   onEndChat?: () => void;
+  onAttachFiles?: (files: FileList) => void;
   readOnly?: boolean;
   sessionId?: string;
   conversationId?: string;
@@ -38,6 +39,7 @@ export const AdminChatOverlay: React.FC<AdminChatOverlayProps> = ({
   onSend,
   onQuickReply,
   onEndChat,
+  onAttachFiles,
   readOnly = false,
   sessionId,
   conversationId,
@@ -211,23 +213,13 @@ export const AdminChatOverlay: React.FC<AdminChatOverlayProps> = ({
     }
   }, [messages, isTyping]);
 
-  // Show feedback widget when session is ended and scroll to it, but only if not already submitted
+  // Show feedback widget when session is ended, but only if not already submitted
   useEffect(() => {
     if (readOnly && sessionId) {
       const checkFeedback = async () => {
         const feedback = await getSessionFeedback(sessionId);
         if (feedback && !feedback.isSubmitted) {
           setShowFeedback(true);
-          
-          // Scroll to bottom to show feedback UI after a brief delay
-          if (scrollRef.current) {
-            setTimeout(() => {
-              scrollRef.current?.scrollTo({
-                top: scrollRef.current.scrollHeight,
-                behavior: 'smooth'
-              });
-            }, 100);
-          }
         } else {
           setShowFeedback(false);
         }
@@ -238,6 +230,23 @@ export const AdminChatOverlay: React.FC<AdminChatOverlayProps> = ({
       setShowFeedback(false);
     }
   }, [readOnly, sessionId]);
+
+  // Scroll to feedback UI when it appears
+  useEffect(() => {
+    if (showFeedback && scrollRef.current) {
+      // Use requestAnimationFrame to ensure the feedback UI is rendered
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          if (scrollRef.current) {
+            scrollRef.current.scrollTo({
+              top: scrollRef.current.scrollHeight,
+              behavior: 'smooth'
+            });
+          }
+        }, 200);
+      });
+    }
+  }, [showFeedback]);
 
   const handleSubmit = () => {
     const text = input.trim();
@@ -332,7 +341,8 @@ export const AdminChatOverlay: React.FC<AdminChatOverlayProps> = ({
               onChange={setInput}
               onSubmit={handleSubmit}
               placeholder="Type a message..."
-              showAttach={false}
+              showAttach={!!onAttachFiles}
+              onAttachFiles={onAttachFiles}
               disabled={readOnly}
             />
           )}

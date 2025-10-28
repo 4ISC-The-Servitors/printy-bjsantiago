@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Text, Card, Pagination } from '@shared/components';
+import { NotificationListSkeleton } from '@shared/components/feedback';
 import { supabase } from '@lib/supabase';
 import { useToast } from '@lib/useToast';
 import { useResponsiveClasses } from '@shared/hooks/ui';
@@ -147,11 +148,7 @@ const AdminDashboard: React.FC = () => {
         </div>
 
         {isLoading ? (
-          <div className="text-center py-8">
-            <Text variant="p" color="muted">
-              Loading notifications...
-            </Text>
-          </div>
+          <NotificationListSkeleton itemCount={pageSize} />
         ) : notifications.length === 0 ? (
           <div className="text-center py-8">
             <Text variant="p" color="muted">
