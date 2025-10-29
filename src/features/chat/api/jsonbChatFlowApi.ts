@@ -53,12 +53,14 @@ export async function insertMessageV2(params: {
   text: string;
   role: SenderRole;
   nodeId?: string | null;
+  metadata?: Record<string, any> | null;
 }): Promise<{ messageId: string | null }> {
   const { data, error } = await supabase.rpc('api_insert_chat_message_v2', {
     p_session_id: params.sessionId,
     p_text: params.text,
     p_role: params.role,
     p_node_id: params.nodeId || null,
+    p_metadata: params.metadata ? (params.metadata as any) : null,
   });
 
   if (error) {
@@ -137,6 +139,7 @@ export async function fetchSessionMessagesV2(sessionId: string): Promise<
     text: string;
     ts: number;
     nodeId?: string | null;
+    metadata?: Record<string, any> | null;
   }>
 > {
   console.log('[fetchSessionMessagesV2] Fetching messages for session:', sessionId);
@@ -155,6 +158,7 @@ export async function fetchSessionMessagesV2(sessionId: string): Promise<
     text: msg.message_text,
     ts: new Date(msg.sent_at).getTime(),
     nodeId: msg.node_id,
+    metadata: msg.metadata || null,
   }));
 
   console.log('[fetchSessionMessagesV2] Raw messages from DB:', data);

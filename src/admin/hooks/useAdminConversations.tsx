@@ -158,6 +158,7 @@ export const AdminConversationsProvider: React.FC<{
         role: m.role === 'admin' ? 'user' : 'printy', // Map admin role to user for UI
         text: m.text,
         ts: m.ts,
+        metadata: m.metadata || null,
       }));
     } catch (error) {
       console.error('Failed to load historical messages:', error);

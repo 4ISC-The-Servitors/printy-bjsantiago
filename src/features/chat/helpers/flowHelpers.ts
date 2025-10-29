@@ -13,19 +13,12 @@ export function buildQuickReplies(node: FlowNode): Array<{
   label: string;
   value: string;
 }> {
-  console.log('[buildQuickReplies] Building quick replies for node:', {
-    type: node.type,
-    hasOptions: !!(node as any).options,
-    optionsCount: (node as any).options?.length || 0
-  });
-
   if (node.type === 'message' && node.options) {
     const quickReplies = node.options.map((opt, i) => ({
       id: `qr-${i}`,
       label: opt.label,
       value: opt.label,
     }));
-    console.log('[buildQuickReplies] Message node quick replies:', quickReplies);
     return quickReplies;
   }
 
@@ -35,12 +28,10 @@ export function buildQuickReplies(node: FlowNode): Array<{
       label: opt.label,
       value: opt.label,
     }));
-    console.log('[buildQuickReplies] Action node quick replies:', quickReplies);
     return quickReplies;
   }
 
   // Default quick reply
-  console.log('[buildQuickReplies] Using default quick reply');
   return [{ id: 'qr-end', label: 'End Chat', value: 'End Chat' }];
 }
 
@@ -80,24 +71,9 @@ export async function insertMessage(params: {
   // Check if we recently inserted this exact message
   const lastInsertTime = recentInsertions.get(idempotencyKey);
   if (lastInsertTime && (now - lastInsertTime) < IDEMPOTENCY_WINDOW) {
-    console.warn(`[insertMessage] ⚠️ DUPLICATE PREVENTED - Same message inserted ${now - lastInsertTime}ms ago:`, {
-      text: params.text.substring(0, 50),
-      role: params.role,
-      nodeId: params.nodeId,
-    });
+    
     return; // Skip duplicate insertion
   }
-
-  // ✅ DEBUG: Log every RPC call to track duplicates
-  const callId = crypto.randomUUID().substring(0, 8);
-  console.log(`[insertMessage ${callId}] 🔵 CALLING RPC:`, {
-    text: params.text,
-    role: params.role,
-    nodeId: params.nodeId,
-    sessionId: params.sessionId,
-    timestamp: now,
-    stack: new Error().stack?.split('\n').slice(2, 5).join('\n')
-  });
 
   // Mark this message as being inserted
   recentInsertions.set(idempotencyKey, now);
@@ -120,13 +96,11 @@ export async function insertMessage(params: {
   });
 
   if (error) {
-    console.error(`[insertMessage ${callId}] ❌ RPC FAILED:`, error);
+    console.error('[insertMessage] RPC failed:', error);
     // Remove from tracking if failed
     recentInsertions.delete(idempotencyKey);
     throw new Error(`Failed to insert message: ${error.message}`);
   }
-
-  console.log(`[insertMessage ${callId}] ✅ RPC SUCCESS`);
 }
 
 /**

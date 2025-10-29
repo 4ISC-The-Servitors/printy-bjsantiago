@@ -63,6 +63,7 @@ export function useConversationSwitcher() {
             text: msg.text,
             ts: msg.ts,
             isHistorical: true,
+            metadata: msg.metadata || null,
           })
         );
 

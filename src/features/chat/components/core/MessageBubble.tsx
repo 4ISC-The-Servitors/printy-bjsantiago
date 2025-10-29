@@ -1,7 +1,122 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Bot, User } from 'lucide-react';
+import { Bot, User, Image as ImageIcon } from 'lucide-react';
 import { supabase } from '@lib/supabase';
 import Modal from '@shared/components/ui/Modal';
+
+/**
+ * Inline image component for rendering images within conversation history
+ */
+const InlineImage: React.FC<{ imageUrl: string }> = ({ imageUrl }) => {
+  const [signedUrl, setSignedUrl] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+
+  useEffect(() => {
+    const getSignedUrl = async () => {
+      try {
+        let filePath = '';
+        let bucket = '';
+
+        if (imageUrl.startsWith('supabase://ticket-uploads/')) {
+          filePath = imageUrl.replace('supabase://ticket-uploads/', '');
+          bucket = 'ticket-uploads';
+        } else if (imageUrl.startsWith('supabase://payment-proofs/')) {
+          filePath = imageUrl.replace('supabase://payment-proofs/', '');
+          bucket = 'payment-proofs';
+        } else {
+          setError(true);
+          setIsLoading(false);
+          return;
+        }
+
+        const { data, error: signedUrlError } = await supabase.storage
+          .from(bucket)
+          .createSignedUrl(filePath, 3600);
+
+        if (signedUrlError || !data) {
+          console.error('[InlineImage] Error creating signed URL:', signedUrlError);
+          setError(true);
+        } else {
+          setSignedUrl(data.signedUrl);
+        }
+      } catch (err) {
+        console.error('[InlineImage] Unexpected error:', err);
+        setError(true);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    getSignedUrl();
+  }, [imageUrl]);
+
+  if (isLoading) {
+    return (
+      <div className="inline-block my-2 w-32 h-32 bg-neutral-200 animate-pulse rounded-lg" />
+    );
+  }
+
+  if (error || !signedUrl) {
+    return null; // Don't show anything if image fails to load
+  }
+
+  return (
+    <>
+      <div
+        role="button"
+        tabIndex={0}
+        className="block my-2 max-w-xs rounded-lg overflow-hidden border border-neutral-200 shadow-sm cursor-pointer hover:opacity-90 transition-opacity"
+        onClick={() => setModalOpen(true)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            setModalOpen(true);
+          }
+        }}
+        aria-label="View image"
+      >
+        <img
+          src={signedUrl}
+          alt="Inline attachment"
+          className="w-full h-auto object-contain pointer-events-none"
+          style={{ maxHeight: '200px' }}
+          draggable="false"
+        />
+      </div>
+
+      {/* Image Modal */}
+      {modalOpen && (
+        <Modal
+          isOpen={modalOpen}
+          onClose={() => setModalOpen(false)}
+          size="xl"
+          closeOnOverlayClick={true}
+          closeOnEscape={true}
+        >
+          <div className="bg-white rounded-2xl overflow-hidden shadow-xl">
+            <Modal.Header
+              showCloseButton={true}
+              onClose={() => setModalOpen(false)}
+            >
+              <div className="sr-only">Image Viewer</div>
+            </Modal.Header>
+            <Modal.Body>
+              <div className="flex items-center justify-center bg-neutral-50 p-4 min-h-[200px]">
+                <img
+                  src={signedUrl}
+                  alt="Attachment"
+                  className="max-w-full max-h-[70vh] w-auto h-auto object-contain rounded-lg"
+                  draggable="false"
+                />
+              </div>
+            </Modal.Body>
+          </div>
+        </Modal>
+      )}
+    </>
+  );
+};
 
 export interface MessageBubbleProps {
   role: 'user' | 'printy';
@@ -11,6 +126,7 @@ export interface MessageBubbleProps {
   preserveNewlines?: boolean;
   showAvatar?: boolean;
   showTimestamp?: boolean;
+  metadata?: Record<string, any> | null;
 }
 
 /**
@@ -26,13 +142,22 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   preserveNewlines = false,
   showAvatar = true,
   showTimestamp = true,
+  metadata = null,
 }) => {
   const isBot = role === 'printy';
   const [processedImageUrls, setProcessedImageUrls] = useState<string[]>([]);
+  const [signedTicketAttachmentUrl, setSignedTicketAttachmentUrl] =
+    useState<string | null>(null);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const processedCacheRef = useRef<Map<string, string>>(new Map());
   const processingRef = useRef(false);
+
+  // Check for ticket attachment in metadata
+  const ticketAttachmentUrl = metadata?.attachment_url;
+  const hasTicketAttachment =
+    metadata?.has_attachment &&
+    ticketAttachmentUrl?.startsWith('supabase://ticket-uploads/');
 
   // Memoize imageUrls to prevent unnecessary re-processing
   const imageUrlsKey = useMemo(() => imageUrls.join('|'), [imageUrls]);
@@ -76,6 +201,31 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                 return url; // Fallback to original URL
               }
             }
+
+            if (url.startsWith('supabase://ticket-uploads/')) {
+              try {
+                // Extract the file path from the supabase:// URL
+                const filePath = url.replace('supabase://ticket-uploads/', '');
+
+                // Get signed URL for the private file
+                const { data, error } = await supabase.storage
+                  .from('ticket-uploads')
+                  .createSignedUrl(filePath, 3600); // 1 hour expiry
+
+                if (error) {
+                  console.error('Error creating signed URL for ticket image:', error);
+                  console.error('File path that failed:', filePath);
+                  return url; // Fallback to original URL
+                }
+
+                // Cache the signed URL
+                processedCacheRef.current.set(url, data.signedUrl);
+                return data.signedUrl;
+              } catch (error) {
+                console.error('Error processing ticket upload URL:', error);
+                return url; // Fallback to original URL
+              }
+            }
             // Cache non-supabase URLs as-is
             processedCacheRef.current.set(url, url);
             return url;
@@ -93,6 +243,67 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
       setProcessedImageUrls([]);
     }
   }, [imageUrlsKey]);
+
+  // Process ticket-uploads URLs to signed URLs
+  useEffect(() => {
+    if (hasTicketAttachment && ticketAttachmentUrl) {
+      const processTicketAttachment = async () => {
+        try {
+          const filePath = ticketAttachmentUrl.replace(
+            'supabase://ticket-uploads/',
+            ''
+          );
+
+          // Get signed URL for the private file
+          const { data, error } = await supabase.storage
+            .from('ticket-uploads')
+            .createSignedUrl(filePath, 3600); // 1 hour expiry
+
+          if (error) {
+            console.error('Error creating signed URL for ticket image:', error);
+            return;
+          }
+
+          setSignedTicketAttachmentUrl(data.signedUrl);
+        } catch (error) {
+          console.error('Error processing ticket attachment URL:', error);
+        }
+      };
+
+      processTicketAttachment();
+    } else {
+      setSignedTicketAttachmentUrl(null);
+    }
+  }, [hasTicketAttachment, ticketAttachmentUrl]);
+
+  // Render text with inline images (for conversation history blocks)
+  const renderTextWithInlineImages = (textContent: string) => {
+    // Check if this is a conversation history block
+    if (!textContent.includes('Conversation History:') && !textContent.includes('NEW TICKET REQUEST')) {
+      return textContent;
+    }
+
+    // Image URL regex for splitting
+    const imageUrlRegex = /(supabase:\/\/ticket-uploads\/[^\s]+|supabase:\/\/payment-proofs\/[^\s]+)/g;
+
+    // Split text by image URLs
+    const parts = textContent.split(imageUrlRegex);
+
+    return parts.map((part, index) => {
+      // Check if this part is an image URL
+      if (part.startsWith('supabase://ticket-uploads/') || part.startsWith('supabase://payment-proofs/')) {
+        return (
+          <InlineImage
+            key={index}
+            imageUrl={part}
+          />
+        );
+      }
+
+      // Regular text
+      return part;
+    });
+  };
 
   return (
     <div className={isBot ? 'text-left' : 'text-right'}>
@@ -123,7 +334,26 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           >
             {text && (
               <div className={preserveNewlines ? '' : 'whitespace-pre-wrap'}>
-                {text}
+                {renderTextWithInlineImages(text)}
+              </div>
+            )}
+
+            {/* Ticket image attachment as clickable link */}
+            {hasTicketAttachment && signedTicketAttachmentUrl && (
+              <div className="mt-3">
+                <a
+                  href={signedTicketAttachmentUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-brand-primary hover:text-brand-primary-700 hover:underline transition-colors"
+                  onClick={e => {
+                    // Open in new tab without affecting current page
+                    e.stopPropagation();
+                  }}
+                >
+                  <ImageIcon className="w-4 h-4" />
+                  <span className="text-sm font-medium">View attached image</span>
+                </a>
               </div>
             )}
 

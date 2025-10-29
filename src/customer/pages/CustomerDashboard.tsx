@@ -26,6 +26,7 @@ import { useRecentQuote } from '@customer/hooks/useRecentQuote';
 import { useDashboardChatEvents } from '@features/chat/hooks/customer/useDashboardChatEvents';
 import { useChatAttachments } from '@features/chat/hooks/shared/useChatAttachments';
 import { usePaymentProofUpload } from '@/features/chat/hooks/customer/usePaymentProofUpload';
+import { useTicketImageUpload } from '@/features/chat/hooks/customer/useTicketImageUpload';
 import { useDeviceUtils } from '@shared/hooks/ui';
 // Chat feature hooks
 import { CustomerConversationsProvider, useCustomerConversationsContext } from '@features/chat/hooks/customer/CustomerConversationsProvider';
@@ -200,6 +201,7 @@ const CustomerDashboardContent: React.FC = () => {
   // Attachments
   const { handleAttachFiles } = useChatAttachments(sendViaHook);
   const { handlePaymentProofUpload } = usePaymentProofUpload();
+  const { handleTicketImageUpload } = useTicketImageUpload();
 
   // Check if current conversation is a payment flow
   // Matches: "Pay Order", "Payment", "Reupload Payment", etc.
@@ -210,9 +212,30 @@ const CustomerDashboardContent: React.FC = () => {
     (activeConversation.title?.toLowerCase().includes('payment') ||
       activeConversation.title?.toLowerCase().includes('pay'));
 
+  // Check if current conversation is a track-ticket flow
+  const isTrackTicketFlow =
+    activeId &&
+    activeConversation &&
+    (activeConversation.title?.toLowerCase().includes('track ticket') ||
+      activeConversation.flowId === 'track-ticket');
+
+  // Check if current conversation is an issue-ticket flow (new inquiry creation)
+  const isIssueTicketFlow =
+    activeId &&
+    activeConversation &&
+    activeConversation.flowId === 'issue-ticket';
+
   // Enhanced file upload handler that uses payment proof upload for payment flows
   const handleFileUpload = useCallback(
     async (files: FileList) => {
+      console.log('[handleFileUpload] Starting upload:', {
+        filesCount: files.length,
+        isPaymentFlow,
+        isTrackTicketFlow,
+        activeConversation: activeConversation?.title,
+        flowId: activeConversation?.flowId,
+        context: activeConversation?.context
+      });
 
       if (isPaymentFlow && activeConversation) {
         // Get order ID from payment flow context or fallback to recent order
@@ -243,16 +266,75 @@ const CustomerDashboardContent: React.FC = () => {
           console.error('No order ID available for payment proof upload');
           sendViaHook('Error: No order ID available. Please try again.');
         }
+      } else if (isTrackTicketFlow && activeConversation) {
+        // Use ticket image upload for track-ticket flows
+        console.log('[handleFileUpload] Track ticket flow detected, uploading to ticket-uploads bucket');
+
+        // Get inquiry ID from context
+        const inquiryId = activeConversation.context?.inquiryId || activeConversation.context?.inquiry_id;
+
+        if (inquiryId) {
+          console.log('[handleFileUpload] Uploading with inquiry ID:', inquiryId);
+          await handleTicketImageUpload(
+            files,
+            inquiryId,
+            url => {
+              // Send the uploaded file URL to the chat
+              console.log('[handleFileUpload] Upload successful, URL:', url);
+              sendViaHook(url);
+            },
+            error => {
+              // Handle error - show error message
+              console.error('[handleFileUpload] Ticket image upload failed:', error);
+              sendViaHook(`Upload failed: ${error}`);
+            }
+          );
+        } else {
+          console.error('[handleFileUpload] No inquiry ID available for ticket image upload');
+          sendViaHook('Error: No ticket ID available. Please try again.');
+        }
+      } else if (isIssueTicketFlow && activeConversation) {
+        // Use ticket image upload for issue-ticket flows (new inquiry creation)
+        console.log('[handleFileUpload] Issue ticket flow detected, uploading to ticket-uploads bucket');
+
+        // For new inquiries, use sessionId since inquiryId doesn't exist yet
+        const sessionId = activeConversation.id;
+
+        if (sessionId) {
+          console.log('[handleFileUpload] Uploading with session ID:', sessionId);
+          await handleTicketImageUpload(
+            files,
+            '', // Empty inquiryId for new inquiries
+            url => {
+              // Send the uploaded file URL to the chat
+              console.log('[handleFileUpload] Upload successful, URL:', url);
+              sendViaHook(url);
+            },
+            error => {
+              // Handle error - show error message
+              console.error('[handleFileUpload] Ticket image upload failed:', error);
+              sendViaHook(`Upload failed: ${error}`);
+            },
+            sessionId // Pass sessionId as fallback identifier
+          );
+        } else {
+          console.error('[handleFileUpload] No session ID available for ticket image upload');
+          sendViaHook('Error: No session available. Please try again.');
+        }
       } else {
         // Use regular chat attachments for other flows
+        console.log('[handleFileUpload] Using regular chat attachments (blob URL)');
         handleAttachFiles(files);
       }
     },
     [
       isPaymentFlow,
+      isTrackTicketFlow,
+      isIssueTicketFlow,
       activeConversation,
       recentOrder?.id,
       handlePaymentProofUpload,
+      handleTicketImageUpload,
       sendViaHook,
       handleAttachFiles,
     ]

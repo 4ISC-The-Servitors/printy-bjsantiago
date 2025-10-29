@@ -196,12 +196,54 @@ export async function fetchTicketDetails(
           }
         }
 
-        // Display unique messages
+        // Group consecutive messages from the same sender
+        // This allows images to appear after their associated text
+        const groupedMessages: Array<{
+          sender: string;
+          sender_role: string;
+          timeAgo: string;
+          texts: string[];
+        }> = [];
+
         for (const msg of uniqueMessages) {
           const timeAgo = formatShortDate(msg.sent_at);
           const sender = msg.sender_role === 'customer' ? 'You' : 'Admin';
 
-          conversationText += `${sender} (${timeAgo}):\n${msg.decryptedText}\n\n`;
+          const lastGroup = groupedMessages[groupedMessages.length - 1];
+
+          // If same sender as last group, add to that group
+          if (lastGroup && lastGroup.sender_role === msg.sender_role) {
+            lastGroup.texts.push(msg.decryptedText);
+          } else {
+            // New sender, create new group
+            groupedMessages.push({
+              sender,
+              sender_role: msg.sender_role,
+              timeAgo,
+              texts: [msg.decryptedText]
+            });
+          }
+        }
+
+        // Display grouped messages
+        for (const group of groupedMessages) {
+          conversationText += `${group.sender} (${group.timeAgo}):\n`;
+
+          // Separate text messages from image URLs
+          const textMessages = group.texts.filter(t => !t.startsWith('supabase://'));
+          const imageUrls = group.texts.filter(t => t.startsWith('supabase://'));
+
+          // Add text first
+          if (textMessages.length > 0) {
+            conversationText += textMessages.join('\n') + '\n';
+          }
+
+          // Add images after text
+          if (imageUrls.length > 0) {
+            conversationText += imageUrls.join('\n') + '\n';
+          }
+
+          conversationText += '\n';
         }
       } else {
         conversationText += 'No conversation messages yet.\n\n';
@@ -245,8 +287,17 @@ export async function sendCustomerReply(
   }> = [];
 
   const customerReply = String(context['customer_reply'] || '');
+  const uploadedImageUrl =
+    context['uploaded_image_url'] || context['user_input'] || '';
 
-  if (!customerReply.trim()) {
+  // Check if the input is a ticket image URL
+  const isImageUrl = uploadedImageUrl
+    ?.trim()
+    .startsWith('supabase://ticket-uploads/');
+  const hasAttachment = isImageUrl || false;
+
+  // Require either a text reply OR an image upload
+  if (!customerReply.trim() && !hasAttachment) {
     messages.push({
       id: crypto.randomUUID(),
       role: 'printy',
@@ -337,11 +388,28 @@ export async function sendCustomerReply(
     }
 
     // Store customer reply in the ticket conversation session
+    // For attachments, include the URL in the message text so it persists and is extractable
+    // This matches the payment proof pattern where URLs are in the message text
+    let messageText = customerReply.trim();
+    if (hasAttachment) {
+      if (!messageText) {
+        messageText = 'Uploaded image:';
+      }
+      // Embed the storage URL in the message text for persistence (like payment proofs)
+      messageText = `${messageText}\n${uploadedImageUrl.trim()}`;
+    }
+    
     const result = await insertMessageV2({
       sessionId: ticketSession.session_id,
-      text: customerReply,
+      text: messageText,
       role: 'customer',
       nodeId: 'customer_reply',
+      metadata: hasAttachment
+        ? {
+            has_attachment: true,
+            attachment_url: uploadedImageUrl.trim(),
+          }
+        : undefined,
     });
 
     if (!result.messageId) {

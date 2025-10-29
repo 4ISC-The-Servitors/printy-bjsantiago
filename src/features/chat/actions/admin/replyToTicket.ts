@@ -29,8 +29,17 @@ export async function sendAdminReply(
   const adminReply = String(context['admin_reply'] || '');
   const customerSessionId = context['customer_session_id'];
   const inquiryId = context['inquiry_id'];
+  const uploadedImageUrl =
+    context['uploaded_image_url'] || context['user_input'] || '';
 
-  if (!adminReply.trim()) {
+  // Check if the input is a ticket image URL
+  const isImageUrl = uploadedImageUrl
+    ?.trim()
+    .startsWith('supabase://ticket-uploads/');
+  const hasAttachment = isImageUrl || false;
+
+  // Require either a text reply OR an image upload
+  if (!adminReply.trim() && !hasAttachment) {
     messages.push({
       id: crypto.randomUUID(),
       role: 'printy',
@@ -117,11 +126,28 @@ export async function sendAdminReply(
     }
 
     // Store admin reply in the ticket conversation session
+    // For attachments, include the URL in the message text so it persists and is extractable
+    // This matches the payment proof pattern where URLs are in the message text
+    let messageText = adminReply.trim();
+    if (hasAttachment) {
+      if (!messageText) {
+        messageText = 'Uploaded image:';
+      }
+      // Embed the storage URL in the message text for persistence (like payment proofs)
+      messageText = `${messageText}\n${uploadedImageUrl.trim()}`;
+    }
+    
     const result = await insertMessageV2({
       sessionId: ticketSession.session_id,
-      text: adminReply,
+      text: messageText,
       role: 'admin',
       nodeId: 'admin_reply',
+      metadata: hasAttachment
+        ? {
+            has_attachment: true,
+            attachment_url: uploadedImageUrl.trim(),
+          }
+        : undefined,
     });
 
     if (!result.messageId) {

@@ -70,18 +70,27 @@ export const useAdminChat = (): UseAdminChatReturn => {
 
   // Helper: append Printy messages gradually with typing indicator
   // Set skipDelay=true for admin flows to show messages instantly
+  // ✅ FIX: This function exclusively manages typing state to prevent duplicate indicators
+  // Messages are processed one by one sequentially to ensure only one typing indicator shows
   const appendMessagesWithTyping = async (
     botTexts: { role: ChatRole; text: string }[],
     skipDelay: boolean = false
   ) => {
-    for (const m of botTexts) {
+    // Process messages one by one to ensure sequential display
+    for (let i = 0; i < botTexts.length; i++) {
+      const m = botTexts[i];
+      const isLastMessage = i === botTexts.length - 1;
+      
       if (!skipDelay) {
+        // Show typing indicator before processing this message
         setIsTyping(true);
         // Simple delay heuristic: base 350ms + 25ms per 20 chars
         const delay =
           350 + Math.min(1200, Math.floor((m.text?.length || 0) / 20) * 25);
         await new Promise(r => setTimeout(r, delay));
       }
+      
+      // Add the message
       const botMsg = {
         id: crypto.randomUUID(),
         role: m.role,
@@ -91,10 +100,24 @@ export const useAdminChat = (): UseAdminChatReturn => {
       setMessages(prev => [...prev, botMsg]);
       if (currentConversationId)
         addConvMessage('printy', m.text, currentConversationId);
+      
       if (!skipDelay) {
+        // Small delay to ensure message is rendered
+        await new Promise(r => setTimeout(r, 50));
+        
+        // Hide typing indicator after message is added
+        // For non-last messages, it will be shown again in the next loop iteration
         setIsTyping(false);
+        
+        // If more messages coming, brief pause before showing typing for next message
+        if (!isLastMessage) {
+          await new Promise(r => setTimeout(r, 100));
+        }
       }
     }
+    
+    // Ensure typing is definitely off after all messages are processed
+    setIsTyping(false);
   };
 
   const endChatWithDelay = async () => {
@@ -471,7 +494,8 @@ export const useAdminChat = (): UseAdminChatReturn => {
     //     role: 'admin',
     //   });
     // }
-    setIsTyping(true);
+    // ✅ FIX: Don't set typing here - appendMessagesWithTyping will manage it
+    // This prevents duplicate typing indicators
 
     // Process free-form input through the flow system if we have an active session
     if (dbSessionId) {
@@ -493,7 +517,7 @@ export const useAdminChat = (): UseAdminChatReturn => {
 
           const flowDef = await getFlowDefinition(flowId);
           if (!flowDef) {
-            setIsTyping(false);
+            // No flow found, no typing needed
             return;
           }
 
@@ -508,6 +532,7 @@ export const useAdminChat = (): UseAdminChatReturn => {
           const skipDelay = FlowTriggerService.shouldSkipTypingDelay(
             flowId as any
           );
+          // appendMessagesWithTyping will handle typing state completely
           await appendMessagesWithTyping(
             resp.messages.map(m => ({
               role: m.role as ChatRole,
@@ -540,14 +565,13 @@ export const useAdminChat = (): UseAdminChatReturn => {
               ts: Date.now(),
             },
           ]);
-        } finally {
+          // Ensure typing is off on error
           setIsTyping(false);
         }
+        // ✅ FIX: No finally block needed - appendMessagesWithTyping handles typing state
       })();
-    } else {
-      // No active session, just stop typing
-      setIsTyping(false);
     }
+    // ✅ FIX: No else branch needed - if no session, just don't set typing
   };
 
   const handleQuickReply = (v: string | { value: string; label: string }) => {
@@ -663,11 +687,12 @@ export const useAdminChat = (): UseAdminChatReturn => {
     //     role: 'printy',
     //   });
     // }
-    setIsTyping(true);
+    // ✅ FIX: Don't set typing here - appendMessagesWithTyping will manage it
+    // This prevents duplicate typing indicators
 
     // Drive JSONB flow for quick replies
     if (!dbSessionId) {
-      setIsTyping(false);
+      // No session, nothing to process
       return;
     }
 
@@ -691,7 +716,7 @@ export const useAdminChat = (): UseAdminChatReturn => {
 
         const flowDef = await getFlowDefinition(flowId);
         if (!flowDef) {
-          setIsTyping(false);
+          // No flow found, no typing needed
           return;
         }
         const resp = await JsonbFlowProcessor.processInput({
@@ -704,6 +729,7 @@ export const useAdminChat = (): UseAdminChatReturn => {
         const skipDelay = FlowTriggerService.shouldSkipTypingDelay(
           flowId as any
         );
+        // appendMessagesWithTyping will handle typing state completely
         await appendMessagesWithTyping(
           resp.messages.map(m => ({ role: m.role as ChatRole, text: m.text })),
           skipDelay
@@ -722,9 +748,10 @@ export const useAdminChat = (): UseAdminChatReturn => {
         }
       } catch (e) {
         console.error('Failed to process quick reply', e);
-      } finally {
+        // Ensure typing is off on error
         setIsTyping(false);
       }
+      // ✅ FIX: No finally block needed - appendMessagesWithTyping handles typing state
     })();
   };
 

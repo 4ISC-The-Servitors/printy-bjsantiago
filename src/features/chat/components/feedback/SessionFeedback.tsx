@@ -44,15 +44,12 @@ export const SessionFeedback: React.FC<SessionFeedbackProps> = ({
 
     if (result) {
       setIsSubmitted(true);
-      
-      // Show success message for 3 seconds before closing modal
-      setTimeout(() => {
-        setIsSubmitted(false);
-        setSelectedRating(0);
-        setHoveredRating(0);
+      setIsSubmitting(false);
+
+      // For inline mode, notify parent to hide; for modal, keep open until user closes
+      if (!isModal) {
         onSubmitted?.();
-        onClose?.();
-      }, 3000);
+      }
     } else {
       // Reset on error
       setSelectedRating(0);
@@ -61,7 +58,7 @@ export const SessionFeedback: React.FC<SessionFeedbackProps> = ({
   };
 
   const handleClose = () => {
-    if (!isSubmitting && !isSubmitted && onClose) {
+    if (!isSubmitting && onClose) {
       onClose();
     }
   };
@@ -145,8 +142,8 @@ export const SessionFeedback: React.FC<SessionFeedbackProps> = ({
       isOpen={isOpen}
       onClose={handleClose}
       size="sm"
-      closeOnOverlayClick={!isSubmitting && !isSubmitted}
-      closeOnEscape={!isSubmitting && !isSubmitted}
+      closeOnOverlayClick={!isSubmitting}
+      closeOnEscape={!isSubmitting}
     >
       <div className="bg-white rounded-lg shadow-lg">
         {/* Header with close button only */}

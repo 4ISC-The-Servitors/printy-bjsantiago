@@ -41,13 +41,17 @@ import type { QuickReply } from '@features/chat/types/service';
 export async function showCustomerOrders(
   params: ActionExecutionParams
 ): Promise<ActionExecutionResult> {
-  const { customerId } = params;
+  const { customerId, actionNode } = params;
   const messages: Array<{
     id: string;
     role: 'printy';
     text: string;
     ts: number;
   }> = [];
+
+  // Get next_node from action config, default to 'collect_details'
+  const config = actionNode.action_config as any;
+  const nextNode = config?.next_node || 'collect_details';
 
   try {
     // Query customer's active orders (not completed or cancelled)
@@ -99,7 +103,7 @@ export async function showCustomerOrders(
         quickReplies.push({
           label: orderDisplay,
           value: order.display_id,
-          next: 'create_ticket',
+          next: nextNode,
           store_as: 'order_id',
         });
       });
@@ -108,7 +112,7 @@ export async function showCustomerOrders(
       quickReplies.push({
         label: 'My issue is not order related',
         value: 'no_order',
-        next: 'create_ticket',
+        next: nextNode,
         store_as: 'order_id',
       });
     } else {
@@ -123,7 +127,7 @@ export async function showCustomerOrders(
       quickReplies.push({
         label: 'Continue without order',
         value: 'no_order',
-        next: 'create_ticket',
+        next: nextNode,
         store_as: 'order_id',
       });
     }

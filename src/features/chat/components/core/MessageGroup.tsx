@@ -91,17 +91,41 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({
   };
 
   // Extract image URLs from message text
+  // Filter out blob URLs and data URLs (they're temporary and won't persist)
+  // Keep supabase:// URLs as they persist in storage
   const extractImageUrls = (text: string): string[] => {
     if (!text || typeof text !== 'string') return [];
+
+    // Don't extract images from conversation history blocks
+    // These should render inline within the text
+    if (text.includes('Conversation History:') || text.includes('NEW TICKET REQUEST')) {
+      return [];
+    }
+
     const imageUrlRegex =
-      /(blob:[^\s]+|https?:\/\/[^\s]+?\.(?:jpg|jpeg|png|gif)(?:\?[^\s]*)?|\/(?:[\w.-]+)\.(?:jpg|jpeg|png|gif)|data:image\/[a-zA-Z0-9+]+;base64,[^\s)]+|supabase:\/\/payment-proofs\/[^\s]+)/gi;
-    return Array.from(text.matchAll(imageUrlRegex)).map(match => match[0]);
+      /(blob:[^\s]+|https?:\/\/[^\s]+?\.(?:jpg|jpeg|png|gif|webp)(?:\?[^\s]*)?|\/(?:[\w.-]+)\.(?:jpg|jpeg|png|gif|webp)|data:image\/[a-zA-Z0-9+]+;base64,[^\s)]+|supabase:\/\/payment-proofs\/[^\s]+|supabase:\/\/ticket-uploads\/[^\s]+)/gi;
+    const matches = Array.from(text.matchAll(imageUrlRegex)).map(match => match[0]);
+
+    // Always filter out blob URLs and data URLs - they're temporary and won't work in history
+    // Keep supabase:// URLs and http/https URLs as they persist
+    return matches.filter(url =>
+      !url.startsWith('blob:') &&
+      !url.startsWith('data:image/')
+    );
   };
 
   const removeImageTokens = (text: string): string => {
     if (!text || typeof text !== 'string') return '';
+
+    // Don't remove images from conversation history blocks
+    // These should render inline within the text
+    if (text.includes('Conversation History:') || text.includes('NEW TICKET REQUEST')) {
+      return text;
+    }
+
+    // Remove image URLs from display text, but keep the message readable
     const imageUrlRegex =
-      /(blob:[^\s]+|https?:\/\/[^\s]+?\.(?:jpg|jpeg|png|gif)(?:\?[^\s]*)?|\/(?:[\w.-]+)\.(?:jpg|jpeg|png|gif)|data:image\/[a-zA-Z0-9+]+;base64,[^\s)]+|supabase:\/\/payment-proofs\/[^\s]+)/gi;
+      /(blob:[^\s]+|https?:\/\/[^\s]+?\.(?:jpg|jpeg|png|gif|webp)(?:\?[^\s]*)?|\/(?:[\w.-]+)\.(?:jpg|jpeg|png|gif|webp)|data:image\/[a-zA-Z0-9+]+;base64,[^\s)]+|supabase:\/\/payment-proofs\/[^\s]+|supabase:\/\/ticket-uploads\/[^\s]+)/gi;
     return text
       .replace(imageUrlRegex, '')
       .replace(/\(\s*\)/g, ' ')
@@ -136,6 +160,7 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({
           preserveNewlines={m.preserveNewlines}
           showAvatar={true}
           showTimestamp={true}
+          metadata={(m as any).metadata}
         />
       ))}
 

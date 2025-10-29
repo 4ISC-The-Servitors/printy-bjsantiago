@@ -121,7 +121,7 @@ export async function fetchTicketForAdmin(
     if (allMessages && allMessages.length > 0) {
       if (shouldShowFullHistory) {
         // For pending_admin_reply or resolved, show full conversation history like trackTicket
-        conversationHistory = `\n\nConversation History:\n${'='.repeat(40)}\n\n`;
+        conversationHistory = `\n\nConversation History:\n${'='.repeat(5)}\n\n`;
 
         // Filter to only show customer input messages and admin replies (skip system messages)
         const relevantMessages = allMessages.filter(
@@ -165,19 +165,61 @@ export async function fetchTicketForAdmin(
             }
           }
 
-          // Display unique messages
+          // Group consecutive messages from the same sender
+          // This allows images to appear after their associated text
+          const groupedMessages: Array<{
+            sender: string;
+            sender_role: string;
+            timeAgo: string;
+            texts: string[];
+          }> = [];
+
           for (const msg of uniqueMessages) {
             const timeAgo = formatShortDate(msg.sent_at);
             const sender =
               msg.sender_role === 'customer' ? 'Customer' : 'Admin';
 
-            conversationHistory += `${sender} (${timeAgo}):\n${msg.decryptedText}\n\n`;
+            const lastGroup = groupedMessages[groupedMessages.length - 1];
+
+            // If same sender as last group, add to that group
+            if (lastGroup && lastGroup.sender_role === msg.sender_role) {
+              lastGroup.texts.push(msg.decryptedText);
+            } else {
+              // New sender, create new group
+              groupedMessages.push({
+                sender,
+                sender_role: msg.sender_role,
+                timeAgo,
+                texts: [msg.decryptedText]
+              });
+            }
+          }
+
+          // Display grouped messages
+          for (const group of groupedMessages) {
+            conversationHistory += `${group.sender} (${group.timeAgo}):\n`;
+
+            // Separate text messages from image URLs
+            const textMessages = group.texts.filter(t => !t.startsWith('supabase://'));
+            const imageUrls = group.texts.filter(t => t.startsWith('supabase://'));
+
+            // Add text first
+            if (textMessages.length > 0) {
+              conversationHistory += textMessages.join('\n') + '\n';
+            }
+
+            // Add images after text
+            if (imageUrls.length > 0) {
+              conversationHistory += imageUrls.join('\n') + '\n';
+            }
+
+            conversationHistory += '\n';
           }
         } else {
           conversationHistory += 'No conversation messages yet.\n\n';
         }
       } else {
-        // For new tickets, show only the initial description
+        // For new tickets, show the initial description and any uploaded images
         // Look for message with node_id 'collect_details' or metadata containing inquiry_type
         const descriptionMessage = allMessages.find(
           (msg: any) =>
@@ -186,6 +228,20 @@ export async function fetchTicketForAdmin(
         );
         if (descriptionMessage) {
           customerDescription = descriptionMessage.message_text;
+        }
+
+        // Look for any uploaded images from the initial inquiry creation
+        const uploadedImages = allMessages.filter(
+          (msg: any) =>
+            msg.sender_role === 'customer' &&
+            msg.node_id === 'upload_image_instructions' &&
+            msg.message_text?.startsWith('supabase://')
+        );
+
+        // Append images to description if they exist
+        if (uploadedImages.length > 0) {
+          const imageUrls = uploadedImages.map((msg: any) => msg.message_text.trim());
+          customerDescription += '\n\n' + imageUrls.join('\n');
         }
       }
     }
@@ -225,17 +281,17 @@ Customer: ${customerName}
 Status: ${formatStatus(inquiry.inquiry_status)}
 Received: ${formatShortDate(inquiry.received_at)}
 
-Customer inquiry type: ${formatInquiryType(inquiry.inquiry_type)}${orderInfo}${conversationHistory}`;
+Inquiry type: ${formatInquiryType(inquiry.inquiry_type)}${orderInfo}${conversationHistory}`;
     } else {
       // For new tickets, show the original format
       ticketInfo = `NEW TICKET REQUEST
 
 Ticket ID: ${inquiry.display_id}
 Customer: ${customerName}
-Inquiry type: ${formatInquiryType(inquiry.inquiry_type)}
+Inquiry type: ${formatInquiryType(inquiry.inquiry_type)}${orderInfo}
 
 Customer description:
-${customerDescription}${orderInfo}`;
+${customerDescription}`;
     }
 
     messages.push({

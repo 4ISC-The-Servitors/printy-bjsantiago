@@ -6,6 +6,7 @@ export interface ChatMessage {
   text: string;
   ts: number;
   isHistorical?: boolean; // Indicates if this is a pre-existing message from database
+  metadata?: Record<string, any> | null; // Message metadata (e.g., attachment_url for ticket images)
 }
 
 export interface QuickReply {

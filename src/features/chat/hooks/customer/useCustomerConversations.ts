@@ -50,10 +50,8 @@ export function useCustomerConversations() {
   // ✅ DUPLICATE PREVENTION: Track if message is currently being processed
   // Prevents concurrent calls when quick reply buttons are clicked multiple times
   const isProcessingRef = useRef<boolean>(false);
-  const instanceIdRef = useRef<string>(crypto.randomUUID());
 
-  // Debug log on mount
-  console.log('[useCustomerConversations] Hook instance created:', instanceIdRef.current);
+
 
   const updateInputPlaceholder = useCallback(() => {
     // Use a generic placeholder for DB-backed flows
@@ -185,26 +183,17 @@ export function useCustomerConversations() {
 
   const handleSend = useCallback(
     async (text: string) => {
-      console.log('[useCustomerConversations] handleSend called:', {
-        text,
-        instanceId: instanceIdRef.current,
-        isProcessing: isProcessingRef.current,
-        activeId,
-        sessionId
-      });
+      
 
       if (!activeId || !sessionId) {
-        console.log('[useCustomerConversations] No activeId or sessionId, returning');
         return;
       }
 
       // ✅ DUPLICATE PREVENTION: Ignore if already processing
       if (isProcessingRef.current) {
-        console.log('[useCustomerConversations] ❌ DUPLICATE DETECTED - Already processing, skipping duplicate send');
         return;
       }
 
-      console.log('[useCustomerConversations] ✅ Setting isProcessing = true');
       isProcessingRef.current = true;
       setIsTyping(true);
       setQuickReplies([]);
@@ -226,15 +215,14 @@ export function useCustomerConversations() {
 
         // Fetch all messages from database to ensure consistency (includes user message)
         const allMessages = await fetchSessionMessagesV2(sessionId);
-        console.log('[useCustomerConversations] Fetched messages from DB:', allMessages);
         const mappedMessages: ChatMessage[] = allMessages.map(m => ({
           id: m.id,
           role: mapRole(m.role),
           text: m.role === 'customer' ? extractDisplayText(m.text) : m.text, // Clean UUID for user messages
           ts: m.ts,
+          metadata: m.metadata || null,
         }));
-
-        console.log('[useCustomerConversations] Mapped messages for UI:', mappedMessages);
+        
         // Update UI with all messages from database
         setMessages(mappedMessages);
         setConversations(prev =>
@@ -262,7 +250,6 @@ export function useCustomerConversations() {
       } catch (error) {
         console.error('Failed to send message:', error);
       } finally {
-        console.log('[useCustomerConversations] ✅ Setting isProcessing = false (handleSend)');
         setIsTyping(false);
         isProcessingRef.current = false;
       }
@@ -342,33 +329,23 @@ export function useCustomerConversations() {
       // Handle both string and object formats
       const data = typeof value === 'string' ? { value, label: value } : value;
 
-      console.log('[useCustomerConversations] handleQuickReply called:', {
-        data,
-        instanceId: instanceIdRef.current,
-        isProcessing: isProcessingRef.current,
-        activeId,
-        sessionId
-      });
+      
 
       const normalized = (data.label ?? '').trim().toLowerCase();
       if (normalized === 'end chat' || normalized === 'end') {
-        console.log('[useCustomerConversations] End chat detected, calling endChatWithSequence');
         void endChatWithSequence();
         return;
       }
 
       if (!activeId || !sessionId) {
-        console.log('[useCustomerConversations] No activeId or sessionId, returning');
         return;
       }
 
       // ✅ DUPLICATE PREVENTION: Ignore if already processing
       if (isProcessingRef.current) {
-        console.log('[useCustomerConversations] ❌ DUPLICATE DETECTED - Already processing, skipping duplicate quick reply');
         return;
       }
 
-      console.log('[useCustomerConversations] ✅ Setting isProcessing = true');
       isProcessingRef.current = true;
       setIsTyping(true);
       setQuickReplies([]);
@@ -390,15 +367,14 @@ export function useCustomerConversations() {
 
         // Fetch all messages from database to ensure consistency (includes user message)
         const allMessages = await fetchSessionMessagesV2(sessionId);
-        console.log('[useCustomerConversations] QuickReply - Fetched messages from DB:', allMessages);
         const mappedMessages: ChatMessage[] = allMessages.map(m => ({
           id: m.id,
           role: mapRole(m.role),
           text: m.role === 'customer' ? extractDisplayText(m.text) : m.text, // Clean UUID for user messages
           ts: m.ts,
+          metadata: m.metadata || null,
         }));
-
-        console.log('[useCustomerConversations] QuickReply - Mapped messages for UI:', mappedMessages);
+        
         // Update UI with all messages from database
         setMessages(mappedMessages);
         setConversations(prev =>
@@ -426,7 +402,6 @@ export function useCustomerConversations() {
       } catch (error) {
         console.error('Failed to process quick reply:', error);
       } finally {
-        console.log('[useCustomerConversations] ✅ Setting isProcessing = false (handleQuickReply)');
         setIsTyping(false);
         isProcessingRef.current = false;
       }

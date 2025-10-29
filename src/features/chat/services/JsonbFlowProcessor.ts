@@ -44,7 +44,6 @@ export class JsonbFlowProcessor {
       quote_id?: string; // ADD THIS
     };
   }) {
-    console.log('[JsonbFlowProcessor] Starting flow:', params.flowId);
     const { flowId, customerId, flowDefinition, initialContext } = params;
 
     // Create chat session
@@ -93,7 +92,6 @@ export class JsonbFlowProcessor {
     let currentNodeId = flowDefinition.initial_node;
     let initialNode = flowDefinition.nodes[currentNodeId];
     
-    console.log('[JsonbFlowProcessor] Initial node:', currentNodeId, 'Type:', initialNode?.type);
     if (!initialNode) {
       throw new Error(`Initial node ${flowDefinition.initial_node} not found`);
     }
@@ -403,27 +401,14 @@ export class JsonbFlowProcessor {
     // This allows actions to dynamically provide quick replies (like Accept/Reject quote)
     let quickReplies: Array<{ id: string; label: string; value: string }> = [];
     
-    console.log('[startFlow] Checking for action quick replies:', {
-      hasLastActionResult: !!lastActionResult,
-      lastActionResultKeys: lastActionResult ? Object.keys(lastActionResult) : [],
-      hasResult: !!(lastActionResult?.result),
-      resultKeys: lastActionResult?.result ? Object.keys(lastActionResult.result) : [],
-      hasQuickReplies: !!(lastActionResult?.result?.quickReplies),
-      quickRepliesCount: lastActionResult?.result?.quickReplies?.length || 0
-    });
+    
     
     try {
       if (lastActionResult && lastActionResult.result?.quickReplies) {
         const actionNode = lastActionResult.node as ActionNode;
         const actionResult = lastActionResult.result;
 
-        console.log('[startFlow] Processing action result:', {
-          actionName: actionNode?.action,
-          hasNext: !!actionNode?.next,
-          nextNode: actionNode?.next,
-          quickRepliesCount: actionResult.quickReplies?.length || 0,
-          quickReplies: actionResult.quickReplies
-        });
+        
 
         // Check if action has validation errors
         const hasValidationErrors = actionResult.messages?.some(
@@ -446,17 +431,11 @@ export class JsonbFlowProcessor {
           actionNode.action === 'show_customer_orders' ||
           actionNode.action === 'display_service_categories';
 
-        console.log('[startFlow] Action quick replies decision:', {
-          hasValidationErrors,
-          hasNextNode: !!actionNode.next,
-          actionName: actionNode.action,
-          shouldUseActionQuickReplies,
-          quickRepliesCount: actionResult.quickReplies?.length || 0
-        });
+        
 
         if (shouldUseActionQuickReplies) {
           quickReplies = actionResult.quickReplies;
-          console.log('[startFlow] ✅ Using action quick replies:', quickReplies);
+          
 
           // ✅ CRITICAL FIX: Store quickReplies in session metadata
           // This allows processInput to access them for routing
@@ -464,10 +443,9 @@ export class JsonbFlowProcessor {
             _pending_quick_replies: actionResult.quickReplies,
           });
         } else {
-          console.log('[startFlow] ❌ Not using action quick replies, will fall back to node quick replies');
         }
       } else {
-        console.log('[startFlow] No action result or quick replies available');
+        
       }
     } catch (qrError) {
       console.error(
@@ -480,7 +458,7 @@ export class JsonbFlowProcessor {
     // Fallback to node quick replies if no action quick replies were used
     if (quickReplies.length === 0) {
       quickReplies = buildQuickReplies(flowDefinition.nodes[currentNodeId]);
-      console.log('[startFlow] Using node quick replies:', quickReplies);
+      
     }
 
     // Build fallback message if bootMessages is empty and initialNode has a valid string message
@@ -551,7 +529,6 @@ export class JsonbFlowProcessor {
     }
 
     // Insert user message with correct sender role (customer/admin)
-    console.log('[JsonbFlowProcessor] Inserting user message:', { sessionId, text: userInput, role: senderRole, nodeId: metadata.current_node_id });
     await insertMessage({
       sessionId,
       text: userInput,
@@ -614,11 +591,7 @@ export class JsonbFlowProcessor {
 
           // ✅ FIX: Store value using store_as property if provided
           if (selectedQuickReply.store_as && selectedQuickReply.value) {
-            console.log('[JsonbFlowProcessor] Storing quick reply value using store_as:', {
-              store_as: selectedQuickReply.store_as,
-              value: selectedQuickReply.value,
-              selectedQuickReply
-            });
+            
             stateManager.updateContext({
               [selectedQuickReply.store_as]: selectedQuickReply.value,
             });
@@ -632,11 +605,7 @@ export class JsonbFlowProcessor {
           // ✅ FIX: Store category selection when userInput contains a pipe (category_id|category_name)
           if (userInput.includes('|')) {
             const categoryId = userInput.split('|')[0];
-            console.log('[JsonbFlowProcessor] Setting selected_category from quick reply match:', {
-              userInput,
-              categoryId,
-              selectedQuickReply
-            });
+            
             stateManager.updateContext({
               selected_category: categoryId,
             });
@@ -701,12 +670,7 @@ export class JsonbFlowProcessor {
         // Store the category selection in context
         // Extract category_id for storage (format: "category_id|category_name")
         const categoryId = userInput.split('|')[0];
-        console.log('[JsonbFlowProcessor] Setting selected_category:', {
-          userInput,
-          categoryId,
-          currentNodeType: currentNode.type,
-          currentNodeAction: currentNode.type === 'action' ? (currentNode as ActionNode).action : undefined
-        });
+        
         stateManager.updateContext({
           selected_category: categoryId,
         });
@@ -729,7 +693,7 @@ export class JsonbFlowProcessor {
     // Get the new current node after transition
     const currentNodeId = stateManager.getCurrentNodeId();
     const nextNode = flowDefinition.nodes[currentNodeId];
-    console.log('[JsonbFlowProcessor] Current node after transition:', currentNodeId, 'Type:', nextNode?.type);
+    
     
     if (!nextNode) {
       throw new Error(`Next node ${currentNodeId} not found`);
@@ -738,7 +702,6 @@ export class JsonbFlowProcessor {
     // Execute action if the next node is an action node
     let actionResult: any = null;
     if (nextNode.type === 'action') {
-      console.log('[JsonbFlowProcessor] Executing action:', nextNode.action);
       
       actionResult = await this.executeAction({
         actionNode: nextNode as ActionNode,
@@ -746,13 +709,7 @@ export class JsonbFlowProcessor {
         customerId,
         context: stateManager.getContext(),
       });
-
-      console.log('[JsonbFlowProcessor] Action result:', {
-        action: nextNode.action,
-        messagesCount: actionResult.messages?.length || 0,
-        quickRepliesCount: actionResult.quickReplies?.length || 0,
-        hasContext: !!actionResult.context
-      });
+      
 
       responses.push(...actionResult.messages);
 
@@ -967,25 +924,20 @@ export class JsonbFlowProcessor {
     // Get updated node for quick replies
     const finalNodeId = stateManager.getCurrentNodeId();
     const finalNode = flowDefinition.nodes[finalNodeId];
-    console.log('[JsonbFlowProcessor] Final node for quick replies:', finalNodeId, 'Type:', finalNode?.type);
+    
     
     let quickReplies: Array<{ id: string; label: string; value: string }> = [];
 
     // ✅ FIX: Check for action quick replies FIRST before falling back to node quick replies
     // This allows actions to provide dynamic quick replies (like order selection)
-    console.log('[JsonbFlowProcessor] Checking for action quick replies:', {
-      nextNodeType: nextNode?.type,
-      hasActionResult: !!actionResult,
-      hasQuickReplies: !!(actionResult?.quickReplies),
-      actionName: nextNode?.type === 'action' ? (nextNode as ActionNode).action : undefined
-    });
+    
     
     if (
       nextNode.type === 'action' &&
       actionResult &&
       actionResult.quickReplies
     ) {
-      console.log('[JsonbFlowProcessor] Action provided quick replies:', actionResult.quickReplies);
+      
       
       // Use action quick replies if available
       // Check if action has validation errors or if the action is designed to provide quick replies
@@ -1009,15 +961,11 @@ export class JsonbFlowProcessor {
         (nextNode as ActionNode).action === 'display_service_categories' ||
         (nextNode as ActionNode).action === 'display_services_by_category';
 
-      console.log('[JsonbFlowProcessor] Should use action quick replies:', shouldUseActionQuickReplies, {
-        hasValidationErrors,
-        hasNextNode: !!nextNode.next,
-        action: (nextNode as ActionNode).action
-      });
+      
 
       if (shouldUseActionQuickReplies) {
         quickReplies = actionResult.quickReplies;
-        console.log('[JsonbFlowProcessor] Using action quick replies:', quickReplies);
+        
 
         // ✅ CRITICAL FIX: Store quickReplies in session metadata
         // This allows processInput to access them for routing
@@ -1034,15 +982,9 @@ export class JsonbFlowProcessor {
     // Fallback to node quick replies if no action quick replies were used
     if (quickReplies.length === 0) {
       quickReplies = buildQuickReplies(finalNode);
-      console.log('[JsonbFlowProcessor] Using node quick replies:', quickReplies);
+      
     }
-
-    console.log('[JsonbFlowProcessor] Final result:', {
-      messagesCount: responses.length,
-      quickRepliesCount: quickReplies.length,
-      quickReplies: quickReplies,
-      currentNodeId: finalNodeId
-    });
+    
 
     return {
       messages: responses,

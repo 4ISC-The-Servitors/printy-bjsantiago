@@ -205,6 +205,9 @@ export async function createInquiry(
     })
     .eq('session_id', sessionId);
 
+  // Note: Image is already stored as a customer message when uploaded via sendViaHook
+  // No need to create duplicate message here - the flow processor handles it
+
   // Success message matching issueTicketFlow.ts
   let successText = `Your support ticket has been created! Here is your Ticket ID: ${displayId}\n\nOur team will review your issue and get back to you as soon as possible. You can track the status of your ticket in your dashboard.\n\nWe appreciate your patience!`;
 

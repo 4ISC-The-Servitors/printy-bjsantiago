@@ -7,7 +7,9 @@ import { useDeviceUtils } from '@shared/hooks/ui';
 import { useToast } from '@lib/useToast';
 import { useAdminChat } from '@admin/hooks/useAdminChat';
 import { useChatAttachments } from '@features/chat/hooks/shared/useChatAttachments';
+import { useTicketImageUpload } from '@features/chat/hooks/admin/useTicketImageUpload';
 import type { NavRoute } from '../navigation';
+import { useCallback } from 'react';
 import DesktopLayout from './DesktopLayout';
 import MobileLayout from './MobileLayout';
 import {
@@ -51,6 +53,69 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
 
   // Handle file attachments for admin chat
   const { handleAttachFiles } = useChatAttachments(handleSendMessage);
+  const { handleTicketImageUpload } = useTicketImageUpload();
+
+  // Enhanced file upload handler that uses ticket image upload for ticket review flows
+  const handleFileUpload = useCallback(
+    async (files: FileList) => {
+      console.log('[Admin handleFileUpload] Starting upload:', {
+        filesCount: files.length,
+        dbSessionId
+      });
+
+      // Check if we're in admin-review-ticket flow
+      if (dbSessionId) {
+        // Fetch session metadata to check flow_id and get inquiry_id
+        const { data: sessionData } = await supabase
+          .from('chat_sessions_v2')
+          .select('flow_id, metadata')
+          .eq('session_id', dbSessionId)
+          .single();
+
+        console.log('[Admin handleFileUpload] Session data:', {
+          flowId: sessionData?.flow_id,
+          hasInquiryId: !!sessionData?.metadata?.context?.inquiry_id,
+          hasCustomerId: !!sessionData?.metadata?.context?.customer_id
+        });
+
+        if (
+          sessionData?.flow_id === 'admin-review-ticket' &&
+          sessionData?.metadata?.context?.inquiry_id
+        ) {
+          const inquiryId = sessionData.metadata.context.inquiry_id;
+          const customerId = sessionData.metadata.context.customer_id;
+
+          if (inquiryId && customerId) {
+            console.log('[Admin handleFileUpload] Admin-review-ticket detected, uploading to ticket-uploads bucket');
+            // Use ticket image upload for ticket review flows
+            await handleTicketImageUpload(
+              files,
+              inquiryId,
+              customerId,
+              url => {
+                // Send the uploaded file URL to the chat
+                console.log('[Admin handleFileUpload] Upload successful, URL:', url);
+                handleSendMessage(String(url));
+              },
+              error => {
+                // Handle error
+                console.error('[Admin handleFileUpload] Ticket image upload failed:', error);
+                handleSendMessage(`Upload failed: ${error}`);
+              }
+            );
+            return;
+          } else {
+            console.error('[Admin handleFileUpload] Missing inquiryId or customerId');
+          }
+        }
+      }
+
+      // Use regular chat attachments for other flows
+      console.log('[Admin handleFileUpload] Using regular chat attachments (blob URL)');
+      handleAttachFiles(files);
+    },
+    [dbSessionId, handleTicketImageUpload, handleSendMessage, handleAttachFiles]
+  );
 
   // Listen for admin-chat-open custom events from ticket cards
   useEffect(() => {
@@ -183,7 +248,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
               onSend={handleSendMessage}
               onQuickReply={handleQuickReply}
               onEndChat={endChatWithDelay}
-              onAttachFiles={handleAttachFiles}
+              onAttachFiles={handleFileUpload}
               readOnly={readOnly}
               toast={[toasts, toast]}
               sessionId={dbSessionId || undefined}
@@ -211,7 +276,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
               onSend={handleSendMessage}
               onQuickReply={handleQuickReply}
               onEndChat={endChatWithDelay}
-              onAttachFiles={handleAttachFiles}
+              onAttachFiles={handleFileUpload}
               readOnly={readOnly}
               sessionId={dbSessionId || undefined}
               conversationId={currentConversationId || undefined}

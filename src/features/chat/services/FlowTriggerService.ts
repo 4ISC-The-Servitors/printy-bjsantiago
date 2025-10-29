@@ -161,10 +161,10 @@ export class FlowTriggerService {
     inquiryId: string
   ): Promise<FlowContext | null> {
 
-    // Fetch ticket data for display ID
+    // Fetch ticket data for display ID and customer_id (needed for image uploads)
     const { data: ticketData } = await supabase
       .from('inquiries_v2')
-      .select('display_id')
+      .select('display_id, customer_id')
       .eq('inquiry_id', inquiryId)
       .single();
 
@@ -172,6 +172,7 @@ export class FlowTriggerService {
       flowId: 'admin-review-ticket',
       context: {
         inquiry_id: inquiryId,
+        customer_id: ticketData?.customer_id, // Include customer_id for file uploads
       },
       sessionTitle: getSessionTitle({
         flowId: 'admin-review-ticket',

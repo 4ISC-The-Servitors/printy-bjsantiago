@@ -267,7 +267,7 @@ export const CustomerChatPanel: React.FC<CustomerChatPanelProps> = ({
               className="h-9 w-9 p-0"
               aria-label="Close chat"
             >
-              <X className="w-5 h-5 text-error" />
+              <X className="w-5 h-5 text-neutral-500" />
             </Button>
           )}
         </div>

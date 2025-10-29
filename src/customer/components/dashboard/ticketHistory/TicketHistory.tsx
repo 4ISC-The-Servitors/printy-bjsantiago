@@ -144,14 +144,6 @@ const TicketHistory: React.FC = () => {
   const { handleAttachFiles } = useChatAttachments(sendViaHook);
   const { handleTicketImageUpload } = useTicketImageUpload();
 
-  // Check if current conversation is a ticket flow
-  const activeConversation = conversations.find(c => c.id === activeId);
-  const isTicketFlow =
-    activeId &&
-    activeConversation &&
-    (activeConversation.title?.toLowerCase().includes('track ticket') ||
-      activeConversation.flowId === 'track-ticket');
-
   // Enhanced file upload handler that uses ticket image upload for ticket flows
   const handleFileUpload = React.useCallback(
     async (files: FileList) => {
