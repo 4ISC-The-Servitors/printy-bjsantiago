@@ -106,62 +106,63 @@ const RecentOrder: React.FC<RecentOrderProps> = ({ recentOrder }) => {
           </div>
         )}
 
-        {/* Row 3: Action buttons - bottom-right only */}
-        <div className="flex justify-end mt-3">
-          {isAwaitingPayment && (
-            <PayNowButton
-              orderId={recentOrder.id}
-              displayId={recentOrder.displayId}
-              total={recentOrder.total}
-            />
-          )}
-          {isReuploadPayment && (
-            <ReuploadPaymentButton
-              orderId={recentOrder.id}
-              displayId={recentOrder.displayId}
-              total={recentOrder.total}
-            />
-          )}
-        </div>
+        {/* Row 3: Dates and actions in the same row */}
+        <div className="mt-1 flex items-start justify-between gap-3">
+          <div>
+            <div
+              className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
+            >
+              <span className="font-medium">Created:</span>
+              <span className="truncate">
+                {formatShortDate(recentOrder.createdAt)} • {formatShortTime(recentOrder.createdAt)}
+              </span>
+            </div>
+            <div
+              className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
+            >
+              <span className="font-medium">Updated:</span>
+              <span className="truncate">
+                {formatRelativeTimeLabel(recentOrder.updatedAt)}
+              </span>
+            </div>
+            {recentOrder.paymentVerifiedAt && (
+              <div
+                className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
+              >
+                <span className="font-medium">Payment Verified:</span>
+                <span className="truncate">
+                  {formatShortDate(recentOrder.paymentVerifiedAt)} • {formatShortTime(recentOrder.paymentVerifiedAt)}
+                </span>
+              </div>
+            )}
+            {recentOrder.completedAt && (
+              <div
+                className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
+              >
+                <span className="font-medium">Completed:</span>
+                <span className="truncate">
+                  {formatShortDate(recentOrder.completedAt)} • {formatShortTime(recentOrder.completedAt)}
+                </span>
+              </div>
+            )}
+          </div>
 
-        {/* Row 4: Dates (stacked) */}
-        <div className="mt-1">
-          <div
-            className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
-          >
-            <span className="font-medium">Created:</span>
-            <span className="truncate">
-              {formatShortDate(recentOrder.createdAt)} • {formatShortTime(recentOrder.createdAt)}
-            </span>
+          <div className="shrink-0">
+            {isAwaitingPayment && (
+              <PayNowButton
+                orderId={recentOrder.id}
+                displayId={recentOrder.displayId}
+                total={recentOrder.total}
+              />
+            )}
+            {isReuploadPayment && (
+              <ReuploadPaymentButton
+                orderId={recentOrder.id}
+                displayId={recentOrder.displayId}
+                total={recentOrder.total}
+              />
+            )}
           </div>
-          <div
-            className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
-          >
-            <span className="font-medium">Updated:</span>
-            <span className="truncate">
-              {formatRelativeTimeLabel(recentOrder.updatedAt)}
-            </span>
-          </div>
-          {recentOrder.paymentVerifiedAt && (
-            <div
-              className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
-            >
-              <span className="font-medium">Payment Verified:</span>
-              <span className="truncate">
-                {formatShortDate(recentOrder.paymentVerifiedAt)} • {formatShortTime(recentOrder.paymentVerifiedAt)}
-              </span>
-            </div>
-          )}
-          {recentOrder.completedAt && (
-            <div
-              className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
-            >
-              <span className="font-medium">Completed:</span>
-              <span className="truncate">
-                {formatShortDate(recentOrder.completedAt)} • {formatShortTime(recentOrder.completedAt)}
-              </span>
-            </div>
-          )}
         </div>
       </div>
     </Card>

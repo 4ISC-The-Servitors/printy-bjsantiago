@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Card } from '@shared/components';
-import { Package, Ticket, DollarSign } from 'lucide-react';
+import { Package, Ticket, FileText } from 'lucide-react';
 
 // Import the existing components
 import RecentOrder from './recentOrders/RecentOrder';
@@ -45,7 +45,7 @@ const RecentCard: React.FC<RecentCardProps> = ({
   }> = [
     { type: 'order', label: 'Order', icon: Package },
     { type: 'ticket', label: 'Ticket', icon: Ticket },
-    { type: 'quote', label: 'Quote', icon: DollarSign },
+    { type: 'quote', label: 'Quote', icon: FileText },
   ];
 
   const handleToggle = (type: RecentCardType) => {

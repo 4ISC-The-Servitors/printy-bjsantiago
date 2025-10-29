@@ -33,6 +33,7 @@ import { useLogoutWithToast } from '@/auth/hooks/useLogoutWithToast';
 import { useCustomerConversationsContext } from '@features/chat/hooks/customer/CustomerConversationsProvider';
 import { useDashboardChatEvents } from '@features/chat/hooks/customer/useDashboardChatEvents';
 import { useChatAttachments } from '@features/chat/hooks/shared/useChatAttachments';
+import { useTicketImageUpload } from '@features/chat/hooks/customer/useTicketImageUpload';
 import { formatInquiryType } from '@shared/utils/statusFormatter';
 
 interface Ticket {
@@ -141,6 +142,103 @@ const TicketHistory: React.FC = () => {
 
   // Attachments
   const { handleAttachFiles } = useChatAttachments(sendViaHook);
+  const { handleTicketImageUpload } = useTicketImageUpload();
+
+  // Check if current conversation is a ticket flow
+  const activeConversation = conversations.find(c => c.id === activeId);
+  const isTicketFlow =
+    activeId &&
+    activeConversation &&
+    (activeConversation.title?.toLowerCase().includes('track ticket') ||
+      activeConversation.flowId === 'track-ticket');
+
+  // Enhanced file upload handler that uses ticket image upload for ticket flows
+  const handleFileUpload = React.useCallback(
+    async (files: FileList) => {
+      // Re-check flow detection inside callback to ensure we have latest values
+      const currentConversation = conversations.find(c => c.id === activeId);
+      const isTicketFlowNow =
+        activeId &&
+        currentConversation &&
+        (currentConversation.title?.toLowerCase().includes('track ticket') ||
+          currentConversation.flowId === 'track-ticket');
+
+      console.log('[handleFileUpload] Called', {
+        isTicketFlowNow,
+        activeId,
+        flowId: currentConversation?.flowId,
+        title: currentConversation?.title,
+        hasActiveConversation: !!currentConversation,
+      });
+
+      if (isTicketFlowNow && activeId) {
+        // Try to get inquiry ID from multiple sources:
+        // 1. From conversation context (both camelCase and snake_case)
+        let inquiryId =
+          currentConversation?.context?.inquiryId ||
+          currentConversation?.context?.inquiry_id;
+
+        // 2. If not in context, fetch from session's FK column
+        if (!inquiryId) {
+          try {
+            const { data: sessionData } = await supabase
+              .from('chat_sessions_v2')
+              .select('inquiry_id, metadata')
+              .eq('session_id', activeId)
+              .single();
+
+            inquiryId =
+              sessionData?.inquiry_id ||
+              sessionData?.metadata?.context?.inquiryId ||
+              sessionData?.metadata?.context?.inquiry_id;
+          } catch (error) {
+            console.error('Error fetching inquiry ID from session:', error);
+          }
+        }
+
+        if (inquiryId && typeof inquiryId === 'string') {
+          console.log('[handleFileUpload] Uploading to ticket-uploads bucket', {
+            inquiryId,
+          });
+          // Use ticket image upload for ticket flows - wait for upload to complete
+          await handleTicketImageUpload(
+            files,
+            inquiryId,
+            url => {
+              console.log('[handleFileUpload] Upload successful, sending URL:', url);
+              // Send the uploaded storage URL (not blob URL) to the chat
+              // This ensures the image persists in the database
+              sendViaHook(String(url));
+            },
+            error => {
+              // Handle error - show error message
+              console.error('Ticket image upload failed:', error);
+              sendViaHook(`Upload failed: ${error}`);
+            }
+          );
+        } else {
+          console.error('No valid inquiry ID available for ticket image upload', {
+            context: currentConversation?.context,
+            activeId,
+          });
+          sendViaHook(
+            'Error: No valid inquiry ID available. Please try again.'
+          );
+        }
+      } else {
+        console.log('[handleFileUpload] Not a ticket flow, using regular attachments');
+        // Use regular chat attachments for other flows (these create blob URLs)
+        handleAttachFiles(files);
+      }
+    },
+    [
+      conversations,
+      activeId,
+      handleTicketImageUpload,
+      sendViaHook,
+      handleAttachFiles,
+    ]
+  );
 
   const handleLogout = () => {
     setShowLogoutModal(true);
@@ -417,7 +515,7 @@ const TicketHistory: React.FC = () => {
               onSend={sendViaHook}
               onQuickReply={quickReplyViaHook}
               onEndChat={endChatViaHook}
-              onAttachFiles={handleAttachFiles}
+              onAttachFiles={handleFileUpload}
               readOnly={
                 conversations.find(c => c.id === activeId)?.status === 'ended'
               }
@@ -444,7 +542,7 @@ const TicketHistory: React.FC = () => {
               quickReplies={quickReplies}
               onQuickReply={quickReplyViaHook}
               onEndChat={endChatViaHook}
-              onAttachFiles={handleAttachFiles}
+              onAttachFiles={handleFileUpload}
               readOnly={
                 conversations.find(c => c.id === activeId)?.status === 'ended'
               }

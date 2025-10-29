@@ -153,64 +153,65 @@ const HistoryItemCard: React.FC<HistoryItemCardProps> = ({
         </div>
       )}
 
-      {/* Row 3: Action buttons - bottom-right only */}
-      {actions && (
-        <div className="flex justify-end mt-3">
-          <div onClick={e => e.stopPropagation()}>{actions}</div>
+      {/* Row 3: Dates and actions in the same row */}
+      <div className="mt-1 flex items-start justify-between gap-3">
+        <div>
+          <div
+            className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
+          >
+            <span className="font-medium">Created:</span>
+            <span className="truncate">{formatShortDate(createdAt)} • {formatShortTime(createdAt)}</span>
+          </div>
+          <div
+            className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
+          >
+            <span className="font-medium">
+              {type === 'chat' ? 'Ended:' : 'Updated:'}
+            </span>
+            <span className="truncate">
+              {type === 'chat' 
+                ? `${formatShortDate(updatedAt)} • ${formatShortTime(updatedAt)}`
+                : formatRelativeTimeLabel(updatedAt)
+              }
+            </span>
+          </div>
+          {metadata?.['payment verified'] && (
+            <div
+              className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
+            >
+              <span className="font-medium">Payment Verified:</span>
+              <span className="truncate">{metadata['payment verified']}</span>
+            </div>
+          )}
+          {metadata?.completed && (
+            <div
+              className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
+            >
+              <span className="font-medium">Completed:</span>
+              <span className="truncate">{metadata.completed}</span>
+            </div>
+          )}
+          {metadata?.accepted && (
+            <div
+              className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
+            >
+              <span className="font-medium">Accepted:</span>
+              <span className="truncate">{metadata.accepted}</span>
+            </div>
+          )}
+          {metadata?.rejected && (
+            <div
+              className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
+            >
+              <span className="font-medium">Rejected:</span>
+              <span className="truncate">{metadata.rejected}</span>
+            </div>
+          )}
         </div>
-      )}
 
-      {/* Row 4: Dates (stacked) */}
-      <div className="mt-1">
-        <div
-          className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
-        >
-          <span className="font-medium">Created:</span>
-          <span className="truncate">{formatShortDate(createdAt)} • {formatShortTime(createdAt)}</span>
-        </div>
-        <div
-          className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
-        >
-          <span className="font-medium">
-            {type === 'chat' ? 'Ended:' : 'Updated:'}
-          </span>
-          <span className="truncate">
-            {type === 'chat' 
-              ? `${formatShortDate(updatedAt)} • ${formatShortTime(updatedAt)}`
-              : formatRelativeTimeLabel(updatedAt)
-            }
-          </span>
-        </div>
-        {metadata?.['payment verified'] && (
-          <div
-            className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
-          >
-            <span className="font-medium">Payment Verified:</span>
-            <span className="truncate">{metadata['payment verified']}</span>
-          </div>
-        )}
-        {metadata?.completed && (
-          <div
-            className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
-          >
-            <span className="font-medium">Completed:</span>
-            <span className="truncate">{metadata.completed}</span>
-          </div>
-        )}
-        {metadata?.accepted && (
-          <div
-            className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
-          >
-            <span className="font-medium">Accepted:</span>
-            <span className="truncate">{metadata.accepted}</span>
-          </div>
-        )}
-        {metadata?.rejected && (
-          <div
-            className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
-          >
-            <span className="font-medium">Rejected:</span>
-            <span className="truncate">{metadata.rejected}</span>
+        {actions && (
+          <div className="shrink-0" onClick={e => e.stopPropagation()}>
+            {actions}
           </div>
         )}
       </div>

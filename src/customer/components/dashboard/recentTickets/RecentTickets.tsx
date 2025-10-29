@@ -89,10 +89,38 @@ const RecentTickets: React.FC<RecentTicketsProps> = ({ recentTicket }) => {
           </div>
         </div>
 
-        {/* Row 2: Secondary info | Action */}
-        <div className={layout.structure.row2}>
-          <div className={layout.leftSection} />
-          <div className={layout.rightSection}>
+        {/* Row 2: Dates and action in the same row */}
+        <div className="mt-1 flex items-start justify-between gap-3">
+          <div>
+            <div
+              className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
+            >
+              <span className="font-medium">Created:</span>
+              <span className="truncate">
+                {formatShortDate(recentTicket.createdAt)} • {formatShortTime(recentTicket.createdAt)}
+              </span>
+            </div>
+            <div
+              className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
+            >
+              <span className="font-medium">Updated:</span>
+              <span className="truncate">
+                {formatRelativeTimeLabel(recentTicket.updatedAt)}
+              </span>
+            </div>
+            {recentTicket.resolvedAt && (
+              <div
+                className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
+              >
+                <span className="font-medium">Resolved:</span>
+                <span className="truncate">
+                  {formatShortDate(recentTicket.resolvedAt)} • {formatShortTime(recentTicket.resolvedAt)}
+                </span>
+              </div>
+            )}
+          </div>
+
+          <div className="shrink-0">
             <TrackTicketButton
               inquiryId={recentTicket.id}
               subject={recentTicket.subject}
@@ -100,36 +128,6 @@ const RecentTickets: React.FC<RecentTicketsProps> = ({ recentTicket }) => {
               displayId={recentTicket.displayId}
             />
           </div>
-        </div>
-
-        {/* Row 3: Dates (stacked) */}
-        <div className="mt-1">
-          <div
-            className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
-          >
-            <span className="font-medium">Created:</span>
-            <span className="truncate">
-              {formatShortDate(recentTicket.createdAt)} • {formatShortTime(recentTicket.createdAt)}
-            </span>
-          </div>
-          <div
-            className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
-          >
-            <span className="font-medium">Updated:</span>
-            <span className="truncate">
-              {formatRelativeTimeLabel(recentTicket.updatedAt)}
-            </span>
-          </div>
-          {recentTicket.resolvedAt && (
-            <div
-              className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
-            >
-              <span className="font-medium">Resolved:</span>
-              <span className="truncate">
-                {formatShortDate(recentTicket.resolvedAt)} • {formatShortTime(recentTicket.resolvedAt)}
-              </span>
-            </div>
-          )}
         </div>
       </div>
     </Card>

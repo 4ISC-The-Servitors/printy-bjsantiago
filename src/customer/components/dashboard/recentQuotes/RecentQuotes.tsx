@@ -91,64 +91,65 @@ const RecentQuotes: React.FC<RecentQuotesProps> = ({ recentQuote }) => {
           </div>
         )}
 
-        {/* Row 3: Action buttons - bottom-right only */}
-        <div className="flex justify-end mt-3">
-          <TrackQuoteButton
-            conversationId={recentQuote.id}
-            subject={recentQuote.displayId}
-            status={recentQuote.status}
-            displayId={recentQuote.displayId}
-          />
-        </div>
+        {/* Row 3: Dates and actions in the same row */}
+        <div className="mt-1 flex items-start justify-between gap-3">
+          <div>
+            <div
+              className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
+            >
+              <span className="font-medium">Created:</span>
+              <span className="truncate">
+                {formatShortDate(recentQuote.createdAt)} • {formatShortTime(recentQuote.createdAt)}
+              </span>
+            </div>
+            <div
+              className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
+            >
+              <span className="font-medium">Updated:</span>
+              <span className="truncate">
+                {formatRelativeTimeLabel(recentQuote.updatedAt)}
+              </span>
+            </div>
+            {recentQuote.endedAt && (
+              <div
+                className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
+              >
+                <span className="font-medium">Ended:</span>
+                <span className="truncate">
+                  {formatShortDate(recentQuote.endedAt)} • {formatShortTime(recentQuote.endedAt)}
+                </span>
+              </div>
+            )}
+            {recentQuote.acceptedAt && (
+              <div
+                className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
+              >
+                <span className="font-medium">Accepted:</span>
+                <span className="truncate">
+                  {formatShortDate(recentQuote.acceptedAt)} • {formatShortTime(recentQuote.acceptedAt)}
+                </span>
+              </div>
+            )}
+            {recentQuote.rejectedAt && (
+              <div
+                className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
+              >
+                <span className="font-medium">Rejected:</span>
+                <span className="truncate">
+                  {formatShortDate(recentQuote.rejectedAt)} • {formatShortTime(recentQuote.rejectedAt)}
+                </span>
+              </div>
+            )}
+          </div>
 
-        {/* Row 4: Dates (stacked) */}
-        <div className="mt-1">
-          <div
-            className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
-          >
-            <span className="font-medium">Created:</span>
-            <span className="truncate">
-              {formatShortDate(recentQuote.createdAt)} • {formatShortTime(recentQuote.createdAt)}
-            </span>
+          <div className="shrink-0">
+            <TrackQuoteButton
+              conversationId={recentQuote.id}
+              subject={recentQuote.displayId}
+              status={recentQuote.status}
+              displayId={recentQuote.displayId}
+            />
           </div>
-          <div
-            className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
-          >
-            <span className="font-medium">Updated:</span>
-            <span className="truncate">
-              {formatRelativeTimeLabel(recentQuote.updatedAt)}
-            </span>
-          </div>
-          {recentQuote.endedAt && (
-            <div
-              className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
-            >
-              <span className="font-medium">Ended:</span>
-              <span className="truncate">
-                {formatShortDate(recentQuote.endedAt)} • {formatShortTime(recentQuote.endedAt)}
-              </span>
-            </div>
-          )}
-          {recentQuote.acceptedAt && (
-            <div
-              className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
-            >
-              <span className="font-medium">Accepted:</span>
-              <span className="truncate">
-                {formatShortDate(recentQuote.acceptedAt)} • {formatShortTime(recentQuote.acceptedAt)}
-              </span>
-            </div>
-          )}
-          {recentQuote.rejectedAt && (
-            <div
-              className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
-            >
-              <span className="font-medium">Rejected:</span>
-              <span className="truncate">
-                {formatShortDate(recentQuote.rejectedAt)} • {formatShortTime(recentQuote.rejectedAt)}
-              </span>
-            </div>
-          )}
         </div>
       </div>
     </Card>
