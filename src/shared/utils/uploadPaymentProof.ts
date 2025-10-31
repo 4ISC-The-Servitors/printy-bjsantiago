@@ -23,19 +23,29 @@ export async function uploadPaymentProof(
   customerId: string
 ): Promise<UploadResult> {
   try {
-    // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    // Validate and normalize file
+    const { IMAGE_UPLOAD_CONFIG } = await import(
+      '@features/chat/config/uploadConfig'
+    );
+    const { convertHeicToJpeg } = await import('./convertHeicToJpeg');
+
+    const allowedTypes = IMAGE_UPLOAD_CONFIG.allowedTypes;
     if (!allowedTypes.includes(file.type)) {
       return {
         url: '',
         error:
-          'Invalid file type. Please upload an image file (JPEG, PNG, GIF, or WebP).',
+          'Invalid file type. Please upload a photo (JPEG, PNG, GIF, WebP, or HEIC).',
       };
     }
 
-    // Validate file size (5MB limit)
-    const maxSize = 5 * 1024 * 1024; // 5MB in bytes
-    if (file.size > maxSize) {
+    let processedFile = file;
+    if (IMAGE_UPLOAD_CONFIG.conversionRequired.includes(file.type)) {
+      processedFile = await convertHeicToJpeg(file);
+    }
+
+    // Validate file size (after conversion)
+    const maxSize = IMAGE_UPLOAD_CONFIG.payment.maxFileSize;
+    if (processedFile.size > maxSize) {
       return {
         url: '',
         error: 'File too large. Please upload an image smaller than 5MB.',
@@ -44,14 +54,16 @@ export async function uploadPaymentProof(
 
     // Generate unique filename with timestamp
     const timestamp = Date.now();
-    const fileExtension = file.name.split('.').pop() || 'jpg';
+    const fileExtension = (
+      processedFile.name.split('.').pop() || 'jpg'
+    ).toLowerCase();
     const fileName = `${orderId}_${timestamp}.${fileExtension}`;
     const filePath = `${customerId}/${fileName}`;
 
     // Upload to Supabase Storage
     const { error } = await supabase.storage
       .from('payment-proofs')
-      .upload(filePath, file, {
+      .upload(filePath, processedFile, {
         cacheControl: '3600',
         upsert: false, // Don't overwrite existing files
       });

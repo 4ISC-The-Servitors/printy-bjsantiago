@@ -16,6 +16,7 @@ import ChatCards from '@customer/components/dashboard/chatCards/ChatCards';
 import RecentCard from '@customer/components/dashboard/RecentCard';
 // Shared UI components
 import { ToastContainer, Text } from '@shared/components';
+import Progress from '@shared/components/ui/Progress';
 import Notification from '@shared/components/feedback/Notification';
 // Loading states
 import { CustomerDashboardLoading } from '@customer/components/loadingStates';
@@ -29,7 +30,10 @@ import { usePaymentProofUpload } from '@/features/chat/hooks/customer/usePayment
 import { useTicketImageUpload } from '@/features/chat/hooks/customer/useTicketImageUpload';
 import { useDeviceUtils } from '@shared/hooks/ui';
 // Chat feature hooks
-import { CustomerConversationsProvider, useCustomerConversationsContext } from '@features/chat/hooks/customer/CustomerConversationsProvider';
+import {
+  CustomerConversationsProvider,
+  useCustomerConversationsContext,
+} from '@features/chat/hooks/customer/CustomerConversationsProvider';
 import { getSessionTitle } from '@features/chat/config/sessionTitleConfig';
 
 // ---------------- Types / Config ----------------
@@ -101,8 +105,8 @@ const topicConfig: Record<
 const CustomerDashboardContent: React.FC = () => {
   const { logout, toasts, toast } = useLogoutWithToast();
   const { isMobileOrTablet } = useDeviceUtils();
+  const [uploadPct, setUploadPct] = useState<number | null>(null);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-
 
   // ✅ Use context instead of hook directly (prevents duplicate instances)
   const {
@@ -149,7 +153,6 @@ const CustomerDashboardContent: React.FC = () => {
     const pendingSessionId = localStorage.getItem('pendingSessionId');
 
     if (pendingSessionId && switchConversationHook) {
-
       // Check if conversation exists in current list
       const existingConversation = conversations.find(
         c => c.id === pendingSessionId
@@ -234,7 +237,7 @@ const CustomerDashboardContent: React.FC = () => {
         isTrackTicketFlow,
         activeConversation: activeConversation?.title,
         flowId: activeConversation?.flowId,
-        context: activeConversation?.context
+        context: activeConversation?.context,
       });
 
       if (isPaymentFlow && activeConversation) {
@@ -246,7 +249,6 @@ const CustomerDashboardContent: React.FC = () => {
           orderId = activeConversation.context.orderId;
         }
 
-
         if (orderId) {
           // Use payment proof upload for payment flows
           await handlePaymentProofUpload(
@@ -257,9 +259,8 @@ const CustomerDashboardContent: React.FC = () => {
               sendViaHook(url);
             },
             error => {
-              // Handle error - could show a toast or error message
               console.error('Payment proof upload failed:', error);
-              sendViaHook(`Upload failed: ${error}`);
+              toast.error('Upload failed', String(error));
             }
           );
         } else {
@@ -268,62 +269,104 @@ const CustomerDashboardContent: React.FC = () => {
         }
       } else if (isTrackTicketFlow && activeConversation) {
         // Use ticket image upload for track-ticket flows
-        console.log('[handleFileUpload] Track ticket flow detected, uploading to ticket-uploads bucket');
+        console.log(
+          '[handleFileUpload] Track ticket flow detected, uploading to ticket-uploads bucket'
+        );
 
         // Get inquiry ID from context
-        const inquiryId = activeConversation.context?.inquiryId || activeConversation.context?.inquiry_id;
+        const inquiryId =
+          activeConversation.context?.inquiryId ||
+          activeConversation.context?.inquiry_id;
 
         if (inquiryId) {
-          console.log('[handleFileUpload] Uploading with inquiry ID:', inquiryId);
+          console.log(
+            '[handleFileUpload] Uploading with inquiry ID:',
+            inquiryId
+          );
+          setUploadPct(0);
           await handleTicketImageUpload(
             files,
             inquiryId,
-            url => {
-              // Send the uploaded file URL to the chat
-              console.log('[handleFileUpload] Upload successful, URL:', url);
-              sendViaHook(url);
+            urls => {
+              if (urls && urls.length > 0) {
+                console.log(
+                  '[handleFileUpload] Upload successful, URLs:',
+                  urls
+                );
+                // Send each URL on its own line for downstream parsing
+                sendViaHook(urls.join('\n'));
+              }
+              setTimeout(() => setUploadPct(null), 400);
             },
-            error => {
-              // Handle error - show error message
-              console.error('[handleFileUpload] Ticket image upload failed:', error);
-              sendViaHook(`Upload failed: ${error}`);
-            }
+            errors => {
+              console.error(
+                '[handleFileUpload] Ticket image upload failed:',
+                errors
+              );
+              const msg = Array.isArray(errors)
+                ? errors.join('; ')
+                : String(errors);
+              // Show toast only; DO NOT send a chat message so the flow does not advance
+              toast.error('Upload failed', msg);
+              setTimeout(() => setUploadPct(null), 400);
+            },
+            undefined,
+            pct => setUploadPct(pct)
           );
         } else {
-          console.error('[handleFileUpload] No inquiry ID available for ticket image upload');
+          console.error(
+            '[handleFileUpload] No inquiry ID available for ticket image upload'
+          );
           sendViaHook('Error: No ticket ID available. Please try again.');
         }
       } else if (isIssueTicketFlow && activeConversation) {
         // Use ticket image upload for issue-ticket flows (new inquiry creation)
-        console.log('[handleFileUpload] Issue ticket flow detected, uploading to ticket-uploads bucket');
+        console.log(
+          '[handleFileUpload] Issue ticket flow detected, uploading to ticket-uploads bucket'
+        );
 
         // For new inquiries, use sessionId since inquiryId doesn't exist yet
         const sessionId = activeConversation.id;
 
         if (sessionId) {
-          console.log('[handleFileUpload] Uploading with session ID:', sessionId);
+          console.log(
+            '[handleFileUpload] Uploading with session ID:',
+            sessionId
+          );
+          setUploadPct(0);
           await handleTicketImageUpload(
             files,
-            '', // Empty inquiryId for new inquiries
-            url => {
-              // Send the uploaded file URL to the chat
-              console.log('[handleFileUpload] Upload successful, URL:', url);
-              sendViaHook(url);
+            '',
+            urls => {
+              if (urls && urls.length > 0) {
+                // Single send with all URLs joined by newline
+                console.log(
+                  '[handleFileUpload] Upload successful, sending URLs in one message'
+                );
+                sendViaHook(urls.join('\n'));
+              }
+              setTimeout(() => setUploadPct(null), 400);
             },
-            error => {
-              // Handle error - show error message
-              console.error('[handleFileUpload] Ticket image upload failed:', error);
-              sendViaHook(`Upload failed: ${error}`);
+            errors => {
+              if (errors && errors.length > 0) {
+                console.error('[handleFileUpload] Upload errors:', errors);
+                toast.error('Upload failed', errors.join('; '));
+              }
+              setUploadPct(null);
             },
-            sessionId // Pass sessionId as fallback identifier
+            sessionId
           );
         } else {
-          console.error('[handleFileUpload] No session ID available for ticket image upload');
+          console.error(
+            '[handleFileUpload] No session ID available for ticket image upload'
+          );
           sendViaHook('Error: No session available. Please try again.');
         }
       } else {
         // Use regular chat attachments for other flows
-        console.log('[handleFileUpload] Using regular chat attachments (blob URL)');
+        console.log(
+          '[handleFileUpload] Using regular chat attachments (blob URL)'
+        );
         handleAttachFiles(files);
       }
     },
@@ -399,6 +442,7 @@ const CustomerDashboardContent: React.FC = () => {
               toast={toastInstance}
               sessionId={activeId}
               conversationId={activeId}
+              uploadProgressPct={uploadPct}
             />
           </div>
 
@@ -422,6 +466,7 @@ const CustomerDashboardContent: React.FC = () => {
               sessionId={activeId}
               conversationId={activeId}
               toast={toastInstance}
+              uploadProgressPct={uploadPct}
             />
           </div>
         </>
@@ -507,6 +552,7 @@ const CustomerDashboardContent: React.FC = () => {
               sessionId={activeId}
               conversationId={activeId}
               toast={toastInstance}
+              uploadProgressPct={uploadPct}
             />
           ) : (
             <CustomerChatPanel
@@ -537,6 +583,7 @@ const CustomerDashboardContent: React.FC = () => {
               toast={toastInstance}
               sessionId={activeId}
               conversationId={activeId}
+              uploadProgressPct={uploadPct}
             />
           )}
         </main>
@@ -563,6 +610,20 @@ const CustomerDashboardContent: React.FC = () => {
       <ResponsivePageLayout showSidebar={true}>
         {dashboardContent}
       </ResponsivePageLayout>
+
+      {uploadPct !== null && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur-sm border border-neutral-200 rounded-full px-4 py-2 shadow-lg z-40 w-[min(420px,90vw)]">
+          <div className="mb-1 flex items-center justify-between">
+            <Text as="span" size="sm" color="muted">
+              Uploading images…
+            </Text>
+            <Text as="span" size="sm" color="muted">
+              {uploadPct}%
+            </Text>
+          </div>
+          <Progress value={uploadPct} />
+        </div>
+      )}
 
       <ToastContainer
         toasts={toasts}

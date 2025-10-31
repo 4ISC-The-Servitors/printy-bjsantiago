@@ -51,8 +51,6 @@ export function useCustomerConversations() {
   // Prevents concurrent calls when quick reply buttons are clicked multiple times
   const isProcessingRef = useRef<boolean>(false);
 
-
-
   const updateInputPlaceholder = useCallback(() => {
     // Use a generic placeholder for DB-backed flows
     setInputPlaceholder('Type a message...');
@@ -62,10 +60,8 @@ export function useCustomerConversations() {
     async (flowId: string, title: string, ctx?: any) => {
       setIsTyping(true);
       try {
-
         // Use the flow ID as-is since track-ticket already exists in the database
         const resolvedFlowId = flowId;
-
 
         // Get customer ID
         const { data: userData } = await auth.getUser();
@@ -75,13 +71,11 @@ export function useCustomerConversations() {
           throw new Error('User not authenticated');
         }
 
-
         // Fetch flow definition from database
         const flowDefinition = await getFlowDefinition(resolvedFlowId);
         if (!flowDefinition) {
           throw new Error(`Flow ${resolvedFlowId} not found in database`);
         }
-
 
         // Start the JSONB flow, pass initial context when present (e.g., order_id/display_id)
         const result = await JsonbFlowProcessor.startFlow({
@@ -90,7 +84,6 @@ export function useCustomerConversations() {
           flowDefinition,
           initialContext: ctx || {},
         });
-
 
         // ✅ Phase 1 Fix: Save title to database for persistence across refreshes
         // Fetch existing metadata to merge with new title
@@ -137,7 +130,6 @@ export function useCustomerConversations() {
           })
           .eq('session_id', result.sessionId);
 
-
         // Map messages to ChatMessage format
         const mappedMessages: ChatMessage[] = result.messages.map(m => ({
           id: m.id,
@@ -183,8 +175,6 @@ export function useCustomerConversations() {
 
   const handleSend = useCallback(
     async (text: string) => {
-      
-
       if (!activeId || !sessionId) {
         return;
       }
@@ -222,14 +212,12 @@ export function useCustomerConversations() {
           ts: m.ts,
           metadata: m.metadata || null,
         }));
-        
+
         // Update UI with all messages from database
         setMessages(mappedMessages);
         setConversations(prev =>
           prev.map(c =>
-            c.id === activeId
-              ? { ...c, messages: mappedMessages }
-              : c
+            c.id === activeId ? { ...c, messages: mappedMessages } : c
           )
         );
 
@@ -329,8 +317,6 @@ export function useCustomerConversations() {
       // Handle both string and object formats
       const data = typeof value === 'string' ? { value, label: value } : value;
 
-      
-
       const normalized = (data.label ?? '').trim().toLowerCase();
       if (normalized === 'end chat' || normalized === 'end') {
         void endChatWithSequence();
@@ -374,14 +360,12 @@ export function useCustomerConversations() {
           ts: m.ts,
           metadata: m.metadata || null,
         }));
-        
+
         // Update UI with all messages from database
         setMessages(mappedMessages);
         setConversations(prev =>
           prev.map(c =>
-            c.id === activeId
-              ? { ...c, messages: mappedMessages }
-              : c
+            c.id === activeId ? { ...c, messages: mappedMessages } : c
           )
         );
 
@@ -406,7 +390,17 @@ export function useCustomerConversations() {
         isProcessingRef.current = false;
       }
     },
-    [endChatWithSequence, activeId, sessionId, conversations, setMessages, setConversations, setIsTyping, setQuickReplies, updateInputPlaceholder]
+    [
+      endChatWithSequence,
+      activeId,
+      sessionId,
+      conversations,
+      setMessages,
+      setConversations,
+      setIsTyping,
+      setQuickReplies,
+      updateInputPlaceholder,
+    ]
   );
 
   const endChat = useCallback(
@@ -482,6 +476,11 @@ export function useCustomerConversations() {
 
   const handleSwitchConversation = useCallback(
     async (id: string) => {
+      // ✅ FIX: Don't switch if already on this conversation (prevents double fetch)
+      if (activeId === id) {
+        return;
+      }
+
       const conv = conversations.find(c => c.id === id);
       if (!conv) return;
 
@@ -537,6 +536,7 @@ export function useCustomerConversations() {
       }
     },
     [
+      activeId,
       conversations,
       setActiveId,
       setMessages,

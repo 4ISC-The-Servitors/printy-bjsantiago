@@ -11,7 +11,10 @@ import type {
   ActionExecutionResult,
 } from '@features/chat/types';
 import { formatShortDate } from '@shared/utils/dateFormatter';
-import { formatInquiryType, formatOrderStatus } from '@shared/utils/statusFormatter';
+import {
+  formatInquiryType,
+  formatOrderStatus,
+} from '@shared/utils/statusFormatter';
 
 /**
  * Fetch ticket details for admin review
@@ -25,6 +28,7 @@ export async function fetchTicketForAdmin(
     role: 'printy';
     text: string;
     ts: number;
+    isHistorical?: boolean;
   }> = [];
 
   // Get inquiry_id from context (set by admin chat handler)
@@ -71,176 +75,37 @@ export async function fetchTicketForAdmin(
       return { messages };
     }
 
-    // Fetch all messages from chat_messages_v2 using RPC for proper decryption
-    const { data: originalMessages, error: messagesError } = await supabase.rpc(
-      'api_fetch_chat_messages_v2',
-      { p_session_id: inquiry.session_id }
-    );
-
-    if (messagesError) {
-      console.error('Error fetching customer messages:', messagesError);
-    }
-
-    // Also fetch messages from ticket conversation sessions (admin/customer replies)
-    const { data: ticketConversations, error: ticketError } = await supabase
-      .from('chat_sessions_v2')
-      .select('session_id')
-      .eq('customer_id', inquiry.customer_id)
-      .eq('metadata->>inquiry_id', inquiryId)
-      .eq('metadata->>ticket_conversation', true);
-
-    let ticketMessages: any[] = [];
-    if (!ticketError && ticketConversations && ticketConversations.length > 0) {
-      // Fetch messages from all ticket conversation sessions
-      for (const ticketSession of ticketConversations) {
-        const { data: ticketChatMessages } = await supabase.rpc(
-          'api_fetch_chat_messages_v2',
-          { p_session_id: ticketSession.session_id }
-        );
-        if (ticketChatMessages) {
-          ticketMessages.push(...ticketChatMessages);
-        }
-      }
-    }
-
-    // Combine original session messages and ticket conversation messages
-    const allMessages = [
-      ...(originalMessages || []),
-      ...ticketMessages
-    ].sort((a, b) => new Date(a.sent_at).getTime() - new Date(b.sent_at).getTime()); // Sort by sent_at
-
-    // Check if this is a pending reply or resolved status - if so, show full conversation history
-    const shouldShowFullHistory =
-      inquiry.inquiry_status === 'pending_admin_reply' ||
-      inquiry.inquiry_status === 'pending_customer_reply' ||
-      inquiry.inquiry_status === 'resolved';
-
+    // Only show initial issue details + initial uploaded images from the original session
     let customerDescription = 'No description provided';
-    let conversationHistory = '';
 
-    if (allMessages && allMessages.length > 0) {
-      if (shouldShowFullHistory) {
-        // For pending_admin_reply or resolved, show full conversation history like trackTicket
-        conversationHistory = `\n\nConversation History:\n${'='.repeat(5)}\n\n`;
+    // Read issue_details from original session metadata
+    if (inquiry.session_id) {
+      const { data: originalSession } = await supabase
+        .from('chat_sessions_v2')
+        .select('metadata')
+        .eq('session_id', inquiry.session_id)
+        .single();
+      const md: any = originalSession?.metadata;
+      customerDescription =
+        md?.context?.issue_details || md?.issue_details || customerDescription;
 
-        // Filter to only show customer input messages and admin replies (skip system messages)
-        const relevantMessages = allMessages.filter(
-          (msg: any) =>
-            msg.sender_role === 'customer' || // All customer messages (including replies)
-            msg.sender_role === 'admin' // Admin replies
-        );
-
-        if (relevantMessages.length > 0) {
-          // Deduplicate messages by content and sender to avoid showing repeated messages
-          const seenMessages = new Set<string>();
-          const uniqueMessages: any[] = [];
-
-          for (const msg of relevantMessages) {
-            // Use the decrypted message_text from RPC function
-            let decryptedText = msg.message_text || '[No message content]';
-
-            // Handle messages that are still encrypted (show as JSON arrays)
-            if (
-              typeof decryptedText === 'string' &&
-              decryptedText.startsWith('{"0":')
-            ) {
-              try {
-                // Try to manually decrypt the JSON array format
-                const jsonData = JSON.parse(decryptedText);
-                const charCodes = Object.values(jsonData) as number[];
-                decryptedText = String.fromCharCode(...charCodes);
-              } catch (error) {
-                // If parsing fails, skip this message
-                continue;
-              }
-            }
-
-            // Create a unique key for deduplication (sender + content)
-            const messageKey = `${msg.sender_role}:${decryptedText}`;
-
-            // Only add if we haven't seen this exact message before
-            if (!seenMessages.has(messageKey)) {
-              seenMessages.add(messageKey);
-              uniqueMessages.push({ ...msg, decryptedText });
-            }
-          }
-
-          // Group consecutive messages from the same sender
-          // This allows images to appear after their associated text
-          const groupedMessages: Array<{
-            sender: string;
-            sender_role: string;
-            timeAgo: string;
-            texts: string[];
-          }> = [];
-
-          for (const msg of uniqueMessages) {
-            const timeAgo = formatShortDate(msg.sent_at);
-            const sender =
-              msg.sender_role === 'customer' ? 'Customer' : 'Admin';
-
-            const lastGroup = groupedMessages[groupedMessages.length - 1];
-
-            // If same sender as last group, add to that group
-            if (lastGroup && lastGroup.sender_role === msg.sender_role) {
-              lastGroup.texts.push(msg.decryptedText);
-            } else {
-              // New sender, create new group
-              groupedMessages.push({
-                sender,
-                sender_role: msg.sender_role,
-                timeAgo,
-                texts: [msg.decryptedText]
-              });
-            }
-          }
-
-          // Display grouped messages
-          for (const group of groupedMessages) {
-            conversationHistory += `${group.sender} (${group.timeAgo}):\n`;
-
-            // Separate text messages from image URLs
-            const textMessages = group.texts.filter(t => !t.startsWith('supabase://'));
-            const imageUrls = group.texts.filter(t => t.startsWith('supabase://'));
-
-            // Add text first
-            if (textMessages.length > 0) {
-              conversationHistory += textMessages.join('\n') + '\n';
-            }
-
-            // Add images after text
-            if (imageUrls.length > 0) {
-              conversationHistory += imageUrls.join('\n') + '\n';
-            }
-
-            conversationHistory += '\n';
-          }
-        } else {
-          conversationHistory += 'No conversation messages yet.\n\n';
-        }
-      } else {
-        // For new tickets, show the initial description and any uploaded images
-        // Look for message with node_id 'collect_details' or metadata containing inquiry_type
-        const descriptionMessage = allMessages.find(
-          (msg: any) =>
-            msg.sender_role === 'customer' &&
-            (msg.node_id === 'collect_details' || msg.metadata?.inquiry_type)
-        );
-        if (descriptionMessage) {
-          customerDescription = descriptionMessage.message_text;
-        }
-
-        // Look for any uploaded images from the initial inquiry creation
-        const uploadedImages = allMessages.filter(
+      // Fetch initial images from original session
+      const { data: originalMsgs } = await supabase.rpc(
+        'api_fetch_chat_messages_v2',
+        { p_session_id: inquiry.session_id }
+      );
+      if (originalMsgs && Array.isArray(originalMsgs)) {
+        const initialImageMsgs = originalMsgs.filter(
           (msg: any) =>
             msg.sender_role === 'customer' &&
             msg.node_id === 'upload_image_instructions' &&
-            msg.message_text?.startsWith('supabase://')
+            typeof msg.message_text === 'string' &&
+            msg.message_text.startsWith('supabase://')
         );
-
-        // Append images to description if they exist
-        if (uploadedImages.length > 0) {
-          const imageUrls = uploadedImages.map((msg: any) => msg.message_text.trim());
+        if (initialImageMsgs.length > 0) {
+          const imageUrls = initialImageMsgs.map((m: any) =>
+            m.message_text.trim()
+          );
           customerDescription += '\n\n' + imageUrls.join('\n');
         }
       }
@@ -265,47 +130,132 @@ export async function fetchTicketForAdmin(
       ? `${(inquiry.customer as any).first_name} ${(inquiry.customer as any).last_name}`
       : 'Unknown';
 
-    // Build ticket info display based on status
-    let ticketInfo = '';
+    // Build ticket info display based on status (header will be emitted separately)
 
-    if (shouldShowFullHistory) {
-      // For pending replies or resolved, show ticket info with full conversation history
-      const header = inquiry.inquiry_status === 'resolved' 
-        ? 'TICKET RESOLVED' 
-        : 'TICKET UPDATE';
-      
-      ticketInfo = `${header} - ${formatStatus(inquiry.inquiry_status)}
+    // Restore aggregation per TICKET_REPLY_SESSION_LOGIC: append replies from reply sessions
+    let aggregatedHistory = '';
+    const { data: ticketConversations, error: ticketError } = await supabase
+      .from('chat_sessions_v2')
+      .select('session_id')
+      .eq('customer_id', inquiry.customer_id)
+      .eq('metadata->>inquiry_id', inquiryId)
+      .eq('metadata->>ticket_conversation', true);
 
-Ticket ID: ${inquiry.display_id}
-Customer: ${customerName}
-Status: ${formatStatus(inquiry.inquiry_status)}
-Received: ${formatShortDate(inquiry.received_at)}
-
-Inquiry type: ${formatInquiryType(inquiry.inquiry_type)}${orderInfo}${conversationHistory}`;
-    } else {
-      // For new tickets, show the original format
-      ticketInfo = `NEW TICKET REQUEST
-
-Ticket ID: ${inquiry.display_id}
-Customer: ${customerName}
-Inquiry type: ${formatInquiryType(inquiry.inquiry_type)}${orderInfo}
-
-Customer description:
-${customerDescription}`;
+    let ticketMessages: any[] = [];
+    if (!ticketError && ticketConversations && ticketConversations.length > 0) {
+      for (const ticketSession of ticketConversations) {
+        const { data: ticketChatMessages } = await supabase.rpc(
+          'api_fetch_chat_messages_v2',
+          { p_session_id: ticketSession.session_id }
+        );
+        if (ticketChatMessages) {
+          ticketMessages.push(...ticketChatMessages);
+        }
+      }
     }
+
+    if (ticketMessages.length > 0) {
+      const relevantMessages = ticketMessages.filter(
+        (msg: any) =>
+          msg.sender_role === 'customer' || msg.sender_role === 'admin'
+      );
+
+      const seenMessages = new Set<string>();
+      const uniqueMessages: any[] = [];
+      for (const msg of relevantMessages) {
+        let decryptedText = msg.message_text || '[No message content]';
+        if (
+          typeof decryptedText === 'string' &&
+          decryptedText.startsWith('{"0":')
+        ) {
+          try {
+            const jsonData = JSON.parse(decryptedText);
+            const charCodes = Object.values(jsonData) as number[];
+            decryptedText = String.fromCharCode(...charCodes);
+          } catch {
+            continue;
+          }
+        }
+        const key = `${msg.sender_role}:${decryptedText}`;
+        if (!seenMessages.has(key)) {
+          seenMessages.add(key);
+          uniqueMessages.push({ ...msg, decryptedText });
+        }
+      }
+
+      uniqueMessages.sort(
+        (a, b) => new Date(a.sent_at).getTime() - new Date(b.sent_at).getTime()
+      );
+
+      // Emit one bubble per message even if the same sender posts consecutively.
+      for (const msg of uniqueMessages) {
+        const time = formatShortDate(msg.sent_at);
+        const sender = msg.sender_role === 'customer' ? 'Customer' : 'Admin';
+        const lines = String(msg.decryptedText || '')
+          .split('\n')
+          .map(s => s.trim())
+          .filter(Boolean);
+        const textLines = lines.filter(l => !l.startsWith('supabase://'));
+        const imageLines = lines.filter(l => l.startsWith('supabase://'));
+
+        aggregatedHistory += `\n${sender} (${time}):\n`;
+        if (textLines.length > 0)
+          aggregatedHistory += textLines.join('\n') + '\n';
+        if (imageLines.length > 0)
+          aggregatedHistory += imageLines.join('\n') + '\n';
+      }
+    }
+
+    // Header bubble
+    const header = [
+      `Ticket ID: ${inquiry.display_id}`,
+      `Customer: ${customerName}`,
+      `Status: ${formatStatus(inquiry.inquiry_status)}`,
+      `Received: ${formatShortDate(inquiry.received_at)}`,
+      `\nInquiry type: ${formatInquiryType(inquiry.inquiry_type)}${orderInfo}`,
+    ].join('\n');
 
     messages.push({
       id: crypto.randomUUID(),
       role: 'printy',
-      text: ticketInfo,
+      text: header,
       ts: Date.now(),
+      isHistorical: true,
     });
+
+    // First conversation bubble: original customer details + initial images
+    messages.push({
+      id: crypto.randomUUID(),
+      role: 'printy',
+      text: `Customer (${formatShortDate(inquiry.received_at)}):\n${customerDescription}`,
+      ts: Date.now(),
+      isHistorical: true,
+    });
+
+    // Append grouped reply-session bubbles
+    if (aggregatedHistory.trim()) {
+      // aggregatedHistory already formatted into per-group blocks; split and emit
+      const blocks = aggregatedHistory
+        .trim()
+        .split(/\n(?=Customer \(|Admin \()/)
+        .filter(Boolean);
+      for (const block of blocks) {
+        messages.push({
+          id: crypto.randomUUID(),
+          role: 'printy',
+          text: block,
+          ts: Date.now(),
+          isHistorical: true,
+        });
+      }
+    }
 
     messages.push({
       id: crypto.randomUUID(),
       role: 'printy',
       text: 'What would you like to do?',
       ts: Date.now(),
+      isHistorical: true,
     });
 
     // Store customer's session_id in context for other actions to use
@@ -323,11 +273,11 @@ ${customerDescription}`;
       role: 'printy',
       text: 'An error occurred while fetching ticket details.',
       ts: Date.now(),
+      isHistorical: true,
     });
     return { messages };
   }
 }
-
 
 /**
  * Helper function to format status for display

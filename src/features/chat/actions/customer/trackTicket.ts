@@ -13,6 +13,7 @@ import type {
   ActionExecutionResult,
 } from '@features/chat/types';
 import { formatShortDate } from '@shared/utils/dateFormatter';
+import { formatInquiryType } from '@shared/utils/statusFormatter';
 import { getAllAdminIds } from '@features/chat/utils/admin/getAdminUserId';
 import { insertMessageV2 } from '@features/chat/api/jsonbChatFlowApi';
 
@@ -28,6 +29,7 @@ export async function fetchTicketDetails(
     role: 'printy';
     text: string;
     ts: number;
+    isHistorical?: boolean;
   }> = [];
 
   try {
@@ -44,10 +46,10 @@ export async function fetchTicketDetails(
         role: 'printy',
         text: 'Could not find your ticket. Please try again.',
         ts: Date.now(),
+        isHistorical: true,
       });
       return { messages };
     }
-
 
     // Fetch inquiry details using inquiry_id from context
     const { data: inquiry, error: inquiryError } = await supabase
@@ -68,6 +70,7 @@ export async function fetchTicketDetails(
         role: 'printy',
         text: 'Could not find your ticket. Please try again.',
         ts: Date.now(),
+        isHistorical: true,
       });
       return { messages };
     }
@@ -79,44 +82,14 @@ export async function fetchTicketDetails(
         role: 'printy',
         text: 'Could not find your ticket. Please try again.',
         ts: Date.now(),
+        isHistorical: true,
       });
       return { messages };
     }
 
-
-    // Fetch all messages for the original session (where the inquiry was created) using RPC for proper decryption
+    // We no longer fetch any other conversation messages. Only show the original
+    // issue details captured on inquiry creation.
     const originalSessionId = inquiry.session_id;
-
-    const { data: chatMessages, error: messagesError } = await supabase.rpc(
-      'api_fetch_chat_messages_v2',
-      { p_session_id: originalSessionId }
-    );
-
-    if (messagesError) {
-      console.error('Error fetching messages:', messagesError);
-    }
-
-    // Also fetch messages from ticket conversation sessions (admin/customer replies)
-    const { data: ticketConversations, error: ticketError } = await supabase
-      .from('chat_sessions_v2')
-      .select('session_id')
-      .eq('customer_id', params.customerId)
-      .eq('metadata->>inquiry_id', inquiryId)
-      .eq('metadata->>ticket_conversation', true);
-
-    let ticketMessages: any[] = [];
-    if (!ticketError && ticketConversations && ticketConversations.length > 0) {
-      // Fetch messages from all ticket conversation sessions
-      for (const ticketSession of ticketConversations) {
-        const { data: ticketChatMessages } = await supabase.rpc(
-          'api_fetch_chat_messages_v2',
-          { p_session_id: ticketSession.session_id }
-        );
-        if (ticketChatMessages) {
-          ticketMessages.push(...ticketChatMessages);
-        }
-      }
-    }
 
     // Fetch order display_id if order_id is present
     let orderDisplayId = inquiry.order_id;
@@ -132,133 +105,165 @@ export async function fetchTicketDetails(
       }
     }
 
-    // Build conversation summary
-    let conversationText = `Ticket ID: ${inquiry.display_id}\n`;
-    conversationText += `Type: ${inquiry.inquiry_type}\n`;
-    conversationText += `Status: ${formatStatus(inquiry.inquiry_status)}\n`;
-    if (inquiry.order_id) {
-      conversationText += `Related Order: ${orderDisplayId}\n`;
+    // Header bubble
+    const headerText = [
+      `Ticket ID: ${inquiry.display_id}`,
+      `Type: ${formatInquiryType(inquiry.inquiry_type)}`,
+      `Status: ${formatStatus(inquiry.inquiry_status)}`,
+      inquiry.order_id ? `Related Order: ${orderDisplayId}` : undefined,
+      `Created: ${formatShortDate(inquiry.received_at)}`,
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+    messages.push({
+      id: crypto.randomUUID(),
+      role: 'printy',
+      text: headerText,
+      ts: Date.now(),
+      isHistorical: true,
+    });
+
+    // Prepare a fresh accumulator for per-bubble texts
+    let conversationText = '';
+
+    // Only show the original issue details submitted by the customer.
+    // The initial details are stored on the original session metadata under context.issue_details
+    let initialDetails = 'No details provided.';
+    if (originalSessionId) {
+      const { data: originalSession, error: originalSessionError } =
+        await supabase
+          .from('chat_sessions_v2')
+          .select('metadata')
+          .eq('session_id', originalSessionId)
+          .single();
+
+      if (!originalSessionError && originalSession?.metadata) {
+        const md: any = originalSession.metadata;
+        initialDetails =
+          md?.context?.issue_details || md?.issue_details || initialDetails;
+      }
     }
-    conversationText += `Created: ${formatShortDate(inquiry.received_at)}\n\n`;
-    conversationText += `Conversation History:\n`;
-    conversationText += `${'='.repeat(40)}\n\n`;
+    conversationText += `You (${formatShortDate(inquiry.received_at)}):\n`;
+    conversationText += `${initialDetails}`;
 
-    // Combine original session messages and ticket conversation messages
-    const allMessages = [
-      ...(chatMessages || []),
-      ...ticketMessages
-    ].sort((a, b) => new Date(a.sent_at).getTime() - new Date(b.sent_at).getTime()); // Sort by sent_at
-
-    // Display conversation messages
-    if (allMessages && allMessages.length > 0) {
-      // Filter to only show customer input messages and admin replies (skip system messages)
-      const relevantMessages = allMessages.filter(
-        (msg: any) =>
-          msg.sender_role === 'customer' || // All customer messages (including replies)
-          msg.sender_role === 'admin' // Admin replies
+    // Include any images uploaded during the initial ticket creation from the
+    // original session. We only extract image URLs; no other texts.
+    if (originalSessionId) {
+      const { data: originalMsgs } = await supabase.rpc(
+        'api_fetch_chat_messages_v2',
+        { p_session_id: originalSessionId }
       );
 
+      if (originalMsgs && Array.isArray(originalMsgs)) {
+        const initialImageMsgs = originalMsgs.filter(
+          (msg: any) =>
+            msg.sender_role === 'customer' &&
+            msg.node_id === 'upload_image_instructions' &&
+            typeof msg.message_text === 'string' &&
+            msg.message_text.startsWith('supabase://')
+        );
 
-      if (relevantMessages.length > 0) {
-        // Deduplicate messages by content and sender to avoid showing repeated messages
-        const seenMessages = new Set<string>();
-        const uniqueMessages: any[] = [];
-
-        for (const msg of relevantMessages) {
-
-          // Use the decrypted message_text from RPC function
-          let decryptedText = msg.message_text || '[No message content]';
-
-          // Handle messages that are still encrypted (show as JSON arrays)
-          if (
-            typeof decryptedText === 'string' &&
-            decryptedText.startsWith('{"0":')
-          ) {
-            try {
-              // Try to manually decrypt the JSON array format
-              const jsonData = JSON.parse(decryptedText);
-              const charCodes = Object.values(jsonData) as number[];
-              decryptedText = String.fromCharCode(...charCodes);
-            } catch (error) {
-              // If parsing fails, skip this message
-              continue;
-            }
-          }
-
-
-          // Create a unique key for deduplication (sender + content)
-          const messageKey = `${msg.sender_role}:${decryptedText}`;
-
-          // Only add if we haven't seen this exact message before
-          if (!seenMessages.has(messageKey)) {
-            seenMessages.add(messageKey);
-            uniqueMessages.push({ ...msg, decryptedText });
-          }
+        if (initialImageMsgs.length > 0) {
+          const imageUrls = initialImageMsgs.map((m: any) =>
+            m.message_text.trim()
+          );
+          conversationText += `\n${imageUrls.join('\n')}`;
         }
-
-        // Group consecutive messages from the same sender
-        // This allows images to appear after their associated text
-        const groupedMessages: Array<{
-          sender: string;
-          sender_role: string;
-          timeAgo: string;
-          texts: string[];
-        }> = [];
-
-        for (const msg of uniqueMessages) {
-          const timeAgo = formatShortDate(msg.sent_at);
-          const sender = msg.sender_role === 'customer' ? 'You' : 'Admin';
-
-          const lastGroup = groupedMessages[groupedMessages.length - 1];
-
-          // If same sender as last group, add to that group
-          if (lastGroup && lastGroup.sender_role === msg.sender_role) {
-            lastGroup.texts.push(msg.decryptedText);
-          } else {
-            // New sender, create new group
-            groupedMessages.push({
-              sender,
-              sender_role: msg.sender_role,
-              timeAgo,
-              texts: [msg.decryptedText]
-            });
-          }
-        }
-
-        // Display grouped messages
-        for (const group of groupedMessages) {
-          conversationText += `${group.sender} (${group.timeAgo}):\n`;
-
-          // Separate text messages from image URLs
-          const textMessages = group.texts.filter(t => !t.startsWith('supabase://'));
-          const imageUrls = group.texts.filter(t => t.startsWith('supabase://'));
-
-          // Add text first
-          if (textMessages.length > 0) {
-            conversationText += textMessages.join('\n') + '\n';
-          }
-
-          // Add images after text
-          if (imageUrls.length > 0) {
-            conversationText += imageUrls.join('\n') + '\n';
-          }
-
-          conversationText += '\n';
-        }
-      } else {
-        conversationText += 'No conversation messages yet.\n\n';
       }
-    } else {
-      conversationText += 'No messages yet.\n\n';
     }
-
+    // Push first bubble (original details + images)
     messages.push({
       id: crypto.randomUUID(),
       role: 'printy',
       text: conversationText,
       ts: Date.now(),
+      isHistorical: true,
     });
+    conversationText = '';
 
+    // Restore critical aggregation: include messages from all ticket reply sessions
+    // linked to this inquiry (admin and customer replies), sorted chronologically.
+    const { data: ticketConversations, error: ticketError } = await supabase
+      .from('chat_sessions_v2')
+      .select('session_id')
+      .eq('metadata->>inquiry_id', inquiryId)
+      .eq('metadata->>ticket_conversation', true);
+
+    let ticketMessages: any[] = [];
+    if (!ticketError && ticketConversations && ticketConversations.length > 0) {
+      for (const ticketSession of ticketConversations) {
+        const { data: ticketChatMessages } = await supabase.rpc(
+          'api_fetch_chat_messages_v2',
+          { p_session_id: ticketSession.session_id }
+        );
+        if (ticketChatMessages) {
+          ticketMessages.push(...ticketChatMessages);
+        }
+      }
+    }
+
+    // Show only customer/admin reply messages from reply sessions
+    if (ticketMessages.length > 0) {
+      const relevantMessages = ticketMessages.filter(
+        (msg: any) =>
+          msg.sender_role === 'customer' || msg.sender_role === 'admin'
+      );
+
+      // Deduplicate by sender+content after decrypting
+      const seenMessages = new Set<string>();
+      const uniqueMessages: any[] = [];
+
+      for (const msg of relevantMessages) {
+        let decryptedText = msg.message_text || '[No message content]';
+
+        if (
+          typeof decryptedText === 'string' &&
+          decryptedText.startsWith('{"0":')
+        ) {
+          try {
+            const jsonData = JSON.parse(decryptedText);
+            const charCodes = Object.values(jsonData) as number[];
+            decryptedText = String.fromCharCode(...charCodes);
+          } catch {
+            continue;
+          }
+        }
+
+        const messageKey = `${msg.sender_role}:${decryptedText}`;
+        if (!seenMessages.has(messageKey)) {
+          seenMessages.add(messageKey);
+          uniqueMessages.push({ ...msg, decryptedText });
+        }
+      }
+
+      // Sort chronologically then emit one bubble per message (no grouping by sender)
+      uniqueMessages.sort(
+        (a, b) => new Date(a.sent_at).getTime() - new Date(b.sent_at).getTime()
+      );
+
+      for (const msg of uniqueMessages) {
+        const timeAgo = formatShortDate(msg.sent_at);
+        const sender = msg.sender_role === 'customer' ? 'You' : 'Admin';
+        const lines = String(msg.decryptedText || '')
+          .split('\n')
+          .map(s => s.trim())
+          .filter(Boolean);
+        const textMessages = lines.filter(t => !t.startsWith('supabase://'));
+        const imageUrls = lines.filter(t => t.startsWith('supabase://'));
+        const parts: string[] = [];
+        parts.push(`${sender} (${timeAgo}):`);
+        if (textMessages.length > 0) parts.push(textMessages.join('\n'));
+        if (imageUrls.length > 0) parts.push(imageUrls.join('\n'));
+        messages.push({
+          id: crypto.randomUUID(),
+          role: 'printy',
+          text: parts.join('\n'),
+          ts: Date.now(),
+          isHistorical: true,
+        });
+      }
+    }
     return { messages };
   } catch (error) {
     console.error('Error in fetchTicketDetails:', error);
@@ -267,6 +272,7 @@ export async function fetchTicketDetails(
       role: 'printy',
       text: 'An error occurred while fetching ticket details.',
       ts: Date.now(),
+      isHistorical: true,
     });
     return { messages };
   }
@@ -284,24 +290,73 @@ export async function sendCustomerReply(
     role: 'printy';
     text: string;
     ts: number;
+    isHistorical?: boolean;
   }> = [];
 
   const customerReply = String(context['customer_reply'] || '');
-  const uploadedImageUrl =
+  const uploadedImageRaw =
     context['uploaded_image_url'] || context['user_input'] || '';
+  const uploadErrors: string[] = Array.isArray(context['upload_error_messages'])
+    ? (context['upload_error_messages'] as string[])
+    : [];
+  const expectsImageReply = Boolean(
+    context['expects_image_reply'] === true ||
+      context['reply_mode'] === 'image' ||
+      context['wants_image_upload'] === 'yes'
+  );
 
-  // Check if the input is a ticket image URL
-  const isImageUrl = uploadedImageUrl
-    ?.trim()
-    .startsWith('supabase://ticket-uploads/');
-  const hasAttachment = isImageUrl || false;
+  // Normalize uploaded image input to an array of supabase:// urls
+  const normalizeToUrlArray = (value: unknown): string[] => {
+    if (!value) return [];
+    if (Array.isArray(value)) return value.map(String);
+    const str = String(value).trim();
+    // Try JSON parse first if it looks like an array
+    if (str.startsWith('[') && str.endsWith(']')) {
+      try {
+        const parsed = JSON.parse(str);
+        if (Array.isArray(parsed)) return parsed.map((v: any) => String(v));
+      } catch {}
+    }
+    // If multiple URLs accidentally concatenated with commas and quotes, split them
+    if (
+      str.includes('supabase://') &&
+      (str.includes(',') || str.includes('%22'))
+    ) {
+      return str
+        .replaceAll('%22', '"')
+        .split(',')
+        .map(s => s.replaceAll('"', '').trim())
+        .filter(s => s.startsWith('supabase://'));
+    }
+    return str.startsWith('supabase://') ? [str] : [];
+  };
 
-  // Require either a text reply OR an image upload
+  const uploadedImageUrls: string[] = normalizeToUrlArray(uploadedImageRaw);
+  const rawString = String(uploadedImageRaw || '');
+  const explicitUploadFailure =
+    uploadErrors.length > 0 ||
+    /Upload failed|No files selected|maximu[mn] of 3 images/i.test(rawString);
+  const hasAttachment = uploadedImageUrls.length > 0;
+
+  // If this step expects an image reply, do not proceed on failed/empty upload
+  if (expectsImageReply && (!hasAttachment || explicitUploadFailure)) {
+    messages.push({
+      id: crypto.randomUUID(),
+      role: 'printy',
+      text:
+        uploadErrors[0] ||
+        'No image selected. Please upload up to 3 images and try again.',
+      ts: Date.now(),
+    });
+    return { messages };
+  }
+
+  // Otherwise, require either a text reply OR an image upload
   if (!customerReply.trim() && !hasAttachment) {
     messages.push({
       id: crypto.randomUUID(),
       role: 'printy',
-      text: 'Please provide a reply message.',
+      text: 'Please attach an image or enter a reply.',
       ts: Date.now(),
     });
     return { messages };
@@ -347,7 +402,9 @@ export async function sendCustomerReply(
     const ticketDisplayId = inquiry.display_id;
 
     if (!originalSessionId || !customerId) {
-      console.error('[sendCustomerReply] Missing session_id or customer_id in inquiry');
+      console.error(
+        '[sendCustomerReply] Missing session_id or customer_id in inquiry'
+      );
       messages.push({
         id: crypto.randomUUID(),
         role: 'printy',
@@ -365,19 +422,24 @@ export async function sendCustomerReply(
         customer_id: customerId,
         status: 'ended', // Mark as ended so it doesn't appear in Recent Chats
         metadata: {
-          title: ticketDisplayId ? `Track Ticket: ${ticketDisplayId}` : 'Track Ticket',
+          title: ticketDisplayId
+            ? `Track Ticket: ${ticketDisplayId}`
+            : 'Track Ticket',
           ticket_conversation: true,
           original_session_id: originalSessionId,
           inquiry_id: inquiryId,
           conversation_type: 'ticket_reply',
-          customer_chat: true
-        }
+          customer_chat: true,
+        },
       })
       .select('session_id')
       .single();
 
     if (sessionError || !ticketSession?.session_id) {
-      console.error('Error creating ticket conversation session for customer reply:', sessionError);
+      console.error(
+        'Error creating ticket conversation session for customer reply:',
+        sessionError
+      );
       messages.push({
         id: crypto.randomUUID(),
         role: 'printy',
@@ -393,12 +455,12 @@ export async function sendCustomerReply(
     let messageText = customerReply.trim();
     if (hasAttachment) {
       if (!messageText) {
-        messageText = 'Uploaded image:';
+        messageText = 'Uploaded image(s):';
       }
-      // Embed the storage URL in the message text for persistence (like payment proofs)
-      messageText = `${messageText}\n${uploadedImageUrl.trim()}`;
+      // Put each storage URL on its own line so the renderer can sign individually
+      messageText = `${messageText}\n${uploadedImageUrls.join('\n')}`;
     }
-    
+
     const result = await insertMessageV2({
       sessionId: ticketSession.session_id,
       text: messageText,
@@ -407,7 +469,7 @@ export async function sendCustomerReply(
       metadata: hasAttachment
         ? {
             has_attachment: true,
-            attachment_url: uploadedImageUrl.trim(),
+            attachment_urls: uploadedImageUrls,
           }
         : undefined,
     });
@@ -433,7 +495,10 @@ export async function sendCustomerReply(
       .eq('inquiry_id', inquiryId);
 
     if (statusError) {
-      console.error('[sendCustomerReply] Error updating inquiry status:', statusError);
+      console.error(
+        '[sendCustomerReply] Error updating inquiry status:',
+        statusError
+      );
     }
 
     // Create notifications for admins about customer reply
@@ -449,7 +514,6 @@ export async function sendCustomerReply(
         ? `${customerData.first_name || ''} ${customerData.last_name || ''}`.trim() ||
           'Customer'
         : 'Customer';
-
 
       // Get ticket display_id for notification
       const { data: ticketData } = await supabase
@@ -475,7 +539,6 @@ export async function sendCustomerReply(
           type: 'info',
           category: 'ticket',
         }));
-
 
         const { error: notifError } = await supabase
           .from('notifications')
@@ -529,6 +592,7 @@ export async function resolveTicket(
     role: 'printy';
     text: string;
     ts: number;
+    isHistorical?: boolean;
   }> = [];
 
   try {
@@ -576,7 +640,10 @@ export async function resolveTicket(
       .single();
 
     if (!inquiryFull?.customer_id) {
-      console.error('[resolveTicket] No customer_id found for inquiry:', inquiryId);
+      console.error(
+        '[resolveTicket] No customer_id found for inquiry:',
+        inquiryId
+      );
       messages.push({
         id: crypto.randomUUID(),
         role: 'printy',
@@ -598,14 +665,17 @@ export async function resolveTicket(
           original_session_id: originalSessionId,
           inquiry_id: inquiryId,
           conversation_type: 'ticket_resolution',
-          customer_chat: true
-        }
+          customer_chat: true,
+        },
       })
       .select('session_id')
       .single();
 
     if (sessionError || !ticketSession?.session_id) {
-      console.error('Error creating ticket conversation session for resolution:', sessionError);
+      console.error(
+        'Error creating ticket conversation session for resolution:',
+        sessionError
+      );
       messages.push({
         id: crypto.randomUUID(),
         role: 'printy',
@@ -664,7 +734,6 @@ export async function resolveTicket(
           'Customer'
         : 'Customer';
 
-
       // Get ticket display_id for notification
       const { data: ticketData } = await supabase
         .from('inquiries_v2')
@@ -689,7 +758,6 @@ export async function resolveTicket(
           type: 'success',
           category: 'ticket',
         }));
-
 
         const { error: notifError } = await supabase
           .from('notifications')

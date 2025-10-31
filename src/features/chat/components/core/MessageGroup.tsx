@@ -42,8 +42,13 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({
   const isBot = messages[0]?.role === 'printy';
   const mostRecentTs = messages[messages.length - 1]?.ts ?? 0;
 
+  // Treat group as historical if prop is set OR all messages are flagged historical
+  const isHistoricalGroup =
+    isHistorical || messages.every(m => m.isHistorical === true);
+
   // Determine if we should animate (only for new messages in active conversations, not historical)
-  const shouldAnimate = isBot && !hasAnimated && !readOnly && !isHistorical;
+  const shouldAnimate =
+    isBot && !hasAnimated && !readOnly && !isHistoricalGroup;
 
   // Animate bot messages appearing one by one with typing indicator
   useEffect(() => {
@@ -70,7 +75,7 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({
 
   // Initialize visible count
   useEffect(() => {
-    if (!isBot || readOnly || isHistorical) {
+    if (!isBot || readOnly || isHistoricalGroup) {
       // User messages, ended conversations, or historical messages - appear instantly
       setVisibleCount(messages.length);
       setHasAnimated(true);
@@ -83,7 +88,13 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({
       setVisibleCount(messages.length);
       setHasAnimated(true);
     }
-  }, [messages.length, isBot, initialMessageCount, readOnly, isHistorical]);
+  }, [
+    messages.length,
+    isBot,
+    initialMessageCount,
+    readOnly,
+    isHistoricalGroup,
+  ]);
 
   const formatRelativeTime = (ts: number, isMostRecent: boolean): string => {
     if (isMostRecent) return formatRelativeTimeLabel(ts);
@@ -98,20 +109,25 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({
 
     // Don't extract images from conversation history blocks
     // These should render inline within the text
-    if (text.includes('Conversation History:') || text.includes('NEW TICKET REQUEST')) {
+    if (
+      text.includes('Conversation History:') ||
+      text.includes('NEW TICKET REQUEST')
+    ) {
       return [];
     }
 
     const imageUrlRegex =
-      /(blob:[^\s]+|https?:\/\/[^\s]+?\.(?:jpg|jpeg|png|gif|webp)(?:\?[^\s]*)?|\/(?:[\w.-]+)\.(?:jpg|jpeg|png|gif|webp)|data:image\/[a-zA-Z0-9+]+;base64,[^\s)]+|supabase:\/\/payment-proofs\/[^\s]+|supabase:\/\/ticket-uploads\/[^\s]+)/gi;
-    const matches = Array.from(text.matchAll(imageUrlRegex)).map(match => match[0]);
+      /(blob:[^\s]+|https?:\/\/[^\s]+?\.(?:jpg|jpeg|png|gif|webp)(?:\?[^\s]*)?|\/(?:[\w.-]+)\.(?:jpg|jpeg|png|gif|webp)|data:image\/[a-zA-Z0-9+]+;base64,[^\s)]+|supabase:\/\/payment-proofs\/[^\s,\"')\]]+|supabase:\/\/ticket-uploads\/[^\s,\"')\]]+)/gi;
+    const matches = Array.from(text.matchAll(imageUrlRegex)).map(
+      match => match[0]
+    );
 
     // Always filter out blob URLs and data URLs - they're temporary and won't work in history
-    // Keep supabase:// URLs and http/https URLs as they persist
-    return matches.filter(url =>
-      !url.startsWith('blob:') &&
-      !url.startsWith('data:image/')
+    // Keep supabase:// URLs and http/https URLs as they persist and de-duplicate
+    const filtered = matches.filter(
+      url => !url.startsWith('blob:') && !url.startsWith('data:image/')
     );
+    return Array.from(new Set(filtered));
   };
 
   const removeImageTokens = (text: string): string => {
@@ -119,13 +135,16 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({
 
     // Don't remove images from conversation history blocks
     // These should render inline within the text
-    if (text.includes('Conversation History:') || text.includes('NEW TICKET REQUEST')) {
+    if (
+      text.includes('Conversation History:') ||
+      text.includes('NEW TICKET REQUEST')
+    ) {
       return text;
     }
 
     // Remove image URLs from display text, but keep the message readable
     const imageUrlRegex =
-      /(blob:[^\s]+|https?:\/\/[^\s]+?\.(?:jpg|jpeg|png|gif|webp)(?:\?[^\s]*)?|\/(?:[\w.-]+)\.(?:jpg|jpeg|png|gif|webp)|data:image\/[a-zA-Z0-9+]+;base64,[^\s)]+|supabase:\/\/payment-proofs\/[^\s]+|supabase:\/\/ticket-uploads\/[^\s]+)/gi;
+      /(blob:[^\s]+|https?:\/\/[^\s]+?\.(?:jpg|jpeg|png|gif|webp)(?:\?[^\s]*)?|\/(?:[\w.-]+)\.(?:jpg|jpeg|png|gif|webp)|data:image\/[a-zA-Z0-9+]+;base64,[^\s)]+|supabase:\/\/payment-proofs\/[^\s,\"')\]]+|supabase:\/\/ticket-uploads\/[^\s,\"')\]]+)/gi;
     return text
       .replace(imageUrlRegex, '')
       .replace(/\(\s*\)/g, ' ')
@@ -142,7 +161,8 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({
       ...m,
       imageUrls: extractImageUrls(m.text || ''),
       cleanText: removeImageTokens(m.text || ''),
-      preserveNewlines: isBot &&
+      preserveNewlines:
+        isBot &&
         /Order .* — Status: /.test(m.text) &&
         m.text.includes('Items:'),
     }));

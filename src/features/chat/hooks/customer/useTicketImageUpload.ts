@@ -6,15 +6,16 @@
 
 import { useCallback } from 'react';
 import { supabase } from '@lib/supabase';
-import { uploadTicketImage } from '@shared/utils/uploadTicketImage';
+import { uploadTicketImages } from '@shared/utils/uploadTicketImages';
 
 export interface UseTicketImageUploadResult {
   handleTicketImageUpload: (
     files: FileList,
     inquiryId: string,
-    onSuccess?: (url: string) => void,
-    onError?: (error: string) => void,
-    sessionId?: string
+    onSuccess?: (urls: string[]) => void,
+    onError?: (errors: string[]) => void,
+    sessionId?: string,
+    onProgress?: (value: number) => void
   ) => Promise<void>;
 }
 
@@ -26,44 +27,50 @@ export function useTicketImageUpload(): UseTicketImageUploadResult {
     async (
       files: FileList,
       inquiryId: string,
-      onSuccess?: (url: string) => void,
-      onError?: (error: string) => void,
-      sessionId?: string
+      onSuccess?: (urls: string[]) => void,
+      onError?: (errors: string[]) => void,
+      sessionId?: string,
+      onProgress?: (value: number) => void
     ) => {
-      const file = files?.[0];
-      if (!file) {
-        onError?.('No file selected');
+      const filesArray = Array.from(files || []);
+      if (filesArray.length === 0) {
+        onError?.(['No files selected']);
         return;
       }
 
       try {
-        // Get current user
         const {
           data: { user },
         } = await supabase.auth.getUser();
         if (!user) {
-          onError?.('You must be logged in to upload ticket images');
+          onError?.(['You must be logged in to upload ticket images']);
           return;
         }
 
-        // Upload file to Supabase Storage
-        // Pass sessionId for new inquiries where inquiryId is not available yet
-        const uploadResult = await uploadTicketImage(file, inquiryId, user.id, sessionId);
+        const result = await uploadTicketImages(
+          filesArray,
+          inquiryId,
+          user.id,
+          sessionId,
+          onProgress
+        );
 
-        if (uploadResult.error) {
-          onError?.(uploadResult.error);
+        if (result.errors.length > 0) {
+          onError?.(result.errors);
+          if (result.urls.length > 0) {
+            onSuccess?.(result.urls);
+          }
           return;
         }
 
-        // Success - return URL via callback
-        onSuccess?.(uploadResult.url);
+        onSuccess?.(result.urls);
       } catch (error) {
-        console.error('Error uploading ticket image:', error);
-        onError?.(
+        console.error('Error uploading ticket images:', error);
+        onError?.([
           error instanceof Error
             ? error.message
-            : 'An unexpected error occurred'
-        );
+            : 'An unexpected error occurred',
+        ]);
       }
     },
     []
@@ -75,4 +82,3 @@ export function useTicketImageUpload(): UseTicketImageUploadResult {
 }
 
 export default useTicketImageUpload;
-

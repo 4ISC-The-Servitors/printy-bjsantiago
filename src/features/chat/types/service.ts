@@ -40,6 +40,8 @@ export interface ActionExecutionResult {
     role: 'printy';
     text: string;
     ts: number;
+    isHistorical?: boolean;
+    metadata?: Record<string, any> | null;
   }>;
   context?: Partial<SessionContext>;
   quickReplies?: QuickReply[];

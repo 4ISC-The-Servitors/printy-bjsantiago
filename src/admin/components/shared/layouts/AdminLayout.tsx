@@ -31,6 +31,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const { isMobileOrTablet } = useDeviceUtils();
   const navigate = useNavigate();
   const [toasts, toast] = useToast();
+  const [uploadPct, setUploadPct] = useState<number | null>(null);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   // Use existing admin chat hook
@@ -60,7 +61,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     async (files: FileList) => {
       console.log('[Admin handleFileUpload] Starting upload:', {
         filesCount: files.length,
-        dbSessionId
+        dbSessionId,
       });
 
       // Check if we're in admin-review-ticket flow
@@ -75,7 +76,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         console.log('[Admin handleFileUpload] Session data:', {
           flowId: sessionData?.flow_id,
           hasInquiryId: !!sessionData?.metadata?.context?.inquiry_id,
-          hasCustomerId: !!sessionData?.metadata?.context?.customer_id
+          hasCustomerId: !!sessionData?.metadata?.context?.customer_id,
         });
 
         if (
@@ -86,32 +87,50 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           const customerId = sessionData.metadata.context.customer_id;
 
           if (inquiryId && customerId) {
-            console.log('[Admin handleFileUpload] Admin-review-ticket detected, uploading to ticket-uploads bucket');
+            console.log(
+              '[Admin handleFileUpload] Admin-review-ticket detected, uploading to ticket-uploads bucket'
+            );
             // Use ticket image upload for ticket review flows
+            setUploadPct(0);
             await handleTicketImageUpload(
               files,
               inquiryId,
               customerId,
-              url => {
-                // Send the uploaded file URL to the chat
-                console.log('[Admin handleFileUpload] Upload successful, URL:', url);
-                handleSendMessage(String(url));
+              urls => {
+                if (urls && urls.length > 0) {
+                  console.log(
+                    '[Admin handleFileUpload] Upload successful, sending URLs in one message'
+                  );
+                  handleSendMessage(urls.join('\n'));
+                }
+                setTimeout(() => setUploadPct(null), 400);
               },
-              error => {
-                // Handle error
-                console.error('[Admin handleFileUpload] Ticket image upload failed:', error);
-                handleSendMessage(`Upload failed: ${error}`);
-              }
+              errors => {
+                if (errors && errors.length > 0) {
+                  console.error(
+                    '[Admin handleFileUpload] Upload errors:',
+                    errors
+                  );
+                  // Show toast only; DO NOT send a chat message so the flow does not advance
+                  toast.error('Upload failed', errors.join('; '));
+                }
+                setTimeout(() => setUploadPct(null), 400);
+              },
+              pct => setUploadPct(pct)
             );
             return;
           } else {
-            console.error('[Admin handleFileUpload] Missing inquiryId or customerId');
+            console.error(
+              '[Admin handleFileUpload] Missing inquiryId or customerId'
+            );
           }
         }
       }
 
       // Use regular chat attachments for other flows
-      console.log('[Admin handleFileUpload] Using regular chat attachments (blob URL)');
+      console.log(
+        '[Admin handleFileUpload] Using regular chat attachments (blob URL)'
+      );
       handleAttachFiles(files);
     },
     [dbSessionId, handleTicketImageUpload, handleSendMessage, handleAttachFiles]
@@ -253,6 +272,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
               toast={[toasts, toast]}
               sessionId={dbSessionId || undefined}
               conversationId={currentConversationId || undefined}
+              uploadProgressPct={uploadPct}
             />
           }
         >
@@ -281,6 +301,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
               sessionId={dbSessionId || undefined}
               conversationId={currentConversationId || undefined}
               toast={[toasts, toast]}
+              uploadProgressPct={uploadPct}
             />
           }
         >
@@ -335,6 +356,8 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         onRemoveToast={toast.remove}
         position={isMobileOrTablet ? 'top-center' : 'bottom-right'}
       />
+
+      {/* Progress overlay is rendered inside AdminChatDock/AdminChatOverlay to avoid duplicates */}
     </div>
   );
 };

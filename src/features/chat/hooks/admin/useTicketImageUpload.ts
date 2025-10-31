@@ -5,16 +5,17 @@
  */
 
 import { useCallback } from 'react';
-import { uploadTicketImage } from '@shared/utils/uploadTicketImage';
+import { uploadTicketImages } from '@shared/utils/uploadTicketImages';
 import { getAdminUserId } from '@features/chat/utils/admin/getAdminUserId';
 
 export interface UseTicketImageUploadResult {
   handleTicketImageUpload: (
     files: FileList,
     inquiryId: string,
-    customerId: string, // Admin needs to specify which customer's ticket
-    onSuccess?: (url: string) => void,
-    onError?: (error: string) => void
+    customerId: string,
+    onSuccess?: (urls: string[]) => void,
+    onError?: (errors: string[]) => void,
+    onProgress?: (value: number) => void
   ) => Promise<void>;
 }
 
@@ -28,12 +29,13 @@ export function useTicketImageUpload(): UseTicketImageUploadResult {
       files: FileList,
       inquiryId: string,
       customerId: string,
-      onSuccess?: (url: string) => void,
-      onError?: (error: string) => void
+      onSuccess?: (urls: string[]) => void,
+      onError?: (errors: string[]) => void,
+      onProgress?: (value: number) => void
     ) => {
-      const file = files?.[0];
-      if (!file) {
-        onError?.('No file selected');
+      const filesArray = Array.from(files || []);
+      if (filesArray.length === 0) {
+        onError?.(['No file selected']);
         return;
       }
 
@@ -41,28 +43,34 @@ export function useTicketImageUpload(): UseTicketImageUploadResult {
         // Verify admin is authenticated
         const adminId = await getAdminUserId();
         if (!adminId) {
-          onError?.('You must be logged in as admin to upload ticket images');
+          onError?.(['You must be logged in as admin to upload ticket images']);
           return;
         }
 
         // Upload file to Supabase Storage using customerId for folder structure
         // This ensures proper RLS policies while allowing admin to upload
-        const uploadResult = await uploadTicketImage(file, inquiryId, customerId);
-
-        if (uploadResult.error) {
-          onError?.(uploadResult.error);
+        const result = await uploadTicketImages(
+          filesArray,
+          inquiryId,
+          customerId,
+          undefined,
+          onProgress
+        );
+        if (result.errors.length > 0) {
+          onError?.(result.errors);
+          if (result.urls.length > 0) {
+            onSuccess?.(result.urls);
+          }
           return;
         }
-
-        // Success - return URL via callback
-        onSuccess?.(uploadResult.url);
+        onSuccess?.(result.urls);
       } catch (error) {
         console.error('Error uploading ticket image:', error);
-        onError?.(
+        onError?.([
           error instanceof Error
             ? error.message
-            : 'An unexpected error occurred'
-        );
+            : 'An unexpected error occurred',
+        ]);
       }
     },
     []
@@ -74,4 +82,3 @@ export function useTicketImageUpload(): UseTicketImageUploadResult {
 }
 
 export default useTicketImageUpload;
-

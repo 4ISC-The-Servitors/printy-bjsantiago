@@ -29,21 +29,67 @@ export async function sendAdminReply(
   const adminReply = String(context['admin_reply'] || '');
   const customerSessionId = context['customer_session_id'];
   const inquiryId = context['inquiry_id'];
-  const uploadedImageUrl =
+  const uploadedImageRaw =
     context['uploaded_image_url'] || context['user_input'] || '';
+  const uploadErrors: string[] = Array.isArray(context['upload_error_messages'])
+    ? (context['upload_error_messages'] as string[])
+    : [];
+  const expectsImageReply = Boolean(
+    context['expects_image_reply'] === true ||
+      context['reply_mode'] === 'image' ||
+      context['wants_image_upload'] === 'yes'
+  );
 
-  // Check if the input is a ticket image URL
-  const isImageUrl = uploadedImageUrl
-    ?.trim()
-    .startsWith('supabase://ticket-uploads/');
-  const hasAttachment = isImageUrl || false;
+  // Normalize uploaded image input to an array of supabase:// urls
+  const normalizeToUrlArray = (value: unknown): string[] => {
+    if (!value) return [];
+    if (Array.isArray(value)) return value.map(String);
+    const str = String(value).trim();
+    if (str.startsWith('[') && str.endsWith(']')) {
+      try {
+        const parsed = JSON.parse(str);
+        if (Array.isArray(parsed)) return parsed.map((v: any) => String(v));
+      } catch {}
+    }
+    if (
+      str.includes('supabase://') &&
+      (str.includes(',') || str.includes('%22'))
+    ) {
+      return str
+        .replaceAll('%22', '"')
+        .split(',')
+        .map(s => s.replaceAll('"', '').trim())
+        .filter(s => s.startsWith('supabase://'));
+    }
+    return str.startsWith('supabase://') ? [str] : [];
+  };
 
-  // Require either a text reply OR an image upload
+  const uploadedImageUrls: string[] = normalizeToUrlArray(uploadedImageRaw);
+  const rawString = String(uploadedImageRaw || '');
+  const explicitUploadFailure =
+    uploadErrors.length > 0 ||
+    /Upload failed|No files selected|maximu[mn] of 3 images/i.test(rawString);
+  const hasAttachment = uploadedImageUrls.length > 0;
+
+  // If this step expects an image reply, do not proceed on failed/empty upload
+  if (expectsImageReply && (!hasAttachment || explicitUploadFailure)) {
+    messages.push({
+      id: crypto.randomUUID(),
+      role: 'printy',
+      text:
+        uploadErrors[0] ||
+        'No image selected. Please upload up to 3 images and try again.',
+      ts: Date.now(),
+    });
+    return { messages };
+  }
+
+  // Otherwise, require either a text reply OR an image upload
   if (!adminReply.trim() && !hasAttachment) {
     messages.push({
       id: crypto.randomUUID(),
       role: 'printy',
-      text: 'Please provide a reply message.',
+      text: 'Please attach an image or enter a reply.',
       ts: Date.now(),
     });
     return { messages };
@@ -64,7 +110,7 @@ export async function sendAdminReply(
     let customerId = null;
     let originalSessionId = customerSessionId;
     let ticketDisplayId = null;
-    
+
     if (customerSessionId) {
       const { data: originalSession } = await supabase
         .from('chat_sessions_v2')
@@ -103,19 +149,24 @@ export async function sendAdminReply(
         customer_id: customerId,
         status: 'ended', // Mark as ended so it doesn't appear in Recent Chats
         metadata: {
-          title: ticketDisplayId ? `Track Ticket: ${ticketDisplayId}` : 'Track Ticket',
+          title: ticketDisplayId
+            ? `Track Ticket: ${ticketDisplayId}`
+            : 'Track Ticket',
           ticket_conversation: true,
           original_session_id: originalSessionId,
           inquiry_id: inquiryId,
           conversation_type: 'ticket_reply',
-          admin_chat: true
-        }
+          admin_chat: true,
+        },
       })
       .select('session_id')
       .single();
 
     if (sessionError || !ticketSession?.session_id) {
-      console.error('Error creating ticket conversation session for admin reply:', sessionError);
+      console.error(
+        'Error creating ticket conversation session for admin reply:',
+        sessionError
+      );
       messages.push({
         id: crypto.randomUUID(),
         role: 'printy',
@@ -131,12 +182,12 @@ export async function sendAdminReply(
     let messageText = adminReply.trim();
     if (hasAttachment) {
       if (!messageText) {
-        messageText = 'Uploaded image:';
+        messageText = 'Uploaded image(s):';
       }
-      // Embed the storage URL in the message text for persistence (like payment proofs)
-      messageText = `${messageText}\n${uploadedImageUrl.trim()}`;
+      // Place each storage URL on its own line
+      messageText = `${messageText}\n${uploadedImageUrls.join('\n')}`;
     }
-    
+
     const result = await insertMessageV2({
       sessionId: ticketSession.session_id,
       text: messageText,
@@ -145,7 +196,7 @@ export async function sendAdminReply(
       metadata: hasAttachment
         ? {
             has_attachment: true,
-            attachment_url: uploadedImageUrl.trim(),
+            attachment_urls: uploadedImageUrls,
           }
         : undefined,
     });
@@ -172,7 +223,10 @@ export async function sendAdminReply(
         .eq('inquiry_id', inquiryId);
 
       if (statusError) {
-        console.error('[sendAdminReply] Error updating inquiry status:', statusError);
+        console.error(
+          '[sendAdminReply] Error updating inquiry status:',
+          statusError
+        );
       }
     }
 

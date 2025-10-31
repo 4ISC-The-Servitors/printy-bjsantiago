@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Bot, User, Image as ImageIcon } from 'lucide-react';
+import { Bot, User, Image as ImageIcon, ZoomIn, ZoomOut } from 'lucide-react';
 import { supabase } from '@lib/supabase';
 import Modal from '@shared/components/ui/Modal';
+import Text from '@shared/components/ui/Text';
+import Container from '@shared/components/layout/Container';
 
 /**
  * Inline image component for rendering images within conversation history
@@ -11,6 +13,11 @@ const InlineImage: React.FC<{ imageUrl: string }> = ({ imageUrl }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const [zoom, setZoom] = useState(1);
+  const MIN_ZOOM = 1;
+  const MAX_ZOOM = 5;
+  const ZOOM_STEP = 0.25;
+  const imgRef = useRef<HTMLImageElement | null>(null);
 
   useEffect(() => {
     const getSignedUrl = async () => {
@@ -35,7 +42,10 @@ const InlineImage: React.FC<{ imageUrl: string }> = ({ imageUrl }) => {
           .createSignedUrl(filePath, 3600);
 
         if (signedUrlError || !data) {
-          console.error('[InlineImage] Error creating signed URL:', signedUrlError);
+          console.error(
+            '[InlineImage] Error creating signed URL:',
+            signedUrlError
+          );
           setError(true);
         } else {
           setSignedUrl(data.signedUrl);
@@ -50,6 +60,10 @@ const InlineImage: React.FC<{ imageUrl: string }> = ({ imageUrl }) => {
 
     getSignedUrl();
   }, [imageUrl]);
+
+  useEffect(() => {
+    if (modalOpen) setZoom(1);
+  }, [modalOpen]);
 
   if (isLoading) {
     return (
@@ -68,7 +82,7 @@ const InlineImage: React.FC<{ imageUrl: string }> = ({ imageUrl }) => {
         tabIndex={0}
         className="block my-2 max-w-xs rounded-lg overflow-hidden border border-neutral-200 shadow-sm cursor-pointer hover:opacity-90 transition-opacity"
         onClick={() => setModalOpen(true)}
-        onKeyDown={(e) => {
+        onKeyDown={e => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
             setModalOpen(true);
@@ -80,7 +94,7 @@ const InlineImage: React.FC<{ imageUrl: string }> = ({ imageUrl }) => {
           src={signedUrl}
           alt="Inline attachment"
           className="w-full h-auto object-contain pointer-events-none"
-          style={{ maxHeight: '200px' }}
+          style={{ maxHeight: '180px' }}
           draggable="false"
         />
       </div>
@@ -99,16 +113,50 @@ const InlineImage: React.FC<{ imageUrl: string }> = ({ imageUrl }) => {
               showCloseButton={true}
               onClose={() => setModalOpen(false)}
             >
-              <div className="sr-only">Image Viewer</div>
+              <Container
+                size="full"
+                className="flex items-center justify-end gap-2"
+              >
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1 px-2 py-1 text-sm border border-neutral-200 rounded hover:bg-neutral-50"
+                  onClick={() => setZoom(Math.max(MIN_ZOOM, zoom - ZOOM_STEP))}
+                  aria-label="Zoom out"
+                >
+                  <ZoomOut className="w-4 h-4" />
+                  <Text as="span" size="sm">
+                    Zoom out
+                  </Text>
+                </button>
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1 px-2 py-1 text-sm border border-neutral-200 rounded hover:bg-neutral-50"
+                  onClick={() => setZoom(Math.min(MAX_ZOOM, zoom + ZOOM_STEP))}
+                  aria-label="Zoom in"
+                >
+                  <ZoomIn className="w-4 h-4" />
+                  <Text as="span" size="sm">
+                    Zoom in
+                  </Text>
+                </button>
+              </Container>
             </Modal.Header>
             <Modal.Body>
-              <div className="flex items-center justify-center bg-neutral-50 p-4 min-h-[200px]">
-                <img
-                  src={signedUrl}
-                  alt="Attachment"
-                  className="max-w-full max-h-[70vh] w-auto h-auto object-contain rounded-lg"
-                  draggable="false"
-                />
+              <div className="bg-neutral-50 p-0 min-h-[200px] max-h-[80vh] max-w-[90vw] overflow-auto">
+                <div className="p-4 inline-block">
+                  <img
+                    ref={imgRef}
+                    src={signedUrl}
+                    alt="Attachment"
+                    className="block rounded-lg select-none"
+                    style={{
+                      maxWidth: 'none',
+                      width: `${zoom * 100}%`,
+                      height: 'auto',
+                    }}
+                    draggable="false"
+                  />
+                </div>
               </div>
             </Modal.Body>
           </div>
@@ -146,12 +194,17 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
 }) => {
   const isBot = role === 'printy';
   const [processedImageUrls, setProcessedImageUrls] = useState<string[]>([]);
-  const [signedTicketAttachmentUrl, setSignedTicketAttachmentUrl] =
-    useState<string | null>(null);
+  const [signedTicketAttachmentUrl, setSignedTicketAttachmentUrl] = useState<
+    string | null
+  >(null);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const processedCacheRef = useRef<Map<string, string>>(new Map());
   const processingRef = useRef(false);
+  const [zoom, setZoom] = useState(1);
+  const MIN_ZOOM = 1;
+  const MAX_ZOOM = 5;
+  const ZOOM_STEP = 0.25;
 
   // Check for ticket attachment in metadata
   const ticketAttachmentUrl = metadata?.attachment_url;
@@ -213,7 +266,10 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                   .createSignedUrl(filePath, 3600); // 1 hour expiry
 
                 if (error) {
-                  console.error('Error creating signed URL for ticket image:', error);
+                  console.error(
+                    'Error creating signed URL for ticket image:',
+                    error
+                  );
                   console.error('File path that failed:', filePath);
                   return url; // Fallback to original URL
                 }
@@ -276,28 +332,34 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     }
   }, [hasTicketAttachment, ticketAttachmentUrl]);
 
+  useEffect(() => {
+    if (lightboxOpen) setZoom(1);
+  }, [lightboxOpen]);
+
   // Render text with inline images (for conversation history blocks)
   const renderTextWithInlineImages = (textContent: string) => {
     // Check if this is a conversation history block
-    if (!textContent.includes('Conversation History:') && !textContent.includes('NEW TICKET REQUEST')) {
+    if (
+      !textContent.includes('Conversation History:') &&
+      !textContent.includes('NEW TICKET REQUEST')
+    ) {
       return textContent;
     }
 
     // Image URL regex for splitting
-    const imageUrlRegex = /(supabase:\/\/ticket-uploads\/[^\s]+|supabase:\/\/payment-proofs\/[^\s]+)/g;
+    const imageUrlRegex =
+      /(supabase:\/\/ticket-uploads\/[^\s]+|supabase:\/\/payment-proofs\/[^\s]+)/g;
 
     // Split text by image URLs
     const parts = textContent.split(imageUrlRegex);
 
     return parts.map((part, index) => {
       // Check if this part is an image URL
-      if (part.startsWith('supabase://ticket-uploads/') || part.startsWith('supabase://payment-proofs/')) {
-        return (
-          <InlineImage
-            key={index}
-            imageUrl={part}
-          />
-        );
+      if (
+        part.startsWith('supabase://ticket-uploads/') ||
+        part.startsWith('supabase://payment-proofs/')
+      ) {
+        return <InlineImage key={index} imageUrl={part} />;
       }
 
       // Regular text
@@ -352,15 +414,21 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                   }}
                 >
                   <ImageIcon className="w-4 h-4" />
-                  <span className="text-sm font-medium">View attached image</span>
+                  <span className="text-sm font-medium">
+                    View attached image
+                  </span>
                 </a>
               </div>
             )}
 
             {processedImageUrls.length > 0 && (
-              <div 
-                className="mt-3 grid grid-cols-2 gap-3"
-                onClick={(e) => {
+              <div
+                className={`mt-3 grid gap-3 ${
+                  processedImageUrls.length === 1
+                    ? 'grid-cols-1'
+                    : 'grid-cols-2'
+                }`}
+                onClick={e => {
                   // Stop any clicks from bubbling up to parent elements
                   e.stopPropagation();
                 }}
@@ -379,7 +447,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                       className="rounded-lg overflow-hidden border border-neutral-200 bg-white block group cursor-pointer p-0 w-full"
                       aria-label={`View image ${idx + 1}`}
                       onClick={handleImageClick}
-                      onKeyDown={(e) => {
+                      onKeyDown={e => {
                         // Handle Enter/Space key for accessibility
                         if (e.key === 'Enter' || e.key === ' ') {
                           e.preventDefault();
@@ -387,16 +455,17 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                           handleImageClick();
                         }
                       }}
-                      style={{ 
-                        WebkitUserSelect: 'none', 
+                      style={{
+                        WebkitUserSelect: 'none',
                         userSelect: 'none',
-                        outline: 'none'
+                        outline: 'none',
                       }}
                     >
                       <img
                         src={src}
                         alt={`Payment proof ${idx + 1}`}
                         className="w-full h-auto object-contain transition-transform duration-200 group-hover:scale-[1.02] pointer-events-none"
+                        style={{ maxHeight: 180 }}
                         draggable="false"
                       />
                     </div>
@@ -436,16 +505,49 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
               showCloseButton={true}
               onClose={() => setLightboxOpen(false)}
             >
-              <div className="sr-only">Image Viewer</div>
+              <Container
+                size="full"
+                className="flex items-center justify-end gap-2"
+              >
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1 px-2 py-1 text-sm border border-neutral-200 rounded hover:bg-neutral-50"
+                  onClick={() => setZoom(Math.max(MIN_ZOOM, zoom - ZOOM_STEP))}
+                  aria-label="Zoom out"
+                >
+                  <ZoomOut className="w-4 h-4" />
+                  <Text as="span" size="sm">
+                    Zoom out
+                  </Text>
+                </button>
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1 px-2 py-1 text-sm border border-neutral-200 rounded hover:bg-neutral-50"
+                  onClick={() => setZoom(Math.min(MAX_ZOOM, zoom + ZOOM_STEP))}
+                  aria-label="Zoom in"
+                >
+                  <ZoomIn className="w-4 h-4" />
+                  <Text as="span" size="sm">
+                    Zoom in
+                  </Text>
+                </button>
+              </Container>
             </Modal.Header>
             <Modal.Body>
-              <div className="flex items-center justify-center bg-neutral-50 p-4 min-h-[200px]">
-                <img
-                  src={processedImageUrls[lightboxIndex]}
-                  alt={`Payment proof ${lightboxIndex + 1}`}
-                  className="max-w-full max-h-[70vh] w-auto h-auto object-contain rounded-lg"
-                  draggable="false"
-                />
+              <div className="bg-neutral-50 p-0 min-h-[200px] max-h-[80vh] max-w-[90vw] overflow-auto">
+                <div className="p-4 inline-block">
+                  <img
+                    src={processedImageUrls[lightboxIndex]}
+                    alt={`Payment proof ${lightboxIndex + 1}`}
+                    className="block rounded-lg select-none"
+                    style={{
+                      maxWidth: 'none',
+                      width: `${zoom * 100}%`,
+                      height: 'auto',
+                    }}
+                    draggable="false"
+                  />
+                </div>
               </div>
             </Modal.Body>
           </div>
