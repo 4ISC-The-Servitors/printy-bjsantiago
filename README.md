@@ -3,15 +3,24 @@
 ## 📄 Changelogs
 
 ### 2025-10-26-Andeng
- - fixed ticket reply sessions duplicating
- - fixed session title logic, centralized
- - added feedback (chat_session_feedback) for admin and customer chats
- - fixed kpi for feedback in superadmin
- - improved customer UI/UX, to follow admin
- - migrated services offered into db
- - updated admin portfolio page to reflect whats in db
- - added about b.j. santiago, faqs, services offered chat flows for customer and guest, to follow place order for valued only (?)
- - added notification sounds (might be broken sometimes??)
+
+- added VALUED place order (same ask quote flow)
+- added Urgent notif if valued customer requested quote (to follow others)
+- updated URGENT statuses across admin UI pages to cater valued customers
+- updated admin filters to include ROLE (valued, regular)
+- added multiple image uploads for ticketing
+
+### 2025-10-26-Andeng
+
+- fixed ticket reply sessions duplicating
+- fixed session title logic, centralized
+- added feedback (chat_session_feedback) for admin and customer chats
+- fixed kpi for feedback in superadmin
+- improved customer UI/UX, to follow admin
+- migrated services offered into db
+- updated admin portfolio page to reflect whats in db
+- added about b.j. santiago, faqs, services offered chat flows for customer and guest, to follow place order for valued only (?)
+- added notification sounds (might be broken sometimes??)
 
 ### 2025-10-24-Andeng
 

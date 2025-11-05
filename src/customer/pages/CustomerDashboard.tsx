@@ -67,7 +67,7 @@ const topicConfig: Record<
     label: 'Place an Order',
     icon: <ShoppingCart className="w-6 h-6" />,
     flowId: 'place-order',
-    description: "Avail B.J. Santiago's printing services",
+    description: 'Place your order — you can also ask a quote this way',
   },
   askQuote: {
     label: 'Ask Quote',
@@ -190,7 +190,10 @@ const CustomerDashboardContent: React.FC = () => {
 
   // Determine if there is any recent activity or saved sessions
   const hasRecentActivity = Boolean(
-    recentOrder || recentTicket || recentQuote || (conversations && conversations.length > 0)
+    recentOrder ||
+      recentTicket ||
+      recentQuote ||
+      (conversations && conversations.length > 0)
   );
 
   // ---------------- Chat logic ----------------
@@ -493,16 +496,14 @@ const CustomerDashboardContent: React.FC = () => {
 
           <DashboardGrid
             recentCard={
-              hasRecentActivity
-                ? (
-                    <RecentCard
-                      orderData={recentOrder}
-                      ticketData={recentTicket}
-                      quoteData={recentQuote}
-                      onTopicSelect={key => handleTopic(key as TopicKey)}
-                    />
-                  )
-                : undefined
+              hasRecentActivity ? (
+                <RecentCard
+                  orderData={recentOrder}
+                  ticketData={recentTicket}
+                  quoteData={recentQuote}
+                  onTopicSelect={key => handleTopic(key as TopicKey)}
+                />
+              ) : undefined
             }
             chatCards={
               <ChatCards

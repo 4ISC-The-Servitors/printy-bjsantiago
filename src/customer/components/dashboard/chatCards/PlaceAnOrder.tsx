@@ -19,7 +19,7 @@ const PlaceAnOrder: React.FC<CardProps> = ({ onClick }) => {
         Place an Order
       </Text>
       <Text variant="p" size="xs" color="muted">
-        Avail B.J. Santiago's printing services
+        Place your order — you can also ask a quote this way
       </Text>
     </button>
   );

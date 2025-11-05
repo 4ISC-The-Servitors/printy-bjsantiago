@@ -40,19 +40,12 @@ export type ErrorSeverity = (typeof ErrorSeverity)[keyof typeof ErrorSeverity];
  * Log an error with context information
  */
 export function logActionError(
-  actionName: string,
-  error: unknown,
-  severity: ErrorSeverity = ErrorSeverity.MEDIUM,
-  additionalContext?: Record<string, any>
+  _actionName: string,
+  _error: unknown,
+  _severity: ErrorSeverity = ErrorSeverity.MEDIUM,
+  _additionalContext?: Record<string, any>
 ): void {
-  const errorMessage = error instanceof Error ? error.message : String(error);
-  const errorStack = error instanceof Error ? error.stack : undefined;
-
-  console.error(`[${severity}] [${actionName}] Error:`, {
-    message: errorMessage,
-    stack: errorStack,
-    ...additionalContext,
-  });
+  // Intentionally no-op to avoid noisy console output in runtime environments
 }
 
 /**

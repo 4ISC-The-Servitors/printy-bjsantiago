@@ -109,8 +109,7 @@ export async function displayQuoteDetails(
         messages.push({
           id: crypto.randomUUID(),
           role: 'printy',
-          text:
-            'Note: As a valued customer, once you accept the proposal, your order will move directly to processing without upfront payment.',
+          text: 'Note: As a valued customer, once you accept the proposal, your order will move directly to processing without upfront payment.',
           ts: Date.now(),
         });
       }
@@ -137,7 +136,6 @@ export async function displayQuoteDetails(
               context: {
                 ...context,
                 has_proposal: quoteDetails.hasProposal,
-                proposal_status: quoteDetails.proposal?.status || null,
               } as any,
             },
           })
@@ -149,7 +147,6 @@ export async function displayQuoteDetails(
         messages,
         context: {
           has_proposal: quoteDetails.hasProposal,
-          proposal_status: quoteDetails.proposal?.status || null,
         },
       };
     },
