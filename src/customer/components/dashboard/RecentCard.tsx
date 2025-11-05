@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Card } from '@shared/components';
 import { Package, Ticket, FileText } from 'lucide-react';
 
@@ -35,18 +35,32 @@ const RecentCard: React.FC<RecentCardProps> = ({
   ticketData,
   quoteData,
 }) => {
-  const [activeType, setActiveType] = useState<RecentCardType>('order');
-
-  // Toggle button configuration
-  const toggleOptions: Array<{
+  // Compute which types actually have recent data
+  const availableOptions: Array<{
     type: RecentCardType;
     label: string;
     icon: React.ComponentType<any>;
-  }> = [
-    { type: 'order', label: 'Order', icon: Package },
-    { type: 'ticket', label: 'Ticket', icon: Ticket },
-    { type: 'quote', label: 'Quote', icon: FileText },
-  ];
+  }> = useMemo(() => {
+    const options: Array<{ type: RecentCardType; label: string; icon: React.ComponentType<any> }> = [];
+    if (orderData) options.push({ type: 'order', label: 'Order', icon: Package });
+    if (ticketData) options.push({ type: 'ticket', label: 'Ticket', icon: Ticket });
+    if (quoteData) options.push({ type: 'quote', label: 'Quote', icon: FileText });
+    return options;
+  }, [orderData, ticketData, quoteData]);
+
+  // Default active type to the first available option
+  const [activeType, setActiveType] = useState<RecentCardType>(
+    availableOptions[0]?.type ?? 'order'
+  );
+
+  // Keep active type in sync when availability changes
+  useEffect(() => {
+    if (!availableOptions.find(o => o.type === activeType)) {
+      if (availableOptions[0]) {
+        setActiveType(availableOptions[0].type);
+      }
+    }
+  }, [availableOptions, activeType]);
 
   const handleToggle = (type: RecentCardType) => {
     setActiveType(type);
@@ -66,12 +80,15 @@ const RecentCard: React.FC<RecentCardProps> = ({
     }
   };
 
+  // If nothing is available, do not render this card at all
+  if (availableOptions.length === 0) return null;
+
   return (
     <Card className="relative overflow-hidden bg-white border border-neutral-200 device-card-container">
       {/* Toggle Buttons */}
       <div className="flex items-center justify-between mb-4 p-2 bg-neutral-50 border-b border-neutral-200">
         <div className="flex gap-1">
-          {toggleOptions.map(option => {
+          {availableOptions.map(option => {
             const IconComponent = option.icon;
             return (
               <button

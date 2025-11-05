@@ -25,6 +25,8 @@ export interface PrintingService {
   updated_at: string;
   created_by?: string;
   updated_by?: string;
+  // Optional aggregate: all-time completed orders count (from service_order_stats view)
+  total_order_count?: number;
 }
 
 export interface ServiceWithCategory extends PrintingService {

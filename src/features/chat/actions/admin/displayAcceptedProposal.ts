@@ -22,6 +22,7 @@ import type {
   ActionExecutionParams,
   ActionExecutionResult,
 } from '@features/chat/types';
+import { buildSpecHeaderLines, buildSpecDetailLines } from '@features/chat/helpers/specDisplay';
 
 export async function displayAcceptedProposal(
   params: ActionExecutionParams
@@ -88,54 +89,17 @@ export async function displayAcceptedProposal(
       {};
 
     // Format the proposal details
+    const header = await buildSpecHeaderLines({
+      service_id: (specs as any)?.service_id,
+      category: (specs as any)?.category,
+    });
+    const adminNotes = (specs as any)?.admin_notes || proposal.notes || '';
+    const details = buildSpecDetailLines(specs as any, adminNotes);
     const messages = [
       'Accepted Proposal Details:',
-      '',
-      `Product: ${specs.product_name || 'N/A'}`,
-      `Description: ${specs.description || 'N/A'}`,
-      `Category: ${specs.category || 'N/A'}`,
-      `Quantity: ${specs.quantity || 'N/A'}`,
-      `Size: ${specs.size || 'N/A'}`,
-      `Color: ${specs.color || 'N/A'}`,
+      header.length > 0 ? header.join('\n') : '',
+      ...details,
     ];
-
-    // Add materials if available
-    if (
-      specs.materials &&
-      Array.isArray(specs.materials) &&
-      specs.materials.length > 0
-    ) {
-      messages.push(`Materials: ${specs.materials.join(', ')}`);
-    }
-
-    // Add finishing if available
-    if (
-      specs.finishing &&
-      Array.isArray(specs.finishing) &&
-      specs.finishing.length > 0
-    ) {
-      messages.push(`Finishing: ${specs.finishing.join(', ')}`);
-    }
-
-    // Add other specifications if available
-    if (
-      specs.others &&
-      Array.isArray(specs.others) &&
-      specs.others.length > 0
-    ) {
-      messages.push(`Other Specs: ${specs.others.join(', ')}`);
-    }
-
-    messages.push(
-      `Deadline: ${specs.deadline || 'N/A'}`,
-      `Artwork: ${specs.artwork || 'N/A'}`,
-      ''
-    );
-
-    // Add notes if available
-    if (proposal.notes) {
-      messages.push(`Admin Notes: ${proposal.notes}`);
-    }
 
 
     return {

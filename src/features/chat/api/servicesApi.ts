@@ -28,7 +28,15 @@ export async function fetchAllServices(): Promise<ServiceWithCategory[]> {
     throw error;
   }
 
-  return data || [];
+  const services = (data || []) as ServiceWithCategory[];
+
+  try {
+    const counts = await fetchServiceOrderStats();
+    return services.map(s => ({ ...s, total_order_count: counts[s.service_id] ?? 0 }));
+  } catch (e) {
+    // If stats fetch fails, return services without counts
+    return services;
+  }
 }
 
 /**
@@ -48,8 +56,13 @@ export async function fetchActiveServices(): Promise<ServiceWithCategory[]> {
     console.error('Error fetching active services:', error);
     throw error;
   }
-
-  return data || [];
+  const services = (data || []) as ServiceWithCategory[];
+  try {
+    const counts = await fetchServiceOrderStats();
+    return services.map(s => ({ ...s, total_order_count: counts[s.service_id] ?? 0 }));
+  } catch (e) {
+    return services;
+  }
 }
 
 /**
@@ -69,11 +82,19 @@ export async function fetchServicesByCategory(): Promise<ServiceCategoryWithCoun
     console.error('Error fetching services by category:', error);
     throw error;
   }
-
-  return (data || []).map(category => ({
+  const categories = (data || []) as any[];
+  // Attach counts per service
+  let counts: Record<string, number> = {};
+  try {
+    counts = await fetchServiceOrderStats();
+  } catch {}
+  return categories.map(category => ({
     ...category,
     service_count: category.services?.length || 0,
-    services: category.services || []
+    services: (category.services || []).map((s: any) => ({
+      ...s,
+      total_order_count: counts[s.service_id] ?? 0,
+    })),
   }));
 }
 
@@ -95,11 +116,18 @@ export async function fetchActiveServicesByCategory(): Promise<ServiceCategoryWi
     console.error('Error fetching active services by category:', error);
     throw error;
   }
-
-  return (data || []).map(category => ({
+  const categories = (data || []) as any[];
+  let counts: Record<string, number> = {};
+  try {
+    counts = await fetchServiceOrderStats();
+  } catch {}
+  return categories.map(category => ({
     ...category,
     service_count: category.services?.length || 0,
-    services: category.services || []
+    services: (category.services || []).map((s: any) => ({
+      ...s,
+      total_order_count: counts[s.service_id] ?? 0,
+    })),
   }));
 }
 
@@ -152,6 +180,48 @@ export async function fetchCategories(): Promise<ServiceCategory[]> {
   }
 
   return data || [];
+}
+
+/**
+ * Get active categories (alias for fetchCategories)
+ */
+export const getActiveCategories = fetchCategories;
+
+/**
+ * Get active services for a given category (minimal fields for dropdown)
+ */
+export async function getActiveServicesByCategory(
+  categoryId: string
+): Promise<Array<{ display_id: string; service_name: string }>> {
+  if (!categoryId) return [];
+  const { data, error } = await supabase
+    .from('printing_services')
+    .select('display_id, service_name')
+    .eq('status', 'active')
+    .eq('category_id', categoryId)
+    .order('display_id', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching services by category:', error);
+    throw error;
+  }
+  return data || [];
+}
+
+/** Get a single category by id (minimal) */
+export async function getCategoryById(
+  categoryId: string
+): Promise<{ category_id: string; category_name: string } | null> {
+  const { data, error } = await supabase
+    .from('service_categories')
+    .select('category_id, category_name')
+    .eq('category_id', categoryId)
+    .maybeSingle();
+  if (error) {
+    console.error('Error fetching category by id:', error);
+    return null;
+  }
+  return (data as any) || null;
 }
 
 /**
@@ -220,8 +290,14 @@ export async function fetchServiceByDisplayId(displayId: string): Promise<Servic
     console.error('Error fetching service by display ID:', error);
     throw error;
   }
-
-  return data;
+  // Attach order count if available
+  try {
+    const counts = await fetchServiceOrderStats();
+    const svc = data as ServiceWithCategory;
+    return { ...svc, total_order_count: counts[svc.service_id] ?? 0 };
+  } catch {
+    return data as ServiceWithCategory;
+  }
 }
 
 /**
@@ -241,6 +317,29 @@ export async function searchServices(searchTerm: string): Promise<ServiceWithCat
     console.error('Error searching services:', error);
     throw error;
   }
+  const services = (data || []) as ServiceWithCategory[];
+  try {
+    const counts = await fetchServiceOrderStats();
+    return services.map(s => ({ ...s, total_order_count: counts[s.service_id] ?? 0 }));
+  } catch {
+    return services;
+  }
+}
 
-  return data || [];
+/**
+ * Fetch per-service completed order counts from the view
+ */
+export async function fetchServiceOrderStats(): Promise<Record<string, number>> {
+  const { data, error } = await supabase
+    .from('service_order_stats')
+    .select('service_id,total_order_count');
+  if (error) {
+    console.error('Error fetching service order stats:', error);
+    throw error;
+  }
+  const result: Record<string, number> = {};
+  (data || []).forEach((row: any) => {
+    if (row.service_id) result[row.service_id] = Number(row.total_order_count) || 0;
+  });
+  return result;
 }

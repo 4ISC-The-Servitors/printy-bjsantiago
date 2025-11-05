@@ -51,6 +51,7 @@ import {
   fetchCompleteQuoteDetails,
   formatQuoteDetailsForCustomer,
 } from '@features/chat/helpers/quoteDetailsHelper';
+import { buildSpecHeaderLines } from '@features/chat/helpers/specDisplay';
 import {
   withErrorHandling,
   ErrorMessages,
@@ -87,7 +88,13 @@ export async function displayQuoteDetails(
 
       // ✅ PHASE 3: Use shared helper functions
       const quoteDetails = await fetchCompleteQuoteDetails(conversationId);
-      const quoteDetailsText = formatQuoteDetailsForCustomer(quoteDetails);
+      const proposalSpec = (quoteDetails.proposal?.specFinal || {}) as any;
+      const headerLines = await buildSpecHeaderLines({
+        service_id: proposalSpec?.service_id,
+        category: proposalSpec?.category,
+      });
+      const header = headerLines.length > 0 ? headerLines.join('\n') + '\n\n' : '';
+      const quoteDetailsText = header + formatQuoteDetailsForCustomer(quoteDetails);
 
       const messages: Array<{
         id: string;
@@ -136,6 +143,7 @@ export async function displayQuoteDetails(
               context: {
                 ...context,
                 has_proposal: quoteDetails.hasProposal,
+                proposal_admin_notes: quoteDetails.proposal?.notes || undefined,
               } as any,
             },
           })
@@ -147,6 +155,7 @@ export async function displayQuoteDetails(
         messages,
         context: {
           has_proposal: quoteDetails.hasProposal,
+          proposal_admin_notes: quoteDetails.proposal?.notes || undefined,
         },
       };
     },

@@ -39,18 +39,24 @@ export function SpecEditorModal() {
 
   const initialFormData: SpecFormData = {
     product_name: modalData.specData.product_name || '',
-    service_code: (modalData.specData as any).service_code || '',
+    service_id: (modalData.specData as any).service_id || (modalData.specData as any).service_code || '',
     category: modalData.specData.category || '',
-    description: modalData.specData.description || '',
+    description: (() => {
+      const desc = modalData.specData.description || '';
+      const legacyNotes = (modalData.specData as any).notes || '';
+      const legacyArtwork = (modalData.specData as any).artwork || '';
+      const legacyOthers = (modalData.specData as any).others || [];
+      const extras = [legacyNotes, legacyArtwork, Array.isArray(legacyOthers) ? legacyOthers.join('\n') : '']
+        .filter(Boolean)
+        .join('\n');
+      return extras ? (desc ? `${desc}\n${extras}` : extras) : desc;
+    })(),
     size: modalData.specData.size || '',
     materials: modalData.specData.materials || [],
     color: modalData.specData.color || '',
     finishing: modalData.specData.finishing || [],
-    others: (modalData.specData as any).others || [],
     quantity: modalData.specData.quantity || 1,
-    artwork: (modalData.specData as any).artwork || '',
     deadline: modalData.specData.deadline || '',
-    notes: modalData.specData.notes || '',
     quoted_price: (modalData.specData as any).quoted_price || 0,
     admin_notes: (modalData.specData as any).admin_notes || '',
   };

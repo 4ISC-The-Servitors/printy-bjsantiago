@@ -16,18 +16,15 @@ OUTPUT: JSON only, no prose.
   "language": "tl"|"en",
   "spec": {
     "product_name": string,
-    "service_code": string|undefined,
+    "service_id": string|undefined,
     "category": string|undefined,
     "description": string|undefined,
     "size": string|undefined,
     "materials": string[]|undefined,
     "color": string|undefined,
     "finishing": string[]|undefined,
-    "others": string[]|undefined,
     "quantity": number|undefined,
-    "artwork": string|undefined,
     "deadline": string|undefined,
-    "notes": string|undefined
   }
 }
 `;
@@ -43,18 +40,15 @@ export function buildConversationPrompt(
 
 export interface SpecData {
   product_name: string;
-  service_code?: string;
+  service_id?: string;
   category?: string;
   description?: string;
   size?: string;
   materials?: string[];
   color?: string;
   finishing?: string[];
-  others?: string[];
   quantity?: number;
-  artwork?: string;
   deadline?: string;
-  notes?: string;
   quoted_price?: number;
 }
 

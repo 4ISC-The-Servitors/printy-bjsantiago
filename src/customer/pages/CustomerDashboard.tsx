@@ -28,6 +28,7 @@ import { useDashboardChatEvents } from '@features/chat/hooks/customer/useDashboa
 import { useChatAttachments } from '@features/chat/hooks/shared/useChatAttachments';
 import { usePaymentProofUpload } from '@/features/chat/hooks/customer/usePaymentProofUpload';
 import { useTicketImageUpload } from '@/features/chat/hooks/customer/useTicketImageUpload';
+import { useOrderImageUpload } from '@/features/chat/hooks/customer/useOrderImageUpload';
 import { useDeviceUtils } from '@shared/hooks/ui';
 // Chat feature hooks
 import {
@@ -213,6 +214,7 @@ const CustomerDashboardContent: React.FC = () => {
   const { handleAttachFiles } = useChatAttachments(sendViaHook);
   const { handlePaymentProofUpload } = usePaymentProofUpload();
   const { handleTicketImageUpload } = useTicketImageUpload();
+  const { handleOrderImageUpload } = useOrderImageUpload();
 
   // Check if current conversation is a payment flow
   // Matches: "Pay Order", "Payment", "Reupload Payment", etc.
@@ -235,6 +237,13 @@ const CustomerDashboardContent: React.FC = () => {
     activeId &&
     activeConversation &&
     activeConversation.flowId === 'issue-ticket';
+
+  // Ask-quote or place-order flows use order-uploads bucket
+  const isOrderImageFlow =
+    activeId &&
+    activeConversation &&
+    (activeConversation.flowId === 'ask-quote' ||
+      activeConversation.flowId === 'place-order');
 
   // Enhanced file upload handler that uses payment proof upload for payment flows
   const handleFileUpload = useCallback(
@@ -370,6 +379,33 @@ const CustomerDashboardContent: React.FC = () => {
           );
           sendViaHook('Error: No session available. Please try again.');
         }
+      } else if (isOrderImageFlow && activeConversation) {
+        console.log(
+          '[handleFileUpload] Quote/order flow detected, uploading to order-uploads bucket'
+        );
+
+        // For quotes, there may not be an order yet; use session context or null
+        const orderId = (activeConversation.context as any)?.orderId || null;
+
+        setUploadPct(0);
+        await handleOrderImageUpload(
+          files,
+          orderId,
+          urls => {
+            if (urls && urls.length > 0) {
+              sendViaHook(urls.join('\n'));
+            }
+            setTimeout(() => setUploadPct(null), 400);
+          },
+          errors => {
+            if (errors && errors.length > 0) {
+              console.error('[handleFileUpload] Upload errors:', errors);
+              toast.error('Upload failed', errors.join('; '));
+            }
+            setUploadPct(null);
+          },
+          pct => setUploadPct(pct)
+        );
       } else {
         // Use regular chat attachments for other flows
         console.log(
@@ -382,10 +418,12 @@ const CustomerDashboardContent: React.FC = () => {
       isPaymentFlow,
       isTrackTicketFlow,
       isIssueTicketFlow,
+      isOrderImageFlow,
       activeConversation,
       recentOrder?.id,
       handlePaymentProofUpload,
       handleTicketImageUpload,
+      handleOrderImageUpload,
       sendViaHook,
       handleAttachFiles,
     ]

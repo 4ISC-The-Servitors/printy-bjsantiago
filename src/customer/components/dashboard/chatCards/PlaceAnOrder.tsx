@@ -16,7 +16,7 @@ const PlaceAnOrder: React.FC<CardProps> = ({ onClick }) => {
         <ShoppingCart className="w-6 h-6" />
       </div>
       <Text variant="h3" weight="semibold" className="device-text-heading mb-2">
-        Place an Order
+        Place Order
       </Text>
       <Text variant="p" size="xs" color="muted">
         Place your order — you can also ask a quote this way

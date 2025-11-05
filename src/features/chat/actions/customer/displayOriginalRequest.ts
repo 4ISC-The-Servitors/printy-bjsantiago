@@ -79,12 +79,29 @@ export async function displayOriginalRequest(
         (m: any) => m.sender_role === 'customer'
       );
 
-
       if (customerOnlyMessages.length > 0) {
-        // Messages are already decrypted by the RPC function
-        const requestText = customerOnlyMessages
-          .map((m: any) => m.message_text)
-          .join('\n');
+        // Filter out order-uploads URLs and upload prompts so images render in a separate bubble
+        const orderUploadRegex = /supabase:\/\/order-uploads\/[^\s,"')\]]+/gi;
+        const uploadPromptPatterns = [
+          /yes,?\s*upload\s+image/i,
+          /upload\s+image/i,
+          /attach\s+image/i,
+        ];
+
+        const cleaned = customerOnlyMessages
+          .map((m: any) => {
+            let text = String(m.message_text || '').trim();
+            text = text.replace(orderUploadRegex, '').trim();
+            const lines = text.split('\n').filter(line => {
+              const trimmed = line.trim();
+              if (!trimmed) return true;
+              return !uploadPromptPatterns.some(p => p.test(trimmed));
+            });
+            return lines.join('\n').trim();
+          })
+          .filter(Boolean);
+
+        const requestText = cleaned.join('\n');
         originalRequestText += requestText || 'No original request found.';
       } else {
         originalRequestText += 'No original request found.';

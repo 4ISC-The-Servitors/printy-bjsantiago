@@ -20,6 +20,7 @@ import type {
   ActionExecutionParams,
   ActionExecutionResult,
 } from '@features/chat/types';
+import { formatCurrency } from '@shared/utils/priceFormatter';
 
 export async function displayQuotePrice(
   params: ActionExecutionParams
@@ -67,7 +68,7 @@ export async function displayQuotePrice(
       };
     }
 
-    const formattedPrice = `₱${Number(proposal.quoted_price).toLocaleString()}`;
+    const formattedPrice = formatCurrency(Number(proposal.quoted_price || 0));
 
 
     return {
@@ -75,7 +76,7 @@ export async function displayQuotePrice(
         {
           id: crypto.randomUUID(),
           role: 'printy',
-          text: `Agreed Quote Price:${formattedPrice}`,
+          text: `Agreed Quote Price: ${formattedPrice}`,
           ts: Date.now(),
         },
       ],

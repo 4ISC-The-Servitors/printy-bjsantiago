@@ -33,6 +33,7 @@ import {
 import { showCustomerOrders } from './showCustomerOrders';
 import { displayServiceCategories } from './displayServiceCategories';
 import { displayServicesByCategory } from './displayServicesByCategory';
+import { displayOrderUploads } from './displayOrderUploads';
 
 /**
  * Registry of all available action handlers
@@ -65,6 +66,7 @@ export const actionHandlers: Record<string, ActionHandler> = {
   show_customer_orders: showCustomerOrders,
   display_service_categories: displayServiceCategories,
   display_services_by_category: displayServicesByCategory,
+  display_order_uploads: displayOrderUploads,
 };
 
 /**
@@ -98,4 +100,5 @@ export {
   showCustomerOrders,
   displayServiceCategories,
   displayServicesByCategory,
+  displayOrderUploads,
 };

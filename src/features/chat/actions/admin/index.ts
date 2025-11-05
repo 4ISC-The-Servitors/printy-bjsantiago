@@ -23,6 +23,7 @@ import { denyPayment } from './denyPayment';
 import { sendAdminReply } from './replyToTicket';
 import { ticketChangeStatus } from './changeTicketStatus';
 import { fetchTicketForAdmin } from './fetchTicketForAdmin';
+import { displayOrderUploadsAdmin } from './displayOrderUploads';
 
 /**
  * Registry of all available action handlers
@@ -41,6 +42,7 @@ export const actionHandlers: Record<string, ActionHandler> = {
   display_quote_price: displayQuotePrice,
   display_order_specs: displayOrderSpecs,
   display_order_price: displayOrderPrice,
+  display_order_uploads_admin: displayOrderUploadsAdmin,
   display_payment_proof: displayPaymentProof,
   verify_payment: verifyPayment,
   deny_payment: denyPayment,
@@ -71,4 +73,5 @@ export {
   sendAdminReply,
   ticketChangeStatus,
   fetchTicketForAdmin,
+  displayOrderUploadsAdmin,
 };

@@ -9,6 +9,7 @@ interface Service {
   display_id: string;
   service_name: string;
   status: string;
+  total_order_count?: number;
 }
 
 interface ServiceItemProps {
@@ -30,9 +31,26 @@ export const ServiceItem: React.FC<ServiceItemProps> = ({
     >
       <div className="flex items-center gap-4 min-w-0 flex-1">
         <div className="min-w-0 flex-1">
-          <Text variant="p" size="sm" color="muted" className="truncate">
+          {/* Desktop/Tablet: inline label with bullet */}
+          <Text variant="p" size="sm" color="muted" className="truncate hidden sm:block">
             {service.display_id}
+            {typeof service.total_order_count === 'number' && (
+              <>
+                {` \u2022 Lifetime Completed: ${service.total_order_count}`}
+              </>
+            )}
           </Text>
+          {/* Mobile: two-line, no bullet */}
+          <div className="sm:hidden">
+            <Text variant="p" size="sm" color="muted" className="truncate">
+              {service.display_id}
+            </Text>
+            {typeof service.total_order_count === 'number' && (
+              <Text variant="p" size="sm" color="muted">
+                {`Lifetime Completed: ${service.total_order_count}`}
+              </Text>
+            )}
+          </div>
           <Text
             variant="p"
             size="lg"

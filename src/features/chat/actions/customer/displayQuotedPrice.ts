@@ -21,6 +21,7 @@ import type {
   ActionExecutionParams,
   ActionExecutionResult,
 } from '@features/chat/types';
+import { formatCurrency } from '@shared/utils/priceFormatter';
 
 export async function displayQuotedPrice(
   params: ActionExecutionParams
@@ -73,7 +74,8 @@ export async function displayQuotedPrice(
 
     if (proposals && proposals.length > 0) {
       const proposal = proposals[0];
-      const priceText = `Quoted Price: ₱${proposal.quoted_price}`;
+      const amount = Number(proposal.quoted_price || 0);
+      const priceText = `Quoted Price: ${formatCurrency(amount)}`;
 
       messages.push({
         id: crypto.randomUUID(),

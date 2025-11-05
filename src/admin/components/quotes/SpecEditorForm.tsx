@@ -2,22 +2,20 @@
 
 import React, { useState } from 'react';
 import { Button, Input } from '@admin/components/shared';
+import { formatPriceInput, extractNumericValue } from '@shared/utils/priceFormatter';
 import { useResponsiveClasses, useResponsiveButton } from '@shared/hooks/ui';
 
 export interface SpecFormData {
   product_name: string;
-  service_code?: string;
+  service_id?: string; // printing_services.display_id
   category?: string;
   description?: string;
   size?: string;
   materials: string[];
   color?: string;
   finishing: string[];
-  others: string[];
   quantity?: number;
-  artwork?: string;
   deadline?: string;
-  notes?: string;
   quoted_price: number;
   admin_notes?: string;
 }
@@ -37,18 +35,15 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
 }) => {
   const [formData, setFormData] = useState<SpecFormData>({
     product_name: '',
-    service_code: '',
+    service_id: '',
     category: '',
     description: '',
     size: '',
     materials: [],
     color: '',
     finishing: [],
-    others: [],
     quantity: 1,
-    artwork: '',
     deadline: '',
-    notes: '',
     quoted_price: 0,
     admin_notes: '',
     ...initialData,
@@ -56,14 +51,49 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
 
   const [materialInput, setMaterialInput] = useState('');
   const [finishingInput, setFinishingInput] = useState('');
-  const [otherInput, setOtherInput] = useState('');
+
+  // Services & Categories dropdown state
+  const [categories, setCategories] = useState<Array<{ category_id: string; category_name: string }>>([]);
+  const [services, setServices] = useState<Array<{ display_id: string; service_name: string }>>([]);
+  const [loadingServices, setLoadingServices] = useState(false);
+
+  // Load active categories on mount
+  React.useEffect(() => {
+    import('@/features/chat/api/servicesApi').then(async api => {
+      const cats = await api.getActiveCategories();
+      setCategories(cats.map((c: any) => ({ category_id: c.category_id, category_name: c.category_name })));
+    }).catch(() => {});
+  }, []);
+
+  // Load services when category changes
+  React.useEffect(() => {
+    const catId = formData.category || '';
+    if (!catId) {
+      setServices([]);
+      return;
+    }
+    setLoadingServices(true);
+    import('@/features/chat/api/servicesApi').then(async api => {
+      const list = await api.getActiveServicesByCategory(catId);
+      setServices(list);
+    }).finally(() => setLoadingServices(false));
+  }, [formData.category]);
 
   const addToArray = (field: keyof SpecFormData, value: string) => {
     if (!value.trim()) return;
-    setFormData(prev => ({
-      ...prev,
-      [field]: [...(prev[field] as string[]), value.trim()],
-    }));
+    // Support comma-separated batch add, trim and dedupe
+    const parts = value
+      .split(',')
+      .map(v => v.trim())
+      .filter(Boolean);
+    setFormData(prev => {
+      const current = new Set<string>([...((prev[field] as string[]) || [])]);
+      parts.forEach(p => current.add(p));
+      return {
+        ...prev,
+        [field]: Array.from(current),
+      } as SpecFormData;
+    });
   };
 
   const removeFromArray = (field: keyof SpecFormData, index: number) => {
@@ -73,9 +103,14 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
     }));
   };
 
+  const [quotedPriceInput, setQuotedPriceInput] = useState<string>(
+    formData.quoted_price ? formatPriceInput(String(formData.quoted_price)) : ''
+  );
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
+    const numeric = extractNumericValue(quotedPriceInput || '');
+    onSubmit({ ...formData, quoted_price: numeric });
   };
 
   const { textClasses } = useResponsiveClasses();
@@ -103,35 +138,65 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
         />
       </div>
 
-      {/* Service Code & Category */}
+      {/* Category & Service ID (filtered) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+        {/* Category dropdown */}
         <div>
-          <label
-            className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}
-          >
-            Service Code
-          </label>
-          <Input
-            value={formData.service_code || ''}
-            onChange={e =>
-              setFormData(prev => ({ ...prev, service_code: e.target.value }))
-            }
-            placeholder="e.g., BC-001, FL-002"
-          />
-        </div>
-        <div>
-          <label
-            className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}
-          >
+          <label className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}>
             Category
           </label>
-          <Input
-            value={formData.category || ''}
-            onChange={e =>
-              setFormData(prev => ({ ...prev, category: e.target.value }))
-            }
-            placeholder="e.g., Business Cards, Marketing Materials"
+          <input
+            list="spec-cat-list"
+            className="w-full h-9 px-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-transparent"
+            placeholder="Type to search categories..."
+            value={(() => {
+              const selected = categories.find(c => c.category_id === (formData.category || ''));
+              return selected ? selected.category_name : '';
+            })()}
+            onChange={e => {
+              const raw = e.target.value;
+              // Expect value as "Name ||| UUID" from datalist; fallback to name lookup
+              if (raw.includes('|||')) {
+                const parts = raw.split('|||');
+                const id = parts[1];
+                setFormData(prev => ({ ...prev, category: id, service_id: '' }));
+              } else {
+                const match = categories.find(c => c.category_name.toLowerCase() === raw.toLowerCase());
+                setFormData(prev => ({ ...prev, category: match?.category_id || '', service_id: '' }));
+              }
+            }}
+            required
           />
+          <datalist id="spec-cat-list">
+            {categories.map(c => (
+              <option key={c.category_id} value={`${c.category_name}|||${c.category_id}`}>{c.category_name}</option>
+            ))}
+          </datalist>
+        </div>
+
+        {/* Service ID dropdown filtered by category */}
+        <div>
+          <label className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}>
+            Service ID
+          </label>
+          <input
+            list="spec-service-list"
+            className="w-full h-9 px-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-transparent"
+            placeholder={loadingServices ? 'Loading services…' : 'Type to search services...'}
+            disabled={!formData.category || loadingServices}
+            value={formData.service_id || ''}
+            onChange={e => {
+              const raw = e.target.value;
+              // We set option values to display_id, so we can assign directly
+              setFormData(prev => ({ ...prev, service_id: raw }));
+            }}
+            required
+          />
+          <datalist id="spec-service-list">
+            {services.map(s => (
+              <option key={s.display_id} value={s.display_id}>{`${s.display_id} (${s.service_name})`}</option>
+            ))}
+          </datalist>
         </div>
       </div>
 
@@ -196,7 +261,7 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
         >
           Materials
         </label>
-        <div className="flex gap-2 mb-2">
+        <div className="flex w-full gap-2 mb-2">
           <Input
             value={materialInput}
             onChange={e => setMaterialInput(e.target.value)}
@@ -208,11 +273,13 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
                 setMaterialInput('');
               }
             }}
+            className="flex-1 min-w-0"
           />
           <Button
             type="button"
             variant="secondary"
             size="sm"
+            className="shrink-0 whitespace-nowrap"
             onClick={() => {
               addToArray('materials', materialInput);
               setMaterialInput('');
@@ -263,7 +330,7 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
         >
           Finishing
         </label>
-        <div className="flex gap-2 mb-2">
+        <div className="flex w-full gap-2 mb-2">
           <Input
             value={finishingInput}
             onChange={e => setFinishingInput(e.target.value)}
@@ -275,11 +342,13 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
                 setFinishingInput('');
               }
             }}
+            className="flex-1 min-w-0"
           />
           <Button
             type="button"
             variant="secondary"
             size="sm"
+            className="shrink-0 whitespace-nowrap"
             onClick={() => {
               addToArray('finishing', finishingInput);
               setFinishingInput('');
@@ -307,22 +376,8 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
         </div>
       </div>
 
-      {/* Artwork & Deadline */}
+      {/* Deadline */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-        <div>
-          <label
-            className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}
-          >
-            Artwork
-          </label>
-          <Input
-            value={formData.artwork || ''}
-            onChange={e =>
-              setFormData(prev => ({ ...prev, artwork: e.target.value }))
-            }
-            placeholder="e.g., Customer provided, Design needed"
-          />
-        </div>
         <div>
           <label
             className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}
@@ -335,86 +390,6 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
               setFormData(prev => ({ ...prev, deadline: e.target.value }))
             }
             placeholder="e.g., 2024-01-15, ASAP, 3 days"
-          />
-        </div>
-      </div>
-
-      {/* Others */}
-      <div>
-        <label
-          className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}
-        >
-          Additional Details
-        </label>
-        <div className="flex gap-2 mb-2">
-          <Input
-            value={otherInput}
-            onChange={e => setOtherInput(e.target.value)}
-            placeholder="Add additional detail"
-            onKeyPress={e => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                addToArray('others', otherInput);
-                setOtherInput('');
-              }
-            }}
-          />
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            onClick={() => {
-              addToArray('others', otherInput);
-              setOtherInput('');
-            }}
-          >
-            Add
-          </Button>
-        </div>
-        <div className="flex flex-wrap gap-1.5 sm:gap-2">
-          {formData.others.map((other, index) => (
-            <span
-              key={index}
-              className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-800"
-            >
-              {other}
-              <button
-                type="button"
-                onClick={() => removeFromArray('others', index)}
-                className="ml-1 text-gray-600 hover:text-gray-800"
-              >
-                ×
-              </button>
-            </span>
-          ))}
-        </div>
-      </div>
-
-      {/* Quote Price */}
-      <div>
-        <label
-          className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}
-        >
-          Quote Price (PHP) *
-        </label>
-        <div className="relative">
-          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
-            ₱
-          </span>
-          <Input
-            type="number"
-            value={formData.quoted_price}
-            onChange={e =>
-              setFormData(prev => ({
-                ...prev,
-                quoted_price: parseFloat(e.target.value) || 0,
-              }))
-            }
-            placeholder="0.00"
-            step="0.01"
-            min="0"
-            required
-            className="pl-8"
           />
         </div>
       </div>
@@ -437,23 +412,60 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
         />
       </div>
 
-      {/* Notes */}
+      {/* Quote Price (moved to bottom) */}
       <div>
         <label
           className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}
         >
-          Customer Notes
+          Quote Price (₱) *
         </label>
-        <textarea
-          value={formData.notes || ''}
-          onChange={e =>
-            setFormData(prev => ({ ...prev, notes: e.target.value }))
-          }
-          placeholder="Notes to include in the quote for customer"
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-transparent"
-          rows={3}
-        />
+        <div className="relative">
+          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+            ₱
+          </span>
+          <Input
+            type="text"
+            value={quotedPriceInput}
+            onChange={e => {
+              const formatted = formatPriceInput(e.target.value);
+              setQuotedPriceInput(formatted);
+              setFormData(prev => ({
+                ...prev,
+                quoted_price: extractNumericValue(formatted),
+              }));
+            }}
+            onKeyDown={e => {
+              const allowed = [
+                'Backspace',
+                'Delete',
+                'ArrowLeft',
+                'ArrowRight',
+                'Home',
+                'End',
+                'Tab',
+              ];
+              if (allowed.includes(e.key)) return;
+              const isNumber = /[0-9]/.test(e.key);
+              const isDot = e.key === '.';
+              if (!isNumber && !isDot) {
+                e.preventDefault();
+                return;
+              }
+              if (isDot && (e.currentTarget.value.includes('.') || quotedPriceInput.includes('.'))) {
+                // Prevent multiple decimals in the raw input
+                e.preventDefault();
+              }
+            }}
+            onWheel={e => (e.currentTarget as HTMLInputElement).blur()}
+            placeholder="₱0"
+            inputMode="numeric"
+            required
+            className="pl-8"
+          />
+        </div>
       </div>
+
+      {/* Admin Notes (visible to customer) */}
 
       {/* Actions */}
       <div className="flex gap-2 sm:gap-3 pt-3 sm:pt-4">

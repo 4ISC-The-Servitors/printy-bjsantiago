@@ -103,9 +103,9 @@ export function useCustomerConversations() {
           // We need to find the quote_id from that session
           try {
             const { data: quoteData, error: quoteErr, status: httpStatus } = await supabase
-              .from('quotes')
+            .from('quotes')
               .select('quote_id, created_at')
-              .eq('session_id', ctx.conversation_id)
+            .eq('session_id', ctx.conversation_id)
               .order('created_at', { ascending: false })
               .limit(1)
               .maybeSingle();

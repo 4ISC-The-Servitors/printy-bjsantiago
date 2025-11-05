@@ -50,7 +50,37 @@ export async function fetchOriginalCustomerRequest(
       return 'No original request found.';
     }
 
-    return customerOnlyMessages.map((m: any) => m.message_text).join('\n');
+    // Filter out upload-related content: image URLs and upload prompts
+    const orderUploadRegex = /supabase:\/\/order-uploads\/[^\s,"')\]]+/gi;
+    const uploadPromptPatterns = [
+      /yes,?\s*upload\s+image/i,
+      /upload\s+image/i,
+      /attach\s+image/i,
+    ];
+
+    const cleanedMessages = customerOnlyMessages
+      .map((m: any) => {
+        let text = String(m.message_text || '').trim();
+        
+        // Remove image URLs
+        text = text.replace(orderUploadRegex, '').trim();
+        
+        // Remove upload prompt lines
+        const lines = text.split('\n').filter(line => {
+          const trimmed = line.trim();
+          if (!trimmed) return true; // Keep empty lines
+          return !uploadPromptPatterns.some(pattern => pattern.test(trimmed));
+        });
+        
+        return lines.join('\n').trim();
+      })
+      .filter(text => text.length > 0); // Remove empty messages after cleaning
+
+    if (cleanedMessages.length === 0) {
+      return 'No original request found.';
+    }
+
+    return cleanedMessages.join('\n');
   } catch (error) {
     console.error('[fetchOriginalCustomerRequest] Unexpected error:', error);
     return 'No original request found.';
@@ -84,11 +114,13 @@ export async function fetchLatestProposal(
     }
 
     const proposal = proposals[0];
+    // Prefer admin_notes nested inside spec_final if present; fallback to top-level notes
+    const adminNotes = (proposal?.spec_final as any)?.admin_notes || proposal?.notes || '';
     return {
       proposalId: proposal.proposal_id,
       specFinal: proposal.spec_final || {},
       quotedPrice: proposal.quoted_price,
-      notes: proposal.notes || '',
+      notes: adminNotes,
       createdAt: proposal.created_at,
     };
   } catch (error) {

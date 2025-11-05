@@ -21,6 +21,7 @@ import type {
   ActionExecutionParams,
   ActionExecutionResult,
 } from '@features/chat/types';
+import { buildSpecHeaderLines } from '@features/chat/helpers/specDisplay';
 
 export async function displayProposalSpecs(
   params: ActionExecutionParams
@@ -83,13 +84,19 @@ export async function displayProposalSpecs(
       const specData = proposal.spec_final;
 
       // Build proposal details
+      const header = await buildSpecHeaderLines({
+        service_id: (specData as any)?.service_id,
+        category: (specData as any)?.category,
+      });
       const proposalDetails = ['Admin Proposal:\n'];
+      if (header.length > 0) {
+        proposalDetails.push(header.join('\n'));
+      }
       proposalDetails.push(
         `• Product: ${specData.product_name || 'Not specified'}`
       );
 
-      if (specData.category)
-        proposalDetails.push(`• Category: ${specData.category}`);
+      // category now included in header if present
       if (specData.description)
         proposalDetails.push(`• Description: ${specData.description}`);
       if (specData.size) proposalDetails.push(`• Size: ${specData.size}`);

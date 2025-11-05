@@ -10,18 +10,39 @@
  * @returns Formatted price string with peso sign (e.g., ₱30,000)
  */
 export function formatPriceInput(input: string): string {
-  // Remove any existing peso signs, commas, and whitespace
+  // Keep digits and a single decimal point; strip peso, commas, spaces
   let cleanInput = input.replace(/[₱,\s]/g, '');
 
-  // Check if it's a valid number
+  // Allow only first decimal point
+  const firstDot = cleanInput.indexOf('.');
+  const endsWithDot = cleanInput.endsWith('.') && firstDot === cleanInput.length - 1;
+  if (firstDot !== -1) {
+    // Remove any additional dots
+    cleanInput =
+      cleanInput.substring(0, firstDot + 1) +
+      cleanInput
+        .substring(firstDot + 1)
+        .replace(/\./g, '');
+  }
+
   const number = parseFloat(cleanInput);
   if (isNaN(number)) {
     return input; // Return original if not a valid number
   }
 
-  // Format with commas and add peso sign
-  const formatted = number.toLocaleString('en-PH');
-  return `₱${formatted}`;
+  // Determine decimal places from input (up to 2)
+  let decimals = 0;
+  if (firstDot !== -1) {
+    const decimalPart = cleanInput.substring(firstDot + 1);
+    decimals = Math.min(2, decimalPart.length);
+  }
+
+  const formatted = number.toLocaleString('en-PH', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: 2,
+  });
+  // Preserve trailing decimal point while user is typing
+  return `₱${formatted}${endsWithDot ? '.' : ''}`;
 }
 
 /**
@@ -31,8 +52,9 @@ export function formatPriceInput(input: string): string {
  * @returns The numeric value (e.g., 30000)
  */
 export function extractNumericValue(formattedPrice: string): number {
-  const cleanInput = formattedPrice.replace(/[₱,\s]/g, '');
-  return parseFloat(cleanInput) || 0;
+  const cleanInput = formattedPrice.replace(/[₱,\s,]/g, '');
+  const n = parseFloat(cleanInput);
+  return isNaN(n) ? 0 : n;
 }
 
 /**
@@ -47,27 +69,22 @@ export function isValidPriceInput(input: string): boolean {
 }
 
 /**
- * Formats a price with currency symbol and locale-specific formatting
+ * Formats a price with the Peso symbol and locale-specific number formatting
  *
  * @param amount - The numeric amount
- * @param currency - The currency code (default: 'PHP')
  * @param locale - The locale for formatting (default: 'en-PH')
- * @returns Formatted currency string
+ * @returns Formatted string prefixed with the Peso sign (e.g., ₱30,000.50)
  */
-export function formatCurrency(
-  amount: number,
-  currency: string = 'PHP',
-  locale: string = 'en-PH'
-): string {
+export function formatCurrency(amount: number, locale: string = 'en-PH'): string {
   try {
-    return new Intl.NumberFormat(locale, {
-      style: 'currency',
-      currency: currency,
-      minimumFractionDigits: 0,
+    // Show up to 2 decimals; do not force .00 for whole numbers
+    const hasCents = Math.round(amount * 100) % 100 !== 0;
+    const formatted = amount.toLocaleString(locale, {
+      minimumFractionDigits: hasCents ? 2 : 0,
       maximumFractionDigits: 2,
-    }).format(amount);
+    });
+    return `₱${formatted}`;
   } catch (error) {
-    // Fallback to simple formatting if Intl is not available
     return `₱${amount.toLocaleString('en-PH')}`;
   }
 }

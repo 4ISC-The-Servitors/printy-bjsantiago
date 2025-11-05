@@ -46,6 +46,7 @@ import type {
   ActionExecutionParams,
   ActionExecutionResult,
 } from '@features/chat/types';
+import { formatCurrency } from '@shared/utils/priceFormatter';
 
 export async function displayOrderPrice(
   params: ActionExecutionParams
@@ -85,7 +86,7 @@ export async function displayOrderPrice(
       }
 
       // Format price message
-      const priceText = `Agreed Quote Price: ₱${Number(orderDetails.totalAmount).toLocaleString()}`;
+      const priceText = `Agreed Quote Price: ${formatCurrency(Number(orderDetails.totalAmount || 0))}`;
 
       const messages: Array<{
         id: string;

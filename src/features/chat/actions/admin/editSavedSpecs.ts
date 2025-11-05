@@ -101,19 +101,16 @@ export async function editSavedSpecs(
       // Fallback to empty spec if no saved data found
       specData = {
         product_name: '',
-        service_code: '',
+        service_id: '',
         category: '',
         description: '',
         size: '',
         materials: [],
         color: '',
         finishing: [],
-        others: [],
         quantity: 1,
         quoted_price: 0,
-        artwork: '',
         deadline: '',
-        notes: '',
         admin_notes: '',
       };
     }

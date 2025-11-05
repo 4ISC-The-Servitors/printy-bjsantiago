@@ -117,7 +117,7 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({
     }
 
     const imageUrlRegex =
-      /(blob:[^\s]+|https?:\/\/[^\s]+?\.(?:jpg|jpeg|png|gif|webp)(?:\?[^\s]*)?|\/(?:[\w.-]+)\.(?:jpg|jpeg|png|gif|webp)|data:image\/[a-zA-Z0-9+]+;base64,[^\s)]+|supabase:\/\/payment-proofs\/[^\s,\"')\]]+|supabase:\/\/ticket-uploads\/[^\s,\"')\]]+)/gi;
+      /(blob:[^\s]+|https?:\/\/[^\s]+?\.(?:jpg|jpeg|png|gif|webp)(?:\?[^\s]*)?|\/(?:[\w.-]+)\.(?:jpg|jpeg|png|gif|webp)|data:image\/[a-zA-Z0-9+]+;base64,[^\s)]+|supabase:\/\/payment-proofs\/[^\s,\"')\]]+|supabase:\/\/ticket-uploads\/[^\s,\"')\]]+|supabase:\/\/order-uploads\/[^\s,\"')\]]+)/gi;
     const matches = Array.from(text.matchAll(imageUrlRegex)).map(
       match => match[0]
     );
@@ -144,7 +144,7 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({
 
     // Remove image URLs from display text, but keep the message readable
     const imageUrlRegex =
-      /(blob:[^\s]+|https?:\/\/[^\s]+?\.(?:jpg|jpeg|png|gif|webp)(?:\?[^\s]*)?|\/(?:[\w.-]+)\.(?:jpg|jpeg|png|gif|webp)|data:image\/[a-zA-Z0-9+]+;base64,[^\s)]+|supabase:\/\/payment-proofs\/[^\s,\"')\]]+|supabase:\/\/ticket-uploads\/[^\s,\"')\]]+)/gi;
+      /(blob:[^\s]+|https?:\/\/[^\s]+?\.(?:jpg|jpeg|png|gif|webp)(?:\?[^\s]*)?|\/(?:[\w.-]+)\.(?:jpg|jpeg|png|gif|webp)|data:image\/[a-zA-Z0-9+]+;base64,[^\s)]+|supabase:\/\/payment-proofs\/[^\s,\"')\]]+|supabase:\/\/ticket-uploads\/[^\s,\"')\]]+|supabase:\/\/order-uploads\/[^\s,\"')\]]+)/gi;
     return text
       .replace(imageUrlRegex, '')
       .replace(/\(\s*\)/g, ' ')

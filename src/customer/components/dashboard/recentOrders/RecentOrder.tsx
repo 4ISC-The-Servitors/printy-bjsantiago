@@ -107,8 +107,8 @@ const RecentOrder: React.FC<RecentOrderProps> = ({ recentOrder }) => {
           </div>
         )}
 
-        {/* Row 3: Dates and actions in the same row */}
-        <div className="mt-1 flex items-start justify-between gap-3">
+        {/* Row 3: Dates and actions; stack on mobile, row on sm+ */}
+        <div className="mt-1 flex flex-col sm:flex-row items-start justify-between gap-3">
           <div>
             <div
               className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
@@ -148,7 +148,7 @@ const RecentOrder: React.FC<RecentOrderProps> = ({ recentOrder }) => {
             )}
           </div>
 
-          <div className="shrink-0">
+          <div className="shrink-0 mt-3 sm:mt-0">
             {isAwaitingPayment && (
               <PayNowButton
                 orderId={recentOrder.id}

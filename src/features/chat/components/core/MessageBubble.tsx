@@ -31,6 +31,9 @@ const InlineImage: React.FC<{ imageUrl: string }> = ({ imageUrl }) => {
         } else if (imageUrl.startsWith('supabase://payment-proofs/')) {
           filePath = imageUrl.replace('supabase://payment-proofs/', '');
           bucket = 'payment-proofs';
+        } else if (imageUrl.startsWith('supabase://order-uploads/')) {
+          filePath = imageUrl.replace('supabase://order-uploads/', '');
+          bucket = 'order-uploads';
         } else {
           setError(true);
           setIsLoading(false);
@@ -282,6 +285,24 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                 return url; // Fallback to original URL
               }
             }
+            if (url.startsWith('supabase://order-uploads/')) {
+              try {
+                const filePath = url.replace('supabase://order-uploads/', '');
+                const { data, error } = await supabase.storage
+                  .from('order-uploads')
+                  .createSignedUrl(filePath, 3600); // 1 hour expiry
+                if (error) {
+                  console.error('Error creating signed URL for order image:', error);
+                  console.error('File path that failed:', filePath);
+                  return url; // Fallback to original URL
+                }
+                processedCacheRef.current.set(url, data.signedUrl);
+                return data.signedUrl;
+              } catch (error) {
+                console.error('Error processing order upload URL:', error);
+                return url; // Fallback to original URL
+              }
+            }
             // Cache non-supabase URLs as-is
             processedCacheRef.current.set(url, url);
             return url;
@@ -348,7 +369,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
 
     // Image URL regex for splitting
     const imageUrlRegex =
-      /(supabase:\/\/ticket-uploads\/[^\s]+|supabase:\/\/payment-proofs\/[^\s]+)/g;
+      /(supabase:\/\/ticket-uploads\/[^\s]+|supabase:\/\/payment-proofs\/[^\s]+|supabase:\/\/order-uploads\/[^\s]+)/g;
 
     // Split text by image URLs
     const parts = textContent.split(imageUrlRegex);
@@ -357,7 +378,8 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
       // Check if this part is an image URL
       if (
         part.startsWith('supabase://ticket-uploads/') ||
-        part.startsWith('supabase://payment-proofs/')
+        part.startsWith('supabase://payment-proofs/') ||
+        part.startsWith('supabase://order-uploads/')
       ) {
         return <InlineImage key={index} imageUrl={part} />;
       }
