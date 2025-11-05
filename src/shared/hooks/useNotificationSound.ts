@@ -9,6 +9,11 @@ interface UseNotificationSoundOptions {
    * Volume level between 0 and 1 (default: 0.3)
    */
   volume?: number;
+  /**
+   * Optional custom audio source URL (served from public/)
+   * Defaults to '/mixkit-software-interface-start-2574.wav'
+   */
+  src?: string;
 }
 
 interface UseNotificationSoundReturn {
@@ -31,7 +36,7 @@ interface UseNotificationSoundReturn {
 export function useNotificationSound(
   options: UseNotificationSoundOptions = {}
 ): UseNotificationSoundReturn {
-  const { enabled = true, volume = 0.3 } = options;
+  const { enabled = true, volume = 0.3, src = '/mixkit-software-interface-start-2574.wav' } = options;
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -39,7 +44,7 @@ export function useNotificationSound(
   useEffect(() => {
     if (audioRef.current) return;
 
-    const audio = new Audio('/mixkit-software-interface-start-2574.wav');
+    const audio = new Audio(src);
     audio.volume = volume;
     audio.preload = 'auto';
     audioRef.current = audio;
@@ -70,6 +75,26 @@ export function useNotificationSound(
         audioRef.current = null;
       }
     };
+  }, [volume, src]);
+
+  const playBeepFallback = useCallback(() => {
+    try {
+      const AudioContextCtor = (window as any).AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContextCtor) return;
+      const ctx = new AudioContextCtor();
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = 'sine';
+      o.frequency.value = 800;
+      g.gain.value = volume;
+      o.connect(g);
+      g.connect(ctx.destination);
+      o.start();
+      setTimeout(() => {
+        o.stop();
+        ctx.close();
+      }, 200);
+    } catch {}
   }, [volume]);
 
   const playSound = useCallback(() => {
@@ -79,13 +104,14 @@ export function useNotificationSound(
       const audio = audioRef.current;
       if (!audio) {
         // Create audio on demand if not already created
-        const newAudio = new Audio('/mixkit-software-interface-start-2574.wav');
+        const newAudio = new Audio(src);
         newAudio.volume = volume;
         audioRef.current = newAudio;
         
         // Try to play, but don't log autoplay errors
         newAudio.play().catch(() => {
-          // Silently fail for autoplay restrictions
+          // Silently fail for autoplay restrictions, try fallback beep
+          playBeepFallback();
         });
         return;
       }
@@ -93,12 +119,13 @@ export function useNotificationSound(
       // Reset to beginning and play
       audio.currentTime = 0;
       audio.play().catch(() => {
-        // Silently fail for autoplay restrictions - user hasn't interacted yet
+        // Silently fail for autoplay restrictions - user hasn't interacted yet, try fallback
+        playBeepFallback();
       });
     } catch (error) {
       // Silently handle errors
     }
-  }, [enabled, volume]);
+  }, [enabled, volume, src, playBeepFallback]);
 
   return { playSound };
 }

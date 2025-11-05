@@ -66,8 +66,10 @@ export function startNotificationListener(
   userId: string,
   toast: any,
   pushItem: (item: UINotificationItem) => void,
-  playSound?: () => void
+  playSound?: () => void,
+  suppressFirstSoundMs: number = 4000
 ): Cleanup {
+  const subscribedAt = Date.now();
   const channel = supabase
     .channel(`notifications:${userId}`)
     .on(
@@ -91,8 +93,10 @@ export function startNotificationListener(
           isRead: notif.is_read,
         };
 
-        // Play sound notification
-        playSound?.();
+        // Play sound notification (skip during initial cooldown)
+        if (Date.now() - subscribedAt >= suppressFirstSoundMs) {
+          playSound?.();
+        }
 
         // Show a toast popup with different levels
         switch (notif.type) {
