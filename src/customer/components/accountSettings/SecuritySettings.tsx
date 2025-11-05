@@ -3,7 +3,6 @@ import { Card, Text, Button, Input, Modal } from '@shared/components';
 import { Eye, EyeOff } from 'lucide-react';
 import { supabase } from '@lib/supabase';
 import { useToast } from '@lib/useToast';
-import { usePasswordChangeDate } from '@customer/hooks/usePasswordChangeDate';
 
 interface SecuritySettingsProps {
   onPasswordUpdated?: () => void; // Triggered after successful password update
@@ -23,30 +22,11 @@ const SecuritySettings: React.FC<SecuritySettingsProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [, toast] = useToast();
-  const {
-    lastPasswordChange,
-    isLoading: isLoadingPasswordDate,
-    error: passwordDateError,
-  } = usePasswordChangeDate();
+
 
   const toggle = (k: 'current' | 'next' | 'confirm') =>
     setShow(p => ({ ...p, [k]: !p[k] }));
 
-  // Format password change date
-  const formatPasswordChangeDate = (date: Date | null): string => {
-    if (!date) return 'Never';
-
-    const now = new Date();
-    const diffInMs = now.getTime() - date.getTime();
-    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-
-    if (diffInDays === 0) return 'Today';
-    if (diffInDays === 1) return 'Yesterday';
-    if (diffInDays < 7) return `${diffInDays} days ago`;
-    if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} weeks ago`;
-    if (diffInDays < 365) return `${Math.floor(diffInDays / 30)} months ago`;
-    return `${Math.floor(diffInDays / 365)} years ago`;
-  };
 
   // Password requirements validation
   const passwordRequirements = [
@@ -164,13 +144,7 @@ const SecuritySettings: React.FC<SecuritySettingsProps> = ({
             <Text variant="span" className="device-text-body" weight="medium">
               Password
             </Text>
-            <Text variant="p" className="device-text-caption text-neutral-600">
-              {isLoadingPasswordDate
-                ? 'Loading...'
-                : passwordDateError
-                  ? 'Unable to load password history'
-                  : `Last changed ${formatPasswordChangeDate(lastPasswordChange)}`}
-            </Text>
+            {/* Password change date indicator removed */}
           </div>
           {!isChanging && (
             <Button
