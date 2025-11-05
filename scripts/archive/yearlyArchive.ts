@@ -201,10 +201,10 @@ async function run(): Promise<void> {
     }
   }
 
-  // Archive inquiries: export from view inquiries_secure, delete from base inquiries
+  // Archive inquiries_v2 by received_at
   {
-    const view = 'inquiries_secure';
-    const table = 'inquiries';
+    const view = 'inquiries_v2';
+    const table = 'inquiries_v2';
     const timeCol = 'received_at';
     const rows = await fetchAll(view, timeCol);
     if (rows.length) {
@@ -223,16 +223,20 @@ async function run(): Promise<void> {
   {
     const table = 'orders_duplicate';
     const timeCol = 'created_at';
-    const rows = await fetchAll(table, timeCol);
-    if (rows.length) {
-      const objectPath = `${prefix}/${table}-${year}.csv`;
-      await appendCsv(admin, bucket, objectPath, rows);
-      if (!dryRun) await deleteRange(table, timeCol);
-      console.log(
-        `[archive] ${table}: exported ${rows.length}${dryRun ? ' (dry-run)' : ''}`
-      );
-    } else {
-      console.log(`[archive] ${table}: no rows in range`);
+    try {
+      const rows = await fetchAll(table, timeCol);
+      if (rows.length) {
+        const objectPath = `${prefix}/${table}-${year}.csv`;
+        await appendCsv(admin, bucket, objectPath, rows);
+        if (!dryRun) await deleteRange(table, timeCol);
+        console.log(
+          `[archive] ${table}: exported ${rows.length}${dryRun ? ' (dry-run)' : ''}`
+        );
+      } else {
+        console.log(`[archive] ${table}: no rows in range`);
+      }
+    } catch (e) {
+      console.log(`[archive] ${table}: skipped (${(e as any)?.message || e})`);
     }
   }
 
@@ -257,66 +261,64 @@ async function run(): Promise<void> {
     }
   }
 
-  // Archive quote_* normalized tables using conversations in range
+  // Archive quotes (normalized v2 tables) by created_at
   {
-    const convTable = 'quote_conversations';
-    const convTimeCol = 'created_at';
-    const { data: convs, error: convErr } = await admin
-      .from(convTable)
-      .select('conversation_id')
-      .gte(convTimeCol, startIso)
-      .lt(convTimeCol, endIso)
-      .limit(100000);
-    if (convErr) throw convErr;
-    const convIds = (convs || []).map((c: any) => c.conversation_id);
-    if (convIds.length) {
-      const inFilter = (q: any) => q.in('conversation_id', convIds);
-      // Export in dependency order: messages, specs, proposals, orders, conversations
-      const tables = [
-        { name: 'quote_messages', key: 'conversation_id' },
-        { name: 'quote_specs', key: 'conversation_id' },
-        { name: 'quote_proposals', key: 'conversation_id' },
-        { name: 'quote_orders', key: 'conversation_id' },
-        { name: 'quote_conversations', key: 'conversation_id' },
-      ] as const;
-
-      for (const t of tables) {
-        const { data, error } = await inFilter(
-          admin.from(t.name).select('*')
-        ).limit(100000);
-        if (error) throw error;
-        const rows = data || [];
-        if (rows.length) {
-          const objectPath = `${prefix}/${t.name}-${year}.csv`;
-          await appendCsv(admin, bucket, objectPath, rows);
-        }
+    const table = 'quotes';
+    const timeCol = 'created_at';
+    try {
+      const rows = await fetchAll(table, timeCol);
+      if (rows.length) {
+        const objectPath = `${prefix}/${table}-${year}.csv`;
+        await appendCsv(admin, bucket, objectPath, rows);
+        if (!dryRun) await deleteRange(table, timeCol);
+        console.log(
+          `[archive] ${table}: exported ${rows.length}${dryRun ? ' (dry-run)' : ''}`
+        );
+      } else {
+        console.log(`[archive] ${table}: no rows in range`);
       }
+    } catch (e) {
+      console.log(`[archive] ${table}: skipped (${(e as any)?.message || e})`);
+    }
+  }
 
-      if (!dryRun) {
-        // Delete children first then conversations
-        for (const t of [
-          'quote_orders',
-          'quote_proposals',
-          'quote_specs',
-          'quote_messages',
-        ]) {
-          const { error } = await admin
-            .from(t)
-            .delete()
-            .in('conversation_id', convIds);
-          if (error) throw error;
-        }
-        const { error: delConvErr } = await admin
-          .from('quote_conversations')
-          .delete()
-          .in('conversation_id', convIds);
-        if (delConvErr) throw delConvErr;
+  {
+    const table = 'quote_specs';
+    const timeCol = 'created_at';
+    try {
+      const rows = await fetchAll(table, timeCol);
+      if (rows.length) {
+        const objectPath = `${prefix}/${table}-${year}.csv`;
+        await appendCsv(admin, bucket, objectPath, rows);
+        if (!dryRun) await deleteRange(table, timeCol);
+        console.log(
+          `[archive] ${table}: exported ${rows.length}${dryRun ? ' (dry-run)' : ''}`
+        );
+      } else {
+        console.log(`[archive] ${table}: no rows in range`);
       }
-      console.log(
-        `[archive] quote_*: exported conversations=${convIds.length}${dryRun ? ' (dry-run)' : ''}`
-      );
-    } else {
-      console.log('[archive] quote_*: no conversations in range');
+    } catch (e) {
+      console.log(`[archive] ${table}: skipped (${(e as any)?.message || e})`);
+    }
+  }
+
+  {
+    const table = 'quote_proposals';
+    const timeCol = 'created_at';
+    try {
+      const rows = await fetchAll(table, timeCol);
+      if (rows.length) {
+        const objectPath = `${prefix}/${table}-${year}.csv`;
+        await appendCsv(admin, bucket, objectPath, rows);
+        if (!dryRun) await deleteRange(table, timeCol);
+        console.log(
+          `[archive] ${table}: exported ${rows.length}${dryRun ? ' (dry-run)' : ''}`
+        );
+      } else {
+        console.log(`[archive] ${table}: no rows in range`);
+      }
+    } catch (e) {
+      console.log(`[archive] ${table}: skipped (${(e as any)?.message || e})`);
     }
   }
 
