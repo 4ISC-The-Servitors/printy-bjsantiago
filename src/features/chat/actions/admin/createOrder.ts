@@ -121,6 +121,19 @@ export async function createOrder(
 
     const adminUserId = await getAdminUserId();
 
+    // Determine if customer is VALUED to set initial order status
+    let isValuedCustomer = false;
+    try {
+      const { data: cust } = await supabase
+        .from('customer')
+        .select('customer_type')
+        .eq('customer_id', quote.customer_id)
+        .maybeSingle();
+      isValuedCustomer = (cust?.customer_type as string) === 'valued';
+    } catch {
+      // default remains false; treat as regular
+    }
+
     // Create the order
     const { data: order, error: orderError } = await supabase
       .from('orders')
@@ -135,7 +148,7 @@ export async function createOrder(
             proposal.quote_proposals[0]?.spec_data) ||
           {},
         total_amount: proposal.quoted_price,
-        status: 'awaiting_payment',
+        status: isValuedCustomer ? 'processing' : 'awaiting_payment',
         updated_by: adminUserId, // Track that admin created the order
         // ✅ FIX: Removed admin_notes - column no longer exists in orders table
       })
@@ -157,9 +170,10 @@ export async function createOrder(
     }
 
     // Update quote status to 'ended' after successful order creation
+    // Mark the admin as the actor so DB trigger routes notification to the customer
     const { error: quoteUpdateError } = await supabase
       .from('quotes')
-      .update({ status: 'ended' })
+      .update({ status: 'ended', updated_by: adminUserId })
       .eq('quote_id', quoteId);
 
     if (quoteUpdateError) {
@@ -172,7 +186,9 @@ export async function createOrder(
         {
           id: crypto.randomUUID(),
           role: 'printy',
-          text: `Order created successfully!\nOrder ID: ${order.display_id || order.order_id}\nTotal Amount: ₱${Number(order.total_amount).toLocaleString()}\nStatus: ${formatOrderStatus(order.status as string)}\n\nThe customer will now be able to upload their payment proof.`,
+          text: isValuedCustomer
+            ? `Order created successfully!\nOrder ID: ${order.display_id || order.order_id}\nTotal Amount: ₱${Number(order.total_amount).toLocaleString()}\nStatus: ${formatOrderStatus(order.status as string)}\n\nThis order is now being processed immediately for the valued customer.`
+            : `Order created successfully!\nOrder ID: ${order.display_id || order.order_id}\nTotal Amount: ₱${Number(order.total_amount).toLocaleString()}\nStatus: ${formatOrderStatus(order.status as string)}\n\nThe customer will now be able to upload their payment proof.`,
           ts: Date.now(),
         },
       ],

@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import LandingPage from './guest/pages/LandingPage';
 import SignIn from '@auth/pages/SignIn';
 import SignUp from '@auth/pages/SignUp';
@@ -84,7 +84,7 @@ function App() {
         path="/valued"
         element={
           <RequireAuth allowed={['valued']}>
-            <CustomerDashboard />
+            <Navigate to="/customer" replace />
           </RequireAuth>
         }
       />

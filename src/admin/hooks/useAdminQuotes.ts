@@ -19,6 +19,7 @@ export interface AdminQuoteData {
     first_name?: string;
     last_name?: string;
     email_address?: string;
+    customer_type?: string;
   };
   proposals?: {
     proposal_id: string;
@@ -35,6 +36,7 @@ export interface AdminQuoteRow {
   display_id?: string;
   customer_name: string;
   customer_email?: string;
+  customer_type?: string;
   product_name: string;
   quoted_amount: string;
   status: string;
@@ -82,7 +84,8 @@ export function useAdminQuotes(options: LoadQuotesOptions = {}) {
           customer:customer_id(
             first_name,
             last_name,
-            email_address
+            email_address,
+            customer_type
           )
         `,
           { count: 'exact' }
@@ -154,6 +157,7 @@ export function useAdminQuotes(options: LoadQuotesOptions = {}) {
           display_id: quote.display_id,
           customer_name: customerName,
           customer_email: customerData?.email_address,
+          customer_type: customerData?.customer_type,
           product_name: productName,
           quoted_amount: quotedAmount,
           status: quote.status,

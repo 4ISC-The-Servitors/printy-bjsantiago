@@ -176,11 +176,35 @@ export async function acceptQuoteProposal(
       // Don't fail the whole action if notifications fail
     }
 
-    // Return success message with End Chat option
+    // Return success message with End Chat option (branch for valued)
+    const contextRoleRaw =
+      ((params.context as any)?.customer_type as string | undefined) ||
+      ((params.context as any)?.context?.customer_type as string | undefined);
+    let customerType = (contextRoleRaw || '').toString();
+
+    if (!customerType && params.customerId) {
+      try {
+        const { data: cust } = await supabase
+          .from('customer')
+          .select('customer_type')
+          .eq('customer_id', params.customerId)
+          .maybeSingle();
+        customerType = String((cust?.customer_type as string) || 'regular');
+      } catch {
+        customerType = 'regular';
+      }
+    }
+    if (!customerType) customerType = 'regular';
+    const isValued = customerType.toLowerCase() === 'valued';
+
+    const finalText = isValued
+      ? 'Great! You have accepted the quote proposal. Our admin will create your order and it will proceed to processing without upfront payment.'
+      : 'Great! You have accepted the quote proposal. Our admin will create your order and you will be instructed to pay for it before your order gets processed.';
+
     messages.push({
       id: crypto.randomUUID(),
       role: 'printy',
-      text: 'Great! You have accepted the quote proposal. Our admin will create your order and you will be instructed to pay for it before your order gets processed.',
+      text: finalText,
       ts: Date.now(),
     });
 

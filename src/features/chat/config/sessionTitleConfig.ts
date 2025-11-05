@@ -15,6 +15,7 @@ export const FLOW_TITLES: Record<string, string> = {
   'pay-order': 'Pay Order',
   'reupload-payment': 'Reupload Payment',
   'issue-ticket': 'Ask Assistance',
+  'place-order': 'Place Order',
   'services-offered': 'Services Offered',
   'faqs': 'FAQs',
   'about-us': 'About B.J. Santiago Inc. ',

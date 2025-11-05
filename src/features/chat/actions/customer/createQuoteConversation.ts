@@ -117,6 +117,10 @@ export async function createQuoteConversation(
 
   const updatedMetadata = {
     ...(currentSession?.metadata || {}),
+    context: {
+      ...((currentSession?.metadata as any)?.context || {}),
+      // Will be set below after fetching from customer table
+    },
     quote: {
       display_id: displayId,
       quote_id: quoteId,
@@ -125,6 +129,25 @@ export async function createQuoteConversation(
       updated_at: new Date().toISOString(),
     },
   };
+
+  // Fetch and store customer_type in session metadata.context for downstream actions
+  try {
+    const { data: customerRow } = await supabase
+      .from('customer')
+      .select('customer_type')
+      .eq('customer_id', customerId)
+      .maybeSingle();
+    const customerType = (customerRow?.customer_type as string) || undefined;
+    (updatedMetadata as any).context = {
+      ...((updatedMetadata as any).context || {}),
+      customer_type: customerType || 'regular',
+    };
+  } catch {
+    (updatedMetadata as any).context = {
+      ...((updatedMetadata as any).context || {}),
+      customer_type: 'regular',
+    };
+  }
 
   // THIRD: Update current session with quote metadata and FK (now that quote exists)
   const { error: updateError } = await supabase

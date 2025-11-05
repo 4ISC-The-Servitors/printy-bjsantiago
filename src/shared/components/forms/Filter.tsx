@@ -46,6 +46,7 @@ const Filter: React.FC<FilterProps> = ({
   const activeCount = useMemo(() => {
     let c = 0;
     if (value.statuses?.length) c += value.statuses.length;
+    if (value.roles && value.roles.length) c += value.roles.length;
     if (value.dateFrom) c += 1;
     if (value.dateTo) c += 1;
     return c;

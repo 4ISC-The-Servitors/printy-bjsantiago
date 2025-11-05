@@ -27,6 +27,9 @@ export const QuoteItem: React.FC<QuoteItemProps> = ({
   const { textClasses } = useResponsiveClasses();
   const layout = getQuoteCardLayout;
 
+  // Show Urgent badge for valued customers
+  const showUrgentBadge = (quote as any)?.customer_type === 'valued';
+
   // Get display ID with fallback to UUID
   const displayId = quote.display_id || quote.id;
 
@@ -64,6 +67,11 @@ export const QuoteItem: React.FC<QuoteItemProps> = ({
         </div>
 
         <div className={layout.badgeContainer}>
+          {showUrgentBadge && (
+            <Badge variant="error" className={layout.statusBadge}>
+              Urgent
+            </Badge>
+          )}
           <Badge
             variant={getQuoteStatusBadgeVariant(quote.status)}
             className={layout.statusBadge}

@@ -103,6 +103,18 @@ export async function displayQuoteDetails(
         },
       ];
 
+      // Append valued-specific note if applicable
+      const customerType = String((context as any)?.customer_type || 'regular');
+      if (customerType === 'valued') {
+        messages.push({
+          id: crypto.randomUUID(),
+          role: 'printy',
+          text:
+            'Note: As a valued customer, once you accept the proposal, your order will move directly to processing without upfront payment.',
+          ts: Date.now(),
+        });
+      }
+
       // ✅ FIX: Don't insert message here - JsonbFlowProcessor caller will handle it
       // This prevents duplicate messages in the database
 

@@ -65,21 +65,24 @@ export const FILTER_CONFIGS = {
     statusOptions: ORDER_STATUS_OPTIONS,
     showDateRange: true,
     showStatusFilter: true,
-    showRoleFilter: false,
+    showRoleFilter: true,
+    roleOptions: CUSTOMER_ROLE_OPTIONS,
   } as FilterConfig,
 
   quotes: {
     statusOptions: QUOTE_STATUS_OPTIONS,
     showDateRange: true,
     showStatusFilter: true,
-    showRoleFilter: false,
+    showRoleFilter: true,
+    roleOptions: CUSTOMER_ROLE_OPTIONS,
   } as FilterConfig,
 
   tickets: {
     statusOptions: TICKET_STATUS_OPTIONS,
     showDateRange: true,
     showStatusFilter: true,
-    showRoleFilter: false,
+    showRoleFilter: true,
+    roleOptions: CUSTOMER_ROLE_OPTIONS,
   } as FilterConfig,
 
   customers: {

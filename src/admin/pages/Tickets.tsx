@@ -79,6 +79,7 @@ const TicketsContent: React.FC = () => {
 
         {/* Result Count */}
         {(filter.statuses?.length > 0 ||
+          (filter.roles && filter.roles.length > 0) ||
           filter.dateFrom ||
           filter.dateTo ||
           search.trim()) && (

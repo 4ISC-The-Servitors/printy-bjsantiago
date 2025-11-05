@@ -188,6 +188,11 @@ const CustomerDashboardContent: React.FC = () => {
   const isLoading =
     loadingRecentOrder || loadingRecentTicket || loadingRecentQuote;
 
+  // Determine if there is any recent activity or saved sessions
+  const hasRecentActivity = Boolean(
+    recentOrder || recentTicket || recentQuote || (conversations && conversations.length > 0)
+  );
+
   // ---------------- Chat logic ----------------
   // Initialize flow via useCustomerConversations
   const initializeFlow = (flowId: string, title: string, ctx: unknown = {}) => {
@@ -488,12 +493,16 @@ const CustomerDashboardContent: React.FC = () => {
 
           <DashboardGrid
             recentCard={
-              <RecentCard
-                orderData={recentOrder}
-                ticketData={recentTicket}
-                quoteData={recentQuote}
-                onTopicSelect={key => handleTopic(key as TopicKey)}
-              />
+              hasRecentActivity
+                ? (
+                    <RecentCard
+                      orderData={recentOrder}
+                      ticketData={recentTicket}
+                      quoteData={recentQuote}
+                      onTopicSelect={key => handleTopic(key as TopicKey)}
+                    />
+                  )
+                : undefined
             }
             chatCards={
               <ChatCards

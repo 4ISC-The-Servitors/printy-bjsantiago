@@ -17,7 +17,6 @@ export interface QuoteDetailsData {
     proposalId: string;
     specFinal: any;
     quotedPrice: number;
-    status: string;
     notes: string;
     createdAt: string;
   } | null;
@@ -72,7 +71,6 @@ export async function fetchLatestProposal(
         proposal_id,
         spec_final,
         quoted_price,
-        status,
         notes,
         created_at
       `
@@ -90,7 +88,6 @@ export async function fetchLatestProposal(
       proposalId: proposal.proposal_id,
       specFinal: proposal.spec_final || {},
       quotedPrice: proposal.quoted_price,
-      status: proposal.status,
       notes: proposal.notes || '',
       createdAt: proposal.created_at,
     };
