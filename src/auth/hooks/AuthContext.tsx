@@ -73,27 +73,38 @@ function clearLoginAt() {
   }
 }
 
+function getMetaRole(user: User | null): Role | undefined {
+  if (!user) return undefined;
+  const app = (user.app_metadata as any) || {};
+  const fromApp = (app.role as Role | undefined) ||
+    (Array.isArray(app.roles) ? (app.roles[0] as Role | undefined) : undefined) ||
+    ((app.claims?.role as Role | undefined) ?? undefined);
+  const fromUser = (user.user_metadata as any)?.role as Role | undefined;
+  return (fromApp || fromUser) as Role | undefined;
+}
+
 async function fetchRoleForUser(user: User | null): Promise<Role | undefined> {
   if (!user?.id) return undefined;
   try {
+    // Prefer metadata role (authoritative for admin/superadmin) over DB
+    const metaRole = getMetaRole(user);
+    if (metaRole) return metaRole as Role;
+
     const { data } = await supabase
       .from('customer')
       .select('customer_type')
       .eq('customer_id', user.id)
       .maybeSingle();
     const dbRole = (data?.customer_type as Role | undefined) || undefined;
-    const metaRole =
-      (user.user_metadata?.role as Role | undefined) || undefined;
-    return (dbRole || metaRole || 'regular') as Role;
+    return (dbRole || 'regular') as Role;
   } catch {
-    const metaRole =
-      (user.user_metadata?.role as Role | undefined) || undefined;
+    const metaRole = getMetaRole(user);
     return (metaRole || 'regular') as Role;
   }
 }
 
 async function fetchRoleWithTimeout(user: User | null): Promise<Role | undefined> {
-  const metaFallback = (user?.user_metadata?.role as Role | undefined) || 'regular';
+  const metaFallback = getMetaRole(user) || 'regular';
   try {
     return await Promise.race<Promise<Role | undefined>>([
       fetchRoleForUser(user),
@@ -119,18 +130,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     let mounted = true;
 
-    const primeFromStorage = () => {
-      try {
-        const stored = JSON.parse(localStorage.getItem('user') || '{}');
-        if (stored?.role) {
-          setState(s => ({ ...s, role: stored.role as Role }));
-        }
-      } catch {
-        // ignore
-      }
-    };
-
-    primeFromStorage();
+    // Do not prime role from localStorage to avoid stale misclassification on refresh.
+    // We will resolve role from Supabase session metadata/DB below.
 
     const load = async () => {
       const { data: sessionData } = await supabase.auth.getSession();
@@ -155,6 +156,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
       const role = await fetchRoleWithTimeout(user);
       if (mounted) setState({ loading: false, session, user, role });
+
+      // Ensure we eventually converge to the authoritative DB role
+      // even if the timeout returned a metadata fallback first.
+      if (session) {
+        try {
+          const exactRole = await fetchRoleForUser(user);
+          if (mounted && exactRole && exactRole !== role) {
+            setState(s => ({ ...s, role: exactRole }));
+          }
+        } catch {
+          // ignore
+        }
+      }
     };
 
     load();
@@ -184,6 +198,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         const role = await fetchRoleWithTimeout(user);
         if (mounted)
           setState({ loading: false, session: session ?? null, user, role });
+
+        // Converge to exact DB role
+        if (session) {
+          try {
+            const exactRole = await fetchRoleForUser(user);
+            if (mounted && exactRole && exactRole !== role) {
+              setState(s => ({ ...s, role: exactRole }));
+            }
+          } catch {
+            // ignore
+          }
+        }
       }
     );
 
@@ -200,8 +226,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     const { data: userData } = await supabase.auth.getUser();
     const session = sessionData.session ?? null;
     const user = userData.user ?? null;
-    const role = await fetchRoleForUser(user);
+    const role = await fetchRoleWithTimeout(user);
     setState({ loading: false, session, user, role });
+    if (session) {
+      try {
+        const exactRole = await fetchRoleForUser(user);
+        if (exactRole && exactRole !== role) {
+          setState(s => ({ ...s, role: exactRole }));
+        }
+      } catch {}
+    }
   };
 
   const value = useMemo<AuthContextValue>(
