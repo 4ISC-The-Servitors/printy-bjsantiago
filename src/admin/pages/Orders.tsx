@@ -2,7 +2,7 @@
 // This page should not depend on mock data once backend is live.
 import React from 'react';
 import { OrdersCard } from '@admin/components';
-import { Search, Filter } from '@shared/components';
+import { Search, Filter, Card, Text } from '@shared/components';
 import { OrdersProvider, useOrders } from '@admin/hooks/OrdersContext';
 import { useGenericSearchFilter } from '@shared/hooks/ui/useGenericSearchFilter';
 import {
@@ -90,8 +90,18 @@ const OrdersContent: React.FC = () => {
         )}
       </div>
 
-      {/* Orders Card - Receives filtered orders */}
-      <OrdersCard filteredOrders={filteredOrders} />
+      {/* Orders List / Empty State */}
+      {filteredOrders.length === 0 ? (
+        <Card className="p-8 text-center">
+          <Text variant="p" className="text-neutral-500">
+            {ordersAll.length === 0
+              ? 'No orders found.'
+              : 'No orders match your filters.'}
+          </Text>
+        </Card>
+      ) : (
+        <OrdersCard filteredOrders={filteredOrders} />
+      )}
     </div>
   );
 };

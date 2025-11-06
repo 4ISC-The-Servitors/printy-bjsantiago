@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { X, Minus } from 'lucide-react';
 import { Button, Text } from '@shared/components';
-import Progress from '@shared/components/ui/Progress';
 import { MessageGroup, TypingIndicator, ChatInput } from '../core';
 import { SessionFeedback } from '../feedback';
 import { getSessionFeedback } from '@features/chat/api';
@@ -24,7 +23,6 @@ export interface CustomerChatOverlayProps {
   sessionId?: string;
   conversationId?: string;
   toast?: [any, any];
-  uploadProgressPct?: number | null;
 }
 
 /**
@@ -46,7 +44,6 @@ export const CustomerChatOverlay: React.FC<CustomerChatOverlayProps> = ({
   sessionId,
   conversationId,
   toast,
-  uploadProgressPct,
 }) => {
   const [input, setInput] = useState('');
   const [minimized, setMinimized] = useState(false);
@@ -185,12 +182,6 @@ export const CustomerChatOverlay: React.FC<CustomerChatOverlayProps> = ({
     return groups;
   }, [messages, quickReplies]);
 
-  // Check if this is a historical conversation (all messages are historical)
-  const isHistoricalConversation = useMemo(() => {
-    if (messages.length === 0) return false;
-    return messages.every(msg => msg.isHistorical === true);
-  }, [messages]);
-
   useEffect(() => {
     if (scrollRef.current) {
       requestAnimationFrame(() => {
@@ -278,25 +269,13 @@ export const CustomerChatOverlay: React.FC<CustomerChatOverlayProps> = ({
               onQuickReply={onQuickReply}
               onEndChat={onEndChat}
               readOnly={readOnly}
-              isHistorical={group.messages.every(m => m.isHistorical === true)}
+              isHistorical={group.messages[0]?.isHistorical}
               userRole={'customer'}
               sessionId={sessionId}
               conversationId={conversationId}
             />
           ))}
           {isTyping && <TypingIndicator />}
-          {/* Inline feedback for historical conversations */}
-          {readOnly &&
-            showFeedback &&
-            sessionId &&
-            isHistoricalConversation && (
-              <SessionFeedback
-                sessionId={sessionId}
-                userRole="customer"
-                isModal={false}
-                onSubmitted={() => setShowFeedback(false)}
-              />
-            )}
         </div>
 
         {/* Footer */}
@@ -321,28 +300,15 @@ export const CustomerChatOverlay: React.FC<CustomerChatOverlayProps> = ({
         </div>
       </div>
 
-      {/* Feedback Modal - Show for current conversation ending (not historical) */}
-      {readOnly && showFeedback && sessionId && !isHistoricalConversation && (
+      {/* Feedback Modal - Show when session ended and not yet submitted */}
+      {readOnly && showFeedback && sessionId && (
         <SessionFeedback
           sessionId={sessionId}
           userRole="customer"
           isOpen={showFeedback}
           onClose={() => setShowFeedback(false)}
           onSubmitted={() => setShowFeedback(false)}
-          isModal={true}
         />
-      )}
-
-      {typeof uploadProgressPct === 'number' && (
-        <div className="absolute bottom-3 left-4 right-4 bg-white/90 backdrop-blur-sm border border-neutral-200 rounded-xl px-4 py-2 shadow-lg">
-          <div className="mb-1 flex items-center justify-between">
-            <span className="text-xs text-neutral-500">Uploading images…</span>
-            <span className="text-xs text-neutral-500">
-              {uploadProgressPct}%
-            </span>
-          </div>
-          <Progress value={uploadProgressPct} />
-        </div>
       )}
     </div>
   );

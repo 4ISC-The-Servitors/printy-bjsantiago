@@ -46,8 +46,8 @@ export function useConversationSwitcher() {
         // First check if this is an ended session
         const { data: session } = await supabase
           .from('chat_sessions_v2')
-          .select('status')
-          .eq('id', conv.session_id)
+          .select('status, flow_id, metadata')
+          .eq('session_id', conv.session_id)
           .single();
 
         const isEnded = session?.status === 'ended';
@@ -69,12 +69,112 @@ export function useConversationSwitcher() {
 
         setMessages(historicalMessages);
 
-        // Set quick replies based on conversation status
-        if (conv.status === 'active' && !isEnded) {
-          // For active conversations, check if we should show "End Chat" quick reply
-          setQuickReplies([
-            { id: 'qr-end', label: 'End Chat', value: 'End Chat' },
-          ]);
+        // Set quick replies using current node options from flow definition when active
+        if (conv.status === 'active' && !isEnded && session) {
+          const flowDef = await getFlowDefinition(session.flow_id);
+          const nodeId = session?.metadata?.current_node_id as string | undefined;
+          const node = nodeId && flowDef ? (flowDef as any).nodes?.[nodeId] : null;
+          const pending = session?.metadata?.context?.
+            _pending_quick_replies as any[] | undefined;
+
+          // Prefer dynamic replies persisted by actions in session metadata context
+          let replies: any[] = Array.isArray(pending)
+            ? pending.map((qr: any, i: number) => ({
+                id: qr.id || `qr-${i}`,
+                label: qr.label,
+                value: qr.value,
+              }))
+            : [];
+
+          // If no dynamic quick replies and current node is an action that generates them,
+          // re-execute the action to regenerate quick replies
+          if (
+            replies.length === 0 &&
+            node &&
+            node.type === 'action' &&
+            (node as any).action
+          ) {
+            const actionName = (node as any).action;
+            // Actions that generate dynamic quick replies
+            const dynamicActions = [
+              'display_service_categories',
+              'display_services_by_category',
+              'show_customer_orders',
+              'show_quote_decision_prompt',
+            ];
+
+            if (dynamicActions.includes(actionName)) {
+              try {
+                // Re-execute the action to regenerate quick replies
+                const { actionHandlers } = await import(
+                  '@features/chat/actions/customer'
+                );
+                const handler = actionHandlers[actionName];
+                if (handler) {
+                  // Get customer ID from session
+                  const { data: sessionData } = await supabase
+                    .from('chat_sessions_v2')
+                    .select('customer_id')
+                    .eq('session_id', conv.session_id)
+                    .single();
+
+                  if (sessionData?.customer_id) {
+                    const actionResult = await handler({
+                      actionNode: node as any,
+                      sessionId: conv.session_id,
+                      customerId: sessionData.customer_id,
+                      context: session?.metadata?.context || {},
+                    });
+
+                    if (actionResult.quickReplies) {
+                      replies = actionResult.quickReplies.map(
+                        (qr: any, i: number) => ({
+                          id: qr.id || `qr-${i}`,
+                          label: qr.label,
+                          value: qr.value,
+                        })
+                      );
+
+                      // Persist regenerated quick replies to session metadata
+                      const updatedContext = {
+                        ...(session?.metadata?.context || {}),
+                        _pending_quick_replies: actionResult.quickReplies,
+                      };
+                      await supabase
+                        .from('chat_sessions_v2')
+                        .update({
+                          metadata: {
+                            ...session.metadata,
+                            context: updatedContext,
+                          },
+                        })
+                        .eq('session_id', conv.session_id);
+                    }
+                  }
+                }
+              } catch (error) {
+                console.error(
+                  'Failed to regenerate dynamic quick replies:',
+                  error
+                );
+              }
+            }
+          }
+
+          // Fallback to node options
+          if (replies.length === 0 && node && (node as any).options) {
+            replies = (node as any).options.map((o: any, i: number) => ({
+              id: `qr-${i}`,
+              label: o.label,
+              value: o.label,
+            }));
+          }
+
+          setQuickReplies(
+            replies.length > 0
+              ? replies
+              : [{ id: 'qr-end', label: 'End Chat', value: 'End Chat' }]
+          );
         } else {
           // For ended conversations, no quick replies
           setQuickReplies([]);

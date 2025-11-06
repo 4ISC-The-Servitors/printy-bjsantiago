@@ -528,13 +528,10 @@ export class JsonbFlowProcessor {
       throw new Error(`Current node ${metadata.current_node_id} not found`);
     }
 
-    // Insert user message with correct sender role (customer/admin)
-    await insertMessage({
-      sessionId,
-      text: userInput,
-      role: senderRole,
-      nodeId: metadata.current_node_id,
-    });
+    // Defer inserting the user message until after we determine if a quick reply was selected.
+    // This allows storing the human-friendly label (e.g., "Back to Main Menu") instead of an internal value (e.g., "main").
+    const originalNodeId = metadata.current_node_id;
+    let selectedQuickReplyLabel: string | null = null;
 
     // ✅ FIX: Always store user input in context for conditional nodes to access
     // This allows conditional nodes to route based on user selections (like "Accept Quote")
@@ -587,6 +584,8 @@ export class JsonbFlowProcessor {
         });
 
         if (selectedQuickReply && selectedQuickReply.next) {
+          // Remember label to display in the transcript
+          selectedQuickReplyLabel = selectedQuickReply.label || null;
           stateManager.setCurrentNode(selectedQuickReply.next);
 
           // ✅ FIX: Store value using store_as property if provided
@@ -628,6 +627,8 @@ export class JsonbFlowProcessor {
         });
 
         if (selectedOption) {
+          // Remember label to display in the transcript
+          selectedQuickReplyLabel = selectedOption.label || null;
           // Store option value if specified
           if (selectedOption.value && selectedOption.store_as) {
             stateManager.updateContext({
@@ -644,6 +645,14 @@ export class JsonbFlowProcessor {
         }
       }
     }
+
+    // Now insert the user message with a friendly label if available
+    await insertMessage({
+      sessionId,
+      text: selectedQuickReplyLabel || userInput,
+      role: senderRole,
+      nodeId: originalNodeId,
+    });
 
     // ✅ FIX: Handle quick reply selections from action results
     // This handles cases where actions return dynamic quick replies (like show_customer_orders, display_service_categories)

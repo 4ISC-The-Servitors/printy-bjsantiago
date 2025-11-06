@@ -173,6 +173,7 @@ export const useAdminChat = (): UseAdminChatReturn => {
                 role: 'printy' as const,
                 text: lastMessage.text,
                 ts: lastMessage.ts,
+                isHistorical: true, // Mark as historical since it's loaded from database
               };
               setMessages(prev => [...prev, endMessage]);
               if (currentConversationId)
@@ -464,7 +465,13 @@ export const useAdminChat = (): UseAdminChatReturn => {
       // For active conversations, use existing messages
       setViewingHistorical(false);
       setReadOnly(false);
-      setMessages((conv.messages as any).slice());
+      // Mark messages as historical if they're loaded from storage to prevent typing animations
+      setMessages(
+        (conv.messages as any).map((m: any) => ({
+          ...m,
+          isHistorical: true, // Mark as historical to prevent typing animations on refresh
+        }))
+      );
       setQuickReplies([]);
     }
 

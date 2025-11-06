@@ -214,6 +214,9 @@ export function useCustomerConversations() {
         const flowDefinition = await getFlowDefinition(conv.flowId);
         if (!flowDefinition) return;
 
+        // Track existing message IDs before processing to distinguish old vs new messages
+        const existingMessageIds = new Set(messages.map(m => m.id));
+
         // Process input through JSONB flow (this will insert user message to DB)
         const result = await JsonbFlowProcessor.processInput({
           sessionId,
@@ -229,6 +232,9 @@ export function useCustomerConversations() {
           text: m.role === 'customer' ? extractDisplayText(m.text) : m.text, // Clean UUID for user messages
           ts: m.ts,
           metadata: m.metadata || null,
+          // Only mark as historical if this message existed before processing
+          // New messages (from this send) should animate
+          isHistorical: existingMessageIds.has(m.id),
         }));
 
         // Update UI with all messages from database
@@ -311,6 +317,7 @@ export function useCustomerConversations() {
           role: mapRole(m.role as any),
           text: m.role === 'customer' ? extractDisplayText(m.text) : m.text, // Clean UUID for user messages
           ts: m.ts,
+          isHistorical: true,
         }));
         setMessages(mappedFetched);
         setConversations(prev =>
@@ -362,6 +369,9 @@ export function useCustomerConversations() {
         const flowDefinition = await getFlowDefinition(conv.flowId);
         if (!flowDefinition) return;
 
+        // Track existing message IDs before processing to distinguish old vs new messages
+        const existingMessageIds = new Set(messages.map(m => m.id));
+
         // Process input through JSONB flow using the VALUE for routing (this will insert user message to DB)
         const result = await JsonbFlowProcessor.processInput({
           sessionId,
@@ -377,6 +387,9 @@ export function useCustomerConversations() {
           text: m.role === 'customer' ? extractDisplayText(m.text) : m.text, // Clean UUID for user messages
           ts: m.ts,
           metadata: m.metadata || null,
+          // Only mark as historical if this message existed before processing
+          // New messages (from this quick reply click) should animate
+          isHistorical: existingMessageIds.has(m.id),
         }));
 
         // Update UI with all messages from database
@@ -536,13 +549,129 @@ export function useCustomerConversations() {
           )
         );
 
-        // Set quick replies based on actual database status
-        if (actualStatus === 'active') {
+        // Set quick replies from current node in DB (flow-aware), fallback to End Chat
+        try {
+          if (actualStatus === 'active') {
+            const { data: sessionRow } = await supabase
+              .from('chat_sessions_v2')
+              .select('flow_id, metadata')
+              .eq('session_id', id)
+              .single();
+
+            const flowId = sessionRow?.flow_id as string | undefined;
+            const currentNodeId = sessionRow?.metadata?.current_node_id as
+              | string
+              | undefined;
+            const pendingFromContext = sessionRow?.metadata?.context?.
+              _pending_quick_replies as any[] | undefined;
+
+            if (flowId && currentNodeId) {
+              const flowDef = await getFlowDefinition(flowId);
+              const node = flowDef?.nodes?.[currentNodeId as any];
+              // Prefer dynamic quick replies persisted by actions in metadata context
+              let replies: any[] = Array.isArray(pendingFromContext)
+                ? pendingFromContext.map((qr: any, i: number) => ({
+                    id: qr.id || `qr-${i}`,
+                    label: qr.label,
+                    value: qr.value,
+                  }))
+                : [];
+
+              // If no dynamic quick replies and current node is an action that generates them,
+              // re-execute the action to regenerate quick replies
+              if (
+                replies.length === 0 &&
+                node &&
+                node.type === 'action' &&
+                (node as any).action
+              ) {
+                const actionName = (node as any).action;
+                // Actions that generate dynamic quick replies
+                const dynamicActions = [
+                  'display_service_categories',
+                  'display_services_by_category',
+                  'show_customer_orders',
+                  'show_quote_decision_prompt',
+                ];
+
+                if (dynamicActions.includes(actionName)) {
+                  try {
+                    // Re-execute the action to regenerate quick replies
+                    const { actionHandlers } = await import(
+                      '@features/chat/actions/customer'
+                    );
+                    const handler = actionHandlers[actionName];
+                    if (handler) {
+                      const { data: userData } = await auth.getUser();
+                      const customerId = userData?.user?.id;
+                      if (customerId) {
+                        const actionResult = await handler({
+                          actionNode: node as any,
+                          sessionId: id,
+                          customerId,
+                          context: sessionRow?.metadata?.context || {},
+                        });
+
+                        if (actionResult.quickReplies) {
+                          replies = actionResult.quickReplies.map(
+                            (qr: any, i: number) => ({
+                              id: qr.id || `qr-${i}`,
+                              label: qr.label,
+                              value: qr.value,
+                            })
+                          );
+
+                          // Persist regenerated quick replies to session metadata
+                          const updatedContext = {
+                            ...(sessionRow?.metadata?.context || {}),
+                            _pending_quick_replies: actionResult.quickReplies,
+                          };
+                          await supabase
+                            .from('chat_sessions_v2')
+                            .update({
+                              metadata: {
+                                ...sessionRow?.metadata,
+                                context: updatedContext,
+                              },
+                            })
+                            .eq('session_id', id);
+                        }
+                      }
+                    }
+                  } catch (error) {
+                    console.error(
+                      'Failed to regenerate dynamic quick replies:',
+                      error
+                    );
+                  }
+                }
+              }
+
+              // Fallback to node options if no dynamic quick replies are present
+              if (replies.length === 0 && node && (node as any).options) {
+                replies = (node as any).options.map((o: any, i: number) => ({
+                  id: `qr-${i}`,
+                  label: o.label,
+                  value: o.label,
+                }));
+              }
+              setQuickReplies(
+                replies.length > 0
+                  ? replies
+                  : [{ id: 'qr-end', label: 'End Chat', value: 'End Chat' }]
+              );
+            } else {
+              setQuickReplies([
+                { id: 'qr-end', label: 'End Chat', value: 'End Chat' },
+              ]);
+            }
+          } else {
+            setQuickReplies([]);
+          }
+        } catch {
           setQuickReplies([
             { id: 'qr-end', label: 'End Chat', value: 'End Chat' },
           ]);
-        } else {
-          setQuickReplies([]);
         }
 
         updateInputPlaceholder();

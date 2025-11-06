@@ -1,7 +1,7 @@
 // Admin tickets page with real-time subscriptions and consistent context pattern
 import React from 'react';
 import { TicketsCard } from '@admin/components';
-import { Search, Filter } from '@shared/components';
+import { Search, Filter, Card, Text } from '@shared/components';
 import { TicketsProvider } from '@admin/hooks/TicketsContext';
 import { useGenericSearchFilter } from '@shared/hooks/ui/useGenericSearchFilter';
 import {
@@ -93,7 +93,17 @@ const TicketsContent: React.FC = () => {
         )}
       </div>
 
-      <TicketsCard filteredTickets={filteredTickets} />
+      {filteredTickets.length === 0 ? (
+        <Card className="p-8 text-center">
+          <Text variant="p" className="text-neutral-500">
+            {ticketsAll.length === 0
+              ? 'No tickets found.'
+              : 'No tickets match your filters.'}
+          </Text>
+        </Card>
+      ) : (
+        <TicketsCard filteredTickets={filteredTickets} />
+      )}
     </div>
   );
 };

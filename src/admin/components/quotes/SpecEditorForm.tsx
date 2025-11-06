@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Button, Input } from '@admin/components/shared';
+import { ChevronDown } from 'lucide-react';
 import { formatPriceInput, extractNumericValue } from '@shared/utils/priceFormatter';
 import { useResponsiveClasses, useResponsiveButton } from '@shared/hooks/ui';
 
@@ -25,6 +26,7 @@ interface SpecEditorFormProps {
   onSubmit: (data: SpecFormData) => void;
   onCancel: () => void;
   loading?: boolean;
+  onChange?: (data: SpecFormData) => void;
 }
 
 const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
@@ -32,6 +34,7 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
   onSubmit,
   onCancel,
   loading = false,
+  onChange,
 }) => {
   const [formData, setFormData] = useState<SpecFormData>({
     product_name: '',
@@ -49,13 +52,15 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
     ...initialData,
   });
 
-  const [materialInput, setMaterialInput] = useState('');
-  const [finishingInput, setFinishingInput] = useState('');
 
   // Services & Categories dropdown state
   const [categories, setCategories] = useState<Array<{ category_id: string; category_name: string }>>([]);
   const [services, setServices] = useState<Array<{ display_id: string; service_name: string }>>([]);
   const [loadingServices, setLoadingServices] = useState(false);
+  const [isCategoryOpen, setIsCategoryOpen] = useState(false);
+  const [isServiceOpen, setIsServiceOpen] = useState(false);
+  const categoryRef = React.useRef<HTMLDivElement>(null);
+  const serviceRef = React.useRef<HTMLDivElement>(null);
 
   // Load active categories on mount
   React.useEffect(() => {
@@ -79,29 +84,21 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
     }).finally(() => setLoadingServices(false));
   }, [formData.category]);
 
-  const addToArray = (field: keyof SpecFormData, value: string) => {
-    if (!value.trim()) return;
-    // Support comma-separated batch add, trim and dedupe
-    const parts = value
-      .split(',')
-      .map(v => v.trim())
-      .filter(Boolean);
-    setFormData(prev => {
-      const current = new Set<string>([...((prev[field] as string[]) || [])]);
-      parts.forEach(p => current.add(p));
-      return {
-        ...prev,
-        [field]: Array.from(current),
-      } as SpecFormData;
-    });
-  };
+  // Close dropdowns when clicking outside
+  React.useEffect(() => {
+    const onDocClick = (e: MouseEvent) => {
+      if (categoryRef.current && !categoryRef.current.contains(e.target as Node)) {
+        setIsCategoryOpen(false);
+      }
+      if (serviceRef.current && !serviceRef.current.contains(e.target as Node)) {
+        setIsServiceOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, []);
 
-  const removeFromArray = (field: keyof SpecFormData, index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: (prev[field] as string[]).filter((_, i) => i !== index),
-    }));
-  };
+  // Removed array add/remove helpers in favor of free-text inputs (comma-separated)
 
   const [quotedPriceInput, setQuotedPriceInput] = useState<string>(
     formData.quoted_price ? formatPriceInput(String(formData.quoted_price)) : ''
@@ -112,6 +109,13 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
     const numeric = extractNumericValue(quotedPriceInput || '');
     onSubmit({ ...formData, quoted_price: numeric });
   };
+
+  // Notify parent of form changes to preserve state across minimize/reopen
+  React.useEffect(() => {
+    if (!onChange) return;
+    onChange({ ...formData });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData]);
 
   const { textClasses } = useResponsiveClasses();
   const { getChatButtonClasses } = useResponsiveButton();
@@ -140,63 +144,96 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
 
       {/* Category & Service ID (filtered) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-        {/* Category dropdown */}
+        {/* Category dropdown (Filter-style) */}
         <div>
           <label className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}>
             Category
           </label>
-          <input
-            list="spec-cat-list"
-            className="w-full h-9 px-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-transparent"
-            placeholder="Type to search categories..."
-            value={(() => {
+          <div className="relative" ref={categoryRef}>
+            <button
+              type="button"
+              onClick={() => setIsCategoryOpen(v => !v)}
+              className="w-full flex items-center justify-between h-9 sm:h-10 px-2 sm:px-3 md:px-4 text-sm bg-white border border-neutral-300 rounded-lg hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            >
+              <span className="text-neutral-700 truncate">
+                {(() => {
               const selected = categories.find(c => c.category_id === (formData.category || ''));
-              return selected ? selected.category_name : '';
+                  return selected ? selected.category_name : 'Select category';
             })()}
-            onChange={e => {
-              const raw = e.target.value;
-              // Expect value as "Name ||| UUID" from datalist; fallback to name lookup
-              if (raw.includes('|||')) {
-                const parts = raw.split('|||');
-                const id = parts[1];
-                setFormData(prev => ({ ...prev, category: id, service_id: '' }));
-              } else {
-                const match = categories.find(c => c.category_name.toLowerCase() === raw.toLowerCase());
-                setFormData(prev => ({ ...prev, category: match?.category_id || '', service_id: '' }));
-              }
-            }}
-            required
-          />
-          <datalist id="spec-cat-list">
-            {categories.map(c => (
-              <option key={c.category_id} value={`${c.category_name}|||${c.category_id}`}>{c.category_name}</option>
+              </span>
+              <ChevronDown className={`w-4 h-4 text-neutral-400 transition-transform ${isCategoryOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {isCategoryOpen && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-neutral-200 rounded-lg shadow-lg z-10 max-h-56 overflow-y-auto">
+                {categories.length === 0 && (
+                  <div className="px-3 py-2 text-sm text-neutral-500">No categories</div>
+                )}
+                {categories.map(c => (
+                  <button
+                    key={c.category_id}
+                    type="button"
+                    onClick={() => {
+                      setFormData(prev => ({ ...prev, category: c.category_id, service_id: '' }));
+                      setIsCategoryOpen(false);
+                    }}
+                    className={`w-full px-3 py-2 text-left text-sm hover:bg-neutral-50 ${formData.category === c.category_id ? 'bg-primary-50 text-primary-700' : 'text-neutral-700'}`}
+                  >
+                    {c.category_name}
+                  </button>
             ))}
-          </datalist>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Service ID dropdown filtered by category */}
+        {/* Service dropdown (Filter-style, depends on category) */}
         <div>
           <label className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}>
-            Service ID
+            Service Name
           </label>
-          <input
-            list="spec-service-list"
-            className="w-full h-9 px-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-transparent"
-            placeholder={loadingServices ? 'Loading services…' : 'Type to search services...'}
+          <div className="relative" ref={serviceRef}>
+            <button
+              type="button"
+              onClick={() => {
+                if (!formData.category || loadingServices) return;
+                setIsServiceOpen(v => !v);
+              }}
             disabled={!formData.category || loadingServices}
-            value={formData.service_id || ''}
-            onChange={e => {
-              const raw = e.target.value;
-              // We set option values to display_id, so we can assign directly
-              setFormData(prev => ({ ...prev, service_id: raw }));
-            }}
-            required
-          />
-          <datalist id="spec-service-list">
+              className={`w-full flex items-center justify-between h-9 sm:h-10 px-2 sm:px-3 md:px-4 text-sm bg-white border rounded-lg focus:outline-none focus:ring-2 ${!formData.category || loadingServices ? 'border-neutral-200 text-neutral-400 cursor-not-allowed' : 'border-neutral-300 hover:border-neutral-400 focus:ring-primary-500 focus:border-transparent'}`}
+            >
+              <span className={`truncate ${!formData.category || loadingServices ? 'text-neutral-400' : 'text-neutral-700'}`}>
+                {loadingServices
+                  ? 'Loading services…'
+                  : formData.service_id
+                  ? (() => {
+                      const s = services.find(x => x.display_id === formData.service_id);
+                      return s ? `${s.display_id} (${s.service_name})` : formData.service_id;
+                    })()
+                  : 'Select service'}
+              </span>
+              <ChevronDown className={`w-4 h-4 ${!formData.category || loadingServices ? 'text-neutral-300' : 'text-neutral-400'} transition-transform ${isServiceOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {isServiceOpen && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-neutral-200 rounded-lg shadow-lg z-10 max-h-56 overflow-y-auto">
+                {services.length === 0 && (
+                  <div className="px-3 py-2 text-sm text-neutral-500">No services</div>
+                )}
             {services.map(s => (
-              <option key={s.display_id} value={s.display_id}>{`${s.display_id} (${s.service_name})`}</option>
+                  <button
+                    key={s.display_id}
+                    type="button"
+                    onClick={() => {
+                      setFormData(prev => ({ ...prev, service_id: s.display_id }));
+                      setIsServiceOpen(false);
+                    }}
+                    className={`w-full px-3 py-2 text-left text-sm hover:bg-neutral-50 ${formData.service_id === s.display_id ? 'bg-primary-50 text-primary-700' : 'text-neutral-700'}`}
+                  >
+                    {`${s.display_id} (${s.service_name})`}
+                  </button>
             ))}
-          </datalist>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -254,56 +291,26 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
         </div>
       </div>
 
-      {/* Materials */}
+      {/* Materials (free-text, comma-separated) */}
       <div>
         <label
           className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}
         >
           Materials
         </label>
-        <div className="flex w-full gap-2 mb-2">
+        <div className="w-full">
           <Input
-            value={materialInput}
-            onChange={e => setMaterialInput(e.target.value)}
-            placeholder="Add material (e.g., Cardstock, Vinyl)"
-            onKeyPress={e => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                addToArray('materials', materialInput);
-                setMaterialInput('');
-              }
+            value={(formData.materials || []).join(', ')}
+            onChange={e => {
+              const parts = e.target.value
+                .split(',')
+                .map(v => v.trim())
+                .filter(Boolean);
+              setFormData(prev => ({ ...prev, materials: parts }));
             }}
-            className="flex-1 min-w-0"
+            placeholder="Comma-separated (e.g., Cardstock, Vinyl)"
+            className="w-full"
           />
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            className="shrink-0 whitespace-nowrap"
-            onClick={() => {
-              addToArray('materials', materialInput);
-              setMaterialInput('');
-            }}
-          >
-            Add
-          </Button>
-        </div>
-        <div className="flex flex-wrap gap-1.5 sm:gap-2">
-          {formData.materials.map((material, index) => (
-            <span
-              key={index}
-              className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800"
-            >
-              {material}
-              <button
-                type="button"
-                onClick={() => removeFromArray('materials', index)}
-                className="ml-1 text-blue-600 hover:text-blue-800"
-              >
-                ×
-              </button>
-            </span>
-          ))}
         </div>
       </div>
 
@@ -323,56 +330,26 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
         />
       </div>
 
-      {/* Finishing */}
+      {/* Finishing (free-text, comma-separated) */}
       <div>
         <label
           className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}
         >
           Finishing
         </label>
-        <div className="flex w-full gap-2 mb-2">
+        <div className="w-full">
           <Input
-            value={finishingInput}
-            onChange={e => setFinishingInput(e.target.value)}
-            placeholder="Add finishing option (e.g., Glossy, Matte, UV Coating)"
-            onKeyPress={e => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                addToArray('finishing', finishingInput);
-                setFinishingInput('');
-              }
+            value={(formData.finishing || []).join(', ')}
+            onChange={e => {
+              const parts = e.target.value
+                .split(',')
+                .map(v => v.trim())
+                .filter(Boolean);
+              setFormData(prev => ({ ...prev, finishing: parts }));
             }}
-            className="flex-1 min-w-0"
+            placeholder="Comma-separated (e.g., Glossy, Matte, UV Coating)"
+            className="w-full"
           />
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            className="shrink-0 whitespace-nowrap"
-            onClick={() => {
-              addToArray('finishing', finishingInput);
-              setFinishingInput('');
-            }}
-          >
-            Add
-          </Button>
-        </div>
-        <div className="flex flex-wrap gap-1.5 sm:gap-2">
-          {formData.finishing.map((finish, index) => (
-            <span
-              key={index}
-              className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100 text-green-800"
-            >
-              {finish}
-              <button
-                type="button"
-                onClick={() => removeFromArray('finishing', index)}
-                className="ml-1 text-green-600 hover:text-green-800"
-              >
-                ×
-              </button>
-            </span>
-          ))}
         </div>
       </div>
 

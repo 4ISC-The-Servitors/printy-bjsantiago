@@ -46,9 +46,8 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({
   const isHistoricalGroup =
     isHistorical || messages.every(m => m.isHistorical === true);
 
-  // Determine if we should animate (only for new messages in active conversations, not historical)
-  const shouldAnimate =
-    isBot && !hasAnimated && !readOnly && !isHistoricalGroup;
+  // Determine if we should animate (only for active conversations, not historical)
+  const shouldAnimate = isBot && !readOnly && !isHistoricalGroup;
 
   // Animate bot messages appearing one by one with typing indicator
   useEffect(() => {
@@ -56,11 +55,8 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({
       // Show typing indicator
       setShowTyping(true);
 
-      // Hide typing indicator and show next message after delay
-      const typingDelay = Math.min(
-        500 + (messages[visibleCount]?.text?.length || 0) * 10,
-        2000
-      );
+      // Hide typing indicator and show next message after a natural delay
+      const typingDelay = 1000;
       const timer = setTimeout(() => {
         setShowTyping(false);
         setVisibleCount(prev => prev + 1);
@@ -79,15 +75,16 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({
       // User messages, ended conversations, or historical messages - appear instantly
       setVisibleCount(messages.length);
       setHasAnimated(true);
-    } else if (messages.length === initialMessageCount) {
-      // This is the initial render - start animation from 0
-      setVisibleCount(0);
-      setHasAnimated(false);
-    } else {
-      // New messages added to existing group - show all immediately (no re-animation)
-      setVisibleCount(messages.length);
-      setHasAnimated(true);
+      return;
     }
+
+    // For active bot groups, reveal all but the newest message immediately,
+    // then animate the newest one to mimic real typing.
+    // This works both when the first bot message arrives after mount
+    // and when a group mounts with 1+ bot messages.
+    const initialVisible = Math.max(0, messages.length - 1);
+    setVisibleCount(initialVisible);
+    setHasAnimated(false);
   }, [
     messages.length,
     isBot,

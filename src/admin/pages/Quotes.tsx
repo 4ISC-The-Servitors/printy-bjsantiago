@@ -1,7 +1,7 @@
 // Admin Quotes page - AI-powered quote management with real-time subscriptions
 import React from 'react';
 import { QuotesCard } from '@admin/components';
-import { Search, Filter } from '@shared/components';
+import { Search, Filter, Card, Text } from '@shared/components';
 import { QuotesProvider } from '@admin/hooks/QuotesContext';
 import { useGenericSearchFilter } from '@shared/hooks/ui/useGenericSearchFilter';
 import {
@@ -89,8 +89,18 @@ const QuotesContent: React.FC = () => {
         )}
       </div>
 
-      {/* Quotes Card - Receives filtered quotes */}
-      <QuotesCard filteredQuotes={filteredQuotes} />
+      {/* Quotes List / Empty State */}
+      {filteredQuotes.length === 0 ? (
+        <Card className="p-8 text-center">
+          <Text variant="p" className="text-neutral-500">
+            {quotesAll.length === 0
+              ? 'No quotes found.'
+              : 'No quotes match your filters.'}
+          </Text>
+        </Card>
+      ) : (
+        <QuotesCard filteredQuotes={filteredQuotes} />
+      )}
     </div>
   );
 };

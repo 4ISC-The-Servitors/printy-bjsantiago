@@ -150,11 +150,11 @@ const AdminDashboard: React.FC = () => {
         {isLoading ? (
           <NotificationListSkeleton itemCount={pageSize} />
         ) : notifications.length === 0 ? (
-          <div className="text-center py-8">
-            <Text variant="p" color="muted">
-              No notifications
+          <Card className="p-8 text-center">
+            <Text variant="p" className="text-neutral-500">
+              No notifications yet.
             </Text>
-          </div>
+          </Card>
         ) : (
           <>
             {/* Pagination Header */}

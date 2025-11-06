@@ -45,11 +45,7 @@ export const SessionFeedback: React.FC<SessionFeedbackProps> = ({
     if (result) {
       setIsSubmitted(true);
       setIsSubmitting(false);
-
-      // For inline mode, notify parent to hide; for modal, keep open until user closes
-      if (!isModal) {
-        onSubmitted?.();
-      }
+      onSubmitted?.();
     } else {
       // Reset on error
       setSelectedRating(0);

@@ -47,11 +47,11 @@
  */
 
 import { supabase } from '@lib/supabase';
+import { fetchCompleteQuoteDetails } from '@features/chat/helpers/quoteDetailsHelper';
 import {
-  fetchCompleteQuoteDetails,
-  formatQuoteDetailsForCustomer,
-} from '@features/chat/helpers/quoteDetailsHelper';
-import { buildSpecHeaderLines } from '@features/chat/helpers/specDisplay';
+  buildSpecHeaderLines,
+  buildSpecDetailLines,
+} from '@features/chat/helpers/specDisplay';
 import {
   withErrorHandling,
   ErrorMessages,
@@ -88,14 +88,6 @@ export async function displayQuoteDetails(
 
       // ✅ PHASE 3: Use shared helper functions
       const quoteDetails = await fetchCompleteQuoteDetails(conversationId);
-      const proposalSpec = (quoteDetails.proposal?.specFinal || {}) as any;
-      const headerLines = await buildSpecHeaderLines({
-        service_id: proposalSpec?.service_id,
-        category: proposalSpec?.category,
-      });
-      const header = headerLines.length > 0 ? headerLines.join('\n') + '\n\n' : '';
-      const quoteDetailsText = header + formatQuoteDetailsForCustomer(quoteDetails);
-
       const messages: Array<{
         id: string;
         role: 'printy';
@@ -105,10 +97,53 @@ export async function displayQuoteDetails(
         {
           id: crypto.randomUUID(),
           role: 'printy',
-          text: quoteDetailsText,
+          text: `Your Original Request:\n\n${quoteDetails.originalRequest}`,
           ts: Date.now(),
         },
       ];
+
+      // Add proposal bubble (separate)
+      if (quoteDetails.hasProposal && quoteDetails.proposal) {
+        const proposalSpec = (quoteDetails.proposal?.specFinal || {}) as any;
+        const headerLines = await buildSpecHeaderLines({
+          service_id: proposalSpec?.service_id,
+          category: proposalSpec?.category,
+        });
+        const detailLines = buildSpecDetailLines(
+          proposalSpec,
+          quoteDetails.proposal?.notes
+        );
+        const proposalText = [
+          'Admin Proposal:',
+          '',
+          ...headerLines,
+          ...detailLines,
+        ].join('\n');
+
+        messages.push({
+          id: crypto.randomUUID(),
+          role: 'printy',
+          text: proposalText,
+          ts: Date.now(),
+        });
+
+        if (quoteDetails.proposal.quotedPrice != null) {
+          messages.push({
+            id: crypto.randomUUID(),
+            role: 'printy',
+            text: `Quoted Price: ₱${quoteDetails.proposal.quotedPrice}`,
+            ts: Date.now(),
+          });
+        }
+      } else {
+        messages.push({
+          id: crypto.randomUUID(),
+          role: 'printy',
+          text:
+            'Your quote request is being reviewed by our admin team. We will send you a detailed proposal with pricing soon.',
+          ts: Date.now(),
+        });
+      }
 
       // Append valued-specific note if applicable
       const customerType = String((context as any)?.customer_type || 'regular');

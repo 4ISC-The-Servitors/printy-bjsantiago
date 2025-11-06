@@ -174,8 +174,8 @@ const AdminChatsPage: React.FC = () => {
         <Card className="p-8 text-center">
           <Text variant="p" className="text-neutral-500">
             {sorted.length === 0
-              ? 'No conversations yet.'
-              : 'No conversations match your filters.'}
+              ? 'No chats found.'
+              : 'No chats match your filters.'}
           </Text>
         </Card>
       )}

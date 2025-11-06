@@ -159,6 +159,7 @@ export const AdminConversationsProvider: React.FC<{
         text: m.text,
         ts: m.ts,
         metadata: m.metadata || null,
+        isHistorical: true, // Mark all loaded messages as historical to prevent typing animations
       }));
     } catch (error) {
       console.error('Failed to load historical messages:', error);

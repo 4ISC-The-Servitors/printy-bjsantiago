@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useMemo } from 'react';
-import { MessageGroup, TypingIndicator } from '@features/chat/components/core';
+import { MessageGroup } from '@features/chat/components/core';
 import type { ChatMessage, QuickReply } from '@features/chat/types/chat';
 
 interface GuestChatPanelProps {
@@ -86,7 +86,7 @@ export const GuestChatPanel: React.FC<GuestChatPanelProps> = ({
             onEndChat={onEndChat}
           />
         ))}
-        {isTyping && <TypingIndicator />}
+        {/* Global typing indicator removed to avoid duplication; MessageGroup handles typing */}
       </div>
     </div>
   );

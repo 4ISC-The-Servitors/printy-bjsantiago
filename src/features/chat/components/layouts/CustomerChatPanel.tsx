@@ -1,11 +1,9 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { X, Minus } from 'lucide-react';
 import { Button, Text } from '@shared/components';
-import Progress from '@shared/components/ui/Progress';
 import { MessageGroup, TypingIndicator, ChatInput } from '../core';
 import { SessionFeedback } from '../feedback';
 import { getSessionFeedback } from '@features/chat/api';
-import { ChatEndService } from '@features/chat/services/ChatEndService';
 import { useChatLoadingToast } from '@features/chat/hooks/shared/useChatLoadingToast';
 import type { ChatMessage, QuickReply } from '@features/chat/types';
 
@@ -25,7 +23,6 @@ export interface CustomerChatPanelProps {
   sessionId?: string;
   conversationId?: string;
   toast?: [any, any]; // Toast instance from parent
-  uploadProgressPct?: number | null;
 }
 
 /**
@@ -48,7 +45,6 @@ export const CustomerChatPanel: React.FC<CustomerChatPanelProps> = ({
   sessionId,
   conversationId,
   toast,
-  uploadProgressPct,
 }) => {
   const [input, setInput] = useState('');
   const [showContent, setShowContent] = useState(false);
@@ -59,26 +55,15 @@ export const CustomerChatPanel: React.FC<CustomerChatPanelProps> = ({
   const loadingToastIdRef = useRef<string | null>(null);
 
   const handleClose = async () => {
-    // If we don't have session info, fall back to legacy behavior
-    if (!sessionId) {
+    if (readOnly) {
+      // Chat already ended, just close the panel
       onBack?.();
-      return;
-    }
-
-    try {
-      // Check if session is already ended
-      const isEnded = await ChatEndService.isSessionEnded(sessionId);
-
-      if (!isEnded) {
-        // Session is active, end it using the unified service via parent
-        onEndChat?.();
-        // Do NOT close immediately; allow UI to flip to readOnly so feedback can show
-      } else {
-        // Session already ended, just close the panel
-        onBack?.();
+    } else {
+      // Active chat - end it first, then close panel
+      if (onEndChat) {
+        await onEndChat();
       }
-    } catch (error) {
-      console.error('Error handling close:', error);
+      // Close the panel immediately after ending
       onBack?.();
     }
   };
@@ -301,7 +286,7 @@ export const CustomerChatPanel: React.FC<CustomerChatPanelProps> = ({
             onQuickReply={onQuickReply}
             onEndChat={onEndChat}
             readOnly={readOnly}
-            isHistorical={group.messages.every(m => m.isHistorical === true)}
+            isHistorical={group.messages[0]?.isHistorical}
             userRole={'customer'}
             sessionId={sessionId}
             conversationId={conversationId}
@@ -332,18 +317,6 @@ export const CustomerChatPanel: React.FC<CustomerChatPanelProps> = ({
           )
         )}
       </div>
-
-      {typeof uploadProgressPct === 'number' && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur-sm border border-neutral-200 rounded-full px-4 py-2 shadow-lg z-40 w-[min(420px,90vw)]">
-          <div className="mb-1 flex items-center justify-between">
-            <span className="text-xs text-neutral-500">Uploading images…</span>
-            <span className="text-xs text-neutral-500">
-              {uploadProgressPct}%
-            </span>
-          </div>
-          <Progress value={uploadProgressPct} />
-        </div>
-      )}
 
       {/* Feedback Modal - Show when session ended and not yet submitted */}
       {readOnly && showFeedback && sessionId && (

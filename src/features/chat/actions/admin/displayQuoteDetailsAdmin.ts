@@ -47,11 +47,11 @@
  */
 
 import { supabase } from '@lib/supabase';
+import { fetchCompleteQuoteDetails } from '@features/chat/helpers/quoteDetailsHelper';
 import {
-  fetchCompleteQuoteDetails,
-  formatQuoteDetailsForAdmin,
-} from '@features/chat/helpers/quoteDetailsHelper';
-import { buildSpecHeaderLines } from '@features/chat/helpers/specDisplay';
+  buildSpecHeaderLines,
+  buildSpecDetailLines,
+} from '@features/chat/helpers/specDisplay';
 import {
   withErrorHandling,
   ErrorMessages,
@@ -88,13 +88,6 @@ export async function displayQuoteDetailsAdmin(
 
       // ✅ PHASE 3: Use shared helper functions
       const quoteDetails = await fetchCompleteQuoteDetails(quoteSessionId);
-      const proposalSpec = (quoteDetails.proposal?.specFinal || {}) as any;
-      const headerLines = await buildSpecHeaderLines({
-        service_id: proposalSpec?.service_id,
-        category: proposalSpec?.category,
-      });
-      const header = headerLines.length > 0 ? headerLines.join('\n') + '\n\n' : '';
-      const detailsText = header + formatQuoteDetailsForAdmin(quoteDetails);
 
       const messages: Array<{
         id: string;
@@ -105,10 +98,45 @@ export async function displayQuoteDetailsAdmin(
         {
           id: crypto.randomUUID(),
           role: 'printy',
-          text: detailsText,
+          text: `Original Customer Request:\n\n${quoteDetails.originalRequest}`,
           ts: Date.now(),
         },
       ];
+
+      if (quoteDetails.hasProposal && quoteDetails.proposal) {
+        const proposalSpec = (quoteDetails.proposal?.specFinal || {}) as any;
+        const headerLines = await buildSpecHeaderLines({
+          service_id: proposalSpec?.service_id,
+          category: proposalSpec?.category,
+        });
+        const detailLines = buildSpecDetailLines(
+          proposalSpec,
+          quoteDetails.proposal?.notes
+        );
+
+        const proposalText = [
+          'Latest Draft/Proposal:',
+          '',
+          ...headerLines,
+          ...detailLines,
+        ].join('\n');
+
+        messages.push({
+          id: crypto.randomUUID(),
+          role: 'printy',
+          text: proposalText,
+          ts: Date.now(),
+        });
+
+        if (quoteDetails.proposal.quotedPrice != null) {
+          messages.push({
+            id: crypto.randomUUID(),
+            role: 'printy',
+            text: `Quoted Price: ₱${quoteDetails.proposal.quotedPrice}`,
+            ts: Date.now(),
+          });
+        }
+      }
 
       // ✅ FIX: Don't insert message here - JsonbFlowProcessor caller will handle it
       // This prevents duplicate messages in the database
