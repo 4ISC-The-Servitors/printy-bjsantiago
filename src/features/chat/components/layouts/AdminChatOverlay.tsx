@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { X, Minus } from 'lucide-react';
 import { Button, Text } from '@shared/components';
-import { MessageGroup, TypingIndicator, ChatInput } from '../core';
+import Progress from '@shared/components/ui/Progress';
+import { MessageGroup, ChatInput } from '../core';
+import SpecEditorReopenBubble from '@shared/components/forms/SpecEditorReopenBubble';
 import { SessionFeedback } from '../feedback';
 import { getSessionFeedback } from '@features/chat/api';
 import { ChatEndService } from '@features/chat/services/ChatEndService';
@@ -23,6 +25,7 @@ export interface AdminChatOverlayProps {
   sessionId?: string;
   conversationId?: string;
   toast?: [any, any]; // Toast instance from parent
+  uploadProgressPct?: number | null;
 }
 
 /**
@@ -32,7 +35,7 @@ export interface AdminChatOverlayProps {
 export const AdminChatOverlay: React.FC<AdminChatOverlayProps> = ({
   open,
   onClose,
-  title = 'Printy Assistant',
+  title = 'Chat with Printy',
   messages,
   isTyping,
   quickReplies,
@@ -44,6 +47,7 @@ export const AdminChatOverlay: React.FC<AdminChatOverlayProps> = ({
   sessionId,
   conversationId,
   toast,
+  uploadProgressPct,
 }) => {
   const [input, setInput] = useState('');
   const [minimized, setMinimized] = useState(false);
@@ -55,6 +59,9 @@ export const AdminChatOverlay: React.FC<AdminChatOverlayProps> = ({
   const loadingToastIdRef = useRef<string | null>(null);
 
   const handleClose = async () => {
+    try {
+      window.dispatchEvent(new Event('spec-editor-hidden'));
+    } catch {}
     // If we don't have session info, fall back to legacy behavior
     if (!sessionId) {
       onClose?.();
@@ -169,6 +176,15 @@ export const AdminChatOverlay: React.FC<AdminChatOverlayProps> = ({
     }
   }, [open, clearLoadingToasts]);
 
+  // Hide spec editor when chat becomes read-only (ended)
+  useEffect(() => {
+    if (readOnly) {
+      try {
+        window.dispatchEvent(new Event('spec-editor-hidden'));
+      } catch {}
+    }
+  }, [readOnly]);
+
   // Group messages
   const messageGroups = useMemo(() => {
     const groups: { messages: ChatMessage[]; quickReplies?: QuickReply[] }[] =
@@ -219,9 +235,10 @@ export const AdminChatOverlay: React.FC<AdminChatOverlayProps> = ({
     return messages.every(msg => msg.isHistorical === true);
   }, [messages]);
 
-  // Show feedback when session is ended, but only if not already submitted
+  // Show feedback modal only for current conversation ending (not historical)
+  // Historical conversations should not show feedback modal
   useEffect(() => {
-    if (readOnly && sessionId) {
+    if (readOnly && sessionId && !isHistoricalConversation) {
       const checkFeedback = async () => {
         const feedback = await getSessionFeedback(sessionId);
         if (feedback && !feedback.isSubmitted) {
@@ -232,10 +249,10 @@ export const AdminChatOverlay: React.FC<AdminChatOverlayProps> = ({
       };
       void checkFeedback();
     } else {
-      // Reset when sessionId changes or readOnly becomes false
+      // Reset when sessionId changes, readOnly becomes false, or it's historical
       setShowFeedback(false);
     }
-  }, [readOnly, sessionId]);
+  }, [readOnly, sessionId, isHistoricalConversation]);
 
   const handleSubmit = () => {
     const text = input.trim();
@@ -298,23 +315,26 @@ export const AdminChatOverlay: React.FC<AdminChatOverlayProps> = ({
               onQuickReply={onQuickReply}
               onEndChat={onEndChat}
               readOnly={readOnly}
-              isHistorical={group.messages[0]?.isHistorical}
+              isHistorical={group.messages.every(m => m.isHistorical === true)}
               userRole={'admin'}
               sessionId={sessionId}
               conversationId={conversationId}
             />
           ))}
-          {isTyping && <TypingIndicator />}
-          
+          {/* Global typing indicator removed to avoid duplication; MessageGroup handles typing */}
+
           {/* Inline feedback for historical conversations */}
-          {readOnly && showFeedback && sessionId && isHistoricalConversation && (
-            <SessionFeedback
-              sessionId={sessionId}
-              userRole="admin"
-              isModal={false}
-              onSubmitted={() => setShowFeedback(false)}
-            />
-          )}
+          {readOnly &&
+            showFeedback &&
+            sessionId &&
+            isHistoricalConversation && (
+              <SessionFeedback
+                sessionId={sessionId}
+                userRole="admin"
+                isModal={false}
+                onSubmitted={() => setShowFeedback(false)}
+              />
+            )}
         </div>
 
         {/* Footer */}
@@ -349,6 +369,21 @@ export const AdminChatOverlay: React.FC<AdminChatOverlayProps> = ({
           onSubmitted={() => setShowFeedback(false)}
           isModal={true}
         />
+      )}
+
+      {/* Floating Spec Editor reopen bubble for mobile/tablet overlay */}
+      <SpecEditorReopenBubble />
+
+      {typeof uploadProgressPct === 'number' && (
+        <div className="absolute bottom-3 left-4 right-4 bg-white/90 backdrop-blur-sm border border-neutral-200 rounded-xl px-4 py-2 shadow-lg">
+          <div className="mb-1 flex items-center justify-between">
+            <span className="text-xs text-neutral-500">Uploading images…</span>
+            <span className="text-xs text-neutral-500">
+              {uploadProgressPct}%
+            </span>
+          </div>
+          <Progress value={uploadProgressPct} />
+        </div>
       )}
     </div>
   );

@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { X, Minus } from 'lucide-react';
+import SpecEditorReopenBubble from '@shared/components/forms/SpecEditorReopenBubble';
 import { Button, Text } from '@shared/components';
-import { MessageGroup, TypingIndicator, ChatInput } from '../core';
+import Progress from '@shared/components/ui/Progress';
+import { MessageGroup, ChatInput } from '../core';
 import { SessionFeedback } from '../feedback';
 import { getSessionFeedback } from '@features/chat/api';
 import { useChatLoadingToast } from '@features/chat/hooks/shared/useChatLoadingToast';
@@ -22,6 +24,7 @@ export interface AdminChatDockProps {
   sessionId?: string;
   conversationId?: string;
   toast?: [any, any]; // Toast instance from parent
+  uploadProgressPct?: number | null;
 }
 
 /**
@@ -31,7 +34,7 @@ export interface AdminChatDockProps {
 export const AdminChatDock: React.FC<AdminChatDockProps> = ({
   open,
   onToggle,
-  title = 'Printy Assistant',
+  title = 'Chat with Printy',
   messages,
   isTyping,
   quickReplies,
@@ -42,6 +45,7 @@ export const AdminChatDock: React.FC<AdminChatDockProps> = ({
   readOnly = false,
   sessionId,
   toast,
+  uploadProgressPct,
 }) => {
   const [input, setInput] = useState('');
   const [showContent, setShowContent] = useState(false);
@@ -127,6 +131,7 @@ export const AdminChatDock: React.FC<AdminChatDockProps> = ({
     }
   }, [open, clearLoadingToasts]);
 
+
   // Auto-scroll to bottom
   useEffect(() => {
     if (scrollRef.current) {
@@ -142,9 +147,10 @@ export const AdminChatDock: React.FC<AdminChatDockProps> = ({
     return messages.every(msg => msg.isHistorical === true);
   }, [messages]);
 
-  // Show feedback when session is ended, but only if not already submitted
+  // Show feedback modal only for current conversation ending (not historical)
+  // Historical conversations should not show feedback modal
   useEffect(() => {
-    if (readOnly && sessionId) {
+    if (readOnly && sessionId && !isHistoricalConversation) {
       const checkFeedback = async () => {
         const feedback = await getSessionFeedback(sessionId);
         if (feedback && !feedback.isSubmitted) {
@@ -155,10 +161,19 @@ export const AdminChatDock: React.FC<AdminChatDockProps> = ({
       };
       void checkFeedback();
     } else {
-      // Reset when sessionId changes or readOnly becomes false
+      // Reset when sessionId changes, readOnly becomes false, or it's historical
       setShowFeedback(false);
     }
-  }, [readOnly, sessionId]);
+  }, [readOnly, sessionId, isHistoricalConversation]);
+
+  // Hide spec editor when chat becomes read-only (ended)
+  useEffect(() => {
+    if (readOnly) {
+      try {
+        window.dispatchEvent(new Event('spec-editor-hidden'));
+      } catch {}
+    }
+  }, [readOnly]);
 
   const handleSubmit = () => {
     const text = input.trim();
@@ -177,9 +192,10 @@ export const AdminChatDock: React.FC<AdminChatDockProps> = ({
       {/* Header */}
       <div className="p-4 border-b border-neutral-200 flex items-center justify-between shrink-0">
         <Text variant="h3" size="lg" weight="semibold">
-          {title}
+          {title === 'Printy Assistant' ? 'Chat with Printy' : 'Chat with Printy'}
         </Text>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 relative z-50">
+          {/* Header remains clean; floating bubble component renders fixed when visible */}
           <Button
             variant="ghost"
             size="sm"
@@ -192,7 +208,12 @@ export const AdminChatDock: React.FC<AdminChatDockProps> = ({
           <Button
             variant="ghost"
             size="sm"
-            onClick={onEndChat}
+            onClick={() => {
+              try {
+                window.dispatchEvent(new Event('spec-editor-hidden'));
+              } catch {}
+              onEndChat?.();
+            }}
             className="h-8 w-8 p-0"
             aria-label="Close chat"
           >
@@ -214,12 +235,13 @@ export const AdminChatDock: React.FC<AdminChatDockProps> = ({
             onQuickReply={onQuickReply}
             onEndChat={onEndChat}
             readOnly={readOnly}
+            isHistorical={group.messages.every(m => m.isHistorical === true)}
             userRole={'admin'}
             sessionId={sessionId}
           />
         ))}
-        {isTyping && <TypingIndicator />}
-        
+        {/* Global typing indicator removed to avoid duplication; MessageGroup handles typing */}
+
         {/* Inline feedback for historical conversations */}
         {readOnly && showFeedback && sessionId && isHistoricalConversation && (
           <SessionFeedback
@@ -252,6 +274,18 @@ export const AdminChatDock: React.FC<AdminChatDockProps> = ({
         )}
       </div>
 
+      {typeof uploadProgressPct === 'number' && (
+        <div className="absolute bottom-3 left-4 right-4 bg-white/90 backdrop-blur-sm border border-neutral-200 rounded-xl px-4 py-2 shadow-lg">
+          <div className="mb-1 flex items-center justify-between">
+            <span className="text-xs text-neutral-500">Uploading images…</span>
+            <span className="text-xs text-neutral-500">
+              {uploadProgressPct}%
+            </span>
+          </div>
+          <Progress value={uploadProgressPct} />
+        </div>
+      )}
+
       {/* Feedback Modal - Show for current conversation ending (not historical) */}
       {readOnly && showFeedback && sessionId && !isHistoricalConversation && (
         <SessionFeedback
@@ -263,8 +297,15 @@ export const AdminChatDock: React.FC<AdminChatDockProps> = ({
           isModal={true}
         />
       )}
+      {/* Floating Spec Editor reopen bubble */}
+      <SpecEditorReopenBubble />
     </aside>
   );
 };
 
 export default AdminChatDock;
+
+// Render floating reopen bubble at the root of the dock so it exists on pages where the dock is mounted
+// This keeps the header uncluttered while ensuring the bubble is available globally when minimized
+// Note: Since the bubble uses fixed positioning, it does not affect layout.
+// eslint-disable-next-line import/no-default-export

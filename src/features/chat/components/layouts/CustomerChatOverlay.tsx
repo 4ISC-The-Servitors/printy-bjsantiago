@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { X, Minus } from 'lucide-react';
 import { Button, Text } from '@shared/components';
-import { MessageGroup, TypingIndicator, ChatInput } from '../core';
+import Progress from '@shared/components/ui/Progress';
+import { MessageGroup, ChatInput } from '../core';
 import { SessionFeedback } from '../feedback';
 import { getSessionFeedback } from '@features/chat/api';
 import { ChatEndService } from '@features/chat/services/ChatEndService';
@@ -23,6 +24,7 @@ export interface CustomerChatOverlayProps {
   sessionId?: string;
   conversationId?: string;
   toast?: [any, any];
+  uploadProgressPct?: number | null;
 }
 
 /**
@@ -32,7 +34,7 @@ export interface CustomerChatOverlayProps {
 export const CustomerChatOverlay: React.FC<CustomerChatOverlayProps> = ({
   open,
   onClose,
-  title = 'Printy Assistant',
+  title = 'Chat with Printy',
   messages,
   isTyping,
   quickReplies,
@@ -44,6 +46,7 @@ export const CustomerChatOverlay: React.FC<CustomerChatOverlayProps> = ({
   sessionId,
   conversationId,
   toast,
+  uploadProgressPct,
 }) => {
   const [input, setInput] = useState('');
   const [minimized, setMinimized] = useState(false);
@@ -182,6 +185,12 @@ export const CustomerChatOverlay: React.FC<CustomerChatOverlayProps> = ({
     return groups;
   }, [messages, quickReplies]);
 
+  // Check if this is a historical conversation (all messages are historical)
+  const isHistoricalConversation = useMemo(() => {
+    if (messages.length === 0) return false;
+    return messages.every(msg => msg.isHistorical === true);
+  }, [messages]);
+
   useEffect(() => {
     if (scrollRef.current) {
       requestAnimationFrame(() => {
@@ -190,9 +199,10 @@ export const CustomerChatOverlay: React.FC<CustomerChatOverlayProps> = ({
     }
   }, [messages, isTyping]);
 
-  // Show feedback modal when session is ended, but only if not already submitted
+  // Show feedback modal only for current conversation ending (not historical)
+  // Historical conversations should not show feedback modal
   useEffect(() => {
-    if (readOnly && sessionId) {
+    if (readOnly && sessionId && !isHistoricalConversation) {
       const checkFeedback = async () => {
         const feedback = await getSessionFeedback(sessionId);
         if (feedback && !feedback.isSubmitted) {
@@ -203,10 +213,10 @@ export const CustomerChatOverlay: React.FC<CustomerChatOverlayProps> = ({
       };
       void checkFeedback();
     } else {
-      // Reset when sessionId changes or readOnly becomes false
+      // Reset when sessionId changes, readOnly becomes false, or it's historical
       setShowFeedback(false);
     }
-  }, [readOnly, sessionId]);
+  }, [readOnly, sessionId, isHistoricalConversation]);
 
   const handleSubmit = () => {
     const text = input.trim();
@@ -269,13 +279,25 @@ export const CustomerChatOverlay: React.FC<CustomerChatOverlayProps> = ({
               onQuickReply={onQuickReply}
               onEndChat={onEndChat}
               readOnly={readOnly}
-              isHistorical={group.messages[0]?.isHistorical}
+              isHistorical={group.messages.every(m => m.isHistorical === true)}
               userRole={'customer'}
               sessionId={sessionId}
               conversationId={conversationId}
             />
           ))}
-          {isTyping && <TypingIndicator />}
+          {/* Global typing indicator removed to avoid duplication; MessageGroup handles typing */}
+          {/* Inline feedback for historical conversations */}
+          {readOnly &&
+            showFeedback &&
+            sessionId &&
+            isHistoricalConversation && (
+              <SessionFeedback
+                sessionId={sessionId}
+                userRole="customer"
+                isModal={false}
+                onSubmitted={() => setShowFeedback(false)}
+              />
+            )}
         </div>
 
         {/* Footer */}
@@ -300,15 +322,28 @@ export const CustomerChatOverlay: React.FC<CustomerChatOverlayProps> = ({
         </div>
       </div>
 
-      {/* Feedback Modal - Show when session ended and not yet submitted */}
-      {readOnly && showFeedback && sessionId && (
+      {/* Feedback Modal - Show for current conversation ending (not historical) */}
+      {readOnly && showFeedback && sessionId && !isHistoricalConversation && (
         <SessionFeedback
           sessionId={sessionId}
           userRole="customer"
           isOpen={showFeedback}
           onClose={() => setShowFeedback(false)}
           onSubmitted={() => setShowFeedback(false)}
+          isModal={true}
         />
+      )}
+
+      {typeof uploadProgressPct === 'number' && (
+        <div className="absolute bottom-3 left-4 right-4 bg-white/90 backdrop-blur-sm border border-neutral-200 rounded-xl px-4 py-2 shadow-lg">
+          <div className="mb-1 flex items-center justify-between">
+            <span className="text-xs text-neutral-500">Uploading images…</span>
+            <span className="text-xs text-neutral-500">
+              {uploadProgressPct}%
+            </span>
+          </div>
+          <Progress value={uploadProgressPct} />
+        </div>
       )}
     </div>
   );
