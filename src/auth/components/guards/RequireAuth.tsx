@@ -52,16 +52,8 @@ export const RequireAuth: React.FC<{
   if (!session)
     return <Navigate to="/auth/signin" state={{ from: location }} replace />;
 
-  // If session exists but role isn't known yet, wait (avoid misrouting to /customer)
-  if (!role)
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <span className="text-neutral-500">Loading your access…</span>
-      </div>
-    );
-
   // Redirect to appropriate home page if user doesn't have required role
-  if (!allowed.includes(role))
+  if (!role || !allowed.includes(role))
     return <Navigate to={getHomePath(role)} replace />;
 
   return <>{children}</>;
