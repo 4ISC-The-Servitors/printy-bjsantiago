@@ -268,16 +268,19 @@ const CustomerDashboardContent: React.FC = () => {
 
         if (orderId) {
           // Use payment proof upload for payment flows
+          setUploadPct(0);
           await handlePaymentProofUpload(
             files,
             orderId,
             url => {
               // Send the uploaded file URL to the chat
               sendViaHook(url);
+              setTimeout(() => setUploadPct(null), 400);
             },
             error => {
               console.error('Payment proof upload failed:', error);
               toast.error('Upload failed', String(error));
+              setTimeout(() => setUploadPct(null), 400);
             }
           );
         } else {

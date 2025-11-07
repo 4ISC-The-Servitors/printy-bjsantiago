@@ -33,6 +33,14 @@ export const QuickReplyGrid: React.FC<QuickReplyGridProps> = ({
     'done',
   ]);
 
+  const secondaryLabels = new Set([
+    'cancel order',
+    'cancel request',
+    'cancel',
+    'back to main menu',
+    'back to payment options',
+  ]);
+
   const handleEndChat = async () => {
     if (!sessionId || !userRole) {
       // Fallback to legacy behavior if no session info provided
@@ -72,12 +80,14 @@ export const QuickReplyGrid: React.FC<QuickReplyGridProps> = ({
   return (
     <div className="flex flex-wrap gap-3 mt-3 ml-6 sm:gap-3 sm:ml-8">
       {replies.map((reply, index) => {
-        const isEnd = endLabels.has(reply.label.trim().toLowerCase());
+        const normalizedLabel = reply.label.trim().toLowerCase();
+        const isEnd = endLabels.has(normalizedLabel);
+        const isSecondary = secondaryLabels.has(normalizedLabel);
         const handleClick = () => {
           console.log('[QuickReply] Button clicked:', {
             reply,
             isEnd,
-            timestamp: Date.now()
+            timestamp: Date.now(),
           });
 
           if (isEnd) {
@@ -90,7 +100,10 @@ export const QuickReplyGrid: React.FC<QuickReplyGridProps> = ({
               ? reply.value.split('|')[1]
               : reply.label;
 
-            console.log('[QuickReply] Calling onQuickReply with:', { value: reply.value, label: displayLabel });
+            console.log('[QuickReply] Calling onQuickReply with:', {
+              value: reply.value,
+              label: displayLabel,
+            });
 
             // Pass both value (for routing) and label (for display) as an object
             // The handler will extract what it needs
@@ -105,7 +118,7 @@ export const QuickReplyGrid: React.FC<QuickReplyGridProps> = ({
             onClick={handleClick}
             className={`
               btn-3d px-4 py-2.5 rounded-lg text-xs sm:text-sm font-medium
-              ${isEnd ? 'btn-secondary' : 'btn-primary'}
+              ${isEnd || isSecondary ? 'btn-secondary' : 'btn-primary'}
             `}
           >
             {reply.label}

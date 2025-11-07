@@ -45,10 +45,10 @@ export const displayBankTransferDetails: ActionHandler = async () => {
     // Create message with bank transfer details
     let messageText = 'Here are our bank transfer details:\n\n';
 
-    bankTransferMethods.forEach(method => {
-      messageText += `${method.label}\n`;
-      // Include image URL in message text so MessageBubble can render it
-      messageText += `${method.image_url}\n\n`;
+    bankTransferMethods.forEach((method, idx) => {
+      // Put the URL on the same line as the label to avoid blank gaps after URL removal
+      messageText += `• ${method.label} ${method.image_url}`;
+      if (idx < bankTransferMethods.length - 1) messageText += `\n`;
     });
 
     messages.push({

@@ -22,7 +22,10 @@ import type {
   ActionExecutionParams,
   ActionExecutionResult,
 } from '@features/chat/types';
-import { buildSpecHeaderLines, buildSpecDetailLines } from '@features/chat/helpers/specDisplay';
+import {
+  buildSpecHeaderLines,
+  buildSpecDetailLines,
+} from '@features/chat/helpers/specDisplay';
 
 export async function displayAcceptedProposal(
   params: ActionExecutionParams
@@ -97,10 +100,10 @@ export async function displayAcceptedProposal(
     const details = buildSpecDetailLines(specs as any, adminNotes);
     const messages = [
       'Accepted Proposal Details:',
+      '',
       header.length > 0 ? header.join('\n') : '',
       ...details,
     ];
-
 
     return {
       messages: [

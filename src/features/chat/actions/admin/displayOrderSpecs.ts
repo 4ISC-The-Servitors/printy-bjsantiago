@@ -88,7 +88,7 @@ export async function displayOrderSpecs(
       }
 
       // Format order specifications
-      const specLines = formatOrderSpecs(orderDetails.orderSpecs);
+      const specLines = await formatOrderSpecs(orderDetails.orderSpecs);
 
       let specsText = `Order Specifications:\n\n`;
       if (specLines.length > 0) {

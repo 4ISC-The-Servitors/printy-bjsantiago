@@ -131,7 +131,6 @@ export const AdminChatDock: React.FC<AdminChatDockProps> = ({
     }
   }, [open, clearLoadingToasts]);
 
-
   // Auto-scroll to bottom
   useEffect(() => {
     if (scrollRef.current) {
@@ -192,7 +191,9 @@ export const AdminChatDock: React.FC<AdminChatDockProps> = ({
       {/* Header */}
       <div className="p-4 border-b border-neutral-200 flex items-center justify-between shrink-0">
         <Text variant="h3" size="lg" weight="semibold">
-          {title === 'Printy Assistant' ? 'Chat with Printy' : 'Chat with Printy'}
+          {title === 'Printy Assistant'
+            ? 'Chat with Printy'
+            : 'Chat with Printy'}
         </Text>
         <div className="flex items-center gap-2 relative z-50">
           {/* Header remains clean; floating bubble component renders fixed when visible */}

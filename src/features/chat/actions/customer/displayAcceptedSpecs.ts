@@ -1,5 +1,9 @@
 import { supabase } from '@lib/supabase';
 import type { ActionHandler } from '@features/chat/types';
+import {
+  buildSpecHeaderLines,
+  buildSpecDetailLines,
+} from '@features/chat/helpers/specDisplay';
 
 export const displayAcceptedSpecs: ActionHandler = async ({
   customerId,
@@ -85,7 +89,10 @@ export const displayAcceptedSpecs: ActionHandler = async ({
     }
 
     // Format the specs message
-    let specsMessage = `Here are the accepted specifications for your order (${order.display_id}):\n\n`;
+    const specLines: string[] = [
+      'Here are the accepted specifications for your order:',
+      '',
+    ];
 
     // Try to get specs from spec_final first, then from quote_specs table
     let specs: any = null;
@@ -106,93 +113,51 @@ export const displayAcceptedSpecs: ActionHandler = async ({
     }
 
     if (specs) {
+      const normalizedSpecs = { ...specs } as any;
+      if (!normalizedSpecs.product_name && normalizedSpecs.product) {
+        normalizedSpecs.product_name = normalizedSpecs.product;
+      }
+
+      const adminNotes =
+        normalizedSpecs.admin_notes || proposal.notes || undefined;
+
       try {
-        // Format the specs in a readable bullet-point style
-        const formatValue = (value: any): string => {
-          if (Array.isArray(value)) {
-            return value.join(', ');
-          }
-          return String(value);
-        };
-
-        // Common specification fields to display
-        const specFields = [
-          { key: 'product', label: 'Product' },
-          { key: 'category', label: 'Category' },
-          { key: 'description', label: 'Description' },
-          { key: 'size', label: 'Size' },
-          { key: 'materials', label: 'Materials' },
-          { key: 'color', label: 'Color' },
-          { key: 'finishing', label: 'Finishing' },
-          { key: 'quantity', label: 'Quantity' },
-          { key: 'deadline', label: 'Deadline' },
-          { key: 'notes', label: 'Notes' },
-          { key: 'artwork', label: 'Artwork' },
-          { key: 'others', label: 'Others' },
-          { key: 'admin_notes', label: 'Admin Notes' },
-        ];
-
-        // Display each specification field if it exists
-        specFields.forEach(field => {
-          if (
-            specs[field.key] !== undefined &&
-            specs[field.key] !== null &&
-            specs[field.key] !== ''
-          ) {
-            specsMessage += `• ${field.label}: ${formatValue(specs[field.key])}\n`;
-          }
+        const headerLines = await buildSpecHeaderLines({
+          service_id: normalizedSpecs?.service_id,
+          category: normalizedSpecs?.category,
         });
+        const detailLines = buildSpecDetailLines(normalizedSpecs, adminNotes);
 
-        // If no standard fields found, try to display items array
-        if (specs.items && Array.isArray(specs.items)) {
-          specs.items.forEach((item: any, index: number) => {
-            specsMessage += `\nItem ${index + 1}:\n`;
-            specFields.forEach(field => {
-              if (
-                item[field.key] !== undefined &&
-                item[field.key] !== null &&
-                item[field.key] !== ''
-              ) {
-                specsMessage += `• ${field.label}: ${formatValue(item[field.key])}\n`;
-              }
-            });
-          });
+        if (headerLines.length > 0) {
+          specLines.push(...headerLines);
         }
 
-        // If still no specs displayed, show a fallback message
-        if (
-          specsMessage ===
-          `Here are the accepted specifications for your order (${order.display_id}):\n\n`
-        ) {
-          specsMessage +=
-            'Specifications are available but in a different format.';
+        if (detailLines.length > 0) {
+          specLines.push(...detailLines);
+        }
+
+        if (specLines.length <= 2) {
+          specLines.push(
+            'Specifications are available but in a different format.'
+          );
         }
       } catch (parseError) {
         console.error(
           '[displayAcceptedSpecs] Error parsing specs:',
           parseError
         );
-        specsMessage +=
-          'Specifications data is available but cannot be displayed in detail.';
+        specLines.push(
+          'Specifications data is available but cannot be displayed in detail.'
+        );
       }
     } else {
-      specsMessage += 'No detailed specifications available.';
-    }
-
-    // Add quoted price if available
-    if (proposal.quoted_price) {
-      specsMessage += `\nQuoted Price: ₱${parseFloat(proposal.quoted_price).toFixed(2)}`;
-    }
-
-    // Add notes if available
-    if (proposal.notes) {
-      specsMessage += `\n\nNotes: ${proposal.notes}`;
+      specLines.push('No detailed specifications available.');
     }
 
     messages.push({
       id: crypto.randomUUID(),
       role: 'printy',
-      text: specsMessage,
+      text: specLines.join('\n'),
       ts: Date.now(),
     });
 

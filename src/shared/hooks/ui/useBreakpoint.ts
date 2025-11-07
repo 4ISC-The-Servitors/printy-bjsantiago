@@ -31,6 +31,9 @@ export function useBreakpoint(): Breakpoint {
 
     const handleChange = () => setBreakpoint(getBreakpoint());
 
+    // Ensure the breakpoint is accurate on mount (especially after SSR)
+    handleChange();
+
     mqDesktop.addEventListener('change', handleChange);
     mqTablet.addEventListener('change', handleChange);
 

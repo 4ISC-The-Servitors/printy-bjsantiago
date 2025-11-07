@@ -1,5 +1,6 @@
 import { supabase } from '@lib/supabase';
 import type { ActionHandler } from '@features/chat/types';
+import { formatCurrency } from '@shared/utils/priceFormatter';
 
 export const displayOrderPaymentInfo: ActionHandler = async ({
   customerId,
@@ -54,8 +55,9 @@ export const displayOrderPaymentInfo: ActionHandler = async ({
       return { messages };
     }
 
-    // Format the payment info message
-    const paymentInfo = `Your total balance for ${order.display_id} is ₱${parseFloat(order.total_amount).toFixed(2)}.`;
+    // Format the payment info message with proper currency formatting
+    const balanceAmount = parseFloat(order.total_amount ?? '0');
+    const paymentInfo = `Your total balance for ${order.display_id} is ${formatCurrency(balanceAmount)}.`;
 
     messages.push({
       id: crypto.randomUUID(),

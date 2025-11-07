@@ -1,17 +1,24 @@
-import { fetchServiceByDisplayId, getCategoryById } from '@features/chat/api/servicesApi';
+import {
+  fetchServiceByDisplayId,
+  getCategoryById,
+} from '@features/chat/api/servicesApi';
 
-export async function formatServiceLabel(serviceId?: string): Promise<string | undefined> {
+export async function formatServiceLabel(
+  serviceId?: string
+): Promise<string | undefined> {
   if (!serviceId) return undefined;
   try {
     const svc = await fetchServiceByDisplayId(serviceId);
     if (svc?.service_name) {
-      return `${serviceId} (${svc.service_name})`;
+      return svc.service_name;
     }
   } catch {}
-  return serviceId;
+  return undefined;
 }
 
-export async function resolveCategoryName(categoryId?: string): Promise<string | undefined> {
+export async function resolveCategoryName(
+  categoryId?: string
+): Promise<string | undefined> {
   if (!categoryId) return undefined;
   try {
     const cat = await getCategoryById(categoryId);
@@ -33,32 +40,47 @@ export async function buildSpecHeaderLines(spec: {
   return lines;
 }
 
-export function buildSpecDetailLines(spec: {
-  product_name?: string;
-  description?: string;
-  quantity?: number;
-  size?: string;
-  color?: string;
-  materials?: string[];
-  finishing?: string[];
-  deadline?: string;
-}, adminNotes?: string): string[] {
+export function buildSpecDetailLines(
+  spec: {
+    product_name?: string;
+    product?: string;
+    description?: string;
+    quantity?: number;
+    size?: string;
+    color?: string;
+    materials?: string[] | string;
+    finishing?: string[] | string;
+    deadline?: string;
+  },
+  adminNotes?: string
+): string[] {
   const lines: string[] = [];
-  if (spec.product_name) lines.push(`• Product: ${spec.product_name}`);
+  const productName = spec.product_name || spec.product;
+  if (productName) lines.push(`• Product: ${productName}`);
   if (spec.description) lines.push(`• Description: ${spec.description}`);
   if (spec.quantity != null) lines.push(`• Quantity: ${spec.quantity}`);
   if (spec.size) lines.push(`• Size: ${spec.size}`);
   if (spec.color) lines.push(`• Color: ${spec.color}`);
-  if (Array.isArray(spec.materials) && spec.materials.length > 0) {
-    lines.push(`• Materials: ${spec.materials.join(', ')}`);
+
+  const materials = Array.isArray(spec.materials)
+    ? spec.materials
+    : spec.materials
+      ? [spec.materials]
+      : [];
+  if (materials.length > 0) {
+    lines.push(`• Materials: ${materials.join(', ')}`);
   }
-  if (Array.isArray(spec.finishing) && spec.finishing.length > 0) {
-    lines.push(`• Finishing: ${spec.finishing.join(', ')}`);
+
+  const finishing = Array.isArray(spec.finishing)
+    ? spec.finishing
+    : spec.finishing
+      ? [spec.finishing]
+      : [];
+  if (finishing.length > 0) {
+    lines.push(`• Finishing: ${finishing.join(', ')}`);
   }
+
   if (spec.deadline) lines.push(`• Deadline: ${spec.deadline}`);
   if (adminNotes) lines.push(`• Admin Notes: ${adminNotes}`);
   return lines;
 }
-
-
-

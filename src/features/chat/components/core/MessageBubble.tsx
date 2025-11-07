@@ -292,7 +292,10 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                   .from('order-uploads')
                   .createSignedUrl(filePath, 3600); // 1 hour expiry
                 if (error) {
-                  console.error('Error creating signed URL for order image:', error);
+                  console.error(
+                    'Error creating signed URL for order image:',
+                    error
+                  );
                   console.error('File path that failed:', filePath);
                   return url; // Fallback to original URL
                 }
@@ -357,15 +360,16 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     if (lightboxOpen) setZoom(1);
   }, [lightboxOpen]);
 
-  // Render text with inline images (for conversation history blocks)
+  // Render text with inline images (for specific blocks like history and payment details)
   const renderTextWithInlineImages = (textContent: string) => {
-    // Check if this is a conversation history block
-    if (
-      !textContent.includes('Conversation History:') &&
-      !textContent.includes('NEW TICKET REQUEST')
-    ) {
-      return textContent;
-    }
+    // Check if this text should render images inline
+    const shouldInline =
+      textContent.includes('Conversation History:') ||
+      textContent.includes('NEW TICKET REQUEST') ||
+      textContent.startsWith('Here are our QR codes for payment:') ||
+      textContent.startsWith('Here are our bank transfer details:');
+
+    if (!shouldInline) return textContent;
 
     // Image URL regex for splitting
     const imageUrlRegex =

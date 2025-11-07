@@ -9,6 +9,10 @@
  */
 
 import { supabase } from '@lib/supabase';
+import {
+  resolveCategoryName,
+  formatServiceLabel,
+} from '@features/chat/helpers/specDisplay';
 
 export interface OrderDetailsData {
   orderId: string;
@@ -94,18 +98,24 @@ export async function fetchOrderDetails(
  * Format order specifications into a readable text format
  * Similar to formatProposalSpecs but for order data
  */
-export function formatOrderSpecs(
+export async function formatOrderSpecs(
   orderSpecs: any,
   adminNotes?: string
-): string[] {
+): Promise<string[]> {
   const lines: string[] = [];
 
   if (orderSpecs.product_name) {
     lines.push(`• Product: ${orderSpecs.product_name}`);
   }
 
+  if (orderSpecs.service_id) {
+    const svcName = await formatServiceLabel(orderSpecs.service_id);
+    if (svcName) lines.push(`• Service: ${svcName}`);
+  }
+
   if (orderSpecs.category) {
-    lines.push(`• Category: ${orderSpecs.category}`);
+    const catName = await resolveCategoryName(orderSpecs.category);
+    lines.push(`• Category: ${catName || orderSpecs.category}`);
   }
 
   if (orderSpecs.description) {
@@ -150,10 +160,10 @@ export function formatOrderSpecs(
 /**
  * Format complete order details for admin view
  */
-export function formatOrderDetailsForAdmin(
+export async function formatOrderDetailsForAdmin(
   orderDetails: OrderDetailsData
-): string {
-  const specLines = formatOrderSpecs(orderDetails.orderSpecs);
+): Promise<string> {
+  const specLines = await formatOrderSpecs(orderDetails.orderSpecs);
 
   let text = `Order Details:\n`;
   text += `Order ID: ${orderDetails.displayId || orderDetails.orderId}\n`;
