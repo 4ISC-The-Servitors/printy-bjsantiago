@@ -13,7 +13,7 @@ import { useToast } from '@lib/useToast';
 import { useBreakpoint } from '@shared/hooks/ui/useBreakpoint';
 import { useResponsiveClasses } from '@shared/hooks/ui';
 import { useResponsivePageSize } from '@shared/hooks/ui/useResponsivePageSize';
-import { useNotificationSound } from '@shared/hooks';
+// import { useNotificationSound } from '@shared/hooks';
 import {
   type UINotificationItem,
   startNotificationListener,
@@ -30,7 +30,7 @@ const AdminDashboard: React.FC = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [toasts, toast] = useToast();
   const { textClasses } = useResponsiveClasses();
-  const { playSound } = useNotificationSound({ enabled: true, volume: 0.3 });
+  // const { playSound } = useNotificationSound({ enabled: true, volume: 0.3 });
   const breakpoint = useBreakpoint();
 
   // Responsive pagination state
@@ -86,12 +86,12 @@ const AdminDashboard: React.FC = () => {
         if (!item.isRead) {
           setUnreadCount(prev => prev + 1);
         }
-      },
-      playSound
+      }
+      // playSound parameter commented out - sound notifications disabled
     );
 
     return cleanup;
-  }, [user, playSound]);
+  }, [user]); // Removed playSound from dependencies
 
   const handleMarkAsRead = async (id: string) => {
     await markNotificationAsRead(id);

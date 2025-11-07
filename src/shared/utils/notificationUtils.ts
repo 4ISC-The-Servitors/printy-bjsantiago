@@ -94,9 +94,10 @@ export function startNotificationListener(
         };
 
         // Play sound notification (skip during initial cooldown)
-        if (Date.now() - subscribedAt >= suppressFirstSoundMs) {
-          playSound?.();
-        }
+        // Commented out sound notifications for now
+        // if (Date.now() - subscribedAt >= suppressFirstSoundMs) {
+        //   playSound?.();
+        // }
 
         // Show a toast popup with different levels
         switch (notif.type) {

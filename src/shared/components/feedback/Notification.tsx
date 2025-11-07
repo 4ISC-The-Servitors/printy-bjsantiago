@@ -4,7 +4,7 @@ import { useToast } from '@lib/useToast';
 import { ToastContainer } from '@shared/components';
 import { useResponsiveClasses, useDeviceUtils } from '@shared/hooks/ui';
 import { useNotificationVisibility } from '@shared/hooks/ui/useNotificationVisibility';
-import { useNotificationSound } from '@shared/hooks';
+// import { useNotificationSound } from '@shared/hooks';
 import { Bell } from 'lucide-react';
 import { Button, Modal } from '@shared/components/ui';
 import { X } from 'lucide-react';
@@ -34,7 +34,7 @@ const Notification: React.FC = () => {
   const { textClasses, iconClasses } = useResponsiveClasses();
   const { isMobileOrTablet } = useDeviceUtils();
   const { isVisible } = useNotificationVisibility();
-  const { playSound } = useNotificationSound({ enabled: true, volume: 0.3 });
+  // const { playSound } = useNotificationSound({ enabled: true, volume: 0.3 });
 
   // Get current user
   const [user, setUser] = useState<any>(null);
@@ -70,12 +70,12 @@ const Notification: React.FC = () => {
         if (!item.isRead) {
           setUnreadCount(prev => prev + 1);
         }
-      },
-      playSound
+      }
+      // playSound parameter commented out - sound notifications disabled
     );
 
     return cleanup;
-  }, [user, playSound]);
+  }, [user]); // Removed playSound from dependencies
 
   const handleMarkAsRead = async (id: string) => {
     await markNotificationAsRead(id);
