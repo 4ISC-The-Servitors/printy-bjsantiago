@@ -230,6 +230,9 @@ export async function sendAdminReply(
       }
     }
 
+    // Notifications are handled by database trigger (notify_ticket_events)
+    // This bypasses RLS and prevents policy violations
+
     messages.push({
       id: crypto.randomUUID(),
       role: 'printy',

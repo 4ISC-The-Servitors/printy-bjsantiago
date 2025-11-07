@@ -30,7 +30,7 @@ const AdminDashboard: React.FC = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [toasts, toast] = useToast();
-   // const { playSound } = useNotificationSound({ enabled: true, volume: 0.3 });
+  // const { playSound } = useNotificationSound({ enabled: true, volume: 0.3 });
   const { textClasses } = useResponsiveClasses();
   const breakpoint = useBreakpoint();
 
@@ -117,7 +117,6 @@ const AdminDashboard: React.FC = () => {
       toast.success('Notifications cleared', 'All notifications deleted.');
     } catch (error: any) {
       console.error('Delete failed:', error);
-      toast.error('Delete failed', error.message || String(error));
     } finally {
       setIsDeleting(false);
     }
@@ -142,7 +141,12 @@ const AdminDashboard: React.FC = () => {
     <div>
       <Card className="p-6">
         <div className="flex justify-between items-center mb-4">
-          <Text variant="h2" size="xl" weight="semibold" className="text-neutral-900">
+          <Text
+            variant="h2"
+            size="xl"
+            weight="semibold"
+            className="text-neutral-900"
+          >
             Notifications
           </Text>
           <div className="flex items-center gap-2">
@@ -216,7 +220,9 @@ const AdminDashboard: React.FC = () => {
                         {notification.message}
                       </Text>
                       <div className="flex items-center gap-2">
-                        <Text className={`${textClasses.caption} text-gray-500`}>
+                        <Text
+                          className={`${textClasses.caption} text-gray-500`}
+                        >
                           {notification.timestamp}
                         </Text>
                       </div>
@@ -230,7 +236,11 @@ const AdminDashboard: React.FC = () => {
       </Card>
 
       {/* Delete All Modal */}
-      <Modal isOpen={isDeleteModalOpen} onClose={handleCancelDeleteAll} size="sm">
+      <Modal
+        isOpen={isDeleteModalOpen}
+        onClose={handleCancelDeleteAll}
+        size="sm"
+      >
         <div className="bg-white rounded-2xl shadow-xl border border-neutral-200">
           <div className="flex items-center justify-between p-6 pb-4">
             <Text variant="h3" size="lg" weight="semibold">
@@ -249,7 +259,8 @@ const AdminDashboard: React.FC = () => {
 
           <div className="px-6 pb-4">
             <Text variant="p" color="muted">
-              This action deletes all your notifications. Are you sure you want to continue?
+              This action deletes all your notifications. Are you sure you want
+              to continue?
             </Text>
           </div>
 
@@ -280,4 +291,3 @@ const AdminDashboard: React.FC = () => {
 };
 
 export default AdminDashboard;
-

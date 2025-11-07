@@ -49,11 +49,10 @@ export function timeAgoLabel(date: string): string {
 }
 
 /**
- * Starts a real-time Supabase listener that pushes new notifications
- * to both the toast and UI.
+ * Starts a real-time Supabase listener that pushes new notifications to the UI.
  *
  * @param userId - Current user ID
- * @param toast - Toast controller (from useToast)
+ * @param _toast - Toast controller (from useToast) - deprecated, no longer used
  * @param pushItem - Function to push the new notification to state/UI
  * @param playSound - Optional function to play notification sound
  * @returns Cleanup function to unsubscribe
@@ -61,8 +60,8 @@ export function timeAgoLabel(date: string): string {
 
 export function startNotificationListener(
   userId: string,
-  toast: any,
-  pushItem: (item: UINotificationItem) => void,
+  _toast: any,
+  pushItem: (item: UINotificationItem) => void
   // playSound?: () => void,
   // suppressFirstSoundMs: number = 4000
 ): Cleanup {
@@ -97,21 +96,6 @@ export function startNotificationListener(
         // if (Date.now() - subscribedAt >= suppressFirstSoundMs) {
         //   playSound?.();
         // }
-
-        // Display toast
-        switch (notif.type) {
-          case 'success':
-            toast.success(notif.title ?? 'Success', notif.message);
-            break;
-          case 'error':
-            toast.error(notif.title ?? 'Error', notif.message);
-            break;
-          case 'warning':
-            toast.warning(notif.title ?? 'Warning', notif.message);
-            break;
-          default:
-            toast.info(notif.title ?? 'Notification', notif.message);
-        }
 
         // Push to UI list
         pushItem(item);
@@ -171,7 +155,9 @@ export async function markNotificationAsRead(id: string): Promise<void> {
 /**
  * Mark all notifications for a user as read
  */
-export async function markAllNotificationsAsRead(userId: string): Promise<void> {
+export async function markAllNotificationsAsRead(
+  userId: string
+): Promise<void> {
   const { error } = await supabase
     .from('notifications')
     .update({ is_read: true })
@@ -186,10 +172,7 @@ export async function markAllNotificationsAsRead(userId: string): Promise<void> 
  * Delete a single notification by ID
  */
 export async function deleteNotification(id: string): Promise<void> {
-  const { error } = await supabase
-    .from('notifications')
-    .delete()
-    .eq('id', id);
+  const { error } = await supabase.from('notifications').delete().eq('id', id);
 
   if (error) {
     console.error('Failed to delete notification:', error.message);

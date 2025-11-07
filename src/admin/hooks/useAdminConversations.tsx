@@ -57,6 +57,7 @@ export const AdminConversationsProvider: React.FC<{
   // Load admin chat sessions from database
   const loadAdminChatSessions = async () => {
     try {
+      // Fetch ALL admin chat sessions - pagination is handled client-side by the UI
       const { data: sessions, error } = await supabase
         .from('chat_sessions_v2')
         .select(
@@ -86,62 +87,61 @@ export const AdminConversationsProvider: React.FC<{
           )
         `
         )
-        .or(
-          'metadata->admin_chat.eq.true,flow_id.eq.admin-quote-propose'
-        )
+        .or('metadata->admin_chat.eq.true,flow_id.eq.admin-quote-propose')
         .is('metadata->ticket_conversation', null)
-        .order('created_at', { ascending: false })
-        .limit(20);
+        .order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error loading admin chat sessions:', error);
         return;
       }
 
-      if (sessions && sessions.length > 0) {
-        const sessionConversations: AdminConversation[] = sessions.map(
-          (session: any) => {
-            const icon = undefined;
+      // Convert database sessions to conversations
+      const sessionConversations: AdminConversation[] = (sessions || []).map(
+        (session: any) => {
+          const icon = undefined;
 
-            // Use centralized title logic with optimized data
-            const title = getSessionTitle({
-              flowId: session.flow_id,
-              metadata: {
-                title: session.display_title,
-                context: {
-                  display_id: session.display_id,
-                },
+          // Use centralized title logic with optimized data
+          const title = getSessionTitle({
+            flowId: session.flow_id,
+            metadata: {
+              title: session.display_title,
+              context: {
+                display_id: session.display_id,
               },
-              inquiry: session.inquiry,
-              quote: session.quote,
-              order: session.order,
-            });
+            },
+            inquiry: session.inquiry,
+            quote: session.quote,
+            order: session.order,
+          });
 
-            return {
-              id: session.session_id,
-              title,
-              createdAt: new Date(session.created_at).getTime(),
-              endedAt: session.ended_at ? new Date(session.ended_at).getTime() : undefined,
-              messages: [], // Messages will be loaded when switching to conversation
-              status: session.status === 'ended' ? 'ended' : 'active',
-              icon,
-              flowId: session.flow_id,
-              sessionId: session.session_id,
-            };
-          }
+          return {
+            id: session.session_id,
+            title,
+            createdAt: new Date(session.created_at).getTime(),
+            endedAt: session.ended_at
+              ? new Date(session.ended_at).getTime()
+              : undefined,
+            messages: [], // Messages will be loaded when switching to conversation
+            status: session.status === 'ended' ? 'ended' : 'active',
+            icon,
+            flowId: session.flow_id,
+            sessionId: session.session_id,
+          };
+        }
+      );
+
+      // Merge with existing conversations, avoiding duplicates
+      // This preserves any UI-only conversations that haven't been saved to DB yet
+      setConversations(prev => {
+        const dbSessionIds = new Set(sessionConversations.map(c => c.id));
+        // Keep UI-only conversations (those not in the database result)
+        const uiOnlyConversations = prev.filter(c => !dbSessionIds.has(c.id));
+        // Combine UI-only conversations with all DB conversations
+        return [...sessionConversations, ...uiOnlyConversations].sort(
+          (a, b) => b.createdAt - a.createdAt
         );
-
-        setConversations(prev => {
-          // Merge with existing conversations, avoiding duplicates
-          const existingIds = new Set(prev.map(c => c.id));
-          const newConversations = sessionConversations.filter(
-            c => !existingIds.has(c.id)
-          );
-          return [...newConversations, ...prev].sort(
-            (a, b) => b.createdAt - a.createdAt
-          );
-        });
-      }
+      });
     } catch (e) {
       console.error('loadAdminChatSessions error', e);
     }

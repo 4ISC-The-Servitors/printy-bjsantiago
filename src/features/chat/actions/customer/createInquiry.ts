@@ -39,7 +39,6 @@
  * - Falls back to inquiry_id if display_id is not available
  * - Issue details are stored as plain text (encryption TBD)
  */
-import { getAllAdminIds } from '@features/chat/utils/admin/getAdminUserId';
 import { supabase } from '@lib/supabase';
 import type {
   ActionExecutionParams,
@@ -50,7 +49,6 @@ import { ChatEndService } from '../../services/ChatEndService';
 export async function createInquiry(
   params: ActionExecutionParams
 ): Promise<ActionExecutionResult> {
-
   const { actionNode, context, customerId, sessionId } = params;
   const messages: Array<{
     id: string;
@@ -67,7 +65,6 @@ export async function createInquiry(
   const inquiryType = String(context[typeKey] || 'other');
   const issueDetails = String(context[detailsKey] || '');
   const orderDisplayId = context[orderIdKey] || null;
-
 
   if (!issueDetails) {
     messages.push({
@@ -122,58 +119,11 @@ export async function createInquiry(
     return { messages };
   }
 
-
   const inquiryId = inquiryData?.inquiry_id;
   let displayId = inquiryData?.display_id;
 
-
-  // Create notifications for admins about the new ticket
-  try {
-    // Get customer name for the notification
-    const { data: customerData } = await supabase
-      .from('customer')
-      .select('first_name, last_name')
-      .eq('customer_id', customerId)
-      .single();
-
-    const customerName = customerData
-      ? `${customerData.first_name || ''} ${customerData.last_name || ''}`.trim() ||
-        'Customer'
-      : 'Customer';
-
-
-    // Get all admin users
-    const adminIds = await getAllAdminIds();
-
-    if (adminIds.length > 0) {
-      // Create notification for each admin
-      const notifications = adminIds.map(adminId => ({
-        customer_id: adminId,
-        source_type: 'ticket',
-        source_id: inquiryId,
-        title: 'New Support Ticket',
-        message: `New support ticket #${displayId || inquiryId?.substring(0, 8)} created by ${customerName}.`,
-        type: 'warning',
-        category: 'ticket',
-      }));
-
-
-      const { error: notifError } = await supabase
-        .from('notifications')
-        .insert(notifications);
-
-      if (notifError) {
-        console.error(
-          '[createInquiry] Error creating admin notifications:',
-          notifError
-        );
-      } else {
-      }
-    }
-  } catch (notifErr) {
-    console.error('[createInquiry] Error in notification creation:', notifErr);
-    // Don't fail the whole action if notifications fail
-  }
+  // Notifications for admins are handled by database trigger (notify_admins_on_ticket_create)
+  // This bypasses RLS and prevents policy violations
 
   if (!inquiryId) {
     messages.push({
@@ -189,7 +139,6 @@ export async function createInquiry(
   if (!displayId) {
     displayId = inquiryId;
   }
-
 
   // Update session with inquiry_id FK and metadata
   await supabase

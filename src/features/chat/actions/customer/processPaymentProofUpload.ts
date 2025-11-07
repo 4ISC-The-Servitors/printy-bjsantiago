@@ -1,6 +1,5 @@
 import { supabase } from '@lib/supabase';
 import type { ActionHandler } from '@features/chat/types';
-import { getAllAdminIds } from '@features/chat/utils/admin/getAdminUserId';
 
 export const processPaymentProofUpload: ActionHandler = async ({
   customerId,
@@ -93,56 +92,8 @@ export const processPaymentProofUpload: ActionHandler = async ({
       return { messages };
     }
 
-    // Create notifications for admins about payment proof upload
-    try {
-      // Get customer name for the notification
-      const { data: customerData } = await supabase
-        .from('customer')
-        .select('first_name, last_name')
-        .eq('customer_id', customerId)
-        .single();
-
-      const customerName = customerData
-        ? `${customerData.first_name || ''} ${customerData.last_name || ''}`.trim() ||
-          'Customer'
-        : 'Customer';
-
-
-      // Get all admin users
-      const adminIds = await getAllAdminIds();
-
-      if (adminIds.length > 0) {
-        // Create notification for each admin
-        const notifications = adminIds.map(adminId => ({
-          customer_id: adminId,
-          source_type: 'order',
-          source_id: orderId,
-          title: 'Payment Proof Uploaded',
-          message: `Customer ${customerName} uploaded payment proof for order #${order.display_id}.`,
-          type: 'info',
-          category: 'order',
-        }));
-
-
-        const { error: notifError } = await supabase
-          .from('notifications')
-          .insert(notifications);
-
-        if (notifError) {
-          console.error(
-            '[processPaymentProofUpload] Error creating admin notifications:',
-            notifError
-          );
-        } else {
-        }
-      }
-    } catch (notifErr) {
-      console.error(
-        '[processPaymentProofUpload] Error in notification creation:',
-        notifErr
-      );
-      // Don't fail the whole action if notifications fail
-    }
+    // Notifications are handled by database trigger (notify_order_events)
+    // This bypasses RLS and prevents policy violations
 
     // Don't add success message here - let the payment_uploaded node handle it
     // This prevents duplicate messages

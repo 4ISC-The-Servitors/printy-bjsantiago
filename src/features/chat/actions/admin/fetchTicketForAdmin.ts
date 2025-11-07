@@ -86,8 +86,24 @@ export async function fetchTicketForAdmin(
         .eq('session_id', inquiry.session_id)
         .single();
       const md: any = originalSession?.metadata;
-      customerDescription =
+      let issueDetails =
         md?.context?.issue_details || md?.issue_details || customerDescription;
+
+      // Filter out quick reply options like "No, continue without image" from JSONB flow
+      if (issueDetails && typeof issueDetails === 'string') {
+        const lines = issueDetails.split('\n').filter(line => {
+          const trimmed = line.trim();
+          if (!trimmed) return true; // Keep empty lines
+          // Filter out "No, continue without image" quick reply option
+          if (/^no,?\s*continue\s+without\s+image$/i.test(trimmed)) {
+            return false;
+          }
+          return true;
+        });
+        customerDescription = lines.join('\n').trim() || customerDescription;
+      } else {
+        customerDescription = issueDetails || customerDescription;
+      }
 
       // Fetch initial images from original session
       const { data: originalMsgs } = await supabase.rpc(

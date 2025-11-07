@@ -19,11 +19,13 @@ import { displayOrderSpecs } from './displayOrderSpecs';
 import { displayOrderPrice } from './displayOrderPrice';
 import { displayPaymentProof } from './displayPaymentProof';
 import { verifyPayment } from './verifyPayment';
+import { verifyPaymentValued } from './verifyPaymentValued';
 import { denyPayment } from './denyPayment';
 import { sendAdminReply } from './replyToTicket';
 import { ticketChangeStatus } from './changeTicketStatus';
 import { fetchTicketForAdmin } from './fetchTicketForAdmin';
 import { displayOrderUploadsAdmin } from './displayOrderUploads';
+import { changeOrderStatus } from './changeOrderStatus';
 
 /**
  * Registry of all available action handlers
@@ -45,7 +47,9 @@ export const actionHandlers: Record<string, ActionHandler> = {
   display_order_uploads_admin: displayOrderUploadsAdmin,
   display_payment_proof: displayPaymentProof,
   verify_payment: verifyPayment,
+  verify_payment_valued: verifyPaymentValued,
   deny_payment: denyPayment,
+  change_order_status: changeOrderStatus,
   send_admin_reply: sendAdminReply,
   ticket_change_status: ticketChangeStatus,
   fetch_ticket_for_admin: fetchTicketForAdmin,
@@ -69,7 +73,9 @@ export {
   displayOrderPrice,
   displayPaymentProof,
   verifyPayment,
+  verifyPaymentValued,
   denyPayment,
+  changeOrderStatus,
   sendAdminReply,
   ticketChangeStatus,
   fetchTicketForAdmin,

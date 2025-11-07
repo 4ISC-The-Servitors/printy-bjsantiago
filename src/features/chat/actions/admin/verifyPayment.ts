@@ -149,51 +149,8 @@ export async function verifyPayment(
         };
       }
 
-      // Create notification for customer about payment verification
-      try {
-        // Get admin name for the notification
-        const { data: adminData } = await supabase
-          .from('customer')
-          .select('first_name, last_name')
-          .eq('customer_id', adminUserId)
-          .single();
-
-        const adminName = adminData
-          ? `${adminData.first_name || ''} ${adminData.last_name || ''}`.trim() ||
-            'Admin'
-          : 'Admin';
-
-
-        // Create notification for customer
-        const notification = {
-          customer_id: orderDetails.customerId,
-          source_type: 'order',
-          source_id: orderId,
-          title: 'Payment Verified',
-          message: `Your payment for order #${orderDetails.displayId} has been verified by ${adminName}. Your order is now being processed.`,
-          type: 'success',
-          category: 'order',
-        };
-
-
-        const { error: notifError } = await supabase
-          .from('notifications')
-          .insert(notification);
-
-        if (notifError) {
-          console.error(
-            '[verifyPayment] Error creating customer notification:',
-            notifError
-          );
-        } else {
-        }
-      } catch (notifErr) {
-        console.error(
-          '[verifyPayment] Error in notification creation:',
-          notifErr
-        );
-        // Don't fail the whole action if notifications fail
-      }
+      // Notifications are handled by database trigger (notify_order_events)
+      // This bypasses RLS and prevents policy violations
 
       // No hardcoded message - let the flow handle the success message
 

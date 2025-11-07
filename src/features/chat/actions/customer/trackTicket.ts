@@ -14,7 +14,6 @@ import type {
 } from '@features/chat/types';
 import { formatShortDate } from '@shared/utils/dateFormatter';
 import { formatInquiryType } from '@shared/utils/statusFormatter';
-import { getAllAdminIds } from '@features/chat/utils/admin/getAdminUserId';
 import { insertMessageV2 } from '@features/chat/api/jsonbChatFlowApi';
 
 /**
@@ -501,64 +500,8 @@ export async function sendCustomerReply(
       );
     }
 
-    // Create notifications for admins about customer reply
-    try {
-      // Get customer name for the notification
-      const { data: customerData } = await supabase
-        .from('customer')
-        .select('first_name, last_name')
-        .eq('customer_id', params.customerId)
-        .single();
-
-      const customerName = customerData
-        ? `${customerData.first_name || ''} ${customerData.last_name || ''}`.trim() ||
-          'Customer'
-        : 'Customer';
-
-      // Get ticket display_id for notification
-      const { data: ticketData } = await supabase
-        .from('inquiries_v2')
-        .select('display_id')
-        .eq('inquiry_id', inquiryId)
-        .single();
-
-      const ticketDisplayId =
-        ticketData?.display_id || inquiryId?.substring(0, 8);
-
-      // Get all admin users
-      const adminIds = await getAllAdminIds();
-
-      if (adminIds.length > 0) {
-        // Create notification for each admin
-        const notifications = adminIds.map(adminId => ({
-          customer_id: adminId,
-          source_type: 'ticket',
-          source_id: inquiryId,
-          title: 'Customer Reply',
-          message: `Customer ${customerName} replied to support ticket #${ticketDisplayId}.`,
-          type: 'info',
-          category: 'ticket',
-        }));
-
-        const { error: notifError } = await supabase
-          .from('notifications')
-          .insert(notifications);
-
-        if (notifError) {
-          console.error(
-            '[sendCustomerReply] Error creating admin notifications:',
-            notifError
-          );
-        } else {
-        }
-      }
-    } catch (notifErr) {
-      console.error(
-        '[sendCustomerReply] Error in notification creation:',
-        notifErr
-      );
-      // Don't fail the whole action if notifications fail
-    }
+    // Notifications are handled by database trigger (notify_ticket_events)
+    // This bypasses RLS and prevents policy violations
 
     messages.push({
       id: crypto.randomUUID(),
@@ -720,64 +663,8 @@ export async function resolveTicket(
       console.error('Error saving resolution message');
     }
 
-    // Create notifications for admins about ticket resolution
-    try {
-      // Get customer name for the notification
-      const { data: customerData } = await supabase
-        .from('customer')
-        .select('first_name, last_name')
-        .eq('customer_id', params.customerId)
-        .single();
-
-      const customerName = customerData
-        ? `${customerData.first_name || ''} ${customerData.last_name || ''}`.trim() ||
-          'Customer'
-        : 'Customer';
-
-      // Get ticket display_id for notification
-      const { data: ticketData } = await supabase
-        .from('inquiries_v2')
-        .select('display_id')
-        .eq('inquiry_id', inquiryId)
-        .single();
-
-      const ticketDisplayId =
-        ticketData?.display_id || inquiryId?.substring(0, 8);
-
-      // Get all admin users
-      const adminIds = await getAllAdminIds();
-
-      if (adminIds.length > 0) {
-        // Create notification for each admin
-        const notifications = adminIds.map(adminId => ({
-          customer_id: adminId,
-          source_type: 'ticket',
-          source_id: inquiryId,
-          title: 'Ticket Resolved',
-          message: `Support ticket #${ticketDisplayId} was marked as resolved by ${customerName}.`,
-          type: 'success',
-          category: 'ticket',
-        }));
-
-        const { error: notifError } = await supabase
-          .from('notifications')
-          .insert(notifications);
-
-        if (notifError) {
-          console.error(
-            '[resolveTicket] Error creating admin notifications:',
-            notifError
-          );
-        } else {
-        }
-      }
-    } catch (notifErr) {
-      console.error(
-        '[resolveTicket] Error in notification creation:',
-        notifErr
-      );
-      // Don't fail the whole action if notifications fail
-    }
+    // Notifications are handled by database trigger (notify_ticket_events)
+    // This bypasses RLS and prevents policy violations
 
     messages.push({
       id: crypto.randomUUID(),

@@ -2,7 +2,17 @@
 
 ## 📄 Changelogs
 
-### 2025-10-26-Andeng
+### 2025-11-08-Andeng
+
+- quote, ticket, order flow complete with notifs
+- orders status change until 'Completed' done
+- working portfolio lifetime completed for service ID/name
+- to follow, adding service to portfolio and changing service status
+- Notifs delete all working
+- LIAM, update scripts for backup ulit. Avoid query for performance na lang muna.
+-
+
+### 2025-11-06-Andeng
 
 - added VALUED place order (same ask quote flow)
 - added Urgent notif if valued customer requested quote (to follow others)

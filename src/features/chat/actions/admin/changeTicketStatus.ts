@@ -76,7 +76,9 @@ export async function ticketChangeStatus(
       return { messages };
     }
 
-    // Status change notifications are handled by the database trigger (notifications table)
+    // Notifications are handled by database trigger (notify_ticket_events)
+    // This bypasses RLS and prevents policy violations
+
     // Do NOT insert messages into the original session - this pollutes the conversation
     const statusLabel = formatStatusLabel(newStatus);
 

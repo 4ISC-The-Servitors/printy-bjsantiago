@@ -152,51 +152,8 @@ export async function denyPayment(
         };
       }
 
-      // Create notification for customer about payment denial
-      try {
-        // Get admin name for the notification
-        const { data: adminData } = await supabase
-          .from('customer')
-          .select('first_name, last_name')
-          .eq('customer_id', adminUserId)
-          .single();
-
-        const adminName = adminData
-          ? `${adminData.first_name || ''} ${adminData.last_name || ''}`.trim() ||
-            'Admin'
-          : 'Admin';
-
-
-        // Create notification for customer
-        const notification = {
-          customer_id: orderDetails.customerId,
-          source_type: 'order',
-          source_id: orderId,
-          title: 'Payment Denied',
-          message: `Your payment for order #${orderDetails.displayId} was denied by ${adminName}. Reason: ${denialReason}. Please upload a new payment proof.`,
-          type: 'warning',
-          category: 'order',
-        };
-
-
-        const { error: notifError } = await supabase
-          .from('notifications')
-          .insert(notification);
-
-        if (notifError) {
-          console.error(
-            '[denyPayment] Error creating customer notification:',
-            notifError
-          );
-        } else {
-        }
-      } catch (notifErr) {
-        console.error(
-          '[denyPayment] Error in notification creation:',
-          notifErr
-        );
-        // Don't fail the whole action if notifications fail
-      }
+      // Notifications are handled by database trigger (notify_order_events)
+      // This bypasses RLS and prevents policy violations
 
       // No hardcoded message - let the flow handle the denial message
 

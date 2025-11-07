@@ -112,7 +112,6 @@ const Notification: React.FC = () => {
       toast.success('Notifications cleared', 'All notifications deleted.');
     } catch (error: any) {
       console.error('Delete failed:', error);
-      toast.error('Delete failed', error.message || 'Unable to delete notifications.');
     } finally {
       setIsDeleting(false);
     }
@@ -158,7 +157,9 @@ const Notification: React.FC = () => {
             <div
               className={`${isMobileOrTablet ? 'p-3' : 'p-4'} border-b border-gray-200 flex justify-between items-center`}
             >
-              <h3 className={`${textClasses.heading} font-semibold text-gray-900`}>
+              <h3
+                className={`${textClasses.heading} font-semibold text-gray-900`}
+              >
                 Notifications
               </h3>
               <div className="flex items-center gap-2">
@@ -183,7 +184,9 @@ const Notification: React.FC = () => {
 
             <div className="max-h-80 overflow-y-auto">
               {notifications.length === 0 ? (
-                <div className={`${isMobileOrTablet ? 'p-3' : 'p-4'} text-center text-gray-500`}>
+                <div
+                  className={`${isMobileOrTablet ? 'p-3' : 'p-4'} text-center text-gray-500`}
+                >
                   <p className={textClasses.body}>No notifications</p>
                 </div>
               ) : (
@@ -197,13 +200,19 @@ const Notification: React.FC = () => {
                   >
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
-                        <h4 className={`${textClasses.body} font-medium text-gray-900`}>
+                        <h4
+                          className={`${textClasses.body} font-medium text-gray-900`}
+                        >
                           {notification.title}
                         </h4>
-                        <p className={`${textClasses.caption} text-gray-600 mt-1`}>
+                        <p
+                          className={`${textClasses.caption} text-gray-600 mt-1`}
+                        >
                           {notification.message}
                         </p>
-                        <p className={`${textClasses.caption} text-gray-400 mt-2`}>
+                        <p
+                          className={`${textClasses.caption} text-gray-400 mt-2`}
+                        >
                           {notification.timestamp}
                         </p>
                       </div>
@@ -222,10 +231,16 @@ const Notification: React.FC = () => {
       </div>
 
       {/* Delete confirmation modal */}
-      <Modal isOpen={isDeleteModalOpen} onClose={handleCancelDeleteAll} size="sm">
+      <Modal
+        isOpen={isDeleteModalOpen}
+        onClose={handleCancelDeleteAll}
+        size="sm"
+      >
         <div className="bg-white rounded-2xl shadow-xl border border-neutral-200">
           <div className="flex items-center justify-between p-6 pb-4">
-            <h3 className={`${textClasses.heading} font-semibold text-gray-900`}>
+            <h3
+              className={`${textClasses.heading} font-semibold text-gray-900`}
+            >
               Delete all notifications?
             </h3>
             <Button
@@ -241,7 +256,8 @@ const Notification: React.FC = () => {
 
           <div className="px-6 pb-4">
             <p className={`${textClasses.body} text-gray-600`}>
-              This action deletes all your notifications. Are you sure you want to continue?
+              This action deletes all your notifications. Are you sure you want
+              to continue?
             </p>
           </div>
 
@@ -272,4 +288,3 @@ const Notification: React.FC = () => {
 };
 
 export default Notification;
-

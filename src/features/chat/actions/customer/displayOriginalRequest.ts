@@ -25,7 +25,6 @@ import type {
 export async function displayOriginalRequest(
   params: ActionExecutionParams
 ): Promise<ActionExecutionResult> {
-
   const { actionNode, context, sessionId: _sessionId } = params;
   const messages: Array<{
     id: string;
@@ -40,7 +39,6 @@ export async function displayOriginalRequest(
 
   // If conversationId is a quote_id, we need to find the actual session_id
   if (conversationId && conversationId.length > 30) {
-
     // Query quotes table to get the session_id for this quote
     const { data: quoteData } = await supabase
       .from('quotes')
@@ -53,7 +51,6 @@ export async function displayOriginalRequest(
     }
   }
 
-
   if (!conversationId) {
     messages.push({
       id: crypto.randomUUID(),
@@ -65,13 +62,11 @@ export async function displayOriginalRequest(
   }
 
   try {
-
     // Use the same RPC function that admin uses for proper decryption
     const { data: allMessages, error: msgError } = await supabase.rpc(
       'api_fetch_chat_messages_v2',
       { p_session_id: conversationId }
     );
-
 
     let originalRequestText = 'Your Original Request:\n\n';
     if (!msgError && allMessages && allMessages.length > 0) {
@@ -94,7 +89,11 @@ export async function displayOriginalRequest(
             text = text.replace(orderUploadRegex, '').trim();
             const lines = text.split('\n').filter(line => {
               const trimmed = line.trim();
-              if (!trimmed) return true;
+              if (!trimmed) return true; // Keep empty lines
+              // Filter out quick reply options like "No, continue without image" from JSONB flow
+              if (/^no,?\s*continue\s+without\s+image$/i.test(trimmed)) {
+                return false;
+              }
               return !uploadPromptPatterns.some(p => p.test(trimmed));
             });
             return lines.join('\n').trim();
@@ -114,10 +113,26 @@ export async function displayOriginalRequest(
           .select('metadata')
           .eq('session_id', conversationId)
           .single();
-        const contextQuoteDetails = session?.metadata?.context
-          ?.quote_details as string | undefined;
+        let contextQuoteDetails = session?.metadata?.context?.quote_details as
+          | string
+          | undefined;
+
+        // Filter out quick reply options like "No, continue without image" from JSONB flow
+        if (contextQuoteDetails && typeof contextQuoteDetails === 'string') {
+          const lines = contextQuoteDetails.split('\n').filter(line => {
+            const trimmed = line.trim();
+            if (!trimmed) return true; // Keep empty lines
+            // Filter out "No, continue without image" quick reply option
+            if (/^no,?\s*continue\s+without\s+image$/i.test(trimmed)) {
+              return false;
+            }
+            return true;
+          });
+          contextQuoteDetails = lines.join('\n').trim();
+        }
+
         originalRequestText +=
-          contextQuoteDetails?.trim() || 'No original request found.';
+          contextQuoteDetails || 'No original request found.';
       } catch {
         originalRequestText += 'No original request found.';
       }

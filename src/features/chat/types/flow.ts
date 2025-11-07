@@ -14,7 +14,6 @@ export type ActionType =
   | 'create_quote_conversation'
   | 'create_inquiry'
   | 'verify_order'
-  | 'upload_payment_proof'
   | 'send_admin_reply'
   | 'ai_summarize_specs'
   | 'display_quote_details'
@@ -34,7 +33,10 @@ export type ActionType =
   | 'show_quote_decision_prompt'
   | 'display_order_payment_info'
   | 'display_payment_methods'
-  | 'upload_payment_proof_image'
+  | 'process_payment_proof_upload'
+  | 'reupload_payment_proof'
+  | 'cancel_order'
+  | 'fetch_denial_reason'
   | 'show_customer_orders'
   | 'display_service_categories'
   | 'display_services_by_category';
@@ -49,12 +51,6 @@ export interface CreateInquiryConfig {
   details_key: string;
   show_inquiry_id?: boolean;
   order_id_key?: string;
-}
-
-export interface UploadPaymentProofConfig {
-  order_id_key: string;
-  allowed_formats?: string[];
-  file_key?: string;
 }
 
 export interface SendAdminReplyConfig {
@@ -135,15 +131,27 @@ export interface DisplayPaymentMethodsConfig {
   // No specific config needed - will fetch all active payment methods
 }
 
-export interface UploadPaymentProofImageConfig {
+export interface ProcessPaymentProofUploadConfig {
   order_id_key: string;
-  allowed_formats?: string[];
+}
+
+export interface ReuploadPaymentProofConfig {
+  order_id_key: string;
+  file_key?: string;
+}
+
+export interface CancelOrderConfig {
+  order_id_key: string;
+  reason_key: string;
+}
+
+export interface FetchDenialReasonConfig {
+  order_id_key: string;
 }
 
 export type ActionConfig =
   | CreateQuoteConversationConfig
   | CreateInquiryConfig
-  | UploadPaymentProofConfig
   | SendAdminReplyConfig
   | AiSummarizeSpecsConfig
   | DisplayQuoteDetailsConfig
@@ -163,7 +171,10 @@ export type ActionConfig =
   | ShowQuoteDecisionPromptConfig
   | DisplayOrderPaymentInfoConfig
   | DisplayPaymentMethodsConfig
-  | UploadPaymentProofImageConfig;
+  | ProcessPaymentProofUploadConfig
+  | ReuploadPaymentProofConfig
+  | CancelOrderConfig
+  | FetchDenialReasonConfig;
 
 export interface FlowOption {
   label: string;

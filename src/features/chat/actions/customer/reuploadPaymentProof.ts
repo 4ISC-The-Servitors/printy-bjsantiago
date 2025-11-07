@@ -59,7 +59,6 @@ import type {
   ActionExecutionParams,
   ActionExecutionResult,
 } from '@features/chat/types';
-import { getAllAdminIds } from '@features/chat/utils/admin/getAdminUserId';
 
 export async function reuploadPaymentProof(
   params: ActionExecutionParams
@@ -132,56 +131,8 @@ export async function reuploadPaymentProof(
         throw new Error(`Failed to update order: ${updateError.message}`);
       }
 
-      // Create notifications for admins about payment proof reupload
-      try {
-        // Get customer name for the notification
-        const { data: customerData } = await supabase
-          .from('customer')
-          .select('first_name, last_name')
-          .eq('customer_id', customerId)
-          .single();
-
-        const customerName = customerData
-          ? `${customerData.first_name || ''} ${customerData.last_name || ''}`.trim() ||
-            'Customer'
-          : 'Customer';
-
-
-        // Get all admin users
-        const adminIds = await getAllAdminIds();
-
-        if (adminIds.length > 0) {
-          // Create notification for each admin
-          const notifications = adminIds.map(adminId => ({
-            customer_id: adminId,
-            source_type: 'order',
-            source_id: orderId,
-            title: 'Payment Proof Reuploaded',
-            message: `Customer ${customerName} reuploaded payment proof for order #${order.display_id}.`,
-            type: 'info',
-            category: 'order',
-          }));
-
-
-          const { error: notifError } = await supabase
-            .from('notifications')
-            .insert(notifications);
-
-          if (notifError) {
-            console.error(
-              '[reuploadPaymentProof] Error creating admin notifications:',
-              notifError
-            );
-          } else {
-          }
-        }
-      } catch (notifErr) {
-        console.error(
-          '[reuploadPaymentProof] Error in notification creation:',
-          notifErr
-        );
-        // Don't fail the whole action if notifications fail
-      }
+      // Notifications are handled by database trigger (notify_order_events)
+      // This bypasses RLS and prevents policy violations
 
       // Success - no messages, let the flow handle messaging
       return { messages: [] };

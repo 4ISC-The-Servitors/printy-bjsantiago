@@ -82,7 +82,7 @@ export function formatChatStatus(status: string): string {
 export function formatInquiryType(type: string): string {
   const typeMap: Record<string, string> = {
     quality: 'Printing Quality Issue',
-    delivery: 'Delivery Problem',
+    delivery: 'Delivery / Pickup Inquiry',
     billing: 'Billing Problem',
     other: 'Other Concerns',
   };

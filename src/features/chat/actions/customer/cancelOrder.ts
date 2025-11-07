@@ -54,7 +54,6 @@ import type {
   ActionExecutionParams,
   ActionExecutionResult,
 } from '@features/chat/types';
-import { getAllAdminIds } from '@features/chat/utils/admin/getAdminUserId';
 
 export async function cancelOrder(
   params: ActionExecutionParams
@@ -107,56 +106,8 @@ export async function cancelOrder(
         throw new Error(`Failed to cancel order: ${updateError.message}`);
       }
 
-      // Create notifications for admins about order cancellation
-      try {
-        // Get customer name for the notification
-        const { data: customerData } = await supabase
-          .from('customer')
-          .select('first_name, last_name')
-          .eq('customer_id', customerId)
-          .single();
-
-        const customerName = customerData
-          ? `${customerData.first_name || ''} ${customerData.last_name || ''}`.trim() ||
-            'Customer'
-          : 'Customer';
-
-
-        // Get all admin users
-        const adminIds = await getAllAdminIds();
-
-        if (adminIds.length > 0) {
-          // Create notification for each admin
-          const notifications = adminIds.map(adminId => ({
-            customer_id: adminId,
-            source_type: 'order',
-            source_id: orderId,
-            title: 'Order Cancelled',
-            message: `Customer ${customerName} cancelled order #${order.display_id}. Reason: ${cancellationReason}`,
-            type: 'warning',
-            category: 'order',
-          }));
-
-
-          const { error: notifError } = await supabase
-            .from('notifications')
-            .insert(notifications);
-
-          if (notifError) {
-            console.error(
-              '[cancelOrder] Error creating admin notifications:',
-              notifError
-            );
-          } else {
-          }
-        }
-      } catch (notifErr) {
-        console.error(
-          '[cancelOrder] Error in notification creation:',
-          notifErr
-        );
-        // Don't fail the whole action if notifications fail
-      }
+      // Notifications are handled by database trigger (notify_order_events)
+      // This bypasses RLS and prevents policy violations
 
       // Success - no messages, let the flow handle messaging
       // Return context update with cancellation_reason preserved for display

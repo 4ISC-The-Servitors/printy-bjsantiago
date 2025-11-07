@@ -1,7 +1,7 @@
 /**
  * usePaymentProofUpload
- * Specialized hook for handling payment proof uploads in customer chat
- * Extends the basic file attachment functionality with order status updates
+ * Hook for handling payment proof file uploads in customer chat
+ * Only handles file upload to storage - order updates are handled by process_payment_proof_upload action
  */
 
 import { useCallback } from 'react';
@@ -18,7 +18,8 @@ export interface UsePaymentProofUploadResult {
 }
 
 /**
- * Hook for handling payment proof uploads
+ * Hook for handling payment proof file uploads
+ * Uploads file to storage and returns the URL to be processed by the flow action
  */
 export function usePaymentProofUpload(): UsePaymentProofUploadResult {
   const handlePaymentProofUpload = useCallback(
@@ -52,30 +53,8 @@ export function usePaymentProofUpload(): UsePaymentProofUploadResult {
           return;
         }
 
-        // Update order with payment proof URL and timestamp
-
-        const { error: updateError } = await supabase
-          .from('orders')
-          .update({
-            payment_proof: uploadResult.url,
-            payment_proof_uploaded_at: new Date().toISOString(),
-            status: 'verifying_payment', // Update status to verifying_payment
-            updated_by: user.id, // Track that customer uploaded payment proof
-          })
-          .eq('order_id', orderId) // Use order_id since useRecentOrder returns UUID
-          .eq('customer_id', user.id);
-
-        if (updateError) {
-          console.error(
-            'Error updating order with payment proof:',
-            updateError
-          );
-          onError?.('Failed to update order status. Please try again.');
-          return;
-        }
-
-
-        // Success
+        // Return the URL - order update will be handled by process_payment_proof_upload action
+        // This prevents duplicate notifications from firing twice
         onSuccess?.(uploadResult.url);
       } catch (error) {
         console.error('Error uploading payment proof:', error);

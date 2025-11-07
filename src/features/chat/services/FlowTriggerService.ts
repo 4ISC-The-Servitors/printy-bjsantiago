@@ -19,7 +19,9 @@ export type AdminFlowId =
   | 'admin-review-ticket'
   | 'admin-issue-ticket'
   | 'admin-track-ticket'
-  | 'admin-verify-payment';
+  | 'admin-verify-payment'
+  | 'admin-verify-payment-valued'
+  | 'admin-change-order-status';
 
 export type CustomerFlowId =
   | 'track-quote'
@@ -62,7 +64,6 @@ export class FlowTriggerService {
   private static async getQuoteFlow(
     sessionId: string
   ): Promise<FlowContext | null> {
-
     const { data: quoteData, error: quoteError } = await supabase
       .from('quotes')
       .select('status, quote_id, session_id, display_id')
@@ -74,10 +75,8 @@ export class FlowTriggerService {
       return null;
     }
 
-
     // ACCEPTED quotes → admin-create-order flow
     if (quoteData.status === 'accepted') {
-
       // Get the accepted proposal for context
       const { data: proposalData, error: proposalError } = await supabase
         .from('quote_proposals')
@@ -160,7 +159,6 @@ export class FlowTriggerService {
   private static async getTicketFlow(
     inquiryId: string
   ): Promise<FlowContext | null> {
-
     // Fetch ticket data for display ID and customer_id (needed for image uploads)
     const { data: ticketData } = await supabase
       .from('inquiries_v2')
@@ -192,10 +190,18 @@ export class FlowTriggerService {
   private static async getOrderFlow(
     orderId: string
   ): Promise<FlowContext | null> {
-
     const { data: orderData, error: orderError } = await supabase
       .from('orders')
-      .select('status, order_id, display_id, customer_id')
+      .select(
+        `
+        status,
+        order_id,
+        display_id,
+        customer_id,
+        session_id,
+        customer:customer_id(customer_type)
+      `
+      )
       .eq('order_id', orderId)
       .single();
 
@@ -204,19 +210,37 @@ export class FlowTriggerService {
       return null;
     }
 
+    // VERIFYING_PAYMENT status → admin-verify-payment flow (regular) or admin-verify-payment-valued flow (valued customers)
+    const normalizedStatus = (orderData.status || '').toLowerCase();
 
-    // VERIFYING_PAYMENT status → admin-verify-payment flow
-    if (orderData.status === 'verifying_payment') {
+    if (normalizedStatus === 'verifying_payment') {
+      const customerData = orderData.customer as any;
+      const orderCustomerType = Array.isArray(customerData)
+        ? customerData[0]?.customer_type
+        : customerData?.customer_type;
+
+      const normalizedCustomerType = (
+        orderCustomerType || 'regular'
+      ).toLowerCase();
+
+      // Route valued customers to special flow that sets status to for_pickup/for_delivery
+      const flowId =
+        normalizedCustomerType === 'valued'
+          ? 'admin-verify-payment-valued'
+          : 'admin-verify-payment';
 
       return {
-        flowId: 'admin-verify-payment',
+        flowId,
         context: {
           order_id: orderData.order_id,
           display_id: orderData.display_id,
           customer_id: orderData.customer_id,
+          session_id: orderData.session_id,
+          order_status: normalizedStatus,
+          customer_type: normalizedCustomerType,
         },
         sessionTitle: getSessionTitle({
-          flowId: 'admin-verify-payment',
+          flowId,
           metadata: {
             context: {
               display_id: orderData.display_id,
@@ -227,7 +251,44 @@ export class FlowTriggerService {
       };
     }
 
-    // For other order statuses, we currently don't have a specific flow
+    const customerData = orderData.customer as any;
+    const orderCustomerType = Array.isArray(customerData)
+      ? customerData[0]?.customer_type
+      : customerData?.customer_type;
+
+    const normalizedCustomerType = (
+      orderCustomerType || 'regular'
+    ).toLowerCase();
+
+    const statusEligibleForAdminFlow = [
+      'processing',
+      'for_delivery',
+      'for_pickup',
+    ];
+
+    if (statusEligibleForAdminFlow.includes(normalizedStatus)) {
+      return {
+        flowId: 'admin-change-order-status',
+        context: {
+          order_id: orderData.order_id,
+          display_id: orderData.display_id,
+          customer_id: orderData.customer_id,
+          session_id: orderData.session_id,
+          order_status: normalizedStatus,
+          customer_type: normalizedCustomerType,
+        },
+        sessionTitle: getSessionTitle({
+          flowId: 'admin-change-order-status',
+          metadata: {
+            context: {
+              display_id: orderData.display_id,
+            },
+          },
+          order: { display_id: orderData.display_id },
+        }),
+      };
+    }
+
     console.warn(
       '⚠️ No specific flow defined for order status:',
       orderData.status
@@ -398,7 +459,11 @@ export class FlowTriggerService {
         'admin-issue-ticket',
         'admin-track-ticket',
       ],
-      orders: ['admin-verify-payment'],
+      orders: [
+        'admin-verify-payment',
+        'admin-verify-payment-valued',
+        'admin-change-order-status',
+      ],
     };
 
     const isValid = pageFlows[page]?.includes(flowId) ?? false;
@@ -447,6 +512,7 @@ export class FlowTriggerService {
     const instantFlows: FlowId[] = [
       'admin-create-order',
       'admin-verify-payment',
+      'admin-change-order-status',
     ];
     return instantFlows.includes(flowId);
   }

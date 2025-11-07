@@ -1,7 +1,10 @@
 import React from 'react';
 import { Badge } from '@shared/components';
 import { formatShortDate } from '@shared/utils/dateFormatter';
-import { formatRelativeTimeLabel, formatShortTime } from '@shared/utils/timeFormatter';
+import {
+  formatRelativeTimeLabel,
+  formatShortTime,
+} from '@shared/utils/timeFormatter';
 import { useResponsiveLayout, useResponsiveClasses } from '@shared/hooks/ui';
 import {
   formatOrderStatus,
@@ -153,14 +156,16 @@ const HistoryItemCard: React.FC<HistoryItemCardProps> = ({
         </div>
       )}
 
-      {/* Row 3: Dates and actions in the same row */}
-      <div className="mt-1 flex items-start justify-between gap-3">
+      {/* Row 3: Dates and actions; stack on mobile */}
+      <div className="mt-1 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
           <div
             className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
           >
             <span className="font-medium">Created:</span>
-            <span className="truncate">{formatShortDate(createdAt)} • {formatShortTime(createdAt)}</span>
+            <span className="truncate">
+              {formatShortDate(createdAt)} • {formatShortTime(createdAt)}
+            </span>
           </div>
           <div
             className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
@@ -169,10 +174,9 @@ const HistoryItemCard: React.FC<HistoryItemCardProps> = ({
               {type === 'chat' ? 'Ended:' : 'Updated:'}
             </span>
             <span className="truncate">
-              {type === 'chat' 
+              {type === 'chat'
                 ? `${formatShortDate(updatedAt)} • ${formatShortTime(updatedAt)}`
-                : formatRelativeTimeLabel(updatedAt)
-              }
+                : formatRelativeTimeLabel(updatedAt)}
             </span>
           </div>
           {metadata?.['payment verified'] && (
@@ -210,7 +214,10 @@ const HistoryItemCard: React.FC<HistoryItemCardProps> = ({
         </div>
 
         {actions && (
-          <div className="shrink-0" onClick={e => e.stopPropagation()}>
+          <div
+            className="shrink-0 mt-3 sm:mt-0"
+            onClick={e => e.stopPropagation()}
+          >
             {actions}
           </div>
         )}

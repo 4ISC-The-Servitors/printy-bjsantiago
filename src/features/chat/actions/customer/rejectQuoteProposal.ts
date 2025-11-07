@@ -64,7 +64,6 @@ export async function rejectQuoteProposal(
 
   // If conversationId is a quote_id, we need to find the actual session_id
   if (conversationId && conversationId.length > 30) {
-
     // Query quotes table to get the session_id for this quote
     const { data: quoteData } = await supabase
       .from('quotes')
@@ -101,7 +100,6 @@ export async function rejectQuoteProposal(
       .eq('session_id', conversationId)
       .select();
 
-
     if (quoteError) {
       console.error('Error updating quotes:', quoteError);
       messages.push({
@@ -120,59 +118,8 @@ export async function rejectQuoteProposal(
       );
     }
 
-
-    // Create notifications for admins
-    try {
-      // Get customer name for notification message
-      const { data: customerData } = await supabase
-        .from('customer')
-        .select('first_name, last_name')
-        .eq('customer_id', params.customerId)
-        .single();
-
-      const customerName =
-        customerData?.first_name && customerData?.last_name
-          ? `${customerData.first_name} ${customerData.last_name}`
-          : 'Customer';
-
-      // Get quote display_id for notification
-      const quoteDisplayId = quoteData?.[0]?.display_id || 'Unknown';
-
-      // Get all admin users using RPC (bypasses RLS)
-      const { data: admins } = await supabase.rpc(
-        'get_admin_customer_ids'
-      );
-
-      if (admins && admins.length > 0) {
-        // Create notification for each admin
-        const notifications = admins.map((admin: { customer_id: string }) => ({
-          customer_id: admin.customer_id,
-          source_type: 'quote',
-          source_id: quoteData?.[0]?.quote_id,
-          title: 'Quote Rejected',
-          message: `Quote #${quoteDisplayId} was rejected by ${customerName}.`,
-          type: 'warning',
-          category: 'quote',
-        }));
-
-        const { error: notifError } = await supabase
-          .from('notifications')
-          .insert(notifications)
-          .select();
-
-        if (notifError) {
-          console.error(
-            '[RejectQuote] Error creating admin notifications:',
-            notifError
-          );
-        } else {
-          // Notifications created successfully
-        }
-      }
-    } catch (notifErr) {
-      console.error('[RejectQuote] Error in notification creation:', notifErr);
-      // Don't fail the whole action if notifications fail
-    }
+    // Notifications are handled by database trigger (notify_quote_events)
+    // This bypasses RLS and prevents policy violations
 
     // Return rejection message with End Chat option
     messages.push({

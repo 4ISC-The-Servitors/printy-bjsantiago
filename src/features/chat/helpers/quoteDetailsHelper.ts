@@ -61,17 +61,21 @@ export async function fetchOriginalCustomerRequest(
     const cleanedMessages = customerOnlyMessages
       .map((m: any) => {
         let text = String(m.message_text || '').trim();
-        
+
         // Remove image URLs
         text = text.replace(orderUploadRegex, '').trim();
-        
-        // Remove upload prompt lines
+
+        // Remove upload prompt lines and quick reply options from JSONB flow
         const lines = text.split('\n').filter(line => {
           const trimmed = line.trim();
           if (!trimmed) return true; // Keep empty lines
+          // Filter out quick reply options like "No, continue without image"
+          if (/^no,?\s*continue\s+without\s+image$/i.test(trimmed)) {
+            return false;
+          }
           return !uploadPromptPatterns.some(pattern => pattern.test(trimmed));
         });
-        
+
         return lines.join('\n').trim();
       })
       .filter(text => text.length > 0); // Remove empty messages after cleaning
@@ -115,7 +119,8 @@ export async function fetchLatestProposal(
 
     const proposal = proposals[0];
     // Prefer admin_notes nested inside spec_final if present; fallback to top-level notes
-    const adminNotes = (proposal?.spec_final as any)?.admin_notes || proposal?.notes || '';
+    const adminNotes =
+      (proposal?.spec_final as any)?.admin_notes || proposal?.notes || '';
     return {
       proposalId: proposal.proposal_id,
       specFinal: proposal.spec_final || {},

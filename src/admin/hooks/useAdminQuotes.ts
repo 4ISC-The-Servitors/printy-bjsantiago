@@ -49,13 +49,11 @@ export interface AdminQuoteRow {
   date: string;
 }
 
-interface LoadQuotesOptions {
-  page?: number;
-  pageSize?: number;
-}
-
-export function useAdminQuotes(options: LoadQuotesOptions = {}) {
-  const { page = 1, pageSize = 10 } = options;
+/**
+ * Fetches all quotes from the database for admin view.
+ * Note: All quotes are fetched and pagination is handled client-side by the UI.
+ */
+export function useAdminQuotes() {
   const [quotes, setQuotes] = useState<AdminQuoteRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -66,9 +64,8 @@ export function useAdminQuotes(options: LoadQuotesOptions = {}) {
     setError(null);
 
     try {
-      const from = (page - 1) * pageSize;
-
-      // Fetch quotes with customer information (no nested proposals; proposals are linked via session_id)
+      // Fetch ALL quotes with customer information (no nested proposals; proposals are linked via session_id)
+      // Pagination is handled client-side by the UI
       const { data, error, count } = await supabase
         .from('quotes')
         .select(
@@ -90,15 +87,13 @@ export function useAdminQuotes(options: LoadQuotesOptions = {}) {
         `,
           { count: 'exact' }
         )
-        .order('updated_at', { ascending: false })
-        .range(from, from + pageSize - 1);
+        .order('updated_at', { ascending: false });
 
       if (error) {
         console.error('[useAdminQuotes] Error fetching quotes:', error);
         setError(error.message);
         return;
       }
-
 
       // Build a lookup of latest proposal by session_id
       const sessionIds: string[] = (data || [])
@@ -183,7 +178,7 @@ export function useAdminQuotes(options: LoadQuotesOptions = {}) {
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize]);
+  }, []);
 
   // Load quotes on mount and when dependencies change
   useEffect(() => {

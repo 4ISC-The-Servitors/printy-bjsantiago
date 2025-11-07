@@ -121,7 +121,7 @@ export async function displayOrderSpecs(
           order_id: orderDetails.orderId,
           display_id: orderDetails.displayId,
           customer_id: orderDetails.customerId,
-          order_status: orderDetails.status,
+          order_status: String(orderDetails.status || '').toLowerCase(),
         },
       };
     },

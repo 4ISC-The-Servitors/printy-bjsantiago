@@ -17,7 +17,7 @@ export const FLOW_TITLES: Record<string, string> = {
   'issue-ticket': 'Ask Assistance',
   'place-order': 'Place Order',
   'services-offered': 'Services Offered',
-  'faqs': 'FAQs',
+  faqs: 'FAQs',
   'about-us': 'About B.J. Santiago Inc. ',
 
   // Admin flows (verified in database)
@@ -25,11 +25,10 @@ export const FLOW_TITLES: Record<string, string> = {
   'admin-create-order': 'Order Creation',
   'admin-verify-payment': 'Payment Verification',
   'admin-review-ticket': 'Ticket Review',
-
+  'admin-change-order-status': 'Order Status Update',
 
   // Flows not in database - commented out
   //'cancel-order': 'Cancel Order', // Not in chat_flows_v2
-
 };
 
 interface SessionTitleParams {
@@ -51,7 +50,8 @@ interface SessionTitleParams {
  * Helper function to check if a string looks like a UUID
  */
 function isUUID(str: string): boolean {
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const uuidRegex =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   return uuidRegex.test(str);
 }
 
