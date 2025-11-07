@@ -31,14 +31,7 @@ import { GuestOnly } from '@auth/components/guards/GuestOnly';
 function App() {
   return (
     <Routes>
-      <Route
-        path="/"
-        element={
-          <GuestOnly>
-            <LandingPage />
-          </GuestOnly>
-        }
-      />
+      <Route path="/" element={<LandingPage />} />
       <Route
         path="/auth/signin"
         element={

@@ -43,36 +43,6 @@ const AuthContext = createContext<AuthContextValue>({
   refresh: async () => {},
 });
 
-const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
-const ROLE_FETCH_TIMEOUT_MS = 3000;
-
-function getLoginAt(): number | undefined {
-  try {
-    const raw = localStorage.getItem('loginAt');
-    if (!raw) return undefined;
-    const parsed = parseInt(raw, 10);
-    return Number.isFinite(parsed) ? parsed : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
-function setLoginAt(timestamp: number = Date.now()) {
-  try {
-    localStorage.setItem('loginAt', String(timestamp));
-  } catch {
-    // ignore
-  }
-}
-
-function clearLoginAt() {
-  try {
-    localStorage.removeItem('loginAt');
-  } catch {
-    // ignore
-  }
-}
-
 async function fetchRoleForUser(user: User | null): Promise<Role | undefined> {
   if (!user?.id) return undefined;
   try {
@@ -89,20 +59,6 @@ async function fetchRoleForUser(user: User | null): Promise<Role | undefined> {
     const metaRole =
       (user.user_metadata?.role as Role | undefined) || undefined;
     return (metaRole || 'regular') as Role;
-  }
-}
-
-async function fetchRoleWithTimeout(user: User | null): Promise<Role | undefined> {
-  const metaFallback = (user?.user_metadata?.role as Role | undefined) || 'regular';
-  try {
-    return await Promise.race<Promise<Role | undefined>>([
-      fetchRoleForUser(user),
-      new Promise<Role | undefined>(resolve =>
-        setTimeout(() => resolve(metaFallback as Role), ROLE_FETCH_TIMEOUT_MS)
-      ),
-    ]);
-  } catch {
-    return metaFallback as Role;
   }
 }
 
@@ -135,55 +91,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     const load = async () => {
       const { data: sessionData } = await supabase.auth.getSession();
       const { data: userData } = await supabase.auth.getUser();
-      let session = sessionData.session ?? null;
-      let user = userData.user ?? null;
-
-      // Client-side max TTL fallback
-      if (session) {
-        const loginAt = getLoginAt();
-        if (loginAt && Date.now() - loginAt > THIRTY_DAYS_MS) {
-          await supabase.auth.signOut();
-          clearLoginAt();
-          session = null;
-          user = null;
-        } else if (!loginAt) {
-          setLoginAt();
-        }
-      } else {
-        clearLoginAt();
-      }
-
-      const role = await fetchRoleWithTimeout(user);
+      const session = sessionData.session ?? null;
+      const user = userData.user ?? null;
+      const role = await fetchRoleForUser(user);
       if (mounted) setState({ loading: false, session, user, role });
     };
 
     load();
 
     const { data: listener } = supabase.auth.onAuthStateChange(
-      async (_event: AuthChangeEvent, nextSession: Session | null) => {
+      (_event: AuthChangeEvent, session: Session | null) => {
         setState(s => ({ ...s, loading: true }));
-
-        let session: Session | null = nextSession ?? null;
-        let user: User | null = session?.user ?? null;
-
-        // Client-side max TTL fallback
-        if (session) {
-          const loginAt = getLoginAt();
-          if (loginAt && Date.now() - loginAt > THIRTY_DAYS_MS) {
-            await supabase.auth.signOut();
-            clearLoginAt();
-            session = null;
-            user = null;
-          } else if (!loginAt) {
-            setLoginAt();
-          }
-        } else {
-          clearLoginAt();
-        }
-
-        const role = await fetchRoleWithTimeout(user);
-        if (mounted)
-          setState({ loading: false, session: session ?? null, user, role });
+        (async () => {
+          const user = session?.user ?? null;
+          const role = await fetchRoleForUser(user);
+          if (mounted)
+            setState({ loading: false, session: session ?? null, user, role });
+        })();
       }
     );
 
