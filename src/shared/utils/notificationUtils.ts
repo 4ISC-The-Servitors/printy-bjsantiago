@@ -2,6 +2,7 @@ import { supabase } from '@lib/supabase';
 
 export type Cleanup = () => void;
 
+// Database record as stored in Supabase
 export interface NotificationRecord {
   id: string;
   customer_id: string;
@@ -13,16 +14,7 @@ export interface NotificationRecord {
   created_at: string;
 }
 
-export interface NotificationItem {
-  id: string;
-  title: string;
-  message: string;
-  category: string;
-  type: string;
-  timestamp: string;
-  isRead: boolean;
-}
-
+// UI-facing notification type (used by components)
 export interface UINotificationItem {
   id: string;
   title: string;
@@ -33,12 +25,16 @@ export interface UINotificationItem {
   isRead: boolean;
 }
 
+// Alias to keep backward compatibility with any existing imports
+export type NotificationItem = UINotificationItem;
+
 /**
  * Convert ISO timestamp to a human-readable label like "2 min ago"
  */
 export function timeAgoLabel(date: string): string {
   const parsed = new Date(date).getTime();
   if (Number.isNaN(parsed)) return 'just now';
+
   const diffMs = Date.now() - parsed;
   const diffMins = Math.floor(diffMs / 60000);
 
@@ -62,14 +58,16 @@ export function timeAgoLabel(date: string): string {
  * @param playSound - Optional function to play notification sound
  * @returns Cleanup function to unsubscribe
  */
+
 export function startNotificationListener(
   userId: string,
   toast: any,
   pushItem: (item: UINotificationItem) => void,
-  playSound?: () => void,
-  suppressFirstSoundMs: number = 4000
+  // playSound?: () => void,
+  // suppressFirstSoundMs: number = 4000
 ): Cleanup {
-  const subscribedAt = Date.now();
+  // const subscribedAt = Date.now();
+
   const channel = supabase
     .channel(`notifications:${userId}`)
     .on(
@@ -95,11 +93,12 @@ export function startNotificationListener(
 
         // Play sound notification (skip during initial cooldown)
         // Commented out sound notifications for now
+        // Optional sound behavior (commented out for now)
         // if (Date.now() - subscribedAt >= suppressFirstSoundMs) {
         //   playSound?.();
         // }
 
-        // Show a toast popup with different levels
+        // Display toast
         switch (notif.type) {
           case 'success':
             toast.success(notif.title ?? 'Success', notif.message);
@@ -126,8 +125,7 @@ export function startNotificationListener(
 }
 
 /**
- * Fetch all existing notifications for a user
- * (sorted by most recent first)
+ * Fetch all existing notifications for a user (sorted by most recent first)
  */
 export async function fetchUserNotifications(
   userId: string
@@ -157,7 +155,7 @@ export async function fetchUserNotifications(
 }
 
 /**
- * Mark a specific notification as read
+ * Mark a single notification as read
  */
 export async function markNotificationAsRead(id: string): Promise<void> {
   const { error } = await supabase
@@ -173,16 +171,14 @@ export async function markNotificationAsRead(id: string): Promise<void> {
 /**
  * Mark all notifications for a user as read
  */
-export async function markAllNotificationsAsRead(
-  userId: string
-): Promise<void> {
+export async function markAllNotificationsAsRead(userId: string): Promise<void> {
   const { error } = await supabase
     .from('notifications')
     .update({ is_read: true })
     .eq('customer_id', userId);
 
   if (error) {
-    console.error('Failed to mark all as read:', error.message);
+    console.error('Failed to mark all notifications as read:', error.message);
   }
 }
 
@@ -190,7 +186,11 @@ export async function markAllNotificationsAsRead(
  * Delete a single notification by ID
  */
 export async function deleteNotification(id: string): Promise<void> {
-  const { error } = await supabase.from('notifications').delete().eq('id', id);
+  const { error } = await supabase
+    .from('notifications')
+    .delete()
+    .eq('id', id);
+
   if (error) {
     console.error('Failed to delete notification:', error.message);
   }
@@ -204,7 +204,9 @@ export async function deleteAllNotifications(userId: string): Promise<void> {
     .from('notifications')
     .delete()
     .eq('customer_id', userId);
+
   if (error) {
     console.error('Failed to delete all notifications:', error.message);
+    throw error; // propagate for toast handling in component
   }
 }

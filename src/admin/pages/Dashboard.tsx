@@ -20,6 +20,7 @@ import {
   fetchUserNotifications,
   markNotificationAsRead,
   markAllNotificationsAsRead,
+  deleteAllNotifications, // ✅ new backend util
 } from '@shared/utils/notificationUtils';
 
 const AdminDashboard: React.FC = () => {
@@ -29,17 +30,17 @@ const AdminDashboard: React.FC = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [toasts, toast] = useToast();
+   // const { playSound } = useNotificationSound({ enabled: true, volume: 0.3 });
   const { textClasses } = useResponsiveClasses();
-  // const { playSound } = useNotificationSound({ enabled: true, volume: 0.3 });
   const breakpoint = useBreakpoint();
 
-  // Responsive pagination state
+  // Responsive pagination
   const [page, setPage] = useState(1);
   const pageSize = useResponsivePageSize({
-    itemHeight: 120, // Approximate height of notification card
-    itemSpacing: 12, // space-y-3 = 12px
-    headerOffset: 200, // Navbar + header + pagination
-    footerOffset: 0, // No footer pagination
+    itemHeight: 120,
+    itemSpacing: 12,
+    headerOffset: 200,
+    footerOffset: 0,
     minItems: 3,
     maxItems: 15,
     useDynamicCalculation: true,
@@ -50,7 +51,7 @@ const AdminDashboard: React.FC = () => {
     },
   });
 
-  // Get current user
+  // Current user
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
@@ -66,7 +67,6 @@ const AdminDashboard: React.FC = () => {
   useEffect(() => {
     if (!user) return;
 
-    // Fetch initial notifications
     const loadNotifications = async () => {
       setIsLoading(true);
       const items = await fetchUserNotifications(user.id);
@@ -77,21 +77,13 @@ const AdminDashboard: React.FC = () => {
 
     loadNotifications();
 
-    // Set up real-time listener
-    const cleanup = startNotificationListener(
-      user.id,
-      toast,
-      item => {
-        setNotifications(prev => [item, ...prev]);
-        if (!item.isRead) {
-          setUnreadCount(prev => prev + 1);
-        }
-      }
-      // playSound parameter commented out - sound notifications disabled
-    );
+    const cleanup = startNotificationListener(user.id, toast, item => {
+      setNotifications(prev => [item, ...prev]);
+      if (!item.isRead) setUnreadCount(prev => prev + 1);
+    });
 
     return cleanup;
-  }, [user]); // Removed playSound from dependencies
+  }, [user]);
 
   const handleMarkAsRead = async (id: string) => {
     await markNotificationAsRead(id);
@@ -113,20 +105,19 @@ const AdminDashboard: React.FC = () => {
   };
 
   const handleConfirmDeleteAll = async () => {
-    if (isDeleting) return;
+    if (!user || isDeleting) return;
     setIsDeleting(true);
 
     try {
-      // Prototype delay; replace with Supabase mutation later.
-      await new Promise(resolve => setTimeout(resolve, 300));
-
+      await deleteAllNotifications(user.id); // ✅ now uses Supabase mutation
       setNotifications([]);
       setUnreadCount(0);
       setPage(1);
       setIsDeleteModalOpen(false);
       toast.success('Notifications cleared', 'All notifications deleted.');
-    } catch (error) {
-      toast.error('Delete failed', String(error));
+    } catch (error: any) {
+      console.error('Delete failed:', error);
+      toast.error('Delete failed', error.message || String(error));
     } finally {
       setIsDeleting(false);
     }
@@ -136,16 +127,13 @@ const AdminDashboard: React.FC = () => {
     setIsDeleteModalOpen(false);
   };
 
-  // Calculate paginated notifications
+  // Pagination logic
   const start = (page - 1) * pageSize;
   const paginatedNotifications = notifications.slice(start, start + pageSize);
 
-  // Reset to page 1 if current page exceeds available pages
   useEffect(() => {
     const maxPage = Math.max(1, Math.ceil(notifications.length / pageSize));
-    if (page > maxPage) {
-      setPage(maxPage);
-    }
+    if (page > maxPage) setPage(maxPage);
   }, [notifications.length, pageSize, page]);
 
   if (!user) return null;
@@ -154,12 +142,7 @@ const AdminDashboard: React.FC = () => {
     <div>
       <Card className="p-6">
         <div className="flex justify-between items-center mb-4">
-          <Text
-            variant="h2"
-            size="xl"
-            weight="semibold"
-            className="text-neutral-900"
-          >
+          <Text variant="h2" size="xl" weight="semibold" className="text-neutral-900">
             Notifications
           </Text>
           <div className="flex items-center gap-2">
@@ -192,7 +175,6 @@ const AdminDashboard: React.FC = () => {
           </Card>
         ) : (
           <>
-            {/* Pagination Header */}
             {notifications.length > pageSize && (
               <div className="flex items-center justify-center px-1 py-1 mb-4">
                 <Pagination
@@ -204,7 +186,6 @@ const AdminDashboard: React.FC = () => {
               </div>
             )}
 
-            {/* Notifications List */}
             <div className="space-y-3">
               {paginatedNotifications.map(notification => (
                 <div
@@ -225,7 +206,7 @@ const AdminDashboard: React.FC = () => {
                           {notification.title}
                         </Text>
                         {!notification.isRead && (
-                          <div className="w-2 h-2 bg-blue-500 rounded-full shrink-0"></div>
+                          <div className="w-2 h-2 bg-blue-500 rounded-full shrink-0" />
                         )}
                       </div>
                       <Text
@@ -248,6 +229,7 @@ const AdminDashboard: React.FC = () => {
         )}
       </Card>
 
+      {/* Delete All Modal */}
       <Modal isOpen={isDeleteModalOpen} onClose={handleCancelDeleteAll} size="sm">
         <div className="bg-white rounded-2xl shadow-xl border border-neutral-200">
           <div className="flex items-center justify-between p-6 pb-4">
@@ -298,3 +280,4 @@ const AdminDashboard: React.FC = () => {
 };
 
 export default AdminDashboard;
+
