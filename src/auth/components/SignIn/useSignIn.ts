@@ -91,10 +91,6 @@ export const useSignIn = () => {
         const userId = user?.id;
         let destination = '/customer';
         let customerType: string | undefined;
-        const metaRole =
-          ((user?.app_metadata as any)?.role as string | undefined) ||
-          ((user?.user_metadata as any)?.role as string | undefined) ||
-          undefined;
         if (userId) {
           const { data: byId, error: getErr } = await supabase
             .from('customer')
@@ -201,8 +197,10 @@ export const useSignIn = () => {
           admin: '/admin',
           superadmin: '/superadmin',
         };
-        const effectiveRole = (metaRole || customerType || 'regular') as keyof typeof routeMap;
-        destination = routeMap[effectiveRole] || '/customer';
+        destination =
+          customerType && routeMap[customerType]
+            ? routeMap[customerType]
+            : '/customer';
         // Persist minimal user info for later flows (e.g., Place Order)
         try {
           const existingUser = JSON.parse(localStorage.getItem('user') || '{}');
@@ -210,7 +208,7 @@ export const useSignIn = () => {
             ...existingUser,
             customer_id: userId ?? existingUser?.customer_id,
             email: user?.email ?? existingUser?.email,
-            role: metaRole || customerType || existingUser?.role || 'regular',
+            role: customerType ?? existingUser?.role,
           };
           localStorage.setItem('user', JSON.stringify(storedUser));
         } catch {
