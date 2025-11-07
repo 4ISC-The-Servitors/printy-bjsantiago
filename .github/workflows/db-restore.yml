@@ -44,29 +44,36 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
-      - name: Pre-clean database schemas (drop conflicting schemas)
+      - name: Pre-clean database schemas (drop only owned schemas)
         env:
           DATABASE_URL: ${{ secrets.VITE_DATABASE_URL }}
         run: |
           set -euo pipefail
           /usr/lib/postgresql/17/bin/psql --dbname "$DATABASE_URL" -v ON_ERROR_STOP=1 <<'SQL'
-          -- Drop common Supabase app schemas to allow clean restore
+          -- Drop only schemas that are owned by the connected user, excluding
+          -- Supabase-managed/system schemas. This avoids ownership errors on
+          -- schemas like auth/storage/graphql_public/etc.
           DO $$
-          DECLARE s text;
+          DECLARE rec record;
           BEGIN
-            FOREACH s IN ARRAY ARRAY[
-              'auth',
-              'storage',
-              'graphql_public',
-              'realtime',
-              'supabase_functions',
-              'supabase_migrations',
-              'public'
-            ] LOOP
-              EXECUTE format('DROP SCHEMA IF EXISTS %I CASCADE', s);
+            FOR rec IN
+              SELECT n.nspname
+              FROM pg_namespace n
+              JOIN pg_user u ON u.usesysid = n.nspowner
+              WHERE u.usename = current_user
+                AND n.nspname NOT IN (
+                  'pg_catalog','information_schema',
+                  'auth','storage','graphql_public','realtime',
+                  'supabase_functions','supabase_migrations'
+                )
+            LOOP
+              EXECUTE format('DROP SCHEMA IF EXISTS %I CASCADE', rec.nspname);
             END LOOP;
-            -- Recreate public with sane defaults
-            EXECUTE 'CREATE SCHEMA public';
+
+            -- Ensure public exists and is usable
+            IF NOT EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'public') THEN
+              EXECUTE 'CREATE SCHEMA public';
+            END IF;
             EXECUTE 'GRANT ALL ON SCHEMA public TO postgres';
             EXECUTE 'GRANT ALL ON SCHEMA public TO public';
           END $$;

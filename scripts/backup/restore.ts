@@ -102,7 +102,9 @@ export async function runRestore(): Promise<void> {
     }
     const proc = spawn(
       psqlBin,
-      ['--dbname', dbUrl, '-v', 'ON_ERROR_STOP=1', '-1', '-f', '-'],
+      // Do not use single-transaction (-1). Some statements (e.g., auth/schema)
+      // may fail due to ownership; we want the rest to continue.
+      ['--dbname', dbUrl, '-v', 'ON_ERROR_STOP=0', '-f', '-'],
       {
         stdio: ['pipe', 'inherit', 'inherit'] as const,
         env,
