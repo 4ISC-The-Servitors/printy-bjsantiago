@@ -44,6 +44,34 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
+      - name: Pre-clean database schemas (drop conflicting schemas)
+        env:
+          DATABASE_URL: ${{ secrets.VITE_DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          /usr/lib/postgresql/17/bin/psql --dbname "$DATABASE_URL" -v ON_ERROR_STOP=1 <<'SQL'
+          -- Drop common Supabase app schemas to allow clean restore
+          DO $$
+          DECLARE s text;
+          BEGIN
+            FOREACH s IN ARRAY ARRAY[
+              'auth',
+              'storage',
+              'graphql_public',
+              'realtime',
+              'supabase_functions',
+              'supabase_migrations',
+              'public'
+            ] LOOP
+              EXECUTE format('DROP SCHEMA IF EXISTS %I CASCADE', s);
+            END LOOP;
+            -- Recreate public with sane defaults
+            EXECUTE 'CREATE SCHEMA public';
+            EXECUTE 'GRANT ALL ON SCHEMA public TO postgres';
+            EXECUTE 'GRANT ALL ON SCHEMA public TO public';
+          END $$;
+          SQL
+
       - name: Run restore script
         env:
           # Use your environment-scoped secrets
