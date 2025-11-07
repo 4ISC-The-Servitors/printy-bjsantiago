@@ -1,10 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@lib/supabase';
 import { useToast } from '@lib/useToast';
+import { ToastContainer } from '@shared/components';
 import { useResponsiveClasses, useDeviceUtils } from '@shared/hooks/ui';
 import { useNotificationVisibility } from '@shared/hooks/ui/useNotificationVisibility';
 import { useNotificationSound } from '@shared/hooks';
 import { Bell } from 'lucide-react';
+import { Button, Modal } from '@shared/components/ui';
+import { X } from 'lucide-react';
+import {
+  MarkAllReadButton,
+  DeleteAllNotificationsButton,
+} from '@shared/components/ui';
 import {
   type UINotificationItem,
   startNotificationListener,
@@ -21,7 +28,9 @@ const Notification: React.FC = () => {
   const [notifications, setNotifications] = useState<UINotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
-  const [, toast] = useToast();
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [toasts, toast] = useToast();
   const { textClasses, iconClasses } = useResponsiveClasses();
   const { isMobileOrTablet } = useDeviceUtils();
   const { isVisible } = useNotificationVisibility();
@@ -83,6 +92,34 @@ const Notification: React.FC = () => {
     setUnreadCount(0);
   };
 
+  const handleDeleteAll = () => {
+    setIsOpen(false);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleConfirmDeleteAll = async () => {
+    if (isDeleting) return;
+    setIsDeleting(true);
+
+    try {
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      setNotifications([]);
+      setUnreadCount(0);
+      setIsDeleteModalOpen(false);
+      setIsOpen(false);
+      toast.success('Notifications cleared', 'All notifications deleted.');
+    } catch (error) {
+      toast.error('Delete failed', String(error));
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleCancelDeleteAll = () => {
+    setIsDeleteModalOpen(false);
+  };
+
   if (!user || !isVisible) return null;
 
   return (
@@ -112,7 +149,11 @@ const Notification: React.FC = () => {
 
         {isOpen && (
           <div
-            className={`absolute ${isMobileOrTablet ? 'right-0' : 'right-0 -translate-x-4'} top-full mt-2 ${isMobileOrTablet ? 'w-72' : 'w-80'} bg-white rounded-lg shadow-xl border border-gray-200 max-h-96 overflow-hidden`}
+            className={`absolute ${isMobileOrTablet ? 'right-0' : 'right-0 -translate-x-4'} top-full mt-2 ${
+              isMobileOrTablet
+                ? 'w-[90vw] max-w-[560px]'
+                : 'w-[560px]'
+            } bg-white rounded-lg shadow-xl border border-gray-200 max-h-96 overflow-hidden`}
           >
             <div
               className={`${isMobileOrTablet ? 'p-3' : 'p-4'} border-b border-gray-200 flex justify-between items-center`}
@@ -122,14 +163,24 @@ const Notification: React.FC = () => {
               >
                 Notifications
               </h3>
+              <div className="flex items-center gap-2">
               {unreadCount > 0 && (
-                <button
+                  <MarkAllReadButton
+                    variant="ghost"
+                    size="sm"
                   onClick={handleMarkAllAsRead}
-                  className={`${textClasses.caption} text-blue-600 hover:text-blue-800`}
-                >
-                  Mark all as read
-                </button>
+                    className={`${textClasses.caption}`}
+                  />
+                )}
+                {notifications.length > 0 && (
+                  <DeleteAllNotificationsButton
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleDeleteAll}
+                    className={`${textClasses.caption}`}
+                  />
               )}
+              </div>
             </div>
             <div className="max-h-80 overflow-y-auto">
               {notifications.length === 0 ? (
@@ -178,6 +229,51 @@ const Notification: React.FC = () => {
           </div>
         )}
       </div>
+      <Modal isOpen={isDeleteModalOpen} onClose={handleCancelDeleteAll} size="sm">
+        <div className="bg-white rounded-2xl shadow-xl border border-neutral-200">
+          <div className="flex items-center justify-between p-6 pb-4">
+            <h3 className={`${textClasses.heading} font-semibold text-gray-900`}>
+              Delete all notifications?
+            </h3>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleCancelDeleteAll}
+              className="ml-4 h-8 w-8 p-0 hover:bg-neutral-100"
+              aria-label="Close delete notifications modal"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+
+          <div className="px-6 pb-4">
+            <p className={`${textClasses.body} text-gray-600`}>
+              This action deletes all your notifications. Are you sure you want to continue?
+            </p>
+          </div>
+
+          <div className="flex items-center justify-end gap-3 p-6 pt-4">
+            <Button variant="ghost" size="sm" onClick={handleCancelDeleteAll}>
+              Cancel
+            </Button>
+            <Button
+              variant="error"
+              size="sm"
+              onClick={handleConfirmDeleteAll}
+              loading={isDeleting}
+              disabled={isDeleting}
+            >
+              {isDeleting ? 'Deleting…' : 'Yes, delete all'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <ToastContainer
+        toasts={toasts}
+        onRemoveToast={toast.remove}
+        position={isMobileOrTablet ? 'top-center' : 'bottom-right'}
+      />
     </div>
   );
 };

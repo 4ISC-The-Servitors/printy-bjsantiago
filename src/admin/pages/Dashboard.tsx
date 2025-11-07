@@ -1,8 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Text, Card, Pagination } from '@shared/components';
+import { Text, Card, Pagination, ToastContainer } from '@shared/components';
+import {
+  MarkAllReadButton,
+  DeleteAllNotificationsButton,
+  Button,
+  Modal,
+} from '@shared/components/ui';
+import { X } from 'lucide-react';
 import { NotificationListSkeleton } from '@shared/components/feedback';
 import { supabase } from '@lib/supabase';
 import { useToast } from '@lib/useToast';
+import { useBreakpoint } from '@shared/hooks/ui/useBreakpoint';
 import { useResponsiveClasses } from '@shared/hooks/ui';
 import { useResponsivePageSize } from '@shared/hooks/ui/useResponsivePageSize';
 import { useNotificationSound } from '@shared/hooks';
@@ -18,9 +26,12 @@ const AdminDashboard: React.FC = () => {
   const [notifications, setNotifications] = useState<UINotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
-  const [, toast] = useToast();
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [toasts, toast] = useToast();
   const { textClasses } = useResponsiveClasses();
   const { playSound } = useNotificationSound({ enabled: true, volume: 0.3 });
+  const breakpoint = useBreakpoint();
 
   // Responsive pagination state
   const [page, setPage] = useState(1);
@@ -97,6 +108,34 @@ const AdminDashboard: React.FC = () => {
     setUnreadCount(0);
   };
 
+  const handleDeleteAll = () => {
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleConfirmDeleteAll = async () => {
+    if (isDeleting) return;
+    setIsDeleting(true);
+
+    try {
+      // Prototype delay; replace with Supabase mutation later.
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      setNotifications([]);
+      setUnreadCount(0);
+      setPage(1);
+      setIsDeleteModalOpen(false);
+      toast.success('Notifications cleared', 'All notifications deleted.');
+    } catch (error) {
+      toast.error('Delete failed', String(error));
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleCancelDeleteAll = () => {
+    setIsDeleteModalOpen(false);
+  };
+
   // Calculate paginated notifications
   const start = (page - 1) * pageSize;
   const paginatedNotifications = notifications.slice(start, start + pageSize);
@@ -113,20 +152,6 @@ const AdminDashboard: React.FC = () => {
 
   return (
     <div>
-      <div className="mb-6">
-        <Text
-          variant="h1"
-          size="3xl"
-          weight="bold"
-          className="text-neutral-900"
-        >
-          Admin Dashboard
-        </Text>
-        <Text variant="p" size="base" color="muted" className="mt-1">
-          Latest notifications and updates
-        </Text>
-      </div>
-
       <Card className="p-6">
         <div className="flex justify-between items-center mb-4">
           <Text
@@ -137,14 +162,24 @@ const AdminDashboard: React.FC = () => {
           >
             Notifications
           </Text>
-          {unreadCount > 0 && (
-            <button
-              onClick={handleMarkAllAsRead}
-              className={`${textClasses.caption} text-blue-600 hover:text-blue-800 font-medium`}
-            >
-              Mark all as read
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            {unreadCount > 0 && (
+              <MarkAllReadButton
+                variant="ghost"
+                size="sm"
+                onClick={handleMarkAllAsRead}
+                className={`${textClasses.caption}`}
+              />
+            )}
+            {notifications.length > 0 && (
+              <DeleteAllNotificationsButton
+                variant="ghost"
+                size="sm"
+                onClick={handleDeleteAll}
+                className={`${textClasses.caption}`}
+              />
+            )}
+          </div>
         </div>
 
         {isLoading ? (
@@ -152,7 +187,7 @@ const AdminDashboard: React.FC = () => {
         ) : notifications.length === 0 ? (
           <Card className="p-8 text-center">
             <Text variant="p" className="text-neutral-500">
-              No notifications yet.
+              No notifications
             </Text>
           </Card>
         ) : (
@@ -212,6 +247,52 @@ const AdminDashboard: React.FC = () => {
           </>
         )}
       </Card>
+
+      <Modal isOpen={isDeleteModalOpen} onClose={handleCancelDeleteAll} size="sm">
+        <div className="bg-white rounded-2xl shadow-xl border border-neutral-200">
+          <div className="flex items-center justify-between p-6 pb-4">
+            <Text variant="h3" size="lg" weight="semibold">
+              Delete all notifications?
+            </Text>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleCancelDeleteAll}
+              className="ml-4 h-8 w-8 p-0 hover:bg-neutral-100"
+              aria-label="Close delete notifications modal"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+
+          <div className="px-6 pb-4">
+            <Text variant="p" color="muted">
+              This action deletes all your notifications. Are you sure you want to continue?
+            </Text>
+          </div>
+
+          <div className="flex items-center justify-end gap-3 p-6 pt-4">
+            <Button variant="ghost" size="sm" onClick={handleCancelDeleteAll}>
+              Cancel
+            </Button>
+            <Button
+              variant="error"
+              size="sm"
+              onClick={handleConfirmDeleteAll}
+              loading={isDeleting}
+              disabled={isDeleting}
+            >
+              {isDeleting ? 'Deleting…' : 'Yes, delete all'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <ToastContainer
+        toasts={toasts}
+        onRemoveToast={toast.remove}
+        position={breakpoint === 'mobile' ? 'top-center' : 'bottom-right'}
+      />
     </div>
   );
 };

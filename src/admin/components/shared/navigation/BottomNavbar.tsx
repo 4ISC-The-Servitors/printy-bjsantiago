@@ -1,6 +1,6 @@
 import React from 'react';
 import { useLocation } from 'react-router-dom';
-import { Button, Text } from '@admin/components/shared';
+import { Button, Tooltip } from '@admin/components/shared';
 import {
   Home,
   Package,
@@ -69,7 +69,7 @@ export const BottomNavbar: React.FC<BottomNavbarProps> = ({ onNavigate }) => {
   ];
 
   return (
-      <nav
+    <nav
       className="fixed bottom-0 left-0 right-0 lg:left-14 z-20 bg-white border-t border-neutral-200 shadow-sm"
       aria-label="Admin navigation"
     >
@@ -80,22 +80,26 @@ export const BottomNavbar: React.FC<BottomNavbarProps> = ({ onNavigate }) => {
             const Icon = item.icon;
 
             return (
-              <Button
-                key={item.id}
-                variant="ghost"
-                size="sm"
-                onClick={() => onNavigate(item.id)}
-                className={`flex flex-col items-center justify-center gap-0.5 md:gap-2 min-h-[48px] md:min-h-[56px] px-1 md:px-2 ${
-                  isActive ? 'text-brand-primary' : 'text-neutral-600'
-                }`}
-                aria-current={isActive ? 'page' : undefined}
-                aria-label={item.label}
-              >
-                <Icon className={`h-5 w-5 flex-shrink-0 ${isActive ? 'text-brand-primary' : 'text-neutral-600'}`} />
-                <Text variant="p" size="xs" className="text-center leading-tight hidden md:block">
-                  {item.label}
-                </Text>
-              </Button>
+              <div key={item.id} className="w-full">
+                <Tooltip label={item.label} position="top">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onNavigate(item.id)}
+                    className={`flex items-center justify-center w-full min-h-[48px] md:min-h-[56px] ${
+                      isActive ? 'text-brand-primary' : 'text-neutral-600'
+                    }`}
+                    aria-current={isActive ? 'page' : undefined}
+                    aria-label={item.label}
+                  >
+                    <Icon
+                      className={`h-5 w-5 md:h-6 md:w-6 flex-shrink-0 ${
+                        isActive ? 'text-brand-primary' : 'text-neutral-600'
+                      }`}
+                    />
+                  </Button>
+                </Tooltip>
+              </div>
             );
           })}
         </div>

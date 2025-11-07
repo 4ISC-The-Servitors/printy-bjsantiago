@@ -36,3 +36,6 @@ export type { TextProps } from './Text';
 
 export { default as Tooltip } from './Tooltip';
 export type { TooltipProps } from './Tooltip';
+
+export { default as MarkAllReadButton } from './MarkAllReadButton';
+export { default as DeleteAllNotificationsButton } from './DeleteAllNotificationsButton';

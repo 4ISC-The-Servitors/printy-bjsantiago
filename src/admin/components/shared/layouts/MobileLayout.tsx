@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Menu } from 'lucide-react';
-import { Button, Text } from '@admin/components/shared';
+import { Button } from '@admin/components/shared';
 import { MobileSidebarMenu } from '../sidebar';
 import { BottomNavbar } from '../navigation';
 import type { NavRoute } from '../navigation';
@@ -45,9 +45,6 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({
         >
           <Menu className="w-5 h-5" />
         </Button>
-        <Text variant="h1" size="xl" weight="bold" className="text-neutral-900">
-          Admin
-        </Text>
         <div className="w-10" /> {/* Spacer for centering */}
       </header>
 
