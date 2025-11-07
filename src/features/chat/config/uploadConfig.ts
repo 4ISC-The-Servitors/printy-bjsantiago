@@ -30,11 +30,3 @@ export const IMAGE_UPLOAD_CONFIG = {
 };
 
 export type ImageUploadConfig = typeof IMAGE_UPLOAD_CONFIG;
-
-
-
-
-
-
-
-

@@ -102,19 +102,26 @@ export function useCustomerConversations() {
           // For track-quote, conversation_id is actually the original ask-quote session_id
           // We need to find the quote_id from that session
           try {
-            const { data: quoteData, error: quoteErr, status: httpStatus } = await supabase
-            .from('quotes')
+            const {
+              data: quoteData,
+              error: quoteErr,
+              status: httpStatus,
+            } = await supabase
+              .from('quotes')
               .select('quote_id, created_at')
-            .eq('session_id', ctx.conversation_id)
+              .eq('session_id', ctx.conversation_id)
               .order('created_at', { ascending: false })
               .limit(1)
               .maybeSingle();
             if (quoteErr) {
-              console.warn('[initializeFlow] quotes lookup by session_id failed', {
-                conversation_id: ctx.conversation_id,
-                httpStatus,
-                errorMessage: quoteErr.message,
-              });
+              console.warn(
+                '[initializeFlow] quotes lookup by session_id failed',
+                {
+                  conversation_id: ctx.conversation_id,
+                  httpStatus,
+                  errorMessage: quoteErr.message,
+                }
+              );
             }
             if (quoteData) {
               fkUpdates.quote_id = (quoteData as any).quote_id;
@@ -562,8 +569,8 @@ export function useCustomerConversations() {
             const currentNodeId = sessionRow?.metadata?.current_node_id as
               | string
               | undefined;
-            const pendingFromContext = sessionRow?.metadata?.context?.
-              _pending_quick_replies as any[] | undefined;
+            const pendingFromContext = sessionRow?.metadata?.context
+              ?._pending_quick_replies as any[] | undefined;
 
             if (flowId && currentNodeId) {
               const flowDef = await getFlowDefinition(flowId);

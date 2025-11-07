@@ -72,10 +72,14 @@ export function useConversationSwitcher() {
         // Set quick replies using current node options from flow definition when active
         if (conv.status === 'active' && !isEnded && session) {
           const flowDef = await getFlowDefinition(session.flow_id);
-          const nodeId = session?.metadata?.current_node_id as string | undefined;
-          const node = nodeId && flowDef ? (flowDef as any).nodes?.[nodeId] : null;
-          const pending = session?.metadata?.context?.
-            _pending_quick_replies as any[] | undefined;
+          const nodeId = session?.metadata?.current_node_id as
+            | string
+            | undefined;
+          const node =
+            nodeId && flowDef ? (flowDef as any).nodes?.[nodeId] : null;
+          const pending = session?.metadata?.context?._pending_quick_replies as
+            | any[]
+            | undefined;
 
           // Prefer dynamic replies persisted by actions in session metadata context
           let replies: any[] = Array.isArray(pending)

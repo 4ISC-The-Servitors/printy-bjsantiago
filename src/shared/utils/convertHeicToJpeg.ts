@@ -31,11 +31,3 @@ export async function convertMultipleHeicToJpeg(
 ): Promise<File[]> {
   return Promise.all(files.map(f => convertHeicToJpeg(f)));
 }
-
-
-
-
-
-
-
-

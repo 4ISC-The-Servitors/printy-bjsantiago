@@ -17,22 +17,6 @@ const SecuritySettings: React.FC<SecuritySettingsProps> = ({
   const toggle = (k: 'current' | 'next' | 'confirm') =>
     setShow(p => ({ ...p, [k]: !p[k] }));
 
-  // Format password change date
-  const formatPasswordChangeDate = (date: Date | null): string => {
-    if (!date) return 'Never';
-
-    const now = new Date();
-    const diffInMs = now.getTime() - date.getTime();
-    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-
-    if (diffInDays === 0) return 'Today';
-    if (diffInDays === 1) return 'Yesterday';
-    if (diffInDays < 7) return `${diffInDays} days ago`;
-    if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} weeks ago`;
-    if (diffInDays < 365) return `${Math.floor(diffInDays / 30)} months ago`;
-    return `${Math.floor(diffInDays / 365)} years ago`;
-  };
-
   return (
     <Card className="p-6">
       <div className="flex items-center gap-2 mb-4">
