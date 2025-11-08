@@ -1,6 +1,7 @@
 # Multiple Image Upload Implementation Plan
 
 ## Overview
+
 Implement support for multiple image uploads (up to 3 images) for ticket support system while maintaining single image upload for payment proofs. Add mobile image format support (HEIC/HEIF) with automatic conversion to ensure browser compatibility.
 
 ---
@@ -8,6 +9,7 @@ Implement support for multiple image uploads (up to 3 images) for ticket support
 ## Research Summary
 
 ### Supabase Free Tier Constraints
+
 - **Total Storage**: 1 GB (database + files combined)
 - **File Size Limit**: 50 MB per file (API default)
 - **Bandwidth**: 2 GB/month
@@ -16,27 +18,29 @@ Implement support for multiple image uploads (up to 3 images) for ticket support
 ### Mobile Image Formats
 
 #### iOS (iPhone/iPad)
+
 - **Default Format**: HEIC/HEIF (since iOS 11, 2017)
 - **MIME Types**: `image/heic`, `image/heif`
 - **Issue**: NOT supported in Chrome, Firefox, Edge browsers
 - **Solution**: Auto-convert to JPEG before upload
 
 #### Android
+
 - **Primary Format**: JPEG (universal)
 - **Modern Devices**: WebP, AVIF
 - **MIME Types**: `image/jpeg`, `image/webp`, `image/avif`
 
 ### Browser Compatibility
 
-| Format | Chrome | Firefox | Safari | Edge | Mobile Chrome | Mobile Safari |
-|--------|--------|---------|--------|------|---------------|---------------|
-| JPEG   | ✅     | ✅      | ✅     | ✅   | ✅            | ✅            |
-| PNG    | ✅     | ✅      | ✅     | ✅   | ✅            | ✅            |
-| WebP   | ✅     | ✅      | ✅     | ✅   | ✅            | ✅            |
-| GIF    | ✅     | ✅      | ✅     | ✅   | ✅            | ✅            |
-| **HEIC**   | ❌     | ❌      | ✅     | ❌   | ❌            | ✅            |
-| **HEIF**   | ❌     | ❌      | ✅     | ❌   | ❌            | ✅            |
-| AVIF   | ✅     | ✅      | ✅     | ✅   | ✅            | ✅            |
+| Format   | Chrome | Firefox | Safari | Edge | Mobile Chrome | Mobile Safari |
+| -------- | ------ | ------- | ------ | ---- | ------------- | ------------- |
+| JPEG     | ✅     | ✅      | ✅     | ✅   | ✅            | ✅            |
+| PNG      | ✅     | ✅      | ✅     | ✅   | ✅            | ✅            |
+| WebP     | ✅     | ✅      | ✅     | ✅   | ✅            | ✅            |
+| GIF      | ✅     | ✅      | ✅     | ✅   | ✅            | ✅            |
+| **HEIC** | ❌     | ❌      | ✅     | ❌   | ❌            | ✅            |
+| **HEIF** | ❌     | ❌      | ✅     | ❌   | ❌            | ✅            |
+| AVIF     | ✅     | ✅      | ✅     | ✅   | ✅            | ✅            |
 
 **Critical Issue**: Current validation rejects HEIC, but iOS users upload HEIC by default → causes upload failures
 
@@ -47,25 +51,27 @@ Implement support for multiple image uploads (up to 3 images) for ticket support
 ### Phase 1: Dependencies & Configuration
 
 #### 1.1 Install HEIC Conversion Library
+
 ```bash
 npm install heic2any
 ```
 
 #### 1.2 Create Upload Configuration (`src/features/chat/config/uploadConfig.ts`)
+
 ```typescript
 export const IMAGE_UPLOAD_CONFIG = {
   // Ticket uploads (multiple images)
   ticket: {
-    maxFileSize: 5 * 1024 * 1024,        // 5MB per file
-    maxFilesPerUpload: 3,                 // 3 images max
-    maxTotalSize: 10 * 1024 * 1024,      // 10MB total per upload
+    maxFileSize: 5 * 1024 * 1024, // 5MB per file
+    maxFilesPerUpload: 3, // 3 images max
+    maxTotalSize: 10 * 1024 * 1024, // 10MB total per upload
   },
 
   // Payment proof uploads (single image)
   payment: {
-    maxFileSize: 5 * 1024 * 1024,        // 5MB per file
-    maxFilesPerUpload: 1,                 // Single image only
-    maxTotalSize: 5 * 1024 * 1024,       // 5MB total
+    maxFileSize: 5 * 1024 * 1024, // 5MB per file
+    maxFilesPerUpload: 1, // Single image only
+    maxTotalSize: 5 * 1024 * 1024, // 5MB total
   },
 
   // Supported file types (mobile-friendly)
@@ -75,9 +81,9 @@ export const IMAGE_UPLOAD_CONFIG = {
     'image/png',
     'image/gif',
     'image/webp',
-    'image/heic',    // iOS default
-    'image/heif',    // iOS/some Android
-    'image/avif'     // Future-proofing
+    'image/heic', // iOS default
+    'image/heif', // iOS/some Android
+    'image/avif', // Future-proofing
   ],
 
   // File types that need conversion
@@ -90,6 +96,7 @@ export const IMAGE_UPLOAD_CONFIG = {
 ### Phase 2: HEIC Conversion Utility
 
 #### 2.1 Create Conversion Utility (`src/shared/utils/convertHeicToJpeg.ts`)
+
 ```typescript
 import heic2any from 'heic2any';
 
@@ -123,13 +130,15 @@ export async function convertHeicToJpeg(file: File): Promise<File> {
 
     console.log('[convertHeicToJpeg] Conversion successful:', {
       original: `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`,
-      converted: `${convertedFile.name} (${(convertedFile.size / 1024 / 1024).toFixed(2)} MB)`
+      converted: `${convertedFile.name} (${(convertedFile.size / 1024 / 1024).toFixed(2)} MB)`,
     });
 
     return convertedFile;
   } catch (error) {
     console.error('[convertHeicToJpeg] Conversion failed:', error);
-    throw new Error('Failed to convert HEIC image. Please try a different image.');
+    throw new Error(
+      'Failed to convert HEIC image. Please try a different image.'
+    );
   }
 }
 
@@ -138,7 +147,9 @@ export async function convertHeicToJpeg(file: File): Promise<File> {
  * @param files - Array of files to process
  * @returns Promise with array of converted files
  */
-export async function convertMultipleHeicToJpeg(files: File[]): Promise<File[]> {
+export async function convertMultipleHeicToJpeg(
+  files: File[]
+): Promise<File[]> {
   return Promise.all(files.map(file => convertHeicToJpeg(file)));
 }
 ```
@@ -150,6 +161,7 @@ export async function convertMultipleHeicToJpeg(files: File[]): Promise<File[]> 
 #### 3.1 Update Payment Proof Upload (`src/shared/utils/uploadPaymentProof.ts`)
 
 **Changes:**
+
 - Add mobile image formats to `allowedTypes`
 - Add HEIC conversion before upload
 - Update error messages
@@ -170,7 +182,8 @@ export async function uploadPaymentProof(
     if (!allowedTypes.includes(file.type)) {
       return {
         url: '',
-        error: 'Invalid file type. Please upload a photo (JPEG, PNG, GIF, WebP, or HEIC).',
+        error:
+          'Invalid file type. Please upload a photo (JPEG, PNG, GIF, WebP, or HEIC).',
       };
     }
 
@@ -200,6 +213,7 @@ export async function uploadPaymentProof(
 #### 3.2 Update Ticket Image Upload (`src/shared/utils/uploadTicketImage.ts` → Rename to `uploadTicketImages.ts`)
 
 **Changes:**
+
 - Rename file to plural `uploadTicketImages.ts`
 - Accept array of files (up to 3)
 - Add HEIC conversion for each file
@@ -238,7 +252,7 @@ export async function uploadTicketImages(
     if (files.length > maxFiles) {
       return {
         urls: [],
-        errors: [`You can upload a maximum of ${maxFiles} images at once.`]
+        errors: [`You can upload a maximum of ${maxFiles} images at once.`],
       };
     }
 
@@ -246,7 +260,9 @@ export async function uploadTicketImages(
     const allowedTypes = IMAGE_UPLOAD_CONFIG.allowedTypes;
     for (const file of files) {
       if (!allowedTypes.includes(file.type)) {
-        errors.push(`${file.name}: Invalid file type. Please upload photos only.`);
+        errors.push(
+          `${file.name}: Invalid file type. Please upload photos only.`
+        );
       }
     }
 
@@ -272,7 +288,9 @@ export async function uploadTicketImages(
     if (totalSize > maxTotalSize) {
       return {
         urls: [],
-        errors: [`Total file size exceeds 10MB. Please reduce the number or quality of images.`]
+        errors: [
+          `Total file size exceeds 10MB. Please reduce the number or quality of images.`,
+        ],
       };
     }
 
@@ -281,7 +299,11 @@ export async function uploadTicketImages(
     }
 
     // Upload each file
-    console.log('[uploadTicketImages] Uploading', processedFiles.length, 'files...');
+    console.log(
+      '[uploadTicketImages] Uploading',
+      processedFiles.length,
+      'files...'
+    );
 
     for (let i = 0; i < processedFiles.length; i++) {
       const file = processedFiles[i];
@@ -296,7 +318,12 @@ export async function uploadTicketImages(
         const identifier = inquiryId || sessionId || 'temp';
         const filePath = `${customerId}/${identifier}/${fileName}`;
 
-        console.log('[uploadTicketImages] Uploading file', i + 1, ':', filePath);
+        console.log(
+          '[uploadTicketImages] Uploading file',
+          i + 1,
+          ':',
+          filePath
+        );
 
         // Upload to Supabase Storage
         const { data, error } = await supabase.storage
@@ -307,7 +334,12 @@ export async function uploadTicketImages(
           });
 
         if (error) {
-          console.error('[uploadTicketImages] Upload error for file', i + 1, ':', error);
+          console.error(
+            '[uploadTicketImages] Upload error for file',
+            i + 1,
+            ':',
+            error
+          );
           errors.push(`${file.name}: Upload failed - ${error.message}`);
           continue;
         }
@@ -317,25 +349,30 @@ export async function uploadTicketImages(
         // Construct supabase:// URL
         const fileUrl = `supabase://ticket-uploads/${filePath}`;
         urls.push(fileUrl);
-
       } catch (error) {
-        console.error('[uploadTicketImages] Unexpected error for file', i + 1, ':', error);
+        console.error(
+          '[uploadTicketImages] Unexpected error for file',
+          i + 1,
+          ':',
+          error
+        );
         errors.push(`${file.name}: Upload failed`);
       }
     }
 
     console.log('[uploadTicketImages] Upload complete:', {
       successful: urls.length,
-      failed: errors.length
+      failed: errors.length,
     });
 
     return { urls, errors };
-
   } catch (error) {
     console.error('[uploadTicketImages] Unexpected error:', error);
     return {
       urls: [],
-      errors: [error instanceof Error ? error.message : 'An unexpected error occurred']
+      errors: [
+        error instanceof Error ? error.message : 'An unexpected error occurred',
+      ],
     };
   }
 }
@@ -347,7 +384,12 @@ export async function uploadTicketImage(
   customerId: string,
   sessionId?: string
 ): Promise<UploadResult> {
-  const result = await uploadTicketImages([file], inquiryId, customerId, sessionId);
+  const result = await uploadTicketImages(
+    [file],
+    inquiryId,
+    customerId,
+    sessionId
+  );
 
   if (result.urls.length > 0) {
     return { url: result.urls[0] };
@@ -392,7 +434,9 @@ export function useTicketImageUpload(): UseTicketImageUploadResult {
 
       try {
         // Get current user
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
         if (!user) {
           onError?.(['You must be logged in to upload images']);
           return;
@@ -401,7 +445,11 @@ export function useTicketImageUpload(): UseTicketImageUploadResult {
         // Convert FileList to Array
         const filesArray = Array.from(files);
 
-        console.log('[handleTicketImageUpload] Uploading', filesArray.length, 'files');
+        console.log(
+          '[handleTicketImageUpload] Uploading',
+          filesArray.length,
+          'files'
+        );
 
         // Upload files
         const result = await uploadTicketImages(
@@ -412,7 +460,10 @@ export function useTicketImageUpload(): UseTicketImageUploadResult {
         );
 
         if (result.errors.length > 0) {
-          console.error('[handleTicketImageUpload] Upload errors:', result.errors);
+          console.error(
+            '[handleTicketImageUpload] Upload errors:',
+            result.errors
+          );
           onError?.(result.errors);
 
           // If some succeeded, still call onSuccess with partial results
@@ -426,7 +477,9 @@ export function useTicketImageUpload(): UseTicketImageUploadResult {
       } catch (error) {
         console.error('[handleTicketImageUpload] Error:', error);
         onError?.([
-          error instanceof Error ? error.message : 'An unexpected error occurred'
+          error instanceof Error
+            ? error.message
+            : 'An unexpected error occurred',
         ]);
       }
     },
@@ -438,6 +491,7 @@ export function useTicketImageUpload(): UseTicketImageUploadResult {
 ```
 
 #### 4.2 Update Admin Ticket Upload Hook (`src/features/chat/hooks/admin/useTicketImageUpload.ts`)
+
 - Same structure as customer hook
 - Copy implementation from 4.1
 
@@ -448,6 +502,7 @@ export function useTicketImageUpload(): UseTicketImageUploadResult {
 #### 5.1 Update CustomerDashboard (`src/customer/pages/CustomerDashboard.tsx`)
 
 **Changes:**
+
 - Handle multiple ticket images (send each URL separately)
 - Keep payment proof as single image
 
@@ -484,6 +539,7 @@ export function useTicketImageUpload(): UseTicketImageUploadResult {
 #### 5.2 Update AdminLayout (`src/admin/components/shared/layouts/AdminLayout.tsx`)
 
 **Similar changes as CustomerDashboard:**
+
 - Handle multiple ticket images
 - Send each URL separately via sendViaHook
 
@@ -494,16 +550,18 @@ export function useTicketImageUpload(): UseTicketImageUploadResult {
 #### 6.1 Update ChatInput Components
 
 **For Ticket Uploads:**
+
 ```tsx
 <input
   type="file"
   accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,image/heic,image/heif,image/avif"
-  multiple  // Enable multiple file selection
+  multiple // Enable multiple file selection
   onChange={handleFileSelect}
 />
 ```
 
 **For Payment Proofs:**
+
 ```tsx
 <input
   type="file"
@@ -520,42 +578,44 @@ export function useTicketImageUpload(): UseTicketImageUploadResult {
 #### 7.1 Update MessageBubble (`src/features/chat/components/core/MessageBubble.tsx`)
 
 **Changes:**
+
 - Render multiple images in grid layout
 - 2-column grid for 2-4 images
 - Keep modal functionality per image
 
 ```tsx
-{processedImageUrls.length > 0 && (
-  <div
-    className={`mt-3 grid gap-3 ${
-      processedImageUrls.length === 1
-        ? 'grid-cols-1'
-        : 'grid-cols-2'
-    }`}
-    onClick={(e) => e.stopPropagation()}
-  >
-    {processedImageUrls.map((src, idx) => (
-      <div
-        key={idx}
-        role="button"
-        tabIndex={0}
-        className="rounded-lg overflow-hidden border border-neutral-200 bg-white block group cursor-pointer p-0 w-full"
-        onClick={() => {
-          setLightboxIndex(idx);
-          setLightboxOpen(true);
-        }}
-        // ... rest of image rendering
-      >
-        <img src={src} alt={`Attachment ${idx + 1}`} />
-      </div>
-    ))}
-  </div>
-)}
+{
+  processedImageUrls.length > 0 && (
+    <div
+      className={`mt-3 grid gap-3 ${
+        processedImageUrls.length === 1 ? 'grid-cols-1' : 'grid-cols-2'
+      }`}
+      onClick={e => e.stopPropagation()}
+    >
+      {processedImageUrls.map((src, idx) => (
+        <div
+          key={idx}
+          role="button"
+          tabIndex={0}
+          className="rounded-lg overflow-hidden border border-neutral-200 bg-white block group cursor-pointer p-0 w-full"
+          onClick={() => {
+            setLightboxIndex(idx);
+            setLightboxOpen(true);
+          }}
+          // ... rest of image rendering
+        >
+          <img src={src} alt={`Attachment ${idx + 1}`} />
+        </div>
+      ))}
+    </div>
+  );
+}
 ```
 
 #### 7.2 Update MessageGroup (`src/features/chat/components/core/MessageGroup.tsx`)
 
 **Changes:**
+
 - Extract ALL image URLs (not just first one)
 - Update regex to capture multiple occurrences
 
@@ -563,12 +623,18 @@ export function useTicketImageUpload(): UseTicketImageUploadResult {
 const extractImageUrls = (text: string): string[] => {
   if (!text || typeof text !== 'string') return [];
 
-  if (text.includes('Conversation History:') || text.includes('NEW TICKET REQUEST')) {
+  if (
+    text.includes('Conversation History:') ||
+    text.includes('NEW TICKET REQUEST')
+  ) {
     return [];
   }
 
-  const imageUrlRegex = /(supabase:\/\/ticket-uploads\/[^\s]+|supabase:\/\/payment-proofs\/[^\s]+)/g;
-  const matches = Array.from(text.matchAll(imageUrlRegex)).map(match => match[0]);
+  const imageUrlRegex =
+    /(supabase:\/\/ticket-uploads\/[^\s]+|supabase:\/\/payment-proofs\/[^\s]+)/g;
+  const matches = Array.from(text.matchAll(imageUrlRegex)).map(
+    match => match[0]
+  );
 
   // Filter duplicates
   return [...new Set(matches)];
@@ -582,6 +648,7 @@ const extractImageUrls = (text: string): string[] => {
 #### 8.1 Update createInquiry (`src/features/chat/actions/customer/createInquiry.ts`)
 
 **Changes:**
+
 - Context now contains array of image URLs
 - No need to create duplicate messages (already handled by flow processor)
 
@@ -599,12 +666,14 @@ const imageUrls = context[imageUrlKey] || null;
 #### 8.2 Update sendAdminReply (`src/features/chat/actions/admin/replyToTicket.ts`)
 
 **Changes:**
+
 - Handle array of uploaded image URLs
 - Embed all URLs in message text
 
 ```typescript
-const uploadedImageUrls = context['uploaded_image_urls'] ||
-                          (context['uploaded_image_url'] ? [context['uploaded_image_url']] : []);
+const uploadedImageUrls =
+  context['uploaded_image_urls'] ||
+  (context['uploaded_image_url'] ? [context['uploaded_image_url']] : []);
 
 const hasAttachments = uploadedImageUrls.length > 0;
 
@@ -634,6 +703,7 @@ const result = await insertMessageV2({
 #### 8.3 Update fetchTicketForAdmin (`src/features/chat/actions/admin/fetchTicketForAdmin.ts`)
 
 **Changes:**
+
 - Look for ALL uploaded images (not just first)
 - Display all images in description
 
@@ -656,6 +726,7 @@ if (uploadedImages.length > 0) {
 #### 8.4 Update trackTicket (`src/features/chat/actions/customer/trackTicket.ts`)
 
 **Same changes as fetchTicketForAdmin:**
+
 - Extract all image URLs
 - Display all in conversation history
 
@@ -664,6 +735,7 @@ if (uploadedImages.length > 0) {
 ## Testing Checklist
 
 ### Mobile Format Testing
+
 - [ ] iOS Safari - Upload HEIC photo from camera
 - [ ] iOS Safari - Upload HEIC photo from photos app
 - [ ] Android Chrome - Upload JPEG from camera
@@ -672,6 +744,7 @@ if (uploadedImages.length > 0) {
 - [ ] Desktop Safari - Upload HEIC (if available)
 
 ### Multiple Image Testing
+
 - [ ] Upload 1 image to ticket - works
 - [ ] Upload 2 images to ticket - works
 - [ ] Upload 3 images to ticket - works
@@ -680,11 +753,13 @@ if (uploadedImages.length > 0) {
 - [ ] Upload single 6MB image - shows error
 
 ### Payment Proof Testing
+
 - [ ] Upload single JPEG - works
 - [ ] Upload single HEIC - converts and works
 - [ ] Try to upload multiple - should only accept first file
 
 ### Display Testing
+
 - [ ] View ticket with 1 image - displays correctly
 - [ ] View ticket with 2 images - grid layout 2 columns
 - [ ] View ticket with 3 images - grid layout 2 columns
@@ -694,6 +769,7 @@ if (uploadedImages.length > 0) {
 - [ ] Images grouped with correct sender
 
 ### Conversion Testing
+
 - [ ] HEIC converts to JPEG successfully
 - [ ] Converted file size is reasonable
 - [ ] Converted image displays correctly
@@ -736,6 +812,7 @@ If issues arise after deployment:
 ## Dependencies
 
 ### New Packages
+
 ```json
 {
   "heic2any": "^0.0.4"
@@ -743,6 +820,7 @@ If issues arise after deployment:
 ```
 
 ### Affected Files
+
 - `src/features/chat/config/uploadConfig.ts` (NEW)
 - `src/shared/utils/convertHeicToJpeg.ts` (NEW)
 - `src/shared/utils/uploadPaymentProof.ts` (MODIFIED - mobile formats only)

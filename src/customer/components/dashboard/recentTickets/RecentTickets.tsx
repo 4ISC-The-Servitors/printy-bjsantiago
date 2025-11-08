@@ -5,7 +5,10 @@ import type { RecentTicket as RecentTicketType } from '@shared/types/customer';
 import StatusBadge from './StatusBadge';
 import TrackTicketButton from './TrackTicketButton';
 import { formatShortDate } from '@shared/utils/dateFormatter';
-import { formatRelativeTimeLabel, formatShortTime } from '@shared/utils/timeFormatter';
+import {
+  formatRelativeTimeLabel,
+  formatShortTime,
+} from '@shared/utils/timeFormatter';
 import { useResponsiveLayout, useResponsiveClasses } from '@shared/hooks/ui';
 
 interface RecentTicketsProps {
@@ -97,7 +100,8 @@ const RecentTickets: React.FC<RecentTicketsProps> = ({ recentTicket }) => {
             >
               <span className="font-medium">Created:</span>
               <span className="truncate">
-                {formatShortDate(recentTicket.createdAt)} • {formatShortTime(recentTicket.createdAt)}
+                {formatShortDate(recentTicket.createdAt)} •{' '}
+                {formatShortTime(recentTicket.createdAt)}
               </span>
             </div>
             <div
@@ -114,7 +118,8 @@ const RecentTickets: React.FC<RecentTicketsProps> = ({ recentTicket }) => {
               >
                 <span className="font-medium">Resolved:</span>
                 <span className="truncate">
-                  {formatShortDate(recentTicket.resolvedAt)} • {formatShortTime(recentTicket.resolvedAt)}
+                  {formatShortDate(recentTicket.resolvedAt)} •{' '}
+                  {formatShortTime(recentTicket.resolvedAt)}
                 </span>
               </div>
             )}

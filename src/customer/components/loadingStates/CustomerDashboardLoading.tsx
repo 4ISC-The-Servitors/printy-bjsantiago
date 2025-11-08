@@ -3,12 +3,12 @@ import { Skeleton, Card } from '@shared/components';
 
 /**
  * CustomerDashboardLoading Component
- * 
+ *
  * Loading skeleton that accurately mimics the Customer Dashboard layout:
  * - Header section with title and subtitle
  * - Recent Card with toggle tabs and order details
  * - Chat Cards grid (6 action cards)
- * 
+ *
  * Uses the same responsive classes and spacing as the actual dashboard components
  * for a seamless loading experience.
  */
@@ -17,16 +17,16 @@ const CustomerDashboardLoading: React.FC = () => {
     <div className="w-full">
       {/* Header Section */}
       <div className="text-center space-y-1 mb-6 sm:mb-8">
-        <Skeleton 
-          variant="text" 
-          width="300px" 
-          height="36px" 
+        <Skeleton
+          variant="text"
+          width="300px"
+          height="36px"
           className="mx-auto device-text-heading"
         />
-        <Skeleton 
-          variant="text" 
-          width="250px" 
-          height="20px" 
+        <Skeleton
+          variant="text"
+          width="250px"
+          height="20px"
           className="mx-auto device-text-body"
         />
       </div>
@@ -127,11 +127,7 @@ const CustomerDashboardLoading: React.FC = () => {
                   height="14px"
                   className="mb-1"
                 />
-                <Skeleton
-                  variant="text"
-                  width="65%"
-                  height="14px"
-                />
+                <Skeleton variant="text" width="65%" height="14px" />
               </Card>
 
               {/* Ask Quote */}
@@ -154,11 +150,7 @@ const CustomerDashboardLoading: React.FC = () => {
                   height="14px"
                   className="mb-1"
                 />
-                <Skeleton
-                  variant="text"
-                  width="70%"
-                  height="14px"
-                />
+                <Skeleton variant="text" width="70%" height="14px" />
               </Card>
 
               {/* Place Order */}
@@ -181,11 +173,7 @@ const CustomerDashboardLoading: React.FC = () => {
                   height="14px"
                   className="mb-1"
                 />
-                <Skeleton
-                  variant="text"
-                  width="60%"
-                  height="14px"
-                />
+                <Skeleton variant="text" width="60%" height="14px" />
               </Card>
 
               {/* Ask Assistance */}
@@ -208,11 +196,7 @@ const CustomerDashboardLoading: React.FC = () => {
                   height="14px"
                   className="mb-1"
                 />
-                <Skeleton
-                  variant="text"
-                  width="80%"
-                  height="14px"
-                />
+                <Skeleton variant="text" width="80%" height="14px" />
               </Card>
 
               {/* About Us */}
@@ -235,11 +219,7 @@ const CustomerDashboardLoading: React.FC = () => {
                   height="14px"
                   className="mb-1"
                 />
-                <Skeleton
-                  variant="text"
-                  width="55%"
-                  height="14px"
-                />
+                <Skeleton variant="text" width="55%" height="14px" />
               </Card>
 
               {/* FAQs */}
@@ -262,11 +242,7 @@ const CustomerDashboardLoading: React.FC = () => {
                   height="14px"
                   className="mb-1"
                 />
-                <Skeleton
-                  variant="text"
-                  width="70%"
-                  height="14px"
-                />
+                <Skeleton variant="text" width="70%" height="14px" />
               </Card>
             </div>
           </div>
@@ -277,4 +253,3 @@ const CustomerDashboardLoading: React.FC = () => {
 };
 
 export default CustomerDashboardLoading;
-

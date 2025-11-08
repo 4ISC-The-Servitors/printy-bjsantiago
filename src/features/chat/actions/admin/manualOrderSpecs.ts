@@ -108,7 +108,6 @@ export async function manualOrderSpecs(
     sessionId,
   });
 
-
   // Avoid duplicating the node's own message; no extra messages returned.
   return { messages };
 }

@@ -52,7 +52,10 @@ const PortfolioCard: React.FC = () => {
         </div>
         <div className="p-8 space-y-6">
           {categoriesAll.map(cat => (
-            <div key={cat.category_id} className="border border-gray-200 rounded-lg">
+            <div
+              key={cat.category_id}
+              className="border border-gray-200 rounded-lg"
+            >
               <button
                 type="button"
                 className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
@@ -110,7 +113,10 @@ const PortfolioCard: React.FC = () => {
         </div>
         <div className="p-8 space-y-6">
           {categoriesOffered.map(cat => (
-            <div key={cat.category_id} className="border border-gray-200 rounded-lg">
+            <div
+              key={cat.category_id}
+              className="border border-gray-200 rounded-lg"
+            >
               <button
                 type="button"
                 className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"

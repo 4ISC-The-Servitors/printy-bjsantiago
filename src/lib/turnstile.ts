@@ -13,8 +13,13 @@ let turnstileScriptLoaded: Promise<void> | null = null;
 let preToken: { action: string; token: string; ts: number } | null = null;
 const inlineWidgetIds: Record<string, string> = {};
 const inlineTokens: Record<string, { token: string; ts: number }> = {};
-const inlineWidgetConfigs: Record<string, { action: string; appearance: 'always' | 'interaction-only' }> = {};
-const debugFlag = String((import.meta as any).env?.VITE_TURNSTILE_DEBUG ?? 'false').toLowerCase();
+const inlineWidgetConfigs: Record<
+  string,
+  { action: string; appearance: 'always' | 'interaction-only' }
+> = {};
+const debugFlag = String(
+  (import.meta as any).env?.VITE_TURNSTILE_DEBUG ?? 'false'
+).toLowerCase();
 const debugOn = !['false', '0', 'no', 'off', ''].includes(debugFlag.trim());
 function dbg(..._args: unknown[]) {
   if (debugOn) {
@@ -146,7 +151,12 @@ export async function renderInlineTurnstile(
     const existing = inlineWidgetIds[containerId];
     const cfg = inlineWidgetConfigs[containerId];
     if (existing) {
-      if (cfg && cfg.action === action && cfg.appearance === appearance && window.turnstile?.reset) {
+      if (
+        cfg &&
+        cfg.action === action &&
+        cfg.appearance === appearance &&
+        window.turnstile?.reset
+      ) {
         dbg('Resetting existing widget', existing);
         window.turnstile.reset(existing);
         // If caller provided a success handler and we already have a fresh token, surface it
@@ -210,7 +220,10 @@ async function getTurnstileTokenInteractive(action: string) {
     if (inlineHost) {
       const existing = inlineWidgetIds['turnstile-signin'];
       if (existing && (window as any).turnstile?.remove) {
-        dbg('Removing existing inline widget before interactive render', existing);
+        dbg(
+          'Removing existing inline widget before interactive render',
+          existing
+        );
         (window as any).turnstile.remove(existing);
         delete inlineWidgetIds['turnstile-signin'];
       }
@@ -282,100 +295,123 @@ export async function assertHumanTurnstile(action: string) {
     return pendingVerify;
   }
   pendingVerify = (async () => {
-  // Feature flags: allow bypass per action for troubleshooting
-  const globalEnable = String(
-    (import.meta as any).env?.VITE_TURNSTILE_ENABLED ?? 'true'
-  ).toLowerCase();
-  const enableSignIn = String(
-    (import.meta as any).env?.VITE_TURNSTILE_ENABLE_SIGNIN ?? 'true'
-  ).toLowerCase();
-  const enableSignUp = String(
-    (import.meta as any).env?.VITE_TURNSTILE_ENABLE_SIGNUP ?? 'true'
-  ).toLowerCase();
-  const enablePasswordReset = String(
-    (import.meta as any).env?.VITE_TURNSTILE_ENABLE_PASSWORD_RESET ?? 'true'
-  ).toLowerCase();
+    // Feature flags: allow bypass per action for troubleshooting
+    const globalEnable = String(
+      (import.meta as any).env?.VITE_TURNSTILE_ENABLED ?? 'true'
+    ).toLowerCase();
+    const enableSignIn = String(
+      (import.meta as any).env?.VITE_TURNSTILE_ENABLE_SIGNIN ?? 'true'
+    ).toLowerCase();
+    const enableSignUp = String(
+      (import.meta as any).env?.VITE_TURNSTILE_ENABLE_SIGNUP ?? 'true'
+    ).toLowerCase();
+    const enablePasswordReset = String(
+      (import.meta as any).env?.VITE_TURNSTILE_ENABLE_PASSWORD_RESET ?? 'true'
+    ).toLowerCase();
 
-  const truthy = (v: string) =>
-    !['false', '0', 'off', 'no', ''].includes(v.trim());
-  const isDisabled =
-    !truthy(globalEnable) ||
-    (action === 'signin' && !truthy(enableSignIn)) ||
-    (action === 'signup' && !truthy(enableSignUp)) ||
-    (action === 'password_reset' && !truthy(enablePasswordReset));
+    const truthy = (v: string) =>
+      !['false', '0', 'off', 'no', ''].includes(v.trim());
+    const isDisabled =
+      !truthy(globalEnable) ||
+      (action === 'signin' && !truthy(enableSignIn)) ||
+      (action === 'signup' && !truthy(enableSignUp)) ||
+      (action === 'password_reset' && !truthy(enablePasswordReset));
 
-  if (isDisabled) {
-    dbg('bypass enabled for', action);
-    return { token: 'bypass' } as { token: string };
-  }
-
-  // Prefer inline token if widget is mounted and fresh; else acquire
-  const inlineToken = getFreshInlineToken(action);
-  let token: string;
-  if (inlineToken) {
-    dbg('using inline token for', action);
-    token = inlineToken;
-    // Consume inline token to avoid reuse (Turnstile tokens are single-use)
-    delete inlineTokens[action];
-  } else {
-    // Token acquisition with a soft timeout to avoid indefinite waits
-    dbg('acquiring token for', action);
-    try {
-      const tokenPromise = getTurnstileToken(action);
-      token = (await Promise.race<string>([
-        tokenPromise,
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Turnstile timeout')), 12000)
-        ),
-      ])) as string;
-    } catch (e) {
-      // Fallback: visible challenge (inline container if present)
-      token = await getTurnstileTokenInteractive(action);
+    if (isDisabled) {
+      dbg('bypass enabled for', action);
+      return { token: 'bypass' } as { token: string };
     }
-  }
-  dbg('token acquired length', token?.length ?? 0);
-  // Call Netlify Function instead of Supabase Edge Function, with one retry on duplicate/timeout
-  const verifyOnce = async (tok: string) => {
-    // Try /api first; if 404, fallback to direct /.netlify/functions path
-    const endpoints = ['/api/verify-turnstile', '/.netlify/functions/verify-turnstile'];
-    for (const url of endpoints) {
+
+    // Prefer inline token if widget is mounted and fresh; else acquire
+    const inlineToken = getFreshInlineToken(action);
+    let token: string;
+    if (inlineToken) {
+      dbg('using inline token for', action);
+      token = inlineToken;
+      // Consume inline token to avoid reuse (Turnstile tokens are single-use)
+      delete inlineTokens[action];
+    } else {
+      // Token acquisition with a soft timeout to avoid indefinite waits
+      dbg('acquiring token for', action);
       try {
-        const resp = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token: tok, action }),
-        });
-        // If 404, try the next endpoint
-        if (resp.status === 404) continue;
-        try {
-          const json = (await resp.json()) as { ok?: boolean; data?: Record<string, unknown> };
-          return { ok: Boolean(json?.ok), respOk: resp.ok, json } as { ok: boolean; respOk: boolean; json: any };
-        } catch {
-          return { ok: false, respOk: resp.ok, json: null } as { ok: boolean; respOk: boolean; json: any };
-        }
-      } catch {
-        // ignore and try next
+        const tokenPromise = getTurnstileToken(action);
+        token = (await Promise.race<string>([
+          tokenPromise,
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Turnstile timeout')), 12000)
+          ),
+        ])) as string;
+      } catch (e) {
+        // Fallback: visible challenge (inline container if present)
+        token = await getTurnstileTokenInteractive(action);
       }
     }
-    return { ok: false, respOk: false, json: null } as { ok: boolean; respOk: boolean; json: any };
-  };
+    dbg('token acquired length', token?.length ?? 0);
+    // Call Netlify Function instead of Supabase Edge Function, with one retry on duplicate/timeout
+    const verifyOnce = async (tok: string) => {
+      // Try /api first; if 404, fallback to direct /.netlify/functions path
+      const endpoints = [
+        '/api/verify-turnstile',
+        '/.netlify/functions/verify-turnstile',
+      ];
+      for (const url of endpoints) {
+        try {
+          const resp = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: tok, action }),
+          });
+          // If 404, try the next endpoint
+          if (resp.status === 404) continue;
+          try {
+            const json = (await resp.json()) as {
+              ok?: boolean;
+              data?: Record<string, unknown>;
+            };
+            return { ok: Boolean(json?.ok), respOk: resp.ok, json } as {
+              ok: boolean;
+              respOk: boolean;
+              json: any;
+            };
+          } catch {
+            return { ok: false, respOk: resp.ok, json: null } as {
+              ok: boolean;
+              respOk: boolean;
+              json: any;
+            };
+          }
+        } catch {
+          // ignore and try next
+        }
+      }
+      return { ok: false, respOk: false, json: null } as {
+        ok: boolean;
+        respOk: boolean;
+        json: any;
+      };
+    };
 
-  let result = await verifyOnce(token);
-  if (!result.ok) {
-    const codes: string[] | undefined = (result.json?.data?.['error-codes'] as string[] | undefined) || undefined;
-    dbg('verify-turnstile not ok; codes:', codes || []);
-    const shouldRetry = Array.isArray(codes) && (codes.includes('timeout-or-duplicate') || codes.includes('invalid-input-response'));
-    if (shouldRetry) {
-      try {
-        const fresh = await getTurnstileTokenInteractive(action);
-        result = await verifyOnce(fresh);
-      } catch {}
+    let result = await verifyOnce(token);
+    if (!result.ok) {
+      const codes: string[] | undefined =
+        (result.json?.data?.['error-codes'] as string[] | undefined) ||
+        undefined;
+      dbg('verify-turnstile not ok; codes:', codes || []);
+      const shouldRetry =
+        Array.isArray(codes) &&
+        (codes.includes('timeout-or-duplicate') ||
+          codes.includes('invalid-input-response'));
+      if (shouldRetry) {
+        try {
+          const fresh = await getTurnstileTokenInteractive(action);
+          result = await verifyOnce(fresh);
+        } catch {}
+      }
     }
-  }
-  if (!result.ok) {
-    throw new Error('Failed human verification');
-  }
-  return { token } as { token: string };
+    if (!result.ok) {
+      throw new Error('Failed human verification');
+    }
+    return { token } as { token: string };
   })();
   try {
     const out = await pendingVerify;

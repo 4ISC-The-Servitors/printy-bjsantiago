@@ -17,7 +17,9 @@ This guide summarizes what remains for the next developer to wire the Supabase b
 1. **Create delete-all action**
    - Add a new utility in `src/shared/utils/notificationUtils.ts` (or similar) to call Supabase:
      ```ts
-     export async function deleteAllNotifications(userId: string): Promise<void> {
+     export async function deleteAllNotifications(
+       userId: string
+     ): Promise<void> {
        const { error } = await supabase
          .from('notifications')
          .delete()

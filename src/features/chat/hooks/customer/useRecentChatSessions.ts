@@ -47,19 +47,30 @@ export function useRecentChatSessions(
             // Generate title with FK relationships for consistency
             // For sessions with metadata.context (like track-quote with subject), preserve it
             // For sessions with FK relationships (like track-ticket), use display_id from FK
-            const displayIdFromFK = s.inquiry?.display_id || s.quote?.display_id || s.order?.display_id;
+            const displayIdFromFK =
+              s.inquiry?.display_id ||
+              s.quote?.display_id ||
+              s.order?.display_id;
             const context = s.metadata?.context
-              ? { ...s.metadata.context, display_id: s.metadata.context.display_id || s.metadata.context.subject || displayIdFromFK }
+              ? {
+                  ...s.metadata.context,
+                  display_id:
+                    s.metadata.context.display_id ||
+                    s.metadata.context.subject ||
+                    displayIdFromFK,
+                }
               : displayIdFromFK
                 ? { display_id: displayIdFromFK }
                 : undefined;
 
             const title = getSessionTitle({
               flowId: s.flowId,
-              metadata: s.metadata ? {
-                ...s.metadata,
-                context,
-              } : undefined,
+              metadata: s.metadata
+                ? {
+                    ...s.metadata,
+                    context,
+                  }
+                : undefined,
               inquiry: s.inquiry,
               quote: s.quote,
               order: s.order,

@@ -105,7 +105,6 @@ export function useAdminTickets(options: LoadInquiriesOptions = {}) {
           customer_last_name: last || null,
         } as AdminTicketRow;
 
-
         return normalizedRow;
       });
 

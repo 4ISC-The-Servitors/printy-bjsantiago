@@ -36,7 +36,11 @@ interface UseNotificationSoundReturn {
 export function useNotificationSound(
   options: UseNotificationSoundOptions = {}
 ): UseNotificationSoundReturn {
-  const { enabled = true, volume = 0.3, src = '/mixkit-software-interface-start-2574.wav' } = options;
+  const {
+    enabled = true,
+    volume = 0.3,
+    src = '/mixkit-software-interface-start-2574.wav',
+  } = options;
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -51,7 +55,8 @@ export function useNotificationSound(
 
     // Unlock audio on first user interaction
     const unlockAudio = () => {
-      audio.play()
+      audio
+        .play()
         .then(() => {
           audio.pause();
           audio.currentTime = 0;
@@ -79,7 +84,8 @@ export function useNotificationSound(
 
   const playBeepFallback = useCallback(() => {
     try {
-      const AudioContextCtor = (window as any).AudioContext || (window as any).webkitAudioContext;
+      const AudioContextCtor =
+        (window as any).AudioContext || (window as any).webkitAudioContext;
       if (!AudioContextCtor) return;
       const ctx = new AudioContextCtor();
       const o = ctx.createOscillator();
@@ -107,7 +113,7 @@ export function useNotificationSound(
         const newAudio = new Audio(src);
         newAudio.volume = volume;
         audioRef.current = newAudio;
-        
+
         // Try to play, but don't log autoplay errors
         newAudio.play().catch(() => {
           // Silently fail for autoplay restrictions, try fallback beep
@@ -129,4 +135,3 @@ export function useNotificationSound(
 
   return { playSound };
 }
-

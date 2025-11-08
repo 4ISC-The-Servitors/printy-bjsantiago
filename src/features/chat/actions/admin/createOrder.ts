@@ -177,7 +177,10 @@ export async function createOrder(
       .eq('quote_id', quoteId);
 
     if (quoteUpdateError) {
-      console.error('[createOrder] Error updating quote status:', quoteUpdateError);
+      console.error(
+        '[createOrder] Error updating quote status:',
+        quoteUpdateError
+      );
       // Continue execution even if quote status update fails
     }
 

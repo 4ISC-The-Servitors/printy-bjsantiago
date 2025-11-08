@@ -30,8 +30,10 @@ export function useRecentQuote(customerId?: string) {
 
           // Set acceptedAt or rejectedAt based on status
           const updatedAt = latestQuote.updatedAt || latestQuote.createdAt;
-          const acceptedAt = latestQuote.status === 'accepted' ? updatedAt : undefined;
-          const rejectedAt = latestQuote.status === 'rejected' ? updatedAt : undefined;
+          const acceptedAt =
+            latestQuote.status === 'accepted' ? updatedAt : undefined;
+          const rejectedAt =
+            latestQuote.status === 'rejected' ? updatedAt : undefined;
 
           setRecentQuote({
             id: latestQuote.quote_id,

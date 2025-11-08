@@ -52,7 +52,12 @@ export const AdminListSkeleton: React.FC<AdminListSkeletonProps> = ({
       <Card className="p-0">
         {/* Header with badge count skeleton */}
         <div className="flex items-center justify-end px-3 py-2 sm:px-4">
-          <Skeleton variant="rectangular" width="40px" height="20px" className="rounded" />
+          <Skeleton
+            variant="rectangular"
+            width="40px"
+            height="20px"
+            className="rounded"
+          />
         </div>
 
         {/* List items */}
@@ -124,7 +129,12 @@ export const AdminListSkeleton: React.FC<AdminListSkeletonProps> = ({
 
                 {/* Optional action button */}
                 {showAction && (
-                  <Skeleton variant="rectangular" width="32px" height="32px" className="rounded" />
+                  <Skeleton
+                    variant="rectangular"
+                    width="32px"
+                    height="32px"
+                    className="rounded"
+                  />
                 )}
               </div>
             </div>

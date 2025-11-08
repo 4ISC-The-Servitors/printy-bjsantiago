@@ -40,7 +40,6 @@ export async function displayQuotedPrice(
 
   // If conversationId is a quote_id, we need to find the actual session_id
   if (conversationId && conversationId.length > 30) {
-
     // Query quotes table to get the session_id for this quote
     const { data: quoteData } = await supabase
       .from('quotes')

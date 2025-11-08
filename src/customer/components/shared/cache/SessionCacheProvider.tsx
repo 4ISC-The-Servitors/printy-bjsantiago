@@ -10,10 +10,15 @@ interface SessionCacheContextValue {
   error: string | null;
   refetch: () => void;
   addSession: (session: ConversationItem) => void;
-  updateSession: (sessionId: string, updates: Partial<ConversationItem>) => void;
+  updateSession: (
+    sessionId: string,
+    updates: Partial<ConversationItem>
+  ) => void;
 }
 
-const SessionCacheContext = createContext<SessionCacheContextValue | null>(null);
+const SessionCacheContext = createContext<SessionCacheContextValue | null>(
+  null
+);
 
 interface SessionCacheProviderProps {
   children: ReactNode;
@@ -22,7 +27,7 @@ interface SessionCacheProviderProps {
 
 export const SessionCacheProvider: React.FC<SessionCacheProviderProps> = ({
   children,
-  customerId
+  customerId,
 }) => {
   const [sessions, setSessions] = useState<ConversationItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -37,7 +42,8 @@ export const SessionCacheProvider: React.FC<SessionCacheProviderProps> = ({
     try {
       const { data: sessionData, error: sessionError } = await supabase
         .from('chat_sessions_v2')
-        .select(`
+        .select(
+          `
           session_id,
           flow_id,
           customer_id,
@@ -66,7 +72,8 @@ export const SessionCacheProvider: React.FC<SessionCacheProviderProps> = ({
             status,
             total_amount
           )
-        `)
+        `
+        )
         .eq('customer_id', customerId)
         .is('metadata->ticket_conversation', null)
         .order('created_at', { ascending: false });
@@ -80,53 +87,61 @@ export const SessionCacheProvider: React.FC<SessionCacheProviderProps> = ({
       const processedSessions: ConversationItem[] = (sessionData || [])
         .filter(session => {
           // Defense-in-depth: Filter out ticket conversation sessions
-          const metadata = session.metadata as any || {};
+          const metadata = (session.metadata as any) || {};
           return !metadata.ticket_conversation;
         })
         .map(session => {
-        const metadata = session.metadata as any || {};
+          const metadata = (session.metadata as any) || {};
 
-        // Generate session title - handle array types from Supabase joins
-        const inquiry = Array.isArray(session.inquiries_v2) ? session.inquiries_v2[0] : session.inquiries_v2;
-        const quote = Array.isArray(session.quotes) ? session.quotes[0] : session.quotes;
-        const order = Array.isArray(session.orders) ? session.orders[0] : session.orders;
+          // Generate session title - handle array types from Supabase joins
+          const inquiry = Array.isArray(session.inquiries_v2)
+            ? session.inquiries_v2[0]
+            : session.inquiries_v2;
+          const quote = Array.isArray(session.quotes)
+            ? session.quotes[0]
+            : session.quotes;
+          const order = Array.isArray(session.orders)
+            ? session.orders[0]
+            : session.orders;
 
-        const sessionTitle = getSessionTitle({
-          flowId: session.flow_id || 'about',
-          metadata: {
-            ...metadata,
+          const sessionTitle = getSessionTitle({
+            flowId: session.flow_id || 'about',
+            metadata: {
+              ...metadata,
+              context: {
+                ...metadata.context,
+                display_id:
+                  metadata.context?.display_id ||
+                  inquiry?.display_id ||
+                  quote?.display_id ||
+                  order?.display_id,
+              },
+            },
+            inquiry: inquiry,
+            quote: quote,
+            order: order,
+          });
+
+          return {
+            id: session.session_id,
+            title: sessionTitle,
+            createdAt: new Date(session.created_at).getTime(),
+            messages: [], // Messages will be loaded when switching to conversation
+            flowId: session.flow_id || 'about',
+            status: session.status === 'ended' ? 'ended' : 'active',
+            icon: undefined,
             context: {
-              ...metadata.context,
-              display_id: metadata.context?.display_id ||
-                           inquiry?.display_id ||
-                           quote?.display_id ||
-                           order?.display_id
-            }
-          },
-          inquiry: inquiry,
-          quote: quote,
-          order: order,
+              orderId: session.order_id,
+              inquiryId: session.inquiry_id,
+              quoteId: session.quote_id,
+              displayId:
+                metadata.context?.display_id ||
+                inquiry?.display_id ||
+                quote?.display_id ||
+                order?.display_id,
+            },
+          };
         });
-
-        return {
-          id: session.session_id,
-          title: sessionTitle,
-          createdAt: new Date(session.created_at).getTime(),
-          messages: [], // Messages will be loaded when switching to conversation
-          flowId: session.flow_id || 'about',
-          status: session.status === 'ended' ? 'ended' : 'active',
-          icon: undefined,
-          context: {
-            orderId: session.order_id,
-            inquiryId: session.inquiry_id,
-            quoteId: session.quote_id,
-            displayId: metadata.context?.display_id ||
-                      inquiry?.display_id ||
-                      quote?.display_id ||
-                      order?.display_id
-          }
-        };
-      });
 
       setSessions(processedSessions);
     } catch (err) {
@@ -155,12 +170,13 @@ export const SessionCacheProvider: React.FC<SessionCacheProviderProps> = ({
   };
 
   // Update existing session in cache
-  const updateSession = (sessionId: string, updates: Partial<ConversationItem>) => {
+  const updateSession = (
+    sessionId: string,
+    updates: Partial<ConversationItem>
+  ) => {
     setSessions(prev =>
       prev.map(session =>
-        session.id === sessionId
-          ? { ...session, ...updates }
-          : session
+        session.id === sessionId ? { ...session, ...updates } : session
       )
     );
   };
@@ -184,7 +200,9 @@ export const SessionCacheProvider: React.FC<SessionCacheProviderProps> = ({
 export const useSessionCache = (): SessionCacheContextValue => {
   const context = useContext(SessionCacheContext);
   if (!context) {
-    throw new Error('useSessionCache must be used within a SessionCacheProvider');
+    throw new Error(
+      'useSessionCache must be used within a SessionCacheProvider'
+    );
   }
   return context;
 };
@@ -195,9 +213,9 @@ export const useCustomerSessionCache = (customerId?: string) => {
 
   // Filter sessions by current customer if needed
   const customerSessions = customerId
-    ? sessionCache.sessions.filter(session =>
-        session.context?.orderId || // Keep sessions that have orders
-        session.flowId !== 'about' // Exclude general "about" sessions
+    ? sessionCache.sessions.filter(
+        session =>
+          session.context?.orderId || session.flowId !== 'about' // Keep sessions that have orders // Exclude general "about" sessions
       )
     : sessionCache.sessions;
 

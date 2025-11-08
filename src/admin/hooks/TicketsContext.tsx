@@ -27,8 +27,10 @@ export const TicketsProvider: React.FC<{ children: React.ReactNode }> = ({
     useAdvancedFallbacks: false, // Disabled to avoid 404 errors from inaccessible RPC functions
   });
 
-  const updateTicket = (_ticketId: string, _updates: Partial<AdminTicketRow>) => {
-
+  const updateTicket = (
+    _ticketId: string,
+    _updates: Partial<AdminTicketRow>
+  ) => {
     // Optimistic update would go here if we had access to setTickets
     // For now, we'll rely on the real-time subscription to update the UI
     // The actual database update is handled by the chat flows

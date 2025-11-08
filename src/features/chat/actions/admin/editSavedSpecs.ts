@@ -81,7 +81,6 @@ export async function editSavedSpecs(
       .order('created_at', { ascending: false })
       .limit(1);
 
-
     if (specError) {
       console.error('[editSavedSpecs] Error fetching specs:', specError);
       messages.push({

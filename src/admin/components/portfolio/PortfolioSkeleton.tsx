@@ -32,14 +32,24 @@ export const PortfolioSkeleton: React.FC = () => {
                   <Skeleton variant="text" width="192px" height="20px" />
                   {/* Status badge skeleton */}
                   <div className="mt-2">
-                    <Skeleton variant="rectangular" width="80px" height="24px" className="rounded-full" />
+                    <Skeleton
+                      variant="rectangular"
+                      width="80px"
+                      height="24px"
+                      className="rounded-full"
+                    />
                   </div>
                 </div>
               </div>
 
               {/* Right side: Action button skeleton */}
               <div className="text-right flex-shrink-0 ml-4">
-                <Skeleton variant="rectangular" width="44px" height="44px" className="rounded-lg" />
+                <Skeleton
+                  variant="rectangular"
+                  width="44px"
+                  height="44px"
+                  className="rounded-lg"
+                />
               </div>
             </div>
           ))}
@@ -48,12 +58,32 @@ export const PortfolioSkeleton: React.FC = () => {
 
       {/* Pagination skeleton */}
       <div className="flex items-center justify-between gap-4 px-4 py-4">
-        <Skeleton variant="rectangular" width="96px" height="40px" className="rounded" />
+        <Skeleton
+          variant="rectangular"
+          width="96px"
+          height="40px"
+          className="rounded"
+        />
         <div className="flex gap-2">
-          <Skeleton variant="rectangular" width="40px" height="40px" className="rounded" />
-          <Skeleton variant="rectangular" width="40px" height="40px" className="rounded" />
+          <Skeleton
+            variant="rectangular"
+            width="40px"
+            height="40px"
+            className="rounded"
+          />
+          <Skeleton
+            variant="rectangular"
+            width="40px"
+            height="40px"
+            className="rounded"
+          />
         </div>
-        <Skeleton variant="rectangular" width="96px" height="40px" className="rounded" />
+        <Skeleton
+          variant="rectangular"
+          width="96px"
+          height="40px"
+          className="rounded"
+        />
       </div>
     </div>
   );

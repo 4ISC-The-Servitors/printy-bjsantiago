@@ -50,5 +50,3 @@ const SpecEditorReopenBubble: React.FC<SpecEditorReopenBubbleProps> = ({
 };
 
 export default SpecEditorReopenBubble;
-
-

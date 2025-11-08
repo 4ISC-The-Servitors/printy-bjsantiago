@@ -30,7 +30,9 @@ const OrdersCard: React.FC<OrdersCardProps> = ({ filteredOrders }) => {
 
   // Now we can do early return for loading state
   if (isLoading) {
-    return <AdminListSkeleton itemCount={5} showCheckbox={true} showAction={true} />;
+    return (
+      <AdminListSkeleton itemCount={5} showCheckbox={true} showAction={true} />
+    );
   }
 
   return (

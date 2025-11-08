@@ -197,7 +197,10 @@ const TicketHistory: React.FC = () => {
             files,
             inquiryId,
             url => {
-              console.log('[handleFileUpload] Upload successful, sending URL:', url);
+              console.log(
+                '[handleFileUpload] Upload successful, sending URL:',
+                url
+              );
               // Send the uploaded storage URL (not blob URL) to the chat
               // This ensures the image persists in the database
               sendViaHook(String(url));
@@ -209,16 +212,21 @@ const TicketHistory: React.FC = () => {
             }
           );
         } else {
-          console.error('No valid inquiry ID available for ticket image upload', {
-            context: currentConversation?.context,
-            activeId,
-          });
+          console.error(
+            'No valid inquiry ID available for ticket image upload',
+            {
+              context: currentConversation?.context,
+              activeId,
+            }
+          );
           sendViaHook(
             'Error: No valid inquiry ID available. Please try again.'
           );
         }
       } else {
-        console.log('[handleFileUpload] Not a ticket flow, using regular attachments');
+        console.log(
+          '[handleFileUpload] Not a ticket flow, using regular attachments'
+        );
         // Use regular chat attachments for other flows (these create blob URLs)
         handleAttachFiles(files);
       }

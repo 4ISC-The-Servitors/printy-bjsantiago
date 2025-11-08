@@ -30,7 +30,9 @@ const QuotesCard: React.FC<QuotesCardProps> = ({ filteredQuotes }) => {
 
   // Now we can do early return for loading state
   if (isLoading) {
-    return <AdminListSkeleton itemCount={5} showCheckbox={false} showAction={true} />;
+    return (
+      <AdminListSkeleton itemCount={5} showCheckbox={false} showAction={true} />
+    );
   }
 
   return (

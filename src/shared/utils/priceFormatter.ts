@@ -15,14 +15,13 @@ export function formatPriceInput(input: string): string {
 
   // Allow only first decimal point
   const firstDot = cleanInput.indexOf('.');
-  const endsWithDot = cleanInput.endsWith('.') && firstDot === cleanInput.length - 1;
+  const endsWithDot =
+    cleanInput.endsWith('.') && firstDot === cleanInput.length - 1;
   if (firstDot !== -1) {
     // Remove any additional dots
     cleanInput =
       cleanInput.substring(0, firstDot + 1) +
-      cleanInput
-        .substring(firstDot + 1)
-        .replace(/\./g, '');
+      cleanInput.substring(firstDot + 1).replace(/\./g, '');
   }
 
   const number = parseFloat(cleanInput);
@@ -75,7 +74,10 @@ export function isValidPriceInput(input: string): boolean {
  * @param locale - The locale for formatting (default: 'en-PH')
  * @returns Formatted string prefixed with the Peso sign (e.g., ₱30,000.50)
  */
-export function formatCurrency(amount: number, locale: string = 'en-PH'): string {
+export function formatCurrency(
+  amount: number,
+  locale: string = 'en-PH'
+): string {
   try {
     // Show up to 2 decimals; do not force .00 for whole numbers
     const hasCents = Math.round(amount * 100) % 100 !== 0;

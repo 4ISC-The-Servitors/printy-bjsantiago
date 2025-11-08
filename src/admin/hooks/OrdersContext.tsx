@@ -25,7 +25,6 @@ export const OrdersProvider: React.FC<{ children: React.ReactNode }> = ({
   });
 
   const updateOrder = (_orderId: string, _updates: Partial<AdminOrderRow>) => {
-
     // Optimistic update - update local state immediately
     // Note: This assumes the orders state is accessible from the hook
     // The actual optimistic update will be handled by the useAdminOrders hook

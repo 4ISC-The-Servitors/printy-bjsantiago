@@ -139,8 +139,7 @@ export async function displayQuoteDetails(
         messages.push({
           id: crypto.randomUUID(),
           role: 'printy',
-          text:
-            'Your quote request is being reviewed by our admin team. We will send you a detailed proposal with pricing soon.',
+          text: 'Your quote request is being reviewed by our admin team. We will send you a detailed proposal with pricing soon.',
           ts: Date.now(),
         });
       }

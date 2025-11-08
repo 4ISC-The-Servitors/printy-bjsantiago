@@ -226,9 +226,11 @@ export async function getAverageCustomerSatisfactionScore(
   }
 
   const avgRating = data.reduce((sum, f) => sum + f.rating, 0) / data.length;
-  console.log(`[KPI 3 SUCCESS] Calculated average CSAT: ${avgRating.toFixed(2)}`);
+  console.log(
+    `[KPI 3 SUCCESS] Calculated average CSAT: ${avgRating.toFixed(2)}`
+  );
   return avgRating;
-}   // ADDED BY ANDENG, IDK IF THIS WILL WORK
+} // ADDED BY ANDENG, IDK IF THIS WILL WORK
 
 // --- KPI 4: Escalation Rate ---
 export async function getEscalationRate(

@@ -1,7 +1,10 @@
 import React from 'react';
 import { Badge, Button } from '@admin/components/shared';
 import { getTicketStatusBadgeVariant } from '@shared/utils/statusColors';
-import { formatTicketStatus, formatInquiryType } from '@shared/utils/statusFormatter';
+import {
+  formatTicketStatus,
+  formatInquiryType,
+} from '@shared/utils/statusFormatter';
 import { formatDateWithTimeDesktop } from '@shared/utils/dateFormatter';
 import { formatRelativeTimeLabel } from '@shared/utils/timeFormatter';
 import { MessageSquare } from 'lucide-react';

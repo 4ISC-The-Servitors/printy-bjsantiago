@@ -1,6 +1,6 @@
 import type { Handler } from '@netlify/functions';
 
-export const handler: Handler = async (event) => {
+export const handler: Handler = async event => {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method Not Allowed' };
   }
@@ -8,17 +8,33 @@ export const handler: Handler = async (event) => {
   try {
     const { token, action } = JSON.parse(event.body || '{}');
     if (!token) {
-      return { statusCode: 200, body: JSON.stringify({ ok: false, error: 'missing token' }) };
+      return {
+        statusCode: 200,
+        body: JSON.stringify({ ok: false, error: 'missing token' }),
+      };
     }
 
     const secret = process.env.TURNSTILE_SECRET_KEY || '';
     if (!secret) {
-      return { statusCode: 200, body: JSON.stringify({ ok: false, error: 'missing TURNSTILE_SECRET_KEY' }) };
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          ok: false,
+          error: 'missing TURNSTILE_SECRET_KEY',
+        }),
+      };
     }
 
     // Dev short-circuit: honor a 'bypass' token
     if (token === 'bypass') {
-      return { statusCode: 200, body: JSON.stringify({ ok: true, action, data: { success: true, bypass: true } }) };
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          ok: true,
+          action,
+          data: { success: true, bypass: true },
+        }),
+      };
     }
 
     // Cloudflare expects application/x-www-form-urlencoded
@@ -27,19 +43,20 @@ export const handler: Handler = async (event) => {
     form.append('response', token);
 
     // Optionally pass client IP if available
-    const fwd = (
-      event.headers['x-forwarded-for'] ||
+    const fwd = (event.headers['x-forwarded-for'] ||
       event.headers['x-nf-client-connection-ip'] ||
       event.headers['client-ip'] ||
-      ''
-    ) as string;
+      '') as string;
     if (fwd) form.append('remoteip', fwd.split(',')[0].trim());
 
-    const resp = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: form.toString(),
-    });
+    const resp = await fetch(
+      'https://challenges.cloudflare.com/turnstile/v0/siteverify',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: form.toString(),
+      }
+    );
 
     let data: any;
     try {
@@ -58,8 +75,12 @@ export const handler: Handler = async (event) => {
     return { statusCode: 200, body: JSON.stringify({ ok, action, data }) };
   } catch (e: any) {
     // Never hard-fail; surface as ok=false to avoid 500s
-    return { statusCode: 200, body: JSON.stringify({ ok: false, error: e?.message || 'verify exception' }) };
+    return {
+      statusCode: 200,
+      body: JSON.stringify({
+        ok: false,
+        error: e?.message || 'verify exception',
+      }),
+    };
   }
 };
-
-

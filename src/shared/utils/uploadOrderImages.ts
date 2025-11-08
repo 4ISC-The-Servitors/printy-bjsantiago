@@ -17,7 +17,9 @@ export async function uploadOrderImages(
   const errors: string[] = [];
 
   try {
-    const maxFiles = (IMAGE_UPLOAD_CONFIG as any).orders?.maxFilesPerUpload ?? IMAGE_UPLOAD_CONFIG.ticket.maxFilesPerUpload;
+    const maxFiles =
+      (IMAGE_UPLOAD_CONFIG as any).orders?.maxFilesPerUpload ??
+      IMAGE_UPLOAD_CONFIG.ticket.maxFilesPerUpload;
     if (files.length > maxFiles) {
       return {
         urls: [],
@@ -37,7 +39,9 @@ export async function uploadOrderImages(
 
     const processedFiles = await convertMultipleHeicToJpeg(files);
 
-    const maxFileSize = (IMAGE_UPLOAD_CONFIG as any).orders?.maxFileSize ?? IMAGE_UPLOAD_CONFIG.ticket.maxFileSize;
+    const maxFileSize =
+      (IMAGE_UPLOAD_CONFIG as any).orders?.maxFileSize ??
+      IMAGE_UPLOAD_CONFIG.ticket.maxFileSize;
     for (const f of processedFiles) {
       if (f.size > maxFileSize) {
         errors.push(`${f.name}: File too large.`);
@@ -45,7 +49,9 @@ export async function uploadOrderImages(
     }
 
     const totalSize = processedFiles.reduce((sum, f) => sum + f.size, 0);
-    const maxTotalSize = (IMAGE_UPLOAD_CONFIG as any).orders?.maxTotalSize ?? IMAGE_UPLOAD_CONFIG.ticket.maxTotalSize;
+    const maxTotalSize =
+      (IMAGE_UPLOAD_CONFIG as any).orders?.maxTotalSize ??
+      IMAGE_UPLOAD_CONFIG.ticket.maxTotalSize;
     if (totalSize > maxTotalSize) {
       return {
         urls: [],
@@ -98,5 +104,3 @@ export async function uploadOrderImages(
     };
   }
 }
-
-

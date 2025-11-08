@@ -44,12 +44,12 @@ export async function submitSessionFeedback(
 
     if (error) {
       console.error('Failed to submit feedback:', error);
-      
+
       // Handle duplicate feedback error gracefully
       if (error.code === '23505') {
         console.warn('Feedback already submitted for this session');
       }
-      
+
       return null;
     }
 
@@ -104,4 +104,3 @@ export async function getSessionFeedback(
     return null;
   }
 }
-

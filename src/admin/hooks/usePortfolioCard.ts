@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
-import { 
-  fetchAllServices, 
-  fetchActiveServices, 
+import {
+  fetchAllServices,
+  fetchActiveServices,
   fetchServicesByCategory,
-  fetchActiveServicesByCategory
+  fetchActiveServicesByCategory,
 } from '@features/chat/api/servicesApi';
-import type { ServiceWithCategory, ServiceCategoryWithCount } from '@shared/types/service';
+import type {
+  ServiceWithCategory,
+  ServiceCategoryWithCount,
+} from '@shared/types/service';
 // Selection removed
 import { useAdmin } from '@admin/hooks/AdminContext';
 
@@ -20,22 +23,29 @@ export const usePortfolioCard = () => {
   >(null);
   const [hoveredServiceId, setHoveredServiceId] = useState<string | null>(null);
   const [allServices, setAllServices] = useState<ServiceWithCategory[]>([]);
-  const [offeredServices, setOfferedServices] = useState<ServiceWithCategory[]>([]);
-  const [categoriesAll, setCategoriesAll] = useState<ServiceCategoryWithCount[]>([]);
-  const [categoriesOffered, setCategoriesOffered] = useState<ServiceCategoryWithCount[]>([]);
+  const [offeredServices, setOfferedServices] = useState<ServiceWithCategory[]>(
+    []
+  );
+  const [categoriesAll, setCategoriesAll] = useState<
+    ServiceCategoryWithCount[]
+  >([]);
+  const [categoriesOffered, setCategoriesOffered] = useState<
+    ServiceCategoryWithCount[]
+  >([]);
 
   // Fetch services data
   useEffect(() => {
     const loadServices = async () => {
       try {
         setIsLoading(true);
-        const [all, active, allCategories, activeCategories] = await Promise.all([
-          fetchAllServices(),
-          fetchActiveServices(),
-          fetchServicesByCategory(),
-          fetchActiveServicesByCategory()
-        ]);
-        
+        const [all, active, allCategories, activeCategories] =
+          await Promise.all([
+            fetchAllServices(),
+            fetchActiveServices(),
+            fetchServicesByCategory(),
+            fetchActiveServicesByCategory(),
+          ]);
+
         setAllServices(all);
         setOfferedServices(active);
         setCategoriesAll(allCategories);

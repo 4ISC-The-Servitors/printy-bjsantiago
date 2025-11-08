@@ -4,11 +4,11 @@
  */
 
 import { supabase } from '@lib/supabase';
-import type { 
-  ServiceCategory, 
-  ServiceWithCategory, 
+import type {
+  ServiceCategory,
+  ServiceWithCategory,
   ServiceCategoryWithCount,
-  ServiceFilters 
+  ServiceFilters,
 } from '@shared/types/service';
 
 /**
@@ -17,10 +17,12 @@ import type {
 export async function fetchAllServices(): Promise<ServiceWithCategory[]> {
   const { data, error } = await supabase
     .from('printing_services')
-    .select(`
+    .select(
+      `
       *,
       category:service_categories(*)
-    `)
+    `
+    )
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -32,7 +34,10 @@ export async function fetchAllServices(): Promise<ServiceWithCategory[]> {
 
   try {
     const counts = await fetchServiceOrderStats();
-    return services.map(s => ({ ...s, total_order_count: counts[s.service_id] ?? 0 }));
+    return services.map(s => ({
+      ...s,
+      total_order_count: counts[s.service_id] ?? 0,
+    }));
   } catch (e) {
     // If stats fetch fails, return services without counts
     return services;
@@ -45,10 +50,12 @@ export async function fetchAllServices(): Promise<ServiceWithCategory[]> {
 export async function fetchActiveServices(): Promise<ServiceWithCategory[]> {
   const { data, error } = await supabase
     .from('printing_services')
-    .select(`
+    .select(
+      `
       *,
       category:service_categories(*)
-    `)
+    `
+    )
     .eq('status', 'active')
     .order('created_at', { ascending: false });
 
@@ -59,7 +66,10 @@ export async function fetchActiveServices(): Promise<ServiceWithCategory[]> {
   const services = (data || []) as ServiceWithCategory[];
   try {
     const counts = await fetchServiceOrderStats();
-    return services.map(s => ({ ...s, total_order_count: counts[s.service_id] ?? 0 }));
+    return services.map(s => ({
+      ...s,
+      total_order_count: counts[s.service_id] ?? 0,
+    }));
   } catch (e) {
     return services;
   }
@@ -68,13 +78,17 @@ export async function fetchActiveServices(): Promise<ServiceWithCategory[]> {
 /**
  * Fetch services grouped by category
  */
-export async function fetchServicesByCategory(): Promise<ServiceCategoryWithCount[]> {
+export async function fetchServicesByCategory(): Promise<
+  ServiceCategoryWithCount[]
+> {
   const { data, error } = await supabase
     .from('service_categories')
-    .select(`
+    .select(
+      `
       *,
       services:printing_services(*)
-    `)
+    `
+    )
     .eq('is_active', true)
     .order('display_order', { ascending: true });
 
@@ -101,13 +115,17 @@ export async function fetchServicesByCategory(): Promise<ServiceCategoryWithCoun
 /**
  * Fetch active services grouped by category
  */
-export async function fetchActiveServicesByCategory(): Promise<ServiceCategoryWithCount[]> {
+export async function fetchActiveServicesByCategory(): Promise<
+  ServiceCategoryWithCount[]
+> {
   const { data, error } = await supabase
     .from('service_categories')
-    .select(`
+    .select(
+      `
       *,
       services:printing_services!inner(*)
-    `)
+    `
+    )
     .eq('is_active', true)
     .eq('services.status', 'active')
     .order('display_order', { ascending: true });
@@ -134,10 +152,10 @@ export async function fetchActiveServicesByCategory(): Promise<ServiceCategoryWi
 /**
  * Fetch services with filters
  */
-export async function fetchServicesWithFilters(filters: ServiceFilters): Promise<ServiceWithCategory[]> {
-  let query = supabase
-    .from('printing_services')
-    .select(`
+export async function fetchServicesWithFilters(
+  filters: ServiceFilters
+): Promise<ServiceWithCategory[]> {
+  let query = supabase.from('printing_services').select(`
       *,
       category:service_categories(*)
     `);
@@ -151,7 +169,9 @@ export async function fetchServicesWithFilters(filters: ServiceFilters): Promise
   }
 
   if (filters.search) {
-    query = query.or(`service_name.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
+    query = query.or(
+      `service_name.ilike.%${filters.search}%,description.ilike.%${filters.search}%`
+    );
   }
 
   const { data, error } = await query.order('created_at', { ascending: false });
@@ -237,7 +257,7 @@ export function subscribeToServices(
       {
         event: '*',
         schema: 'public',
-        table: 'printing_services'
+        table: 'printing_services',
       },
       () => {
         // Refetch data to get the latest state
@@ -261,7 +281,7 @@ export function subscribeToActiveServices(
         event: '*',
         schema: 'public',
         table: 'printing_services',
-        filter: 'status=eq.active'
+        filter: 'status=eq.active',
       },
       () => {
         fetchActiveServices().then(onUpdate).catch(console.error);
@@ -273,13 +293,17 @@ export function subscribeToActiveServices(
 /**
  * Get service by display ID
  */
-export async function fetchServiceByDisplayId(displayId: string): Promise<ServiceWithCategory | null> {
+export async function fetchServiceByDisplayId(
+  displayId: string
+): Promise<ServiceWithCategory | null> {
   const { data, error } = await supabase
     .from('printing_services')
-    .select(`
+    .select(
+      `
       *,
       category:service_categories(*)
-    `)
+    `
+    )
     .eq('display_id', displayId)
     .single();
 
@@ -303,13 +327,17 @@ export async function fetchServiceByDisplayId(displayId: string): Promise<Servic
 /**
  * Search services by name or description
  */
-export async function searchServices(searchTerm: string): Promise<ServiceWithCategory[]> {
+export async function searchServices(
+  searchTerm: string
+): Promise<ServiceWithCategory[]> {
   const { data, error } = await supabase
     .from('printing_services')
-    .select(`
+    .select(
+      `
       *,
       category:service_categories(*)
-    `)
+    `
+    )
     .or(`service_name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`)
     .order('service_name', { ascending: true });
 
@@ -320,7 +348,10 @@ export async function searchServices(searchTerm: string): Promise<ServiceWithCat
   const services = (data || []) as ServiceWithCategory[];
   try {
     const counts = await fetchServiceOrderStats();
-    return services.map(s => ({ ...s, total_order_count: counts[s.service_id] ?? 0 }));
+    return services.map(s => ({
+      ...s,
+      total_order_count: counts[s.service_id] ?? 0,
+    }));
   } catch {
     return services;
   }
@@ -329,7 +360,9 @@ export async function searchServices(searchTerm: string): Promise<ServiceWithCat
 /**
  * Fetch per-service completed order counts from the view
  */
-export async function fetchServiceOrderStats(): Promise<Record<string, number>> {
+export async function fetchServiceOrderStats(): Promise<
+  Record<string, number>
+> {
   const { data, error } = await supabase
     .from('service_order_stats')
     .select('service_id,total_order_count');
@@ -339,7 +372,8 @@ export async function fetchServiceOrderStats(): Promise<Record<string, number>> 
   }
   const result: Record<string, number> = {};
   (data || []).forEach((row: any) => {
-    if (row.service_id) result[row.service_id] = Number(row.total_order_count) || 0;
+    if (row.service_id)
+      result[row.service_id] = Number(row.total_order_count) || 0;
   });
   return result;
 }

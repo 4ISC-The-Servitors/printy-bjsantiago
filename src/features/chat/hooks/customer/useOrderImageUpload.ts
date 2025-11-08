@@ -54,7 +54,9 @@ export function useOrderImageUpload(): UseOrderImageUploadResult {
         onSuccess?.(result.urls);
       } catch (error) {
         onError?.([
-          error instanceof Error ? error.message : 'An unexpected error occurred',
+          error instanceof Error
+            ? error.message
+            : 'An unexpected error occurred',
         ]);
       }
     },
@@ -65,5 +67,3 @@ export function useOrderImageUpload(): UseOrderImageUploadResult {
 }
 
 export default useOrderImageUpload;
-
-

@@ -40,7 +40,7 @@ import type {
 export async function displayServiceCategories(
   params: ActionExecutionParams
 ): Promise<ActionExecutionResult> {
-  const { } = params;
+  const {} = params;
   const messages: Array<{
     id: string;
     role: 'printy';
@@ -50,7 +50,7 @@ export async function displayServiceCategories(
 
   try {
     console.log('[displayServiceCategories] Starting to fetch categories...');
-    
+
     // Query active service categories ordered by display_order
     const { data: categories, error } = await supabase
       .from('service_categories')
@@ -58,10 +58,16 @@ export async function displayServiceCategories(
       .eq('is_active', true)
       .order('display_order', { ascending: true });
 
-    console.log('[displayServiceCategories] Query result:', { categories, error });
+    console.log('[displayServiceCategories] Query result:', {
+      categories,
+      error,
+    });
 
     if (error) {
-      console.error('[displayServiceCategories] Error fetching categories:', error);
+      console.error(
+        '[displayServiceCategories] Error fetching categories:',
+        error
+      );
       messages.push({
         id: crypto.randomUUID(),
         role: 'printy',
@@ -88,16 +94,27 @@ export async function displayServiceCategories(
       ts: Date.now(),
     });
 
-    const quickReplies: Array<{ label: string; value: string; next: string }> = [];
+    const quickReplies: Array<{ label: string; value: string; next: string }> =
+      [];
 
-    console.log('[displayServiceCategories] Processing categories:', categories);
+    console.log(
+      '[displayServiceCategories] Processing categories:',
+      categories
+    );
 
     if (categories && categories.length > 0) {
-      console.log('[displayServiceCategories] Found', categories.length, 'active categories');
-      
+      console.log(
+        '[displayServiceCategories] Found',
+        categories.length,
+        'active categories'
+      );
+
       // Generate quick replies for each active category
       categories.forEach(category => {
-        console.log('[displayServiceCategories] Adding category:', category.category_name);
+        console.log(
+          '[displayServiceCategories] Adding category:',
+          category.category_name
+        );
         quickReplies.push({
           label: category.category_name,
           value: `${category.category_id}|${category.category_name}`,
@@ -113,7 +130,7 @@ export async function displayServiceCategories(
       });
     } else {
       console.log('[displayServiceCategories] No active categories found');
-      
+
       // No active categories found
       messages.push({
         id: crypto.randomUUID(),
@@ -129,7 +146,10 @@ export async function displayServiceCategories(
       });
     }
 
-    console.log('[displayServiceCategories] Final quick replies:', quickReplies);
+    console.log(
+      '[displayServiceCategories] Final quick replies:',
+      quickReplies
+    );
 
     return {
       messages,

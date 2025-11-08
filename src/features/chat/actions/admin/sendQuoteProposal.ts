@@ -95,7 +95,6 @@ export async function sendQuoteProposal(
     .order('created_at', { ascending: false })
     .limit(1);
 
-
   if (specError) {
     console.error('[sendQuoteProposal] Error fetching specs:', specError);
     messages.push({

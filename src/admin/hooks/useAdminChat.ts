@@ -80,7 +80,7 @@ export const useAdminChat = (): UseAdminChatReturn => {
     for (let i = 0; i < botTexts.length; i++) {
       const m = botTexts[i];
       const isLastMessage = i === botTexts.length - 1;
-      
+
       if (!skipDelay) {
         // Show typing indicator before processing this message
         setIsTyping(true);
@@ -89,7 +89,7 @@ export const useAdminChat = (): UseAdminChatReturn => {
           350 + Math.min(1200, Math.floor((m.text?.length || 0) / 20) * 25);
         await new Promise(r => setTimeout(r, delay));
       }
-      
+
       // Add the message
       const botMsg = {
         id: crypto.randomUUID(),
@@ -100,22 +100,22 @@ export const useAdminChat = (): UseAdminChatReturn => {
       setMessages(prev => [...prev, botMsg]);
       if (currentConversationId)
         addConvMessage('printy', m.text, currentConversationId);
-      
+
       if (!skipDelay) {
         // Small delay to ensure message is rendered
         await new Promise(r => setTimeout(r, 50));
-        
+
         // Hide typing indicator after message is added
         // For non-last messages, it will be shown again in the next loop iteration
         setIsTyping(false);
-        
+
         // If more messages coming, brief pause before showing typing for next message
         if (!isLastMessage) {
           await new Promise(r => setTimeout(r, 100));
         }
       }
     }
-    
+
     // Ensure typing is definitely off after all messages are processed
     setIsTyping(false);
   };
@@ -271,7 +271,6 @@ export const useAdminChat = (): UseAdminChatReturn => {
     );
 
     if (shouldReset) {
-
       // Reset chat state
       setMessages([]);
       setQuickReplies([]);
@@ -305,7 +304,6 @@ export const useAdminChat = (): UseAdminChatReturn => {
           }
 
           ({ flowId, context, sessionTitle } = flowContext);
-
 
           // Validate that the flow is appropriate for this page
           if (!FlowTriggerService.validateContext(page, flowId)) {
@@ -448,12 +446,12 @@ export const useAdminChat = (): UseAdminChatReturn => {
       setViewingHistorical(true);
       setReadOnly(true);
       setQuickReplies([]);
-      
+
       // For database-loaded conversations, the conversation ID is the session ID
       // For locally created conversations, use the stored sessionId
       const sessionId = conv.sessionId || conversationId;
       setDbSessionId(sessionId);
-      
+
       try {
         const historicalMessages = await loadHistoricalMessages(sessionId);
         setMessages(historicalMessages);

@@ -33,12 +33,14 @@ The ticket reply system uses **special "reply sessions"** that are hidden from n
 ### Two Types of Sessions
 
 #### 1. **Regular Sessions** (Normal Chat Sessions)
+
 - Created when user starts a flow (e.g., "Issue Ticket", "Track Ticket")
 - Appear in "Recent Chats" sidebar
 - `metadata.ticket_conversation` is `null` or `false`
 - Standard session behavior
 
 #### 2. **Ticket Conversation Sessions** (Reply Sessions - HIDDEN)
+
 - Created ONLY for admin/customer replies
 - **DO NOT appear** in "Recent Chats" (`status: 'ended'` prevents this)
 - Messages from these sessions are fetched and displayed within Track Ticket view
@@ -59,38 +61,39 @@ The ticket reply system uses **special "reply sessions"** that are hidden from n
 ## Data Flow
 
 ### Scenario: Customer Creates Ticket → Admin Replies → Customer Replies
+
 1. CUSTOMER creates ticket
    └─> Creates REGULAR session (flow_id: "issue-ticket")
-       └─> Session metadata: { title: "Issue Ticket" }
-       └─> Creates inquiry in inquiries_v2
-       └─> Sends initial message
+   └─> Session metadata: { title: "Issue Ticket" }
+   └─> Creates inquiry in inquiries_v2
+   └─> Sends initial message
 
 2. ADMIN reviews ticket
    └─> Opens admin-review-ticket flow
-       └─> Creates REGULAR session (flow_id: "admin-review-ticket")
-           └─> Session metadata: { title: "Ticket Review: TCK-XXX" }
+   └─> Creates REGULAR session (flow_id: "admin-review-ticket")
+   └─> Session metadata: { title: "Ticket Review: TCK-XXX" }
 
 3. ADMIN sends reply
    └─> Creates REPLY SESSION (flow_id: "track-ticket")
-       └─> status: "ended" (HIDDEN from Recent Chats)
-       └─> metadata: { ticket_conversation: true, conversation_type: "ticket_reply" }
-       └─> Saves admin message to chat_messages_v2
-       └─> Updates inquiry status to "pending_customer_reply"
+   └─> status: "ended" (HIDDEN from Recent Chats)
+   └─> metadata: { ticket_conversation: true, conversation_type: "ticket_reply" }
+   └─> Saves admin message to chat_messages_v2
+   └─> Updates inquiry status to "pending_customer_reply"
 
 4. CUSTOMER tracks ticket
    └─> Opens track-ticket flow
-       └─> Creates REGULAR session (flow_id: "track-ticket")
-           └─> Aggregates messages:
-               • Original issue-ticket session messages
-               • All reply session messages
-               • Displays unified conversation
+   └─> Creates REGULAR session (flow_id: "track-ticket")
+   └─> Aggregates messages:
+   • Original issue-ticket session messages
+   • All reply session messages
+   • Displays unified conversation
 
 5. CUSTOMER sends reply
    └─> Creates REPLY SESSION (flow_id: "track-ticket")
-       └─> status: "ended" (HIDDEN from Recent Chats)
-       └─> metadata: { ticket_conversation: true, conversation_type: "ticket_reply" }
-       └─> Saves customer message to chat_messages_v2
-       └─> Updates inquiry status to "pending_admin_reply"
+   └─> status: "ended" (HIDDEN from Recent Chats)
+   └─> metadata: { ticket_conversation: true, conversation_type: "ticket_reply" }
+   └─> Saves customer message to chat_messages_v2
+   └─> Updates inquiry status to "pending_admin_reply"
 
 6. Repeat steps 3-5 as needng_customer_reply`
 
@@ -114,14 +117,15 @@ const { data: ticketSession, error: sessionError } = await supabase
       original_session_id: originalSessionId, // ← Links to original
       inquiry_id: inquiryId, // ← Links to inquiry
       conversation_type: 'ticket_reply', // ← Message category
-      customer_chat: true // ← Indicates customer-initiated
-    }
+      customer_chat: true, // ← Indicates customer-initiated
+    },
   })
   .select('session_id')
   .single();
 ```
 
 **What happens:**
+
 1. Creates new session with `flow_id: 'track-ticket'`
 2. Sets `status: 'ended'` to **hide from Recent Chats**
 3. Marks as `ticket_conversation: true` for filtering
@@ -168,13 +172,13 @@ if (!ticketError && ticketConversations && ticketConversations.length > 0) {
 }
 
 // 4. Combine and sort chronologically
-const allMessages = [
-  ...(chatMessages || []),
-  ...ticketMessages
-].sort((a, b) => new Date(a.sent_at).getTime() - new Date(b.sent_at).getTime());
+const allMessages = [...(chatMessages || []), ...ticketMessages].sort(
+  (a, b) => new Date(a.sent_at).getTime() - new Date(b.sent_at).getTime()
+);
 ```
 
 **Result**: Unified conversation timeline showing:
+
 - Original ticket description
 - Admin replies (from reply sessions)
 - Customer replies (from reply sessions)
@@ -201,6 +205,7 @@ const { data: sessions, error } = await supabase
 ```
 
 **Query Logic:**
+
 - `.is('metadata->ticket_conversation', null)` = only sessions where this field is null
 - Reply sessions have `ticket_conversation: true`
 - Result: Only regular sessions appear in list
@@ -232,9 +237,10 @@ $$;
 ```
 
 **Comment in code:**
+
 ```sql
-comment on function public.api_get_user_sessions_v2() is 
-'Returns customer chat sessions excluding ticket conversation reply sessions. 
+comment on function public.api_get_user_sessions_v2() is
+'Returns customer chat sessions excluding ticket conversation reply sessions.
 Ticket reply sessions are internal and only appear within Track Ticket conversation history.';
 ```
 
@@ -264,6 +270,7 @@ const { data: sessions, error } = await supabase
 **Location**: `src/features/chat/config/sessionTitleConfig.ts`
 
 **Title priority:**
+
 1. `metadata.title` (explicitly set)
 2. `metadata.context.display_id` (context-based)
 3. FK display_id (from joins)
@@ -271,10 +278,12 @@ const { data: sessions, error } = await supabase
 5. Fallback to `flow_id` or 'Chat'
 
 **Reply sessions:**
+
 - `display_title` = "track-ticket" (from `flow_id` since no explicit title)
 - Title is never updated (session is `status: 'ended'` when created)
 
 **From your data:**
+
 ```json
 {
   "session_id": "53e1a772-0d27-4648-a722-be9c0031231c",
@@ -290,6 +299,7 @@ const { data: sessions, error } = await supabase
 ```
 
 **Why "track-ticket"?**
+
 - Session created with `status: 'ended'` immediately
 - No title update happens (session is ended)
 - Fallback logic uses `flow_id: 'track-ticket'`
@@ -300,28 +310,33 @@ const { data: sessions, error } = await supabase
 ## Important Metadata Fields
 
 ### `ticket_conversation` (Boolean)
+
 - **Purpose**: Flags session as internal reply session
 - **Location**: `metadata.ticket_conversation`
 - **Values**: `true` (reply session) | `null`/`false` (regular session)
 - **Usage**: Filtering out reply sessions from Recent Chats
 
 ### `original_session_id` (UUID)
+
 - **Purpose**: Links reply session to original ticket session
 - **Location**: `metadata.original_session_id`
 - **Usage**: Message correlation and traceability
 
 ### `conversation_type` (String)
+
 - **Purpose**: Categorizes the type of conversation
 - **Location**: `metadata.conversation_type`
 - **Values**: `'ticket_reply'` | `'ticket_resolution'`
 - **Usage**: Message categorization
 
 ### `admin_chat` / `customer_chat` (Boolean)
+
 - **Purpose**: Indicates who initiated the reply session
 - **Location**: `metadata.admin_chat` | `metadata.customer_chat`
 - **Usage**: Tracking reply initiator
 
 ### `inquiry_id` (UUID)
+
 - **Purpose**: Links reply session to inquiry/ticket
 - **Location**: `metadata.inquiry_id`
 - **Usage**: Aggregating all messages for a ticket
@@ -331,6 +346,7 @@ const { data: sessions, error } = await supabase
 ## Data Structure Reference
 
 ### Original Ticket Session
+
 ```json
 {
   "session_id": "dad6dece-aad5-4daf-ad63-1a3bb91acb19",
@@ -346,6 +362,7 @@ const { data: sessions, error } = await supabase
 ```
 
 ### Admin Review Session
+
 ```json
 {
   "session_id": "bac4763d-5692-4f38-a429-cd06dce669c1",
@@ -371,6 +388,7 @@ const { data: sessions, error } = await supabase
 ```
 
 ### Reply Session (Customer Side)
+
 ```json
 {
   "session_id": "2fd4d543-593a-481e-844f-651d5da33dd8",
@@ -446,6 +464,7 @@ const { data: sessions, error } = await supabase
 ## Summary
 
 This system allows seamless ticket conversations while keeping session lists clean. The key insight is using **separate reply sessions** that are:
+
 - Hidden from Recent Chats (via filtering)
 - Messages aggregated into Track Ticket view
 - Linked via `original_session_id` and `inquiry_id`

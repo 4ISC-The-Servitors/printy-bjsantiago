@@ -37,12 +37,17 @@ export async function displayOrderUploads(
     };
   }
 
-  const { data: allMessages } = await supabase.rpc('api_fetch_chat_messages_v2', {
-    p_session_id: sourceSessionId,
-  });
+  const { data: allMessages } = await supabase.rpc(
+    'api_fetch_chat_messages_v2',
+    {
+      p_session_id: sourceSessionId,
+    }
+  );
 
   const texts: string[] = Array.isArray(allMessages)
-    ? (allMessages as any[]).map(m => String((m as any).message_text || '')).filter(Boolean)
+    ? (allMessages as any[])
+        .map(m => String((m as any).message_text || ''))
+        .filter(Boolean)
     : [];
 
   const urls = new Set<string>();
@@ -70,5 +75,3 @@ export async function displayOrderUploads(
     ],
   };
 }
-
-

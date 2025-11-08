@@ -31,11 +31,13 @@ During refactoring to consolidate session loading into `SessionCacheProvider`, w
 ### Impact
 
 **Without Filtering:**
+
 - Hidden ticket reply sessions now appear in Recent Chats ❌
 - Chat History page shows internal reply sessions ❌
 - Violates TICKET_REPLY_SESSION_LOGIC.md architectural pattern ❌
 
 **With Redundant Code:**
+
 - 6+ duplicate database queries per page load
 - Inconsistent session title generation
 - Maintenance burden (3 places to update logic)
@@ -55,6 +57,7 @@ During refactoring to consolidate session loading into `SessionCacheProvider`, w
 ### Background
 
 Per `TICKET_REPLY_SESSION_LOGIC.md`, the ticket reply system uses **special "reply sessions"** that must be:
+
 - **Hidden** from Recent Chats and Chat History
 - Marked with `metadata.ticket_conversation: true`
 - Created with `status: 'ended'`
@@ -63,12 +66,14 @@ Per `TICKET_REPLY_SESSION_LOGIC.md`, the ticket reply system uses **special "rep
 ### Problem Analysis
 
 #### Before Refactoring ✅
+
 ```typescript
 // useRecentChatSessions.ts (OLD)
 .filter(s => !s.metadata?.ticket_conversation)
 ```
 
 #### After Refactoring ❌
+
 ```typescript
 // SessionCacheProvider.tsx
 .from('chat_sessions_v2')
@@ -82,6 +87,7 @@ Per `TICKET_REPLY_SESSION_LOGIC.md`, the ticket reply system uses **special "rep
 ### Root Cause
 
 When we consolidated to SessionCacheProvider, we:
+
 1. ✅ Successfully unified session loading
 2. ❌ **Lost** the ticket_conversation filtering
 3. ❌ **Removed** defensive filters from components
@@ -89,19 +95,24 @@ When we consolidated to SessionCacheProvider, we:
 ### Solution: Database-Level + Defensive Filtering
 
 #### Strategy 1: Database-Level Filter (Primary)
+
 Filter at query level for performance:
+
 ```typescript
 .is('metadata->ticket_conversation', null)
 ```
 
 **Benefits:**
+
 - Less data transferred from database
 - Better query performance
 - Aligns with SQL optimization plan
 - Leverages PostgreSQL JSONB operators
 
 #### Strategy 2: Application-Level Filter (Defense-in-Depth)
+
 Add safety net in processing:
+
 ```typescript
 .filter(session => {
   const metadata = session.metadata as any || {};
@@ -110,6 +121,7 @@ Add safety net in processing:
 ```
 
 **Benefits:**
+
 - Catches any database filter misses
 - Explicit and readable
 - Easy to debug
@@ -124,6 +136,7 @@ Add safety net in processing:
 **Lines**: 179-240
 
 #### Current Problem
+
 ```typescript
 // REDUNDANT - Loads sessions independently
 useEffect(() => {
@@ -132,7 +145,8 @@ useEffect(() => {
     const list = await getUserSessions(userData.user.id);
     const convs: Conversation[] = list.map(s => {
       // Duplicate title generation logic
-      const displayIdFromFK = s.inquiry?.display_id || s.quote?.display_id || s.order?.display_id;
+      const displayIdFromFK =
+        s.inquiry?.display_id || s.quote?.display_id || s.order?.display_id;
       // ... 50 more lines of duplicate logic
     });
     setConversations(convs);
@@ -141,17 +155,21 @@ useEffect(() => {
 ```
 
 #### Why Redundant
+
 - SessionCacheProvider **already loads all sessions** at CustomerRoot
 - useCustomerConversations exposes sessions via `recentConversations`
 - This useEffect creates **duplicate database query**
 - Title generation logic **duplicates SessionCacheProvider**
 
 #### Action Required
+
 **DELETE entire useEffect block (lines 179-240)**
 
 Sessions are already available via:
+
 ```typescript
-const { conversations: recentConversations } = useCustomerConversationsContext();
+const { conversations: recentConversations } =
+  useCustomerConversationsContext();
 // Already populated by SessionCacheProvider!
 ```
 
@@ -162,6 +180,7 @@ const { conversations: recentConversations } = useCustomerConversationsContext()
 **File**: `src/features/chat/hooks/customer/useRecentChatSessions.ts`
 
 #### Current Status
+
 Already refactored to no-op, but still called in **6 locations**:
 
 1. `src/customer/pages/CustomerDashboard.tsx:176`
@@ -172,12 +191,14 @@ Already refactored to no-op, but still called in **6 locations**:
 6. ChatHistory (removed during cleanup)
 
 #### Why Deprecated
+
 - SessionCacheProvider loads sessions **once at root**
 - These calls trigger unnecessary `refetch()` on every page
 - Creates **appearance of loading** when data already exists
 - Violates **single-source-of-truth** pattern
 
 #### Migration Path
+
 ```typescript
 // BEFORE ❌
 import { useRecentChatSessions } from '@features/chat/hooks/customer/useRecentChatSessions';
@@ -190,7 +211,9 @@ useRecentChatSessions(setConversations); // Redundant refetch!
 ```
 
 #### Action Required
+
 **REMOVE** all `useRecentChatSessions(setConversations)` calls and imports from:
+
 - CustomerDashboard.tsx
 - ResponsivePageLayout.tsx
 - TicketHistory.tsx
@@ -205,11 +228,13 @@ useRecentChatSessions(setConversations); // Redundant refetch!
 **Function**: `getUserSessions()` (lines 103-163)
 
 #### Usage Analysis
+
 - ❌ **ChatHistory.tsx**: Uses in redundant useEffect (to be removed)
 - ❌ **useRecentChatSessions.ts**: Uses in deprecated hook
 - ✅ **SessionCacheProvider**: Valid usage (KEEP)
 
 #### Recommendation
+
 Mark as internal-only to prevent future misuse:
 
 ```typescript
@@ -226,7 +251,7 @@ Mark as internal-only to prevent future misuse:
  * // ✅ DO use via context
  * const { sessions } = useSessionCache();
  */
-export async function getUserSessions(userId: string)
+export async function getUserSessions(userId: string);
 ```
 
 ---
@@ -237,12 +262,15 @@ export async function getUserSessions(userId: string)
 **Function**: `getUserSessionsV2()` (lines 228-258)
 
 #### What It Does
+
 Calls PostgreSQL RPC function `api_get_user_sessions_v2()` which has **built-in ticket_conversation filtering**.
 
 #### Current Usage
+
 **NONE** - Not currently used anywhere in codebase!
 
 #### Future Optimization Opportunity
+
 ```typescript
 // Migration: 084_filter_ticket_conversation_sessions.sql
 // RPC function already has filtering built-in:
@@ -261,6 +289,7 @@ Replace direct query in SessionCacheProvider with RPC call for better performanc
 ### 2.5 Session Title Generation Duplication
 
 #### Problem
+
 Session title generation logic exists in **3 places**:
 
 1. ✅ **SessionCacheProvider.tsx** (lines 87-102) - **PRIMARY (KEEP)**
@@ -268,9 +297,11 @@ Session title generation logic exists in **3 places**:
 3. ✅ **useRecentChatSessions.ts** - **ALREADY REMOVED**
 
 #### Consolidation
+
 By removing ChatHistory useEffect, we eliminate duplicate title logic.
 
 **Single Source**: `SessionCacheProvider.tsx`
+
 ```typescript
 const sessionTitle = getSessionTitle({
   flowId: session.flow_id || 'about',
@@ -278,11 +309,12 @@ const sessionTitle = getSessionTitle({
     ...metadata,
     context: {
       ...metadata.context,
-      display_id: metadata.context?.display_id ||
-                   inquiry?.display_id ||
-                   quote?.display_id ||
-                   order?.display_id
-    }
+      display_id:
+        metadata.context?.display_id ||
+        inquiry?.display_id ||
+        quote?.display_id ||
+        order?.display_id,
+    },
   },
   inquiry: inquiry,
   quote: quote,
@@ -319,7 +351,7 @@ const { data: sessionData, error: sessionError } = await supabase
 const processedSessions: ConversationItem[] = (sessionData || [])
   .filter(session => {
     // Defense-in-depth: Filter out ticket conversation sessions
-    const metadata = session.metadata as any || {};
+    const metadata = (session.metadata as any) || {};
     return !metadata.ticket_conversation;
   }) // ← ADD THIS
   .map(session => {
@@ -353,12 +385,14 @@ export async function getUserSessions(
 **File**: `src/customer/components/dashboard/chatHistory/ChatHistory.tsx`
 
 **Remove:**
+
 1. Lines 179-240 (entire useEffect block)
 2. Import: `import { getUserSessions } from '@features/chat/api/sessionQueries';`
 3. Import: `import { getSessionTitle } from '@features/chat/config/sessionTitleConfig';`
 4. State: Remove local `conversations` state (already have `recentConversations`)
 
 **Keep:**
+
 - All other functionality intact
 - Using `recentConversations` from CustomerConversationsContext
 
@@ -367,6 +401,7 @@ export async function getUserSessions(
 **Files to Update:**
 
 1. **CustomerDashboard.tsx**
+
    ```typescript
    // REMOVE
    import { useRecentChatSessions } from '@features/chat/hooks/customer/useRecentChatSessions';
@@ -374,6 +409,7 @@ export async function getUserSessions(
    ```
 
 2. **ResponsivePageLayout.tsx**
+
    ```typescript
    // REMOVE
    import { useRecentChatSessions } from '@customer/hooks/useRecentChatSessions';
@@ -381,6 +417,7 @@ export async function getUserSessions(
    ```
 
 3. **TicketHistory.tsx**
+
    ```typescript
    // REMOVE
    import { useRecentChatSessions } from '@features/chat/hooks/customer/useRecentChatSessions';
@@ -388,6 +425,7 @@ export async function getUserSessions(
    ```
 
 4. **QuoteHistory.tsx**
+
    ```typescript
    // REMOVE
    import { useRecentChatSessions } from '@features/chat/hooks/customer/useRecentChatSessions';
@@ -469,6 +507,7 @@ Update header comment (lines 1-9):
 ### 4.1 Performance Metrics
 
 #### Before Optimization
+
 ```
 Dashboard Load:
 - CustomerDashboard: 1 query
@@ -485,6 +524,7 @@ Per-Page Load (e.g., QuoteHistory):
 ```
 
 #### After Optimization
+
 ```
 Dashboard Load:
 - SessionCacheProvider: 1 query
@@ -502,6 +542,7 @@ Per-Page Load:
 ### 4.2 Functional Testing Checklist
 
 #### Test 1: Recent Chats Sidebar
+
 - [ ] Navigate to Customer Dashboard
 - [ ] Verify Recent Chats sidebar shows sessions
 - [ ] **CRITICAL**: Verify NO ticket reply sessions appear
@@ -509,6 +550,7 @@ Per-Page Load:
 - [ ] Verify session titles display correctly
 
 #### Test 2: Chat History Page
+
 - [ ] Navigate to Chat History (`/customer/chats`)
 - [ ] Verify all conversations load
 - [ ] **CRITICAL**: Verify NO ticket reply sessions appear
@@ -517,6 +559,7 @@ Per-Page Load:
 - [ ] Click a conversation, verify it opens
 
 #### Test 3: Other History Pages
+
 - [ ] Navigate to Order History
 - [ ] Verify Recent Chats sidebar populates
 - [ ] Navigate to Quote History
@@ -525,6 +568,7 @@ Per-Page Load:
 - [ ] Verify Recent Chats sidebar populates
 
 #### Test 4: Track Ticket Flow
+
 - [ ] Open Track Ticket conversation
 - [ ] Verify messages from BOTH original session AND reply sessions appear
 - [ ] Verify chronological order is correct
@@ -533,6 +577,7 @@ Per-Page Load:
 - [ ] **CRITICAL**: Verify reply session does NOT appear in Recent Chats
 
 #### Test 5: Session Titles
+
 - [ ] Verify "Track Ticket: TCK-XXXXX" displays correctly
 - [ ] Verify "Track Quote: QOT-XXXXX" displays correctly
 - [ ] Verify "Pay Order: ORD-XXXXX" displays correctly
@@ -543,6 +588,7 @@ Per-Page Load:
 ### 4.3 Database Query Validation
 
 #### Network Tab Inspection
+
 1. Open Chrome DevTools → Network tab
 2. Filter by: `chat_sessions_v2`
 3. Navigate to Dashboard
@@ -553,7 +599,9 @@ Per-Page Load:
 8. **Expected**: 0 NEW queries (uses cache)
 
 #### Query Content Validation
+
 Inspect the query in Network tab:
+
 ```sql
 -- Should include filtering:
 SELECT ... FROM chat_sessions_v2
@@ -567,12 +615,14 @@ ORDER BY created_at DESC
 ### 4.4 Regression Testing
 
 #### Admin Side
+
 - [ ] Verify Admin "All Chats" still filters correctly
 - [ ] Verify Admin can review tickets
 - [ ] Verify Admin replies create ticket conversation sessions
 - [ ] **CRITICAL**: Verify admin reply sessions do NOT appear in Admin chat list
 
 #### Customer Flows
+
 - [ ] Issue Ticket flow works
 - [ ] Ask Quote flow works
 - [ ] Track Ticket flow works
@@ -646,6 +696,7 @@ This refactoring **directly implements** Phase 2 of `SQL_PERFORMANCE_OPTIMIZATIO
 ### Phase 2: Smart Session Caching ✅
 
 **From SQL_PERFORMANCE_OPTIMIZATION_PLAN.md:**
+
 ```typescript
 // Shared session cache provider
 const SessionCacheContext = createContext({
@@ -676,13 +727,13 @@ export const SessionCacheProvider = ({ children }) => {
 
 ### Performance Benefits Achieved
 
-| Metric | Before | After | Improvement |
-|--------|--------|-------|-------------|
-| Queries per Dashboard Load | 6+ | 1 | 83% ↓ |
-| Queries per History Page | 3 | 1 (cached) | 67% ↓ |
-| Data Transfer | 6x sessions | 1x sessions | 83% ↓ |
-| Title Generation Locations | 3 | 1 | Centralized |
-| Filtering Locations | 5 | 2 | Consolidated |
+| Metric                     | Before      | After       | Improvement  |
+| -------------------------- | ----------- | ----------- | ------------ |
+| Queries per Dashboard Load | 6+          | 1           | 83% ↓        |
+| Queries per History Page   | 3           | 1 (cached)  | 67% ↓        |
+| Data Transfer              | 6x sessions | 1x sessions | 83% ↓        |
+| Title Generation Locations | 3           | 1           | Centralized  |
+| Filtering Locations        | 5           | 2           | Consolidated |
 
 ### Next Phase: Database Indexes
 
@@ -705,36 +756,36 @@ CREATE INDEX idx_chat_sessions_metadata_ticket
 
 ### Critical Changes (Phase 1)
 
-| File | Change | Lines | Type |
-|------|--------|-------|------|
-| `SessionCacheProvider.tsx` | Add DB filter | ~70 | ADD |
-| `SessionCacheProvider.tsx` | Add defensive filter | ~79 | ADD |
-| `sessionQueries.ts` | Add DB filter to getUserSessions | ~133 | ADD |
+| File                       | Change                           | Lines | Type |
+| -------------------------- | -------------------------------- | ----- | ---- |
+| `SessionCacheProvider.tsx` | Add DB filter                    | ~70   | ADD  |
+| `SessionCacheProvider.tsx` | Add defensive filter             | ~79   | ADD  |
+| `sessionQueries.ts`        | Add DB filter to getUserSessions | ~133  | ADD  |
 
 ### Cleanup Changes (Phase 2)
 
-| File | Change | Lines | Type |
-|------|--------|-------|------|
-| `ChatHistory.tsx` | Remove useEffect block | 179-240 | DELETE |
-| `ChatHistory.tsx` | Remove getUserSessions import | ~21 | DELETE |
-| `ChatHistory.tsx` | Remove getSessionTitle import | ~22 | DELETE |
-| `CustomerDashboard.tsx` | Remove useRecentChatSessions call | ~176 | DELETE |
-| `CustomerDashboard.tsx` | Remove import | ~26 | DELETE |
-| `ResponsivePageLayout.tsx` | Remove useRecentChatSessions call | ~52 | DELETE |
-| `ResponsivePageLayout.tsx` | Remove import | ~9 | DELETE |
-| `TicketHistory.tsx` | Remove useRecentChatSessions call | ~134 | DELETE |
-| `TicketHistory.tsx` | Remove import | ~35 | DELETE |
-| `QuoteHistory.tsx` | Remove useRecentChatSessions call | ~136 | DELETE |
-| `QuoteHistory.tsx` | Remove import | ~35 | DELETE |
-| `OrderHistory.tsx` | Remove useRecentChatSessions call | ~136 | DELETE |
-| `OrderHistory.tsx` | Remove import | ~37 | DELETE |
+| File                       | Change                            | Lines   | Type   |
+| -------------------------- | --------------------------------- | ------- | ------ |
+| `ChatHistory.tsx`          | Remove useEffect block            | 179-240 | DELETE |
+| `ChatHistory.tsx`          | Remove getUserSessions import     | ~21     | DELETE |
+| `ChatHistory.tsx`          | Remove getSessionTitle import     | ~22     | DELETE |
+| `CustomerDashboard.tsx`    | Remove useRecentChatSessions call | ~176    | DELETE |
+| `CustomerDashboard.tsx`    | Remove import                     | ~26     | DELETE |
+| `ResponsivePageLayout.tsx` | Remove useRecentChatSessions call | ~52     | DELETE |
+| `ResponsivePageLayout.tsx` | Remove import                     | ~9      | DELETE |
+| `TicketHistory.tsx`        | Remove useRecentChatSessions call | ~134    | DELETE |
+| `TicketHistory.tsx`        | Remove import                     | ~35     | DELETE |
+| `QuoteHistory.tsx`         | Remove useRecentChatSessions call | ~136    | DELETE |
+| `QuoteHistory.tsx`         | Remove import                     | ~35     | DELETE |
+| `OrderHistory.tsx`         | Remove useRecentChatSessions call | ~136    | DELETE |
+| `OrderHistory.tsx`         | Remove import                     | ~37     | DELETE |
 
 ### Documentation Changes (Phase 3)
 
-| File | Change | Lines | Type |
-|------|--------|-------|------|
-| `sessionQueries.ts` | Add @internal JSDoc | ~100 | ADD |
-| `useRecentChatSessions.ts` | Update deprecation notice | 1-15 | MODIFY |
+| File                       | Change                    | Lines | Type   |
+| -------------------------- | ------------------------- | ----- | ------ |
+| `sessionQueries.ts`        | Add @internal JSDoc       | ~100  | ADD    |
+| `useRecentChatSessions.ts` | Update deprecation notice | 1-15  | MODIFY |
 
 ---
 
@@ -749,10 +800,12 @@ CREATE INDEX idx_chat_sessions_metadata_ticket
 ## Implementation Timeline
 
 ### Immediate (Critical)
+
 - [ ] Phase 1: Restore ticket reply filtering (30 min)
 - [ ] Test: Verify no reply sessions in UI (15 min)
 
 ### Same Session
+
 - [ ] Phase 2: Remove redundant code (1 hour)
 - [ ] Phase 3: Add documentation (30 min)
 - [ ] Full testing suite (1 hour)

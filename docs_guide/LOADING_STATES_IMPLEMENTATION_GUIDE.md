@@ -63,12 +63,12 @@ import { Skeleton, Card } from '@shared/components';
 
 /**
  * [ComponentName]Loading Component
- * 
+ *
  * Loading skeleton that accurately mimics the [Component Name] layout:
  * - [Section 1 description]
  * - [Section 2 description]
  * - [Section 3 description]
- * 
+ *
  * Uses the same responsive classes and spacing as the actual components
  * for a seamless loading experience.
  */
@@ -77,10 +77,10 @@ const [ComponentName]Loading: React.FC = () => {
     <div className="w-full">
       {/* Section 1: Header */}
       <div className="[spacing classes]">
-        <Skeleton 
-          variant="text" 
-          width="[width]" 
-          height="[height]" 
+        <Skeleton
+          variant="text"
+          width="[width]"
+          height="[height]"
           className="[additional classes]"
         />
       </div>
@@ -103,6 +103,7 @@ export default [ComponentName]Loading;
 Leverage existing shared components for consistency:
 
 **Available Components:**
+
 - `<Skeleton />` - Base skeleton with variants: `text`, `circular`, `rectangular`
 - `<Card />` - For card-based layouts
 - Standard spacing classes: `space-y-*`, `gap-*`, `mb-*`, `mt-*`
@@ -111,25 +112,25 @@ Leverage existing shared components for consistency:
 
 ```tsx
 // For a card header
-<Skeleton 
-  variant="text" 
-  width="200px" 
-  height="24px" 
+<Skeleton
+  variant="text"
+  width="200px"
+  height="24px"
   className="mb-4"
 />
 
 // For a circular avatar
-<Skeleton 
-  variant="circular" 
-  width="40px" 
-  height="40px" 
+<Skeleton
+  variant="circular"
+  width="40px"
+  height="40px"
 />
 
 // For content blocks
-<Skeleton 
-  variant="rectangular" 
-  width="100%" 
-  height="120px" 
+<Skeleton
+  variant="rectangular"
+  width="100%"
+  height="120px"
   className="rounded-lg"
 />
 ```
@@ -141,7 +142,7 @@ Use the same responsive classes as the actual component:
 ```tsx
 // Example: Grid that changes from 1 to 3 columns
 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-  {[1, 2, 3, 4, 5, 6].map((i) => (
+  {[1, 2, 3, 4, 5, 6].map(i => (
     <Skeleton key={i} variant="rectangular" width="100%" height="200px" />
   ))}
 </div>
@@ -229,7 +230,7 @@ export { default as [OtherComponent]Loading } from './[OtherComponent]Loading';
 
   {/* Stats Cards */}
   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-    {[1, 2, 3, 4].map((i) => (
+    {[1, 2, 3, 4].map(i => (
       <Card key={i}>
         <Skeleton variant="text" width="80px" height="20px" />
         <Skeleton variant="text" width="120px" height="32px" />
@@ -262,7 +263,7 @@ export { default as [OtherComponent]Loading } from './[OtherComponent]Loading';
   </div>
 
   {/* List Items */}
-  {[1, 2, 3, 4, 5].map((i) => (
+  {[1, 2, 3, 4, 5].map(i => (
     <Card key={i} className="p-4">
       <div className="flex justify-between">
         <Skeleton variant="text" width="200px" height="20px" />

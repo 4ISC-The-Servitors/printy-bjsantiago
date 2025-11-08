@@ -127,18 +127,21 @@ const ChatHistory: React.FC = () => {
   }, [search, filter]);
 
   // Use shared session cache instead of individual query
-  const { sessions: cachedSessions, loading: isLoading } = useCustomerSessionCache();
+  const { sessions: cachedSessions, loading: isLoading } =
+    useCustomerSessionCache();
 
   // Convert cached sessions to Conversation format
   useEffect(() => {
-    const convertedConversations: Conversation[] = cachedSessions.map(session => ({
-      id: session.id,
-      title: session.title,
-      createdAt: session.createdAt,
-      updatedAt: session.createdAt, // Use created_at as fallback since we don't have updated_at in cache
-      messages: session.messages,
-      status: session.status,
-    }));
+    const convertedConversations: Conversation[] = cachedSessions.map(
+      session => ({
+        id: session.id,
+        title: session.title,
+        createdAt: session.createdAt,
+        updatedAt: session.createdAt, // Use created_at as fallback since we don't have updated_at in cache
+        messages: session.messages,
+        status: session.status,
+      })
+    );
     // Update the conversations state for filtering and display
     setConversations(convertedConversations);
   }, [cachedSessions]);

@@ -170,7 +170,8 @@ const QuoteHistory: React.FC = () => {
         // Optimized single query with JOINs to fetch all data at once
         const { data, error } = await supabase
           .from('quotes')
-          .select(`
+          .select(
+            `
             quote_id,
             session_id,
             display_id,
@@ -184,7 +185,8 @@ const QuoteHistory: React.FC = () => {
               spec_id,
               created_at
             )
-          `)
+          `
+          )
           .eq('customer_id', user.id)
           .order('updated_at', { ascending: false });
 
@@ -198,10 +200,15 @@ const QuoteHistory: React.FC = () => {
           const proposalsRaw = quote.quote_proposals as any;
 
           // Handle Supabase JOIN data structure - can be array or single object
-          const proposals = Array.isArray(proposalsRaw) ? proposalsRaw : [proposalsRaw].filter(Boolean);
+          const proposals = Array.isArray(proposalsRaw)
+            ? proposalsRaw
+            : [proposalsRaw].filter(Boolean);
 
           // Get quoted price from first proposal if exists
-          const quotedPrice = proposals && proposals.length > 0 ? proposals[0]?.quoted_price : undefined;
+          const quotedPrice =
+            proposals && proposals.length > 0
+              ? proposals[0]?.quoted_price
+              : undefined;
 
           // For subject and description, we'll use fallbacks since spec data requires additional queries
           // This maintains performance while providing basic information
@@ -210,8 +217,10 @@ const QuoteHistory: React.FC = () => {
 
           // Set acceptedAt or rejectedAt based on status
           const updatedAt = new Date(quote.updated_at).getTime();
-          const acceptedAt = quote.status === 'accepted' ? updatedAt : undefined;
-          const rejectedAt = quote.status === 'rejected' ? updatedAt : undefined;
+          const acceptedAt =
+            quote.status === 'accepted' ? updatedAt : undefined;
+          const rejectedAt =
+            quote.status === 'rejected' ? updatedAt : undefined;
 
           return {
             id: quote.quote_id,
@@ -254,7 +263,12 @@ const QuoteHistory: React.FC = () => {
     const statusLower = quote.status.toLowerCase();
 
     // Only show track button for quotes that have a proposal sent (not active, accepted, or rejected)
-    if (statusLower !== 'accepted' && statusLower !== 'rejected' && statusLower !== 'active' && statusLower !== 'ended') {
+    if (
+      statusLower !== 'accepted' &&
+      statusLower !== 'rejected' &&
+      statusLower !== 'active' &&
+      statusLower !== 'ended'
+    ) {
       return (
         <TrackQuoteButton
           conversationId={quote.id}

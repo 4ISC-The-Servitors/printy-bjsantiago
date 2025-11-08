@@ -26,12 +26,10 @@ export async function getAdminUserId(): Promise<string> {
  * Used for creating notifications to all admins
  */
 export async function getAllAdminIds(): Promise<string[]> {
-
   // Use RPC function to bypass RLS (same as working quote actions)
   const { data: admins, error: adminError } = await supabase.rpc(
     'get_admin_customer_ids'
   );
-
 
   if (adminError || !admins) {
     console.error('[getAllAdminIds] Error fetching admin users:', adminError);

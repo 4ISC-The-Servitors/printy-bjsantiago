@@ -12,6 +12,5 @@ export const displayPaymentMethods: ActionHandler = async () => {
   // This action doesn't need to show payment method images automatically
   // Images will be shown only after user selects a specific payment method type
 
-
   return { messages };
 };

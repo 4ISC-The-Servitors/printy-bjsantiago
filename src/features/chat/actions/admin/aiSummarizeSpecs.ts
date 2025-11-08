@@ -117,7 +117,12 @@ export async function aiSummarizeSpecs(
   openSpecEditor({
     conversationId,
     // Remove AI picking for service/category; admin will select via dropdowns
-    specData: { ...analysis.spec, service_id: undefined, category: undefined, quoted_price: undefined },
+    specData: {
+      ...analysis.spec,
+      service_id: undefined,
+      category: undefined,
+      quoted_price: undefined,
+    },
     language: 'en',
     sessionId: params.sessionId,
   });

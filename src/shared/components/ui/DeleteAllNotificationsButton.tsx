@@ -8,7 +8,9 @@ export interface DeleteAllNotificationsButtonProps
   label?: string;
 }
 
-const DeleteAllNotificationsButton: React.FC<DeleteAllNotificationsButtonProps> = ({
+const DeleteAllNotificationsButton: React.FC<
+  DeleteAllNotificationsButtonProps
+> = ({
   label = 'Delete All',
   variant = 'ghost',
   size = 'sm',
@@ -32,5 +34,3 @@ const DeleteAllNotificationsButton: React.FC<DeleteAllNotificationsButtonProps> 
 };
 
 export default DeleteAllNotificationsButton;
-
-

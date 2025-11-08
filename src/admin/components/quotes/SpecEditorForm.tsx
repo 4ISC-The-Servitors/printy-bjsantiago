@@ -3,7 +3,10 @@
 import React, { useState } from 'react';
 import { Button, Input } from '@admin/components/shared';
 import { ChevronDown } from 'lucide-react';
-import { formatPriceInput, extractNumericValue } from '@shared/utils/priceFormatter';
+import {
+  formatPriceInput,
+  extractNumericValue,
+} from '@shared/utils/priceFormatter';
 import { useResponsiveClasses, useResponsiveButton } from '@shared/hooks/ui';
 
 export interface SpecFormData {
@@ -52,10 +55,13 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
     ...initialData,
   });
 
-
   // Services & Categories dropdown state
-  const [categories, setCategories] = useState<Array<{ category_id: string; category_name: string }>>([]);
-  const [services, setServices] = useState<Array<{ display_id: string; service_name: string }>>([]);
+  const [categories, setCategories] = useState<
+    Array<{ category_id: string; category_name: string }>
+  >([]);
+  const [services, setServices] = useState<
+    Array<{ display_id: string; service_name: string }>
+  >([]);
   const [loadingServices, setLoadingServices] = useState(false);
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
   const [isServiceOpen, setIsServiceOpen] = useState(false);
@@ -64,10 +70,17 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
 
   // Load active categories on mount
   React.useEffect(() => {
-    import('@/features/chat/api/servicesApi').then(async api => {
-      const cats = await api.getActiveCategories();
-      setCategories(cats.map((c: any) => ({ category_id: c.category_id, category_name: c.category_name })));
-    }).catch(() => {});
+    import('@/features/chat/api/servicesApi')
+      .then(async api => {
+        const cats = await api.getActiveCategories();
+        setCategories(
+          cats.map((c: any) => ({
+            category_id: c.category_id,
+            category_name: c.category_name,
+          }))
+        );
+      })
+      .catch(() => {});
   }, []);
 
   // Load services when category changes
@@ -78,19 +91,27 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
       return;
     }
     setLoadingServices(true);
-    import('@/features/chat/api/servicesApi').then(async api => {
-      const list = await api.getActiveServicesByCategory(catId);
-      setServices(list);
-    }).finally(() => setLoadingServices(false));
+    import('@/features/chat/api/servicesApi')
+      .then(async api => {
+        const list = await api.getActiveServicesByCategory(catId);
+        setServices(list);
+      })
+      .finally(() => setLoadingServices(false));
   }, [formData.category]);
 
   // Close dropdowns when clicking outside
   React.useEffect(() => {
     const onDocClick = (e: MouseEvent) => {
-      if (categoryRef.current && !categoryRef.current.contains(e.target as Node)) {
+      if (
+        categoryRef.current &&
+        !categoryRef.current.contains(e.target as Node)
+      ) {
         setIsCategoryOpen(false);
       }
-      if (serviceRef.current && !serviceRef.current.contains(e.target as Node)) {
+      if (
+        serviceRef.current &&
+        !serviceRef.current.contains(e.target as Node)
+      ) {
         setIsServiceOpen(false);
       }
     };
@@ -146,7 +167,9 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
         {/* Category dropdown (Filter-style) */}
         <div>
-          <label className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}>
+          <label
+            className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}
+          >
             Category
           </label>
           <div className="relative" ref={categoryRef}>
@@ -157,30 +180,40 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
             >
               <span className="text-neutral-700 truncate">
                 {(() => {
-              const selected = categories.find(c => c.category_id === (formData.category || ''));
+                  const selected = categories.find(
+                    c => c.category_id === (formData.category || '')
+                  );
                   return selected ? selected.category_name : 'Select category';
-            })()}
+                })()}
               </span>
-              <ChevronDown className={`w-4 h-4 text-neutral-400 transition-transform ${isCategoryOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown
+                className={`w-4 h-4 text-neutral-400 transition-transform ${isCategoryOpen ? 'rotate-180' : ''}`}
+              />
             </button>
             {isCategoryOpen && (
               <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-neutral-200 rounded-lg shadow-lg z-10 max-h-56 overflow-y-auto">
                 {categories.length === 0 && (
-                  <div className="px-3 py-2 text-sm text-neutral-500">No categories</div>
+                  <div className="px-3 py-2 text-sm text-neutral-500">
+                    No categories
+                  </div>
                 )}
                 {categories.map(c => (
                   <button
                     key={c.category_id}
                     type="button"
                     onClick={() => {
-                      setFormData(prev => ({ ...prev, category: c.category_id, service_id: '' }));
+                      setFormData(prev => ({
+                        ...prev,
+                        category: c.category_id,
+                        service_id: '',
+                      }));
                       setIsCategoryOpen(false);
                     }}
                     className={`w-full px-3 py-2 text-left text-sm hover:bg-neutral-50 ${formData.category === c.category_id ? 'bg-primary-50 text-primary-700' : 'text-neutral-700'}`}
                   >
                     {c.category_name}
                   </button>
-            ))}
+                ))}
               </div>
             )}
           </div>
@@ -188,7 +221,9 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
 
         {/* Service dropdown (Filter-style, depends on category) */}
         <div>
-          <label className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}>
+          <label
+            className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}
+          >
             Service Name
           </label>
           <div className="relative" ref={serviceRef}>
@@ -198,39 +233,52 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
                 if (!formData.category || loadingServices) return;
                 setIsServiceOpen(v => !v);
               }}
-            disabled={!formData.category || loadingServices}
+              disabled={!formData.category || loadingServices}
               className={`w-full flex items-center justify-between h-9 sm:h-10 px-2 sm:px-3 md:px-4 text-sm bg-white border rounded-lg focus:outline-none focus:ring-2 ${!formData.category || loadingServices ? 'border-neutral-200 text-neutral-400 cursor-not-allowed' : 'border-neutral-300 hover:border-neutral-400 focus:ring-primary-500 focus:border-transparent'}`}
             >
-              <span className={`truncate ${!formData.category || loadingServices ? 'text-neutral-400' : 'text-neutral-700'}`}>
+              <span
+                className={`truncate ${!formData.category || loadingServices ? 'text-neutral-400' : 'text-neutral-700'}`}
+              >
                 {loadingServices
                   ? 'Loading services…'
                   : formData.service_id
-                  ? (() => {
-                      const s = services.find(x => x.display_id === formData.service_id);
-                      return s ? `${s.display_id} (${s.service_name})` : formData.service_id;
-                    })()
-                  : 'Select service'}
+                    ? (() => {
+                        const s = services.find(
+                          x => x.display_id === formData.service_id
+                        );
+                        return s
+                          ? `${s.display_id} (${s.service_name})`
+                          : formData.service_id;
+                      })()
+                    : 'Select service'}
               </span>
-              <ChevronDown className={`w-4 h-4 ${!formData.category || loadingServices ? 'text-neutral-300' : 'text-neutral-400'} transition-transform ${isServiceOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown
+                className={`w-4 h-4 ${!formData.category || loadingServices ? 'text-neutral-300' : 'text-neutral-400'} transition-transform ${isServiceOpen ? 'rotate-180' : ''}`}
+              />
             </button>
             {isServiceOpen && (
               <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-neutral-200 rounded-lg shadow-lg z-10 max-h-56 overflow-y-auto">
                 {services.length === 0 && (
-                  <div className="px-3 py-2 text-sm text-neutral-500">No services</div>
+                  <div className="px-3 py-2 text-sm text-neutral-500">
+                    No services
+                  </div>
                 )}
-            {services.map(s => (
+                {services.map(s => (
                   <button
                     key={s.display_id}
                     type="button"
                     onClick={() => {
-                      setFormData(prev => ({ ...prev, service_id: s.display_id }));
+                      setFormData(prev => ({
+                        ...prev,
+                        service_id: s.display_id,
+                      }));
                       setIsServiceOpen(false);
                     }}
                     className={`w-full px-3 py-2 text-left text-sm hover:bg-neutral-50 ${formData.service_id === s.display_id ? 'bg-primary-50 text-primary-700' : 'text-neutral-700'}`}
                   >
                     {`${s.display_id} (${s.service_name})`}
                   </button>
-            ))}
+                ))}
               </div>
             )}
           </div>
@@ -428,7 +476,11 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
                 e.preventDefault();
                 return;
               }
-              if (isDot && (e.currentTarget.value.includes('.') || quotedPriceInput.includes('.'))) {
+              if (
+                isDot &&
+                (e.currentTarget.value.includes('.') ||
+                  quotedPriceInput.includes('.'))
+              ) {
                 // Prevent multiple decimals in the raw input
                 e.preventDefault();
               }

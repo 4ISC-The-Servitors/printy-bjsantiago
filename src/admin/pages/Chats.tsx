@@ -1,15 +1,12 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useAdminConversations } from '@admin/hooks/useAdminConversations';
-import {
-  Card,
-  Text,
-  Pagination,
-  Search,
-  Filter,
-} from '@shared/components';
+import { Card, Text, Pagination, Search, Filter } from '@shared/components';
 import { useResponsivePageSize } from '@shared/hooks/ui/useResponsivePageSize';
 import { useGenericSearchFilter } from '@shared/hooks/ui/useGenericSearchFilter';
-import { useResponsiveClasses, useDeviceUtils } from '@shared/hooks/ui/useResponsiveClasses';
+import {
+  useResponsiveClasses,
+  useDeviceUtils,
+} from '@shared/hooks/ui/useResponsiveClasses';
 import HistoryItemCard from '@customer/components/shared/cards/HistoryItemCard';
 import type { FilterConfig } from '@shared/types/filters';
 

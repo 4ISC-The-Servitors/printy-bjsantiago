@@ -23,10 +23,8 @@ const SecuritySettings: React.FC<SecuritySettingsProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [, toast] = useToast();
 
-
   const toggle = (k: 'current' | 'next' | 'confirm') =>
     setShow(p => ({ ...p, [k]: !p[k] }));
-
 
   // Password requirements validation
   const passwordRequirements = [

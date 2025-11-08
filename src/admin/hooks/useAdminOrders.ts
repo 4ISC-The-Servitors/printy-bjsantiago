@@ -92,7 +92,6 @@ export function useAdminOrders(options: LoadOrdersOptions = {}) {
         return;
       }
 
-
       // Transform the data to match the expected interface
       const normalized: AdminOrderRow[] = (data || []).map((order: any) => {
         // Handle customer data - it might be an array or object

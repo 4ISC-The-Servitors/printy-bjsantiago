@@ -31,5 +31,3 @@ const MarkAllReadButton: React.FC<MarkAllReadButtonProps> = ({
 };
 
 export default MarkAllReadButton;
-
-

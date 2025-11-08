@@ -37,7 +37,6 @@ class FlowDefinitionCache {
 
     this.warmupPromise = (async () => {
       try {
-
         // Fetch all active flow definitions
         const { data, error } = await supabase
           .from('chat_flows_v2')
@@ -56,7 +55,6 @@ class FlowDefinitionCache {
               lastUpdated: new Date(),
             });
           }
-
         }
 
         this.isWarmedUp = true;
@@ -77,7 +75,6 @@ class FlowDefinitionCache {
     if (cached) {
       return cached.definition;
     }
-
 
     // Fetch from database
     try {

@@ -13,6 +13,7 @@ When admin changes ticket status (Resolved/Closed), encrypted messages were bein
 ### Observed Behavior
 
 From chat UI screenshot:
+
 - Customer creates ticket: "encrypted message test" + "No"
 - System responds: "Your support ticket has been created! TCK-200131..."
 - **BUG**: After admin resolves/closes ticket, encrypted status change messages appear:
@@ -49,12 +50,14 @@ if (customerSessionId) {
 }
 ```
 
-**Problem**: 
+**Problem**:
+
 - Status change messages were inserted into the **original ticket session** (`customerSessionId`)
 - This pollutes the conversation history with backend status notifications
 - Messages appear as encrypted data in the UI (unreadable)
 
 **Why it's wrong**:
+
 - Original sessions should only contain the initial ticket creation flow
 - Status changes should use notifications (already handled by database trigger)
 - No need to pollute chat history with status updates
@@ -80,12 +83,14 @@ messages.push({
 ```
 
 **Changes**:
+
 1. **Removed** the code that inserts messages into `customerSessionId`
 2. **Removed** unused `customerSessionId` variable
 3. **Added** comment explaining that notifications are handled by database trigger
 4. **Kept** the admin-facing confirmation message (only admin sees this)
 
 **Result**:
+
 - Status changes no longer pollute customer's original session
 - Customer receives notifications via the notifications table (handled by database trigger)
 - Clean conversation history preserved
@@ -129,6 +134,7 @@ $$ LANGUAGE plpgsql;
 ```
 
 **Flow**:
+
 1. Admin changes status via `ticketChangeStatus()` action
 2. Updates `inquiries_v2` table with new status
 3. Database trigger fires automatically
@@ -140,12 +146,14 @@ $$ LANGUAGE plpgsql;
 ## Testing
 
 ### Before Fix
+
 - Open customer ticket conversation
 - Admin marks as Resolved → Encrypted messages appear in conversation
 - Admin marks as Closed → More encrypted messages appear in conversation
 - Conversation history polluted with backend status messages
 
 ### After Fix
+
 - Open customer ticket conversation
 - Admin marks as Resolved → No messages inserted into conversation
 - Admin marks as Closed → No messages inserted into conversation
@@ -157,11 +165,13 @@ $$ LANGUAGE plpgsql;
 ## Impact Assessment
 
 ### Affected Scenarios
+
 - ✅ Admin marks ticket as Resolved
 - ✅ Admin marks ticket as Closed
 - ✅ Admin marks ticket as Under Review
 
 ### Not Affected
+
 - Customer replies (already creates separate reply sessions)
 - Admin replies (already creates separate reply sessions)
 - Customer resolves ticket (already creates separate reply sessions)
@@ -188,11 +198,13 @@ $$ LANGUAGE plpgsql;
 ## Best Practices
 
 ### ✅ DO
+
 - Use database triggers for automatic notifications
 - Keep status changes separate from conversation history
 - Use notification system for user alerts
 
 ### ❌ DON'T
+
 - Insert backend status messages into original sessions
 - Pollute conversation history with system notifications
 - Mix notification logic with message insertion

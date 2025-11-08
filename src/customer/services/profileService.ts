@@ -44,7 +44,6 @@ export class ProfileService {
    */
   static async getProfile(customerId: string): Promise<CustomerProfile | null> {
     try {
-
       // Check if Supabase is available
       if (!supabase) {
         console.warn('Supabase client not available, returning null');
@@ -83,7 +82,6 @@ export class ProfileService {
       if (!customerData) {
         return null;
       }
-
 
       // Fetch address parts by joining related tables from location
       let address: CustomerProfile['address'] = {

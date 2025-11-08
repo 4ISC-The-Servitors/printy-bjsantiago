@@ -169,9 +169,7 @@ export async function getUserSessions(
       ? session.inquiry[0]
       : session.inquiry,
     quote: Array.isArray(session.quote) ? session.quote[0] : session.quote,
-    order: Array.isArray(session.order)
-      ? session.order[0]
-      : session.order,
+    order: Array.isArray(session.order) ? session.order[0] : session.order,
     type: session.inquiry
       ? 'inquiry'
       : session.quote
@@ -624,8 +622,13 @@ export async function getCustomerQuotes(
   const quotesWithPrices = data.map(quote => {
     const proposalsRaw = quote.quote_proposals as any;
     // Handle Supabase JOIN data structure - can be array or single object
-    const proposals = Array.isArray(proposalsRaw) ? proposalsRaw : [proposalsRaw].filter(Boolean);
-    const quotedPrice = proposals && proposals.length > 0 ? proposals[0]?.quoted_price : undefined;
+    const proposals = Array.isArray(proposalsRaw)
+      ? proposalsRaw
+      : [proposalsRaw].filter(Boolean);
+    const quotedPrice =
+      proposals && proposals.length > 0
+        ? proposals[0]?.quoted_price
+        : undefined;
 
     return {
       quote_id: quote.quote_id,

@@ -90,7 +90,7 @@ export const SessionFeedback: React.FC<SessionFeedbackProps> = ({
             const isActive =
               (!selectedRating && star <= hoveredRating) ||
               (selectedRating && star <= selectedRating);
-            
+
             return (
               <button
                 key={star}
@@ -119,7 +119,7 @@ export const SessionFeedback: React.FC<SessionFeedbackProps> = ({
             );
           })}
         </div>
-        
+
         {isSubmitting && (
           <p className="text-xs text-neutral-500">Submitting...</p>
         )}
@@ -129,11 +129,7 @@ export const SessionFeedback: React.FC<SessionFeedbackProps> = ({
 
   // Inline mode (for historical conversations)
   if (!isModal) {
-    return (
-      <div className="mt-6 pb-4">
-        {renderFeedbackContent()}
-      </div>
-    );
+    return <div className="mt-6 pb-4">{renderFeedbackContent()}</div>;
   }
 
   // Modal mode (for current conversation ending)
@@ -153,12 +149,22 @@ export const SessionFeedback: React.FC<SessionFeedbackProps> = ({
             className="h-8 w-8 p-0 flex items-center justify-center rounded hover:bg-neutral-100 transition-colors"
             aria-label="Close"
           >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            <svg
+              className="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>
-        
+
         <div className="device-spacing-component pb-4 pt-2">
           {isSubmitted ? (
             // Success state
@@ -181,7 +187,7 @@ export const SessionFeedback: React.FC<SessionFeedbackProps> = ({
                   const isActive =
                     (!selectedRating && star <= hoveredRating) ||
                     (selectedRating && star <= selectedRating);
-                  
+
                   return (
                     <button
                       key={star}
@@ -210,7 +216,7 @@ export const SessionFeedback: React.FC<SessionFeedbackProps> = ({
                   );
                 })}
               </div>
-              
+
               {isSubmitting && (
                 <p className="text-xs text-neutral-500 mt-1">Submitting...</p>
               )}
@@ -223,4 +229,3 @@ export const SessionFeedback: React.FC<SessionFeedbackProps> = ({
 };
 
 export default SessionFeedback;
-

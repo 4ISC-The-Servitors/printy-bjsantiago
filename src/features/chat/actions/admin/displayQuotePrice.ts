@@ -70,7 +70,6 @@ export async function displayQuotePrice(
 
     const formattedPrice = formatCurrency(Number(proposal.quoted_price || 0));
 
-
     return {
       messages: [
         {

@@ -65,7 +65,6 @@ const AccountSettings: React.FC = () => {
   }, [navigate]);
 
   const fetchProfileData = useCallback(async () => {
-
     // Prevent multiple simultaneous calls
     if (fetchingRef.current) {
       return;
@@ -91,7 +90,6 @@ const AccountSettings: React.FC = () => {
         profilePromise,
         timeoutPromise,
       ])) as any;
-
 
       if (profile) {
         const displayName = ProfileService.getDisplayName(
@@ -145,7 +143,6 @@ const AccountSettings: React.FC = () => {
         chatMessages: true,
         ticketUpdates: true,
       });
-
     } catch (error) {
       console.error('Error fetching profile data:', error);
       toast.error(

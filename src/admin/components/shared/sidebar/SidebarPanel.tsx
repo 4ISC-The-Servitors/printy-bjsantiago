@@ -19,7 +19,10 @@ export const SidebarPanel: React.FC<SidebarPanelProps> = ({
   onLogout,
 }) => {
   return (
-    <div className="h-full flex flex-col bg-white border-r border-neutral-200 sticky top-0" style={{ zIndex: 99998 }}>
+    <div
+      className="h-full flex flex-col bg-white border-r border-neutral-200 sticky top-0"
+      style={{ zIndex: 99998 }}
+    >
       {/* Top Group: Printy Logo + Chats Button */}
       <div className="flex flex-col items-center gap-2 shrink-0 p-2 pt-4 z-10">
         {/* Printy Logo */}

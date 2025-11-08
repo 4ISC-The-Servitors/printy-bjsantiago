@@ -32,12 +32,15 @@ export const ServiceItem: React.FC<ServiceItemProps> = ({
       <div className="flex items-center gap-4 min-w-0 flex-1">
         <div className="min-w-0 flex-1">
           {/* Desktop/Tablet: inline label with bullet */}
-          <Text variant="p" size="sm" color="muted" className="truncate hidden sm:block">
+          <Text
+            variant="p"
+            size="sm"
+            color="muted"
+            className="truncate hidden sm:block"
+          >
             {service.display_id}
             {typeof service.total_order_count === 'number' && (
-              <>
-                {` \u2022 Lifetime Completed: ${service.total_order_count}`}
-              </>
+              <>{` \u2022 Lifetime Completed: ${service.total_order_count}`}</>
             )}
           </Text>
           {/* Mobile: two-line, no bullet */}

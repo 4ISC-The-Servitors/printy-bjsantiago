@@ -64,7 +64,6 @@ export async function checkAcceptedQuote(
       };
     }
 
-
     // Store quote status in context for conditional evaluation
     const quoteStatus =
       quote.status === 'accepted' ? 'accepted' : 'not_accepted';

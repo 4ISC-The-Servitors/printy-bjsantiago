@@ -64,7 +64,9 @@ export function formatOrderDateMobile(input: number | string | Date): string {
 /**
  * Formats a timestamp or Date for desktop view with time: "Oct 26, 2025 • 11:36 PM"
  */
-export function formatDateWithTimeDesktop(input: number | string | Date): string {
+export function formatDateWithTimeDesktop(
+  input: number | string | Date
+): string {
   try {
     const d = input instanceof Date ? input : new Date(input);
     const date = d.toLocaleDateString('en-US', {
@@ -72,7 +74,10 @@ export function formatDateWithTimeDesktop(input: number | string | Date): string
       month: 'short',
       day: 'numeric',
     });
-    const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const time = d.toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
     return `${date} • ${time}`;
   } catch {
     return '';
@@ -82,7 +87,9 @@ export function formatDateWithTimeDesktop(input: number | string | Date): string
 /**
  * Formats a timestamp or Date for tablet view with time: "Oct 26, 2025 • 11:36 PM"
  */
-export function formatDateWithTimeTablet(input: number | string | Date): string {
+export function formatDateWithTimeTablet(
+  input: number | string | Date
+): string {
   try {
     const d = input instanceof Date ? input : new Date(input);
     const date = d.toLocaleDateString('en-US', {
@@ -90,7 +97,10 @@ export function formatDateWithTimeTablet(input: number | string | Date): string 
       month: 'short',
       day: 'numeric',
     });
-    const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const time = d.toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
     return `${date} • ${time}`;
   } catch {
     return '';
@@ -100,14 +110,19 @@ export function formatDateWithTimeTablet(input: number | string | Date): string 
 /**
  * Formats a timestamp or Date for mobile view with time: "Oct 26 • 11:36 PM"
  */
-export function formatDateWithTimeMobile(input: number | string | Date): string {
+export function formatDateWithTimeMobile(
+  input: number | string | Date
+): string {
   try {
     const d = input instanceof Date ? input : new Date(input);
     const date = d.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
     });
-    const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const time = d.toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
     return `${date} • ${time}`;
   } catch {
     return '';

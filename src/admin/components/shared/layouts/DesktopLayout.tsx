@@ -31,7 +31,10 @@ export const DesktopLayout: React.FC<DesktopLayoutProps> = ({
   return (
     <div className="h-screen bg-gradient-to-br from-neutral-50 to-brand-primary-50 flex">
       {/* Icon Sidebar */}
-      <aside className="hidden lg:flex w-14 flex-col bg-white border-r border-neutral-200 sticky top-0 h-screen" style={{ zIndex: 99998 }}>
+      <aside
+        className="hidden lg:flex w-14 flex-col bg-white border-r border-neutral-200 sticky top-0 h-screen"
+        style={{ zIndex: 99998 }}
+      >
         <SidebarPanel
           onSettings={onSettings}
           onLogout={onLogout}

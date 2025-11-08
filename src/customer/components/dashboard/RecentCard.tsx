@@ -41,10 +41,17 @@ const RecentCard: React.FC<RecentCardProps> = ({
     label: string;
     icon: React.ComponentType<any>;
   }> = useMemo(() => {
-    const options: Array<{ type: RecentCardType; label: string; icon: React.ComponentType<any> }> = [];
-    if (orderData) options.push({ type: 'order', label: 'Order', icon: Package });
-    if (ticketData) options.push({ type: 'ticket', label: 'Ticket', icon: Ticket });
-    if (quoteData) options.push({ type: 'quote', label: 'Quote', icon: FileText });
+    const options: Array<{
+      type: RecentCardType;
+      label: string;
+      icon: React.ComponentType<any>;
+    }> = [];
+    if (orderData)
+      options.push({ type: 'order', label: 'Order', icon: Package });
+    if (ticketData)
+      options.push({ type: 'ticket', label: 'Ticket', icon: Ticket });
+    if (quoteData)
+      options.push({ type: 'quote', label: 'Quote', icon: FileText });
     return options;
   }, [orderData, ticketData, quoteData]);
 

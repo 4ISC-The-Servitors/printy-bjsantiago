@@ -70,8 +70,7 @@ export async function insertMessage(params: {
 
   // Check if we recently inserted this exact message
   const lastInsertTime = recentInsertions.get(idempotencyKey);
-  if (lastInsertTime && (now - lastInsertTime) < IDEMPOTENCY_WINDOW) {
-    
+  if (lastInsertTime && now - lastInsertTime < IDEMPOTENCY_WINDOW) {
     return; // Skip duplicate insertion
   }
 
@@ -174,7 +173,6 @@ export async function processPendingQuoteAction(
   conversationId: string
 ): Promise<void> {
   try {
-
     // Get customer ID from the session FIRST
     const { data: sessionData, error: sessionError } = await supabase
       .from('chat_sessions_v2')
@@ -232,7 +230,6 @@ export async function processPendingQuoteAction(
       );
       return;
     }
-
 
     // Update quote status in quotes table with customer_id
 

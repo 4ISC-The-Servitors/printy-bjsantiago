@@ -157,11 +157,9 @@ const OrderHistory: React.FC = () => {
   // Enhanced file upload handler that uses payment proof upload for payment flows
   const handleFileUpload = useCallback(
     async (files: FileList) => {
-
       if (isPaymentFlow && activeConversation) {
         // Get order ID from payment flow context
         let orderId = activeConversation.context?.order_id;
-
 
         if (orderId && typeof orderId === 'string') {
           // Use payment proof upload for payment flows
@@ -316,7 +314,8 @@ const OrderHistory: React.FC = () => {
     }
 
     if (order.paymentVerifiedAt) {
-      metadata['payment verified'] = `${formatShortDate(order.paymentVerifiedAt)} • ${formatShortTime(order.paymentVerifiedAt)}`;
+      metadata['payment verified'] =
+        `${formatShortDate(order.paymentVerifiedAt)} • ${formatShortTime(order.paymentVerifiedAt)}`;
     }
 
     if (order.completedAt) {

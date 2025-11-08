@@ -19,7 +19,10 @@ const Tooltip: React.FC<TooltipProps> = ({
   children,
 }) => {
   return (
-    <div className="tooltip-wrapper group relative w-full" style={{ zIndex: 99999 }}>
+    <div
+      className="tooltip-wrapper group relative w-full"
+      style={{ zIndex: 99999 }}
+    >
       {children}
       <div
         role="tooltip"

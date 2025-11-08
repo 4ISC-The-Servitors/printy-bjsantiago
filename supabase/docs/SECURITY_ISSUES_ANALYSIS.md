@@ -22,12 +22,6 @@
 
 - 5 additional `SECURITY DEFINER` functions missing `SET search_path` (verify their usage first)
 
-
-
-
-
-
-
 # Security Issues Analysis Report
 
 **Generated:** $(date)
@@ -708,7 +702,7 @@ $$;
    - Verify RLS policies still work with `is_admin()` fix
    - Verify sequence generation still works with `get_next_sequence_value()` fix
 
-6. **Cleanup:**
+5. **Cleanup:**
    - Consider removing duplicate functions (`is_admin_user`, `user_is_admin`)
    - Consider removing unused legacy functions
 

@@ -22,7 +22,4 @@ export {
   type QuoteAnalysisResult,
 } from './quoteAssistantPrompt';
 
-export {
-  SPEC_EDITOR_OPEN,
-  openSpecEditor,
-} from './specEditorEvents';
+export { SPEC_EDITOR_OPEN, openSpecEditor } from './specEditorEvents';

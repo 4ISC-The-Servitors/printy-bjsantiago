@@ -21,7 +21,12 @@ const CustomerAccountSettingsLoading: React.FC = () => {
       {/* Mobile header with burger menu - matches actual page structure */}
       <div className="lg:hidden flex flex-col">
         <header className="bg-white/80 backdrop-blur border-b border-neutral-200 px-4 py-3 flex items-center justify-between shrink-0">
-          <Skeleton variant="rectangular" width="32px" height="32px" className="rounded" />
+          <Skeleton
+            variant="rectangular"
+            width="32px"
+            height="32px"
+            className="rounded"
+          />
           <div className="w-10" /> {/* Spacer to match actual layout */}
         </header>
       </div>
@@ -97,39 +102,119 @@ const CustomerAccountSettingsLoading: React.FC = () => {
               <div className="space-y-4">
                 {/* Basic contact fields */}
                 <div className="space-y-2">
-                  <Skeleton variant="text" width="120px" height="16px" className="device-text-caption" />
-                  <Skeleton variant="rectangular" width="100%" height="40px" className="rounded device-input" />
+                  <Skeleton
+                    variant="text"
+                    width="120px"
+                    height="16px"
+                    className="device-text-caption"
+                  />
+                  <Skeleton
+                    variant="rectangular"
+                    width="100%"
+                    height="40px"
+                    className="rounded device-input"
+                  />
                 </div>
                 <div className="space-y-2">
-                  <Skeleton variant="text" width="120px" height="16px" className="device-text-caption" />
-                  <Skeleton variant="rectangular" width="100%" height="40px" className="rounded device-input" />
+                  <Skeleton
+                    variant="text"
+                    width="120px"
+                    height="16px"
+                    className="device-text-caption"
+                  />
+                  <Skeleton
+                    variant="rectangular"
+                    width="100%"
+                    height="40px"
+                    className="rounded device-input"
+                  />
                 </div>
 
                 {/* Address fields in grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Skeleton variant="text" width="100px" height="16px" className="device-text-caption" />
-                    <Skeleton variant="rectangular" width="100%" height="40px" className="rounded device-input" />
+                    <Skeleton
+                      variant="text"
+                      width="100px"
+                      height="16px"
+                      className="device-text-caption"
+                    />
+                    <Skeleton
+                      variant="rectangular"
+                      width="100%"
+                      height="40px"
+                      className="rounded device-input"
+                    />
                   </div>
                   <div className="space-y-2">
-                    <Skeleton variant="text" width="100px" height="16px" className="device-text-caption" />
-                    <Skeleton variant="rectangular" width="100%" height="40px" className="rounded device-input" />
+                    <Skeleton
+                      variant="text"
+                      width="100px"
+                      height="16px"
+                      className="device-text-caption"
+                    />
+                    <Skeleton
+                      variant="rectangular"
+                      width="100%"
+                      height="40px"
+                      className="rounded device-input"
+                    />
                   </div>
                   <div className="space-y-2">
-                    <Skeleton variant="text" width="100px" height="16px" className="device-text-caption" />
-                    <Skeleton variant="rectangular" width="100%" height="40px" className="rounded device-input" />
+                    <Skeleton
+                      variant="text"
+                      width="100px"
+                      height="16px"
+                      className="device-text-caption"
+                    />
+                    <Skeleton
+                      variant="rectangular"
+                      width="100%"
+                      height="40px"
+                      className="rounded device-input"
+                    />
                   </div>
                   <div className="space-y-2">
-                    <Skeleton variant="text" width="100px" height="16px" className="device-text-caption" />
-                    <Skeleton variant="rectangular" width="100%" height="40px" className="rounded device-input" />
+                    <Skeleton
+                      variant="text"
+                      width="100px"
+                      height="16px"
+                      className="device-text-caption"
+                    />
+                    <Skeleton
+                      variant="rectangular"
+                      width="100%"
+                      height="40px"
+                      className="rounded device-input"
+                    />
                   </div>
                   <div className="space-y-2 md:col-span-2">
-                    <Skeleton variant="text" width="120px" height="16px" className="device-text-caption" />
-                    <Skeleton variant="rectangular" width="100%" height="40px" className="rounded device-input" />
+                    <Skeleton
+                      variant="text"
+                      width="120px"
+                      height="16px"
+                      className="device-text-caption"
+                    />
+                    <Skeleton
+                      variant="rectangular"
+                      width="100%"
+                      height="40px"
+                      className="rounded device-input"
+                    />
                   </div>
                   <div className="space-y-2">
-                    <Skeleton variant="text" width="100px" height="16px" className="device-text-caption" />
-                    <Skeleton variant="rectangular" width="100%" height="40px" className="rounded device-input" />
+                    <Skeleton
+                      variant="text"
+                      width="100px"
+                      height="16px"
+                      className="device-text-caption"
+                    />
+                    <Skeleton
+                      variant="rectangular"
+                      width="100%"
+                      height="40px"
+                      className="rounded device-input"
+                    />
                   </div>
                 </div>
               </div>
@@ -148,8 +233,18 @@ const CustomerAccountSettingsLoading: React.FC = () => {
               <div className="space-y-4">
                 <div className="flex items-center justify-between p-4 bg-neutral-50 rounded-lg">
                   <div className="space-y-1">
-                    <Skeleton variant="text" width="120px" height="16px" className="device-text-body" />
-                    <Skeleton variant="text" width="180px" height="14px" className="device-text-caption" />
+                    <Skeleton
+                      variant="text"
+                      width="120px"
+                      height="16px"
+                      className="device-text-body"
+                    />
+                    <Skeleton
+                      variant="text"
+                      width="180px"
+                      height="14px"
+                      className="device-text-caption"
+                    />
                   </div>
                   <Skeleton
                     variant="rectangular"
@@ -179,12 +274,28 @@ const CustomerAccountSettingsLoading: React.FC = () => {
               </div>
               <div className="space-y-4">
                 {[
-                  { label: 'Email Notifications', desc: 'Receive updates via email' }
+                  {
+                    label: 'Email Notifications',
+                    desc: 'Receive updates via email',
+                  },
                 ].map((item, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 hover:bg-neutral-50 rounded-lg transition-colors">
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-3 hover:bg-neutral-50 rounded-lg transition-colors"
+                  >
                     <div className="space-y-1">
-                      <Skeleton variant="text" width={item.label.length * 10} height="16px" className="device-text-body" />
-                      <Skeleton variant="text" width={180 + index * 15} height="14px" className="device-text-caption" />
+                      <Skeleton
+                        variant="text"
+                        width={item.label.length * 10}
+                        height="16px"
+                        className="device-text-body"
+                      />
+                      <Skeleton
+                        variant="text"
+                        width={180 + index * 15}
+                        height="14px"
+                        className="device-text-caption"
+                      />
                     </div>
                     <Skeleton
                       variant="rectangular"

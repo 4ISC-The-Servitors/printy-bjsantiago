@@ -22,4 +22,3 @@ export interface SessionFeedbackState {
   rating: number | null;
   submittedAt: string | null;
 }
-

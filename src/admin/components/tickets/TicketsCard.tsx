@@ -32,7 +32,9 @@ const TicketsCard: React.FC<TicketsCardProps> = ({ filteredTickets }) => {
   }, [filteredTickets?.length, pageSize, page, setPage]);
 
   if (isLoading) {
-    return <AdminListSkeleton itemCount={5} showCheckbox={true} showAction={true} />;
+    return (
+      <AdminListSkeleton itemCount={5} showCheckbox={true} showAction={true} />
+    );
   }
 
   return (

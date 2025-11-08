@@ -58,27 +58,12 @@ function App() {
           </RequireAuth>
         }
       >
-        <Route
-          index
-          element={<CustomerDashboard />}
-        />
+        <Route index element={<CustomerDashboard />} />
         <Route path="account" element={<CustomerAccountSettings />} />
-        <Route
-          path="chats"
-          element={<CustomerChatHistory />}
-        />
-        <Route
-          path="orders"
-          element={<CustomerOrderHistory />}
-        />
-        <Route
-          path="tickets"
-          element={<CustomerTicketHistory />}
-        />
-        <Route
-          path="quotes"
-          element={<CustomerQuoteHistory />}
-        />
+        <Route path="chats" element={<CustomerChatHistory />} />
+        <Route path="orders" element={<CustomerOrderHistory />} />
+        <Route path="tickets" element={<CustomerTicketHistory />} />
+        <Route path="quotes" element={<CustomerQuoteHistory />} />
       </Route>
       <Route
         path="/valued"
@@ -96,34 +81,13 @@ function App() {
           </RequireAuth>
         }
       >
-        <Route
-          index
-          element={<AdminDashboard />}
-        />
-        <Route
-          path="orders"
-          element={<AdminOrders />}
-        />
-        <Route
-          path="tickets"
-          element={<AdminTickets />}
-        />
-        <Route
-          path="quotes"
-          element={<AdminQuotes />}
-        />
-        <Route
-          path="portfolio"
-          element={<AdminPortfolio />}
-        />
-        <Route
-          path="chats"
-          element={<AdminChats />}
-        />
-        <Route
-          path="settings"
-          element={<AdminSettingsPage />}
-        />
+        <Route index element={<AdminDashboard />} />
+        <Route path="orders" element={<AdminOrders />} />
+        <Route path="tickets" element={<AdminTickets />} />
+        <Route path="quotes" element={<AdminQuotes />} />
+        <Route path="portfolio" element={<AdminPortfolio />} />
+        <Route path="chats" element={<AdminChats />} />
+        <Route path="settings" element={<AdminSettingsPage />} />
       </Route>
       <Route
         path="/superadmin"
@@ -133,10 +97,7 @@ function App() {
           </RequireAuth>
         }
       >
-        <Route
-          index
-          element={<SuperAdminDashboard />}
-        />
+        <Route index element={<SuperAdminDashboard />} />
       </Route>
     </Routes>
   );

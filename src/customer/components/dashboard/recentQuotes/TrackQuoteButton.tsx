@@ -16,7 +16,12 @@ const TrackQuoteButton: React.FC<TrackQuoteButtonProps> = ({
   displayId,
 }) => {
   // Hide button if quote is accepted, rejected, or still active (no proposal sent yet)
-  if (status === 'accepted' || status === 'rejected' || status === 'active' || status === 'ended') {
+  if (
+    status === 'accepted' ||
+    status === 'rejected' ||
+    status === 'active' ||
+    status === 'ended'
+  ) {
     return null;
   }
 

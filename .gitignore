@@ -32,7 +32,7 @@ build
 
 
 # Supabase
-.supabase
+/supabase
 
 # Database
 *.db

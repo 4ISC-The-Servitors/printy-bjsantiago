@@ -43,7 +43,6 @@ export async function displayProposalSpecs(
 
   // If conversationId is a quote_id, we need to find the actual session_id
   if (conversationId && conversationId.length > 30) {
-
     // Query quotes table to get the session_id for this quote
     const { data: quoteData } = await supabase
       .from('quotes')
@@ -87,7 +86,8 @@ export async function displayProposalSpecs(
       const specData = proposal.spec_final;
 
       // Prefer admin_notes nested inside spec_final if present; fallback to top-level notes
-      const adminNotes = (specData as any)?.admin_notes || proposal.notes || undefined;
+      const adminNotes =
+        (specData as any)?.admin_notes || proposal.notes || undefined;
 
       // Build proposal details using helper functions
       const header = await buildSpecHeaderLines({

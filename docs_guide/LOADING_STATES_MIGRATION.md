@@ -54,10 +54,10 @@ These components are already centralized and reusable:
 
 The following components are now **deprecated** and can be safely removed:
 
-| Component | Location | Replaced By | Status |
-|-----------|----------|-------------|--------|
-| `OrdersSkeleton` | `src/admin/components/orders/OrdersSkeleton.tsx` | `AdminListSkeleton` | ⚠️ DEPRECATED |
-| `QuotesSkeleton` | `src/admin/components/quotes/QuotesSkeleton.tsx` | `AdminListSkeleton` | ⚠️ DEPRECATED |
+| Component         | Location                                           | Replaced By         | Status        |
+| ----------------- | -------------------------------------------------- | ------------------- | ------------- |
+| `OrdersSkeleton`  | `src/admin/components/orders/OrdersSkeleton.tsx`   | `AdminListSkeleton` | ⚠️ DEPRECATED |
+| `QuotesSkeleton`  | `src/admin/components/quotes/QuotesSkeleton.tsx`   | `AdminListSkeleton` | ⚠️ DEPRECATED |
 | `TicketsSkeleton` | `src/admin/components/tickets/TicketsSkeleton.tsx` | `AdminListSkeleton` | ⚠️ DEPRECATED |
 
 ### Migration Steps Completed
@@ -142,11 +142,11 @@ All loading states now follow best practices from `loading-states.md`:
 
 ### ✅ Load Duration Matching
 
-| Duration | Feedback Type | Implementation |
-|----------|---------------|----------------|
-| 0.3-1s | Light shimmer | Skeleton component with pulse |
-| 1-3s | Skeleton placeholders | All list/dashboard skeletons |
-| > 3s | Would use progress bar | Not currently implemented |
+| Duration | Feedback Type          | Implementation                |
+| -------- | ---------------------- | ----------------------------- |
+| 0.3-1s   | Light shimmer          | Skeleton component with pulse |
+| 1-3s     | Skeleton placeholders  | All list/dashboard skeletons  |
+| > 3s     | Would use progress bar | Not currently implemented     |
 
 ---
 
@@ -184,21 +184,25 @@ src/admin/pages/
 ## Benefits
 
 ### 1. Code Reduction
+
 - **Before**: 3 duplicate skeleton components (Orders, Quotes, Tickets) + simple text loading
 - **After**: 1 reusable AdminListSkeleton component + proper NotificationListSkeleton
 - **Reduction**: ~150 lines of duplicated code removed
 
 ### 2. Consistency
+
 - All admin list pages now use the same loading pattern
 - Notifications have proper skeleton instead of text
 - Portfolio uses design system (Skeleton component)
 
 ### 3. Maintainability
+
 - Single source of truth for admin list loading states
 - Changes to loading UX only need to be made in one place
 - Follows established design system patterns
 
 ### 4. UX Improvements
+
 - All loading states follow best practices from `loading-states.md`
 - Consistent shimmer animation across all pages
 - Proper accessibility (aria-hidden="true")
@@ -255,6 +259,7 @@ src/admin/pages/
 If issues are discovered after deployment:
 
 1. **Revert imports** in affected Card components:
+
    ```typescript
    // Change FROM:
    import { AdminListSkeleton } from '@shared/components/feedback';
@@ -264,6 +269,7 @@ If issues are discovered after deployment:
    ```
 
 2. **Revert usage**:
+
    ```typescript
    // Change FROM:
    <AdminListSkeleton itemCount={5} showCheckbox={true} />

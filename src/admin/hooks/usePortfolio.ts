@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useAdminChat } from '@admin/hooks/useAdminChat';
-import { fetchAllServices, fetchServicesByCategory } from '@/features/chat/api/servicesApi';
+import {
+  fetchAllServices,
+  fetchServicesByCategory,
+} from '@/features/chat/api/servicesApi';
 
 export type ServiceStatus = 'active' | 'inactive' | 'retired';
 
@@ -31,17 +34,17 @@ export const usePortfolio = () => {
         setIsLoading(true);
         const [allServices, categories] = await Promise.all([
           fetchAllServices(),
-          fetchServicesByCategory()
+          fetchServicesByCategory(),
         ]);
-        
+
         // Transform to legacy format for compatibility
         const transformedServices: Service[] = allServices.map(s => ({
           service_id: s.service_id,
           service_name: s.service_name,
           display_id: s.display_id,
-          status: s.status
+          status: s.status,
         }));
-        
+
         const transformedCategories: ServiceCategory[] = categories.map(c => ({
           category_id: c.category_id,
           category_name: c.category_name,
@@ -50,10 +53,10 @@ export const usePortfolio = () => {
             service_id: s.service_id,
             service_name: s.service_name,
             display_id: s.display_id,
-            status: s.status
-          }))
+            status: s.status,
+          })),
         }));
-        
+
         setServices(transformedServices);
         setPortfolioData(transformedCategories);
       } catch (error) {
@@ -91,16 +94,16 @@ export const usePortfolio = () => {
     try {
       const [allServices, categories] = await Promise.all([
         fetchAllServices(),
-        fetchServicesByCategory()
+        fetchServicesByCategory(),
       ]);
-      
+
       const transformedServices: Service[] = allServices.map(s => ({
         service_id: s.service_id,
         service_name: s.service_name,
         display_id: s.display_id,
-        status: s.status
+        status: s.status,
       }));
-      
+
       const transformedCategories: ServiceCategory[] = categories.map(c => ({
         category_id: c.category_id,
         category_name: c.category_name,
@@ -109,10 +112,10 @@ export const usePortfolio = () => {
           service_id: s.service_id,
           service_name: s.service_name,
           display_id: s.display_id,
-          status: s.status
-        }))
+          status: s.status,
+        })),
       }));
-      
+
       setServices(transformedServices);
       setPortfolioData(transformedCategories);
     } catch (error) {

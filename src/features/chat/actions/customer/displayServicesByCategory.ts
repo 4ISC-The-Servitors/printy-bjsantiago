@@ -54,12 +54,12 @@ export async function displayServicesByCategory(
     // Get category information from context
     // The context now stores only the category_id (not "category_id|category_name")
     const categoryId = context?.selected_category;
-    
+
     console.log('[displayServicesByCategory] Received context:', {
       selected_category: categoryId,
-      fullContext: context
+      fullContext: context,
     });
-    
+
     if (!categoryId) {
       messages.push({
         id: crypto.randomUUID(),
@@ -110,7 +110,8 @@ export async function displayServicesByCategory(
     // Query active services for the selected category
     const { data: services, error: servicesError } = await supabase
       .from('printing_services')
-      .select(`
+      .select(
+        `
         service_id,
         display_id,
         service_name,
@@ -120,13 +121,17 @@ export async function displayServicesByCategory(
           category_id,
           category_name
         )
-      `)
+      `
+      )
       .eq('status', 'active')
       .eq('category_id', categoryId)
       .order('service_name', { ascending: true });
 
     if (servicesError) {
-      console.error('[displayServicesByCategory] Error fetching services:', servicesError);
+      console.error(
+        '[displayServicesByCategory] Error fetching services:',
+        servicesError
+      );
       messages.push({
         id: crypto.randomUUID(),
         role: 'printy',
@@ -147,14 +152,17 @@ export async function displayServicesByCategory(
 
     // Format services as bullet-point list
     let serviceList = `${categoryName}:\n\n`;
-    
+
     if (services && services.length > 0) {
       services.forEach(service => {
-        const description = service.description ? ` - ${service.description}` : '';
+        const description = service.description
+          ? ` - ${service.description}`
+          : '';
         serviceList += `• ${service.service_name}${description}\n`;
       });
     } else {
-      serviceList += 'No active services available in this category at the moment.';
+      serviceList +=
+        'No active services available in this category at the moment.';
     }
 
     messages.push({
@@ -165,7 +173,8 @@ export async function displayServicesByCategory(
     });
 
     // Generate dynamic navigation quick replies
-    const quickReplies: Array<{ label: string; value: string; next: string }> = [];
+    const quickReplies: Array<{ label: string; value: string; next: string }> =
+      [];
 
     // Fetch all active categories for navigation (excluding current category)
     const { data: allCategories, error: categoriesError } = await supabase

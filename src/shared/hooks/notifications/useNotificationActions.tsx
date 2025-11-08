@@ -31,5 +31,3 @@ export function useNotificationActions<T extends MinimalNotificationItem>() {
 }
 
 export default useNotificationActions;
-
-

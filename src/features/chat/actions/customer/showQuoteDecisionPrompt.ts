@@ -57,7 +57,9 @@ export async function showQuoteDecisionPrompt(
       });
     } catch {
       customerType = 'regular';
-      console.warn('[showQuoteDecisionPrompt] DB role lookup failed, defaulting to regular');
+      console.warn(
+        '[showQuoteDecisionPrompt] DB role lookup failed, defaulting to regular'
+      );
     }
   }
   if (!customerType) customerType = 'regular';
@@ -84,7 +86,6 @@ export async function showQuoteDecisionPrompt(
     text: warningText,
     ts: Date.now(),
   });
-
 
   // Return with quick reply options
   return {
