@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, Pagination } from '@admin/components/shared';
-import { AdminListSkeleton } from '@shared/components/feedback';
+import { SimpleLoading } from '@shared/components/ui/SimpleLoading';
 import { useOrdersCard } from '@admin/hooks/useOrdersCard';
 import { OrderItem } from './OrderItem';
 import { useResponsiveLayout } from '@shared/hooks';
@@ -30,9 +30,7 @@ const OrdersCard: React.FC<OrdersCardProps> = ({ filteredOrders }) => {
 
   // Now we can do early return for loading state
   if (isLoading) {
-    return (
-      <AdminListSkeleton itemCount={5} showCheckbox={true} showAction={true} />
-    );
+    return <SimpleLoading text="Loading orders..." />;
   }
 
   return (

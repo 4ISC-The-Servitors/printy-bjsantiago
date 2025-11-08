@@ -1,5 +1,6 @@
 // Admin quotes context using real Supabase data from quotes table
 import React, { createContext, useContext } from 'react';
+import { useAdminQuotes } from './useAdminQuotes';
 import type { AdminQuoteRow } from './useAdminQuotes';
 
 interface QuotesContextValue {
@@ -18,18 +19,17 @@ const QuotesContext = createContext<QuotesContextValue | undefined>(undefined);
 export const QuotesProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  // For now, we'll use empty arrays since the actual data fetching is handled by useAdminQuotes
-  // This maintains compatibility with existing components that expect the QuotesContext
-  const quotes: AdminQuoteRow[] = [];
-  const loading = false;
-  const error = null;
+  // Use the useAdminQuotes hook to fetch real data with real-time subscriptions
+  const { quotes, loading, error, refresh } = useAdminQuotes();
 
   const updateQuote = (_quoteId: string, _updates: Partial<AdminQuoteRow>) => {
-    // Implementation would go here if needed
+    // Implementation with optimistic updates could go here
+    // For now, we'll just refresh to ensure consistency with database
+    refresh();
   };
 
   const refreshQuotes = () => {
-    // Implementation would go here if needed
+    refresh();
   };
 
   return (
