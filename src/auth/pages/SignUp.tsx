@@ -26,6 +26,7 @@ const SignUp: React.FC = () => {
     setField,
     isStepValid,
     handleSubmit,
+    errors, // ✅ get real-time validation errors
   } = useSignUp();
 
   const titles: Record<number, string> = {
@@ -108,6 +109,7 @@ const SignUp: React.FC = () => {
                 gender={formData.gender}
                 birthday={formData.birthday}
                 onChange={(f, v) => setField(f, v)}
+                errors={errors} // ✅ pass errors for Step 2 fields
               />
             )}
             {currentStep === 3 && (
