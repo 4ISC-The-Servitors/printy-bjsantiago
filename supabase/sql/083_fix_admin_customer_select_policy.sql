@@ -25,3 +25,4 @@ COMMENT ON POLICY "Admins can view all customers" ON public.customer IS
   'Allows any user whose own row has customer_type=admin to SELECT all customer rows.';
 
 
+

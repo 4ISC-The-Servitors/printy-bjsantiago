@@ -3,6 +3,12 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
+// Public site URL used for auth redirects (email confirm, reset password, OAuth callbacks)
+// Override in env with VITE_SITE_URL if needed (e.g., for preview deploys)
+export const SITE_URL =
+  (import.meta.env.VITE_SITE_URL as string) ||
+  'https://printy-bjsantiago.netlify.app';
+
 // Create Supabase client
 export const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: {

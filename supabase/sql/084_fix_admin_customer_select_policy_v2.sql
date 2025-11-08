@@ -33,3 +33,4 @@ COMMENT ON POLICY "Admins can view all customers" ON public.customer IS
   'Admins (from customer table) can SELECT all customer rows, via SECURITY DEFINER check.';
 
 
+

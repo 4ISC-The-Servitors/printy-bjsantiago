@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@lib/supabase';
+import { supabase, SITE_URL } from '@lib/supabase';
 import { useToast } from '@lib/useToast';
 
 export interface SignUpFormData {
@@ -182,7 +182,7 @@ export const useSignUp = () => {
             email: formData.email,
             password: formData.password,
             options: {
-              emailRedirectTo: `${window.location.origin}/auth/signin`,
+              emailRedirectTo: `${SITE_URL}/auth/signin`,
               data: {
                 first_name: formData.firstName || null,
                 last_name: formData.lastName || null,
@@ -277,7 +277,7 @@ export const useSignUp = () => {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/customer`,
+          redirectTo: `${SITE_URL}/customer`,
           queryParams: { prompt: 'select_account' },
         },
       });
