@@ -26,6 +26,8 @@ export const FLOW_TITLES: Record<string, string> = {
   'admin-verify-payment': 'Payment Verification',
   'admin-review-ticket': 'Ticket Review',
   'admin-change-order-status': 'Order Status Update',
+  'admin-add-service': 'Add Service',
+  'admin-update-service': 'Update Service',
 
   // Flows not in database - commented out
   //'cancel-order': 'Cancel Order', // Not in chat_flows_v2

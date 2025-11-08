@@ -214,8 +214,7 @@ export const useCustomerSessionCache = (customerId?: string) => {
   // Filter sessions by current customer if needed
   const customerSessions = customerId
     ? sessionCache.sessions.filter(
-        session =>
-          session.context?.orderId || session.flowId !== 'about' // Keep sessions that have orders // Exclude general "about" sessions
+        session => session.context?.orderId || session.flowId !== 'about' // Keep sessions that have orders // Exclude general "about" sessions
       )
     : sessionCache.sessions;
 

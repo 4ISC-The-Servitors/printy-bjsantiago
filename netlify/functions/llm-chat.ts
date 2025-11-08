@@ -19,12 +19,10 @@ export const handler: Handler = async event => {
     }
 
     const last = messages[messages.length - 1];
-    const chat_history = messages
-      .slice(0, -1)
-      .map((m: any) => ({
-        role: m.role === 'user' ? 'USER' : 'CHATBOT',
-        message: m.content,
-      }));
+    const chat_history = messages.slice(0, -1).map((m: any) => ({
+      role: m.role === 'user' ? 'USER' : 'CHATBOT',
+      message: m.content,
+    }));
 
     const res = await fetch(`${baseUrl}/chat`, {
       method: 'POST',

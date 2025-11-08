@@ -384,6 +384,7 @@ export function useCustomerConversations() {
           sessionId,
           userInput: data.value, // Use value for routing (contains UUID|CategoryName)
           flowDefinition,
+          displayLabel: data.label, // Use label for display
         });
 
         // Fetch all messages from database to ensure consistency (includes user message)

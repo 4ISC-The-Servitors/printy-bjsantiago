@@ -21,7 +21,9 @@ export type AdminFlowId =
   | 'admin-track-ticket'
   | 'admin-verify-payment'
   | 'admin-verify-payment-valued'
-  | 'admin-change-order-status';
+  | 'admin-change-order-status'
+  | 'admin-add-service'
+  | 'admin-update-service';
 
 export type CustomerFlowId =
   | 'track-quote'
@@ -56,6 +58,90 @@ export class FlowTriggerService {
         console.error(`Unknown page: ${page}`);
         return null;
     }
+  }
+
+  /**
+   * Get flow context for admin flows that don't require an entity ID
+   * (e.g., admin-add-service)
+   */
+  static async getAdminFlowContext(
+    flowId: AdminFlowId
+  ): Promise<FlowContext | null> {
+    switch (flowId) {
+      case 'admin-add-service':
+        return this.getAddServiceFlow();
+      default:
+        console.error(`Unknown admin flow: ${flowId}`);
+        return null;
+    }
+  }
+
+  /**
+   * Get flow context for admin flows that require a service_id
+   * (e.g., admin-update-service)
+   */
+  static async getAdminServiceFlowContext(
+    flowId: AdminFlowId,
+    serviceId: string
+  ): Promise<FlowContext | null> {
+    switch (flowId) {
+      case 'admin-update-service':
+        return this.getUpdateServiceFlow(serviceId);
+      default:
+        console.error(`Unknown admin service flow: ${flowId}`);
+        return null;
+    }
+  }
+
+  /**
+   * Admin add-service flow - no entity ID required
+   */
+  private static async getAddServiceFlow(): Promise<FlowContext | null> {
+    return {
+      flowId: 'admin-add-service',
+      context: {},
+      sessionTitle: getSessionTitle({
+        flowId: 'admin-add-service',
+        metadata: {
+          context: {},
+        },
+      }),
+    };
+  }
+
+  /**
+   * Admin update-service flow - requires service_id
+   */
+  private static async getUpdateServiceFlow(
+    serviceId: string
+  ): Promise<FlowContext | null> {
+    // Fetch service data to get display_id for session title
+    const { data: serviceData } = await supabase
+      .from('printing_services')
+      .select('service_id, display_id, service_name')
+      .eq('service_id', serviceId)
+      .single();
+
+    if (!serviceData) {
+      console.error('Could not find service data for:', serviceId);
+      return null;
+    }
+
+    return {
+      flowId: 'admin-update-service',
+      context: {
+        service_id: serviceId,
+      },
+      sessionTitle: getSessionTitle({
+        flowId: 'admin-update-service',
+        metadata: {
+          context: {
+            display_id: serviceData.display_id,
+            service_name: serviceData.service_name,
+          },
+        },
+      }),
+    };
   }
 
   /**

@@ -1,6 +1,7 @@
 # Edge Functions Analysis
 
 ## Summary
+
 Analysis of all Supabase Edge Functions to determine usage and deletion recommendations.
 
 **Date:** 2025-01-27
@@ -8,6 +9,7 @@ Analysis of all Supabase Edge Functions to determine usage and deletion recommen
 ## Edge Functions List
 
 ### 1. verify-turnstile
+
 - **Status:** ACTIVE
 - **Version:** 6
 - **Slug:** `verify-turnstile`
@@ -21,6 +23,7 @@ Analysis of all Supabase Edge Functions to determine usage and deletion recommen
 - **Recommendation:** ✅ **DELETE** - Superseded by Netlify function
 
 ### 2. orders-create
+
 - **Status:** ACTIVE
 - **Version:** 4
 - **Slug:** `orders-create`
@@ -33,6 +36,7 @@ Analysis of all Supabase Edge Functions to determine usage and deletion recommen
 - **Recommendation:** ✅ **DELETE** - Functionality moved to direct database operations
 
 ### 3. tickets-create
+
 - **Status:** ACTIVE
 - **Version:** 4
 - **Slug:** `tickets-create`
@@ -45,6 +49,7 @@ Analysis of all Supabase Edge Functions to determine usage and deletion recommen
 - **Recommendation:** ✅ **DELETE** - Functionality moved to direct database operations
 
 ### 4. chat-quote
+
 - **Status:** ACTIVE
 - **Version:** 3
 - **Slug:** `chat-quote`
@@ -59,7 +64,9 @@ Analysis of all Supabase Edge Functions to determine usage and deletion recommen
 ## Deletion Recommendations
 
 ### All Edge Functions Can Be Deleted
+
 All 4 edge functions are unused and can be safely deleted:
+
 1. `verify-turnstile` - Replaced by Netlify function
 2. `orders-create` - Replaced by direct database operations
 3. `tickets-create` - Replaced by direct database operations
@@ -68,21 +75,25 @@ All 4 edge functions are unused and can be safely deleted:
 ## Current Implementation Patterns
 
 ### Verify Turnstile
+
 - **Implementation:** Netlify Function (`netlify/functions/verify-turnstile.ts`)
 - **Endpoint:** `/api/verify-turnstile` or `/.netlify/functions/verify-turnstile`
 - **Usage:** Called from `src/lib/turnstile.ts:assertHumanTurnstile()`
 
 ### Create Order
+
 - **Implementation:** Direct Supabase client call
 - **Location:** `src/features/chat/actions/admin/createOrder.ts:createOrder()`
 - **Method:** `supabase.from('orders').insert(...)`
 
 ### Create Ticket/Inquiry
+
 - **Implementation:** Direct Supabase client call
 - **Location:** `src/features/chat/actions/customer/createInquiry.ts:createInquiry()`
 - **Method:** `supabase.from('inquiries_v2').insert(...)`
 
 ### Create Quote
+
 - **Implementation:** Direct Supabase client call
 - **Location:** `src/features/chat/actions/customer/createQuoteConversation.ts:createQuoteConversation()`
 - **Method:** `supabase.from('quotes').insert(...)`
@@ -101,4 +112,3 @@ All 4 edge functions are unused and can be safely deleted:
   - Netlify functions for external API integrations (Turnstile)
   - Direct Supabase client calls for database operations
 - No breaking changes expected from deletion as none are actively used
-

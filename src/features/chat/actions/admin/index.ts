@@ -26,6 +26,14 @@ import { ticketChangeStatus } from './changeTicketStatus';
 import { fetchTicketForAdmin } from './fetchTicketForAdmin';
 import { displayOrderUploadsAdmin } from './displayOrderUploads';
 import { changeOrderStatus } from './changeOrderStatus';
+import { displayCategoriesForAdmin } from './displayCategoriesForAdmin';
+import { validateAndCreateCategory } from './validateAndCreateCategory';
+import { validateAndCreateService } from './validateAndCreateService';
+import { displayServiceForAdmin } from './displayServiceForAdmin';
+import { validateAndUpdateService } from './validateAndUpdateService';
+import { validateAndUpdateCategory } from './validateAndUpdateCategory';
+import { validateAndChangeServiceCategory } from './validateAndChangeServiceCategory';
+import { displayCategoriesForChangeCategory } from './displayCategoriesForChangeCategory';
 
 /**
  * Registry of all available action handlers
@@ -53,6 +61,14 @@ export const actionHandlers: Record<string, ActionHandler> = {
   send_admin_reply: sendAdminReply,
   ticket_change_status: ticketChangeStatus,
   fetch_ticket_for_admin: fetchTicketForAdmin,
+  display_categories_for_admin: displayCategoriesForAdmin,
+  validate_and_create_category: validateAndCreateCategory,
+  validate_and_create_service: validateAndCreateService,
+  display_service_for_admin: displayServiceForAdmin,
+  validate_and_update_service: validateAndUpdateService,
+  validate_and_update_category: validateAndUpdateCategory,
+  validate_and_change_service_category: validateAndChangeServiceCategory,
+  display_categories_for_change_category: displayCategoriesForChangeCategory,
 };
 
 /**
@@ -80,4 +96,12 @@ export {
   ticketChangeStatus,
   fetchTicketForAdmin,
   displayOrderUploadsAdmin,
+  displayCategoriesForAdmin,
+  validateAndCreateCategory,
+  validateAndCreateService,
+  displayServiceForAdmin,
+  validateAndUpdateService,
+  validateAndUpdateCategory,
+  validateAndChangeServiceCategory,
+  displayCategoriesForChangeCategory,
 };

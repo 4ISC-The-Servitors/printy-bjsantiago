@@ -57,7 +57,19 @@ export const AdminConversationsProvider: React.FC<{
   // Load admin chat sessions from database
   const loadAdminChatSessions = async () => {
     try {
-      // Fetch ALL admin chat sessions - pagination is handled client-side by the UI
+      // Get the current admin's customer_id
+      const { data: userData, error: userError } =
+        await supabase.auth.getUser();
+
+      if (userError || !userData?.user?.id) {
+        console.error('Error getting current admin user:', userError);
+        return;
+      }
+
+      const currentAdminId = userData.user.id;
+
+      // Fetch admin chat sessions for the current admin only
+      // Filter by customer_id to ensure each admin only sees their own sessions
       const { data: sessions, error } = await supabase
         .from('chat_sessions_v2')
         .select(
@@ -87,6 +99,7 @@ export const AdminConversationsProvider: React.FC<{
           )
         `
         )
+        .eq('customer_id', currentAdminId)
         .or('metadata->admin_chat.eq.true,flow_id.eq.admin-quote-propose')
         .is('metadata->ticket_conversation', null)
         .order('created_at', { ascending: false });
