@@ -31,8 +31,9 @@ build
 
 
 
-# Supabase
-/supabase
+# Supabase - ignore everything except docs
+supabase/*
+!supabase/docs/
 
 # Database
 *.db

@@ -10,7 +10,8 @@
 - to follow, adding service to portfolio and changing service status
 - Notifs delete all working
 - LIAM, update scripts for backup ulit. Avoid query for performance na lang muna.
--
+- extracted all tables, indexes, triggers, functions into supabase folder LOCALLY for backup plan B using python scripts
+- fixed security issue on service_order_stats view
 
 ### 2025-11-06-Andeng
 
