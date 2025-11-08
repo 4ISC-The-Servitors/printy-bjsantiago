@@ -1,3 +1,34 @@
+# Security Issues Analysis Summary
+
+## Critical Issues
+
+- **`get_next_sequence_value`**
+  - Missing `SET search_path`
+  - Active in production (called from TypeScript)
+  - **Fix:** Add `SET search_path = public`
+
+- **`save_quote_spec`**
+  - Uses insecure `public.is_admin()`
+  - Calls `is_admin()` which resolves to insecure `public.is_admin()`
+  - **Fix:** Change to `priv.is_admin()` (secure version)
+
+## Important Discovery
+
+- `priv.is_admin()` is secure and used throughout the codebase
+- `public.is_admin()` is insecure (missing `search_path`) and is used by `save_quote_spec`
+- **Fix:** Update `save_quote_spec` to use `priv.is_admin()`
+
+## Other Issues
+
+- 5 additional `SECURITY DEFINER` functions missing `SET search_path` (verify their usage first)
+- 1 view with `SECURITY DEFINER` property (**ERROR** level)
+
+
+
+
+
+
+
 # Security Issues Analysis Report
 
 **Generated:** $(date)
