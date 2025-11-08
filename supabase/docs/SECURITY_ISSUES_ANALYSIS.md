@@ -21,7 +21,6 @@
 ## Other Issues
 
 - 5 additional `SECURITY DEFINER` functions missing `SET search_path` (verify their usage first)
-- 1 view with `SECURITY DEFINER` property (**ERROR** level)
 
 
 
@@ -36,30 +35,16 @@
 
 ## Executive Summary
 
-- **Total Security Issues:** 34
-  - **ERROR Level:** 1 (Security Definer View)
+- **Total Security Issues:** 33
   - **WARN Level:** 33 (Function Search Path Mutable)
 - **Functions Needing Fixes:** 7 SECURITY DEFINER functions
 - **Functions OK (No Fix Needed):** 24 SECURITY INVOKER functions
-- **Views Needing Fixes:** 1 view
 
 ---
 
 ## Security Issue Types
 
-### 1. Security Definer View (ERROR Level)
-
-**Issue:** Views defined with SECURITY DEFINER property enforce permissions of the view creator rather than the querying user.
-
-**Affected:**
-
-- `service_order_stats` view
-
-**Severity:** ERROR
-
----
-
-### 2. Function Search Path Mutable (WARN Level)
+### Function Search Path Mutable (WARN Level)
 
 **Issue:** SECURITY DEFINER functions without `SET search_path` are vulnerable to search_path injection attacks.
 
@@ -68,66 +53,6 @@
 ---
 
 ## Detailed Analysis
-
-### ERROR: Security Definer View
-
-#### `service_order_stats` View
-
-**Status:** ❌ **NEEDS FIX**
-**Type:** View with SECURITY DEFINER
-**Severity:** ERROR
-
-**Definition:**
-
-```sql
-CREATE VIEW service_order_stats AS
-SELECT s.service_id,
-    count(DISTINCT o.order_id) AS total_order_count
-FROM (printing_services s
-    LEFT JOIN orders o ON (((o.status = 'completed'::text)
-    AND ((o.service_id = s.service_id)
-    OR ((o.service_id IS NULL)
-    AND ((o.order_specs ->> 'service_id'::text) = (s.display_id)::text))))))
-GROUP BY s.service_id;
-```
-
-**Issue:**
-
-- View uses SECURITY DEFINER property
-- Enforces permissions of view creator (postgres) rather than querying user
-- Can bypass Row Level Security (RLS) policies
-
-**Usage:**
-
-- Need to verify if view is actively used
-
-**Recommendation:**
-
-- **Option 1:** Remove SECURITY DEFINER property if not needed
-- **Option 2:** Convert to regular view and rely on RLS policies
-- **Option 3:** Create SECURITY INVOKER view instead
-
-**Remediation:**
-
-```sql
--- Check current view definition
-SELECT pg_get_viewdef('public.service_order_stats'::regclass, true);
-
--- Recreate as SECURITY INVOKER view (if needed)
-DROP VIEW IF EXISTS public.service_order_stats;
-CREATE VIEW public.service_order_stats
-WITH (security_invoker = true) AS
-SELECT s.service_id,
-    count(DISTINCT o.order_id) AS total_order_count
-FROM (printing_services s
-    LEFT JOIN orders o ON (((o.status = 'completed'::text)
-    AND ((o.service_id = s.service_id)
-    OR ((o.service_id IS NULL)
-    AND ((o.order_specs ->> 'service_id'::text) = (s.display_id)::text))))))
-GROUP BY s.service_id;
-```
-
----
 
 ### WARN: Functions Missing SET search_path
 
@@ -544,11 +469,6 @@ These functions are **SECURITY INVOKER** and don't need `SET search_path`:
    - `append_chat_messages` - Legacy function, references `chat_sessions` (non-v2)
    - `update_order_status` - Legacy function, references `orders_duplicate`
 
-### Views Needing Security Fixes: 1
-
-1. ❌ **ERROR LEVEL:**
-   - `service_order_stats` - SECURITY DEFINER view
-
 ---
 
 ## Migration Script
@@ -743,25 +663,6 @@ BEGIN
 END;
 $$;
 
--- ============================================
--- FIX VIEW: service_order_stats
--- ============================================
-
--- Option 1: Recreate as SECURITY INVOKER view
-DROP VIEW IF EXISTS public.service_order_stats;
-CREATE VIEW public.service_order_stats
-WITH (security_invoker = true) AS
-SELECT s.service_id,
-    count(DISTINCT o.order_id) AS total_order_count
-FROM (printing_services s
-    LEFT JOIN orders o ON (((o.status = 'completed'::text)
-    AND ((o.service_id = s.service_id)
-    OR ((o.service_id IS NULL)
-    AND ((o.order_specs ->> 'service_id'::text) = (s.display_id)::text))))))
-GROUP BY s.service_id;
-
--- Grant permissions
-GRANT SELECT ON public.service_order_stats TO authenticated, anon;
 ```
 
 ---
@@ -802,10 +703,7 @@ GRANT SELECT ON public.service_order_stats TO authenticated, anon;
    - Delete unused duplicate functions
    - Consolidate to use `priv.is_admin()` consistently
 
-4. **Fix View:**
-   - Fix `service_order_stats` view security issue
-
-5. **Testing:**
+4. **Testing:**
    - Test all functions after fixes
    - Verify RLS policies still work with `is_admin()` fix
    - Verify sequence generation still works with `get_next_sequence_value()` fix
