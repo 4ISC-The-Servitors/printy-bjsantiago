@@ -3,6 +3,22 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@lib/supabase';
 import { useToast } from '@lib/useToast';
 
+// Import validation + formatting helpers (fixed import path)
+import {
+  normalizePhone,
+  validateStep1,
+  validateStep2,
+  validateStep3,
+  isValidPhone,
+  getEmailValidationMessage,
+  getPasswordValidationMessage,
+  getNameValidationMessage,
+  getPhoneValidationMessage,
+  getBirthdayValidationMessage,
+  getZipValidationMessage,
+  formatNameInput,
+} from '@/shared/utils/formsFormatter';
+
 export interface SignUpFormData {
   email: string;
   password: string;
@@ -31,6 +47,7 @@ export const useSignUp = () => {
   const [isDesktop, setIsDesktop] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   const [formData, setFormData] = useState<SignUpFormData>({
     email: '',
     password: '',
@@ -50,6 +67,9 @@ export const useSignUp = () => {
     agreeToTerms: false,
   });
 
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Detect desktop view
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const mql = window.matchMedia('(min-width: 1024px)');
@@ -66,40 +86,89 @@ export const useSignUp = () => {
     };
   }, []);
 
+  // Real-time field update + validation
   const setField = useCallback(
     (field: keyof SignUpFormData, value: string | boolean) => {
-      setFormData(prev => ({ ...prev, [field]: value }));
+      let formattedValue = value;
+
+      // Apply formatting before validation
+      if (field === 'firstName' || field === 'lastName') {
+        formattedValue = formatNameInput(value as string);
+      } else if (field === 'phone') {
+        formattedValue = normalizePhone(value as string);
+      }
+
+      setFormData(prev => ({ ...prev, [field]: formattedValue }));
+
+      let message = '';
+      switch (field) {
+        case 'email':
+          message = getEmailValidationMessage(value as string);
+          break;
+        case 'password':
+          message = getPasswordValidationMessage(value as string);
+          break;
+        case 'confirmPassword':
+          message =
+            (value as string) !== formData.password
+              ? 'Passwords do not match.'
+              : '';
+          break;
+        case 'firstName':
+        case 'lastName':
+          message = getNameValidationMessage(value as string);
+          break;
+        case 'phone':
+          message = getPhoneValidationMessage(value as string);
+          break;
+        case 'birthday':
+          message = getBirthdayValidationMessage(value as string);
+          break;
+        case 'zipCode':
+          message = getZipValidationMessage(value as string);
+          break;
+        default:
+          message = '';
+      }
+
+      setErrors(prev => ({ ...prev, [field]: message }));
     },
-    []
+    [formData.password]
   );
 
+  // Step validation
   const isStepValid = useMemo(() => {
     return (step: number) => {
       switch (step) {
         case 1:
           return (
-            !!formData.email &&
-            !!formData.password &&
-            !!formData.confirmPassword &&
-            formData.password === formData.confirmPassword &&
-            formData.password.length >= 8
+            validateStep1({
+              email: formData.email,
+              password: formData.password,
+              confirmPassword: formData.confirmPassword,
+            }) === ''
           );
         case 2:
           return (
-            !!formData.firstName &&
-            !!formData.lastName &&
-            !!formData.phone &&
-            !!formData.gender &&
-            !!formData.birthday
+            validateStep2({
+              firstName: formData.firstName,
+              lastName: formData.lastName,
+              phone: formData.phone,
+              gender: formData.gender,
+              birthday: formData.birthday,
+            }) === ''
           );
         case 3:
           return (
-            !!formData.street &&
-            !!formData.barangay &&
-            !!formData.province &&
-            !!formData.city &&
-            !!formData.zipCode &&
-            !!formData.agreeToTerms
+            validateStep3({
+              street: formData.street,
+              barangay: formData.barangay,
+              province: formData.province,
+              city: formData.city,
+              region: formData.region,
+              zipCode: formData.zipCode,
+              agreeToTerms: formData.agreeToTerms,
+            }) === ''
           );
         default:
           return false;
@@ -107,6 +176,7 @@ export const useSignUp = () => {
     };
   }, [formData]);
 
+  // Error mapping
   const mapSignUpError = (message?: string) => {
     const msg = (message || '').toLowerCase();
     if (msg.includes('user already') || msg.includes('email already')) {
@@ -129,30 +199,38 @@ export const useSignUp = () => {
     };
   };
 
-  const normalizePhone = (raw: string) => {
-    let v = raw.trim();
-    if (!v) return '';
-    if (!v.startsWith('+63'))
-      v = '+63' + v.replace(/^\+?63/, '').replace(/^0+/, '');
-    v = '+63' + v.slice(3).replace(/\D/g, '');
-    return v;
-  };
-
+  // Handle form submission
   const handleSubmit = useCallback(
     async (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
       setLoading(true);
       try {
-        if (formData.password !== formData.confirmPassword) {
-          toast.error(
-            'Passwords do not match',
-            'Please confirm your password.'
-          );
+        const step1Error = validateStep1({
+          email: formData.email,
+          password: formData.password,
+          confirmPassword: formData.confirmPassword,
+        });
+        if (step1Error) {
+          toast.error('Validation Error', step1Error);
           setLoading(false);
           return;
         }
+
+        const step2Error = validateStep2({
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          phone: formData.phone,
+          gender: formData.gender,
+          birthday: formData.birthday,
+        });
+        if (step2Error) {
+          toast.error('Validation Error', step2Error);
+          setLoading(false);
+          return;
+        }
+
         const normalizedPhone = normalizePhone(formData.phone);
-        if (!/^\+639\d{9}$/.test(normalizedPhone)) {
+        if (!isValidPhone(normalizedPhone)) {
           toast.error(
             'Invalid Mobile Number',
             'Enter a valid PH mobile number (+639XXXXXXXXX).'
@@ -160,60 +238,54 @@ export const useSignUp = () => {
           setLoading(false);
           return;
         }
-        try {
-          const { data: existingPhone } = await supabase
-            .from('customer')
-            .select('customer_id')
-            .eq('contact_no', normalizedPhone)
-            .maybeSingle();
-          if (existingPhone) {
-            toast.error(
-              'Mobile Number In Use',
-              'This mobile number is already registered. Use a different number.'
-            );
-            setLoading(false);
-            return;
-          }
-        } catch {
-          // ignore, backend will enforce as well
+
+        const { data: existingPhone } = await supabase
+          .from('customer')
+          .select('customer_id')
+          .eq('contact_no', normalizedPhone)
+          .maybeSingle();
+        if (existingPhone) {
+          toast.error(
+            'Mobile Number In Use',
+            'This mobile number is already registered. Use a different number.'
+          );
+          setLoading(false);
+          return;
         }
-        const { data: authData, error: authError } = await supabase.auth.signUp(
-          {
-            email: formData.email,
-            password: formData.password,
-            options: {
-              emailRedirectTo: `${window.location.origin}/auth/signin`,
-              data: {
-                first_name: formData.firstName || null,
-                last_name: formData.lastName || null,
-                phone: normalizedPhone || null,
-                gender: formData.gender || null,
-                birthday: formData.birthday || null,
-                address: {
-                  region: formData.region || null,
-                  province: formData.province || null,
-                  city: formData.city || null,
-                  zip_code: formData.zipCode || null,
-                  barangay: formData.barangay || null,
-                  street: formData.street || null,
-                  building_name: formData.buildingNumber || null,
-                },
+
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email: formData.email,
+          password: formData.password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/auth/signin`,
+            data: {
+              first_name: formData.firstName || null,
+              last_name: formData.lastName || null,
+              phone: normalizedPhone || null,
+              gender: formData.gender || null,
+              birthday: formData.birthday || null,
+              address: {
+                region: formData.region || null,
+                province: formData.province || null,
+                city: formData.city || null,
+                zip_code: formData.zipCode || null,
+                barangay: formData.barangay || null,
+                street: formData.street || null,
+                building_name: formData.buildingNumber || null,
               },
             },
-          }
-        );
+          },
+        });
         if (authError) throw authError;
+
         const identities = (
           authData.user as unknown as { identities?: unknown[] }
         )?.identities;
         if (Array.isArray(identities) && identities.length === 0)
           throw new Error('Email already registered');
 
-        // Only attempt to upsert customer record if user has a session (email confirmed)
-        // If no session, the trigger will create the customer record, and signin will update it
         if (authData.user && authData.session) {
           try {
-            // Create location from address if available
             let locationId: string | null = null;
             if (
               formData.region &&
@@ -238,8 +310,6 @@ export const useSignUp = () => {
               }
             }
 
-            // Upsert customer record (trigger may have already created it)
-            // Only attempt if session exists (email confirmed), otherwise RLS will block it
             const { error: customerError } = await supabase
               .from('customer')
               .upsert(
@@ -254,30 +324,17 @@ export const useSignUp = () => {
                   birthday: formData.birthday || null,
                   location_id: locationId,
                 },
-                {
-                  onConflict: 'customer_id',
-                  ignoreDuplicates: false,
-                }
+                { onConflict: 'customer_id', ignoreDuplicates: false }
               );
 
             if (customerError) {
-              console.error('Error upserting customer record:', {
-                message: customerError.message,
-                details: customerError.details,
-                hint: customerError.hint,
-                code: customerError.code,
-                fullError: customerError,
-              });
-              // Don't throw error, just log it - trigger created the record, signin will update it
+              console.error('Error upserting customer record:', customerError);
             }
           } catch (e) {
             console.warn('Customer creation skipped:', e);
-            // Don't throw error - trigger created the record, signin will update it
           }
         }
-        // If no session (email confirmation required):
-        // - Trigger will create customer record with metadata from raw_user_meta_data
-        // - When user confirms email and signs in, signin code will update customer record
+
         toast.show({
           title: 'Check your email',
           message:
@@ -285,6 +342,7 @@ export const useSignUp = () => {
           variant: 'success',
           duration: 6000,
         });
+
         setTimeout(
           () => navigate('/auth/signin'),
           authData.session ? 3000 : 1000
@@ -336,9 +394,12 @@ export const useSignUp = () => {
     showConfirmPassword,
     setShowConfirmPassword,
     formData,
+    errors,
     setField,
     isStepValid,
     handleSubmit,
     handleGoogleSignUp,
   };
 };
+
+

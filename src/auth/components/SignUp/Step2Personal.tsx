@@ -8,6 +8,13 @@ interface Props {
   phone: string;
   gender: string;
   birthday: string;
+  errors: {
+    firstName?: string;
+    lastName?: string;
+    phone?: string;
+    gender?: string;
+    birthday?: string;
+  };
   onChange: (
     field: 'firstName' | 'lastName' | 'phone' | 'gender' | 'birthday',
     value: string
@@ -20,11 +27,13 @@ const Step2Personal: React.FC<Props> = ({
   phone,
   gender,
   birthday,
+  errors,
   onChange,
 }) => {
   return (
     <div className="space-y-6">
-      <div className="space-y-2">
+      {/* First Name */}
+      <div className="space-y-1">
         <Input
           label="First Name"
           type="text"
@@ -39,9 +48,13 @@ const Step2Personal: React.FC<Props> = ({
             <User className="w-5 h-5" />
           </div>
         </Input>
+        {errors.firstName && (
+          <p className="text-error text-sm">{errors.firstName}</p>
+        )}
       </div>
 
-      <div className="space-y-2">
+      {/* Last Name */}
+      <div className="space-y-1">
         <Input
           label="Last Name"
           type="text"
@@ -56,9 +69,13 @@ const Step2Personal: React.FC<Props> = ({
             <User className="w-5 h-5" />
           </div>
         </Input>
+        {errors.lastName && (
+          <p className="text-error text-sm">{errors.lastName}</p>
+        )}
       </div>
 
-      <div className="space-y-2">
+      {/* Phone */}
+      <div className="space-y-1">
         <Input
           label="Phone Number"
           type="tel"
@@ -89,9 +106,13 @@ const Step2Personal: React.FC<Props> = ({
             <Phone className="w-5 h-5" />
           </div>
         </Input>
+        {errors.phone && (
+          <p className="text-error text-sm">{errors.phone}</p>
+        )}
       </div>
 
-      <div className="space-y-2">
+      {/* Gender */}
+      <div className="space-y-1">
         <label className="block text-sm font-medium text-neutral-700">
           Gender <span className="text-error">*</span>
         </label>
@@ -118,9 +139,13 @@ const Step2Personal: React.FC<Props> = ({
             </svg>
           </div>
         </div>
+        {errors.gender && (
+          <p className="text-error text-sm">{errors.gender}</p>
+        )}
       </div>
 
-      <div className="space-y-2">
+      {/* Birthday */}
+      <div className="space-y-1">
         <Input
           label="Birthday"
           type="date"
@@ -131,6 +156,9 @@ const Step2Personal: React.FC<Props> = ({
           className=""
           wrapperClassName=""
         />
+        {errors.birthday && (
+          <p className="text-error text-sm">{errors.birthday}</p>
+        )}
       </div>
     </div>
   );
