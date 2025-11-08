@@ -198,29 +198,29 @@ const Notification: React.FC = () => {
                     }`}
                     onClick={() => handleMarkAsRead(notification.id)}
                   >
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
+                    <div className="flex-1">
+                      <div className="inline-flex items-center gap-1.5 mb-1">
                         <h4
                           className={`${textClasses.body} font-medium text-gray-900`}
                         >
                           {notification.title}
                         </h4>
-                        <p
-                          className={`${textClasses.caption} text-gray-600 mt-1`}
-                        >
-                          {notification.message}
-                        </p>
-                        <p
-                          className={`${textClasses.caption} text-gray-400 mt-2`}
-                        >
-                          {notification.timestamp}
-                        </p>
+                        {!notification.isRead && (
+                          <div
+                            className={`${isMobileOrTablet ? 'w-1.5 h-1.5' : 'w-2 h-2'} bg-blue-500 rounded-full shrink-0`}
+                          ></div>
+                        )}
                       </div>
-                      {!notification.isRead && (
-                        <div
-                          className={`${isMobileOrTablet ? 'w-1.5 h-1.5' : 'w-2 h-2'} bg-blue-500 rounded-full ml-2 mt-1`}
-                        ></div>
-                      )}
+                      <p
+                        className={`${textClasses.caption} text-gray-600 mt-1`}
+                      >
+                        {notification.message}
+                      </p>
+                      <p
+                        className={`${textClasses.caption} text-gray-400 mt-2`}
+                      >
+                        {notification.timestamp}
+                      </p>
                     </div>
                   </div>
                 ))

@@ -201,9 +201,9 @@ const AdminDashboard: React.FC = () => {
                 >
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="inline-flex items-center gap-1.5 mb-1">
                         <Text
-                          variant="p"
+                          variant="span"
                           weight="medium"
                           className={`${textClasses.caption} text-gray-900`}
                         >
