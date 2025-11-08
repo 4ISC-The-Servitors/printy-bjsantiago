@@ -11,6 +11,16 @@ export interface ServiceCategory {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  created_by?: string;
+  updated_by?: string;
+  created_by_user?: {
+    first_name: string | null;
+    last_name: string | null;
+  };
+  updated_by_user?: {
+    first_name: string | null;
+    last_name: string | null;
+  };
 }
 
 export interface PrintingService {
@@ -25,6 +35,14 @@ export interface PrintingService {
   updated_at: string;
   created_by?: string;
   updated_by?: string;
+  created_by_user?: {
+    first_name: string | null;
+    last_name: string | null;
+  };
+  updated_by_user?: {
+    first_name: string | null;
+    last_name: string | null;
+  };
   // Optional aggregate: all-time completed orders count (from service_order_stats view)
   total_order_count?: number;
 }

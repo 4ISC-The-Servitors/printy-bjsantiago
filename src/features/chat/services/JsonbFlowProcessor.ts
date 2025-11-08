@@ -485,12 +485,14 @@ export class JsonbFlowProcessor {
     userInput: string;
     flowDefinition: FlowDefinition;
     senderRole?: 'customer' | 'admin';
+    displayLabel?: string;
   }) {
     const {
       sessionId,
       userInput,
       flowDefinition,
       senderRole = 'customer',
+      displayLabel,
     } = params;
 
     // ✅ PHASE 3 OPTIMIZATION: Load session with SessionStateManager for batched updates
@@ -597,6 +599,7 @@ export class JsonbFlowProcessor {
 
             stateManager.updateContext({
               selected_category: categoryId,
+              category_id: categoryId, // Also store as category_id for consistency
             });
           }
 
@@ -639,9 +642,16 @@ export class JsonbFlowProcessor {
     }
 
     // Now insert the user message with a friendly label if available
+    // Priority: displayLabel (from handler) > selectedQuickReplyLabel (from matching) > extract from userInput > userInput
+    let displayText = displayLabel || selectedQuickReplyLabel || userInput;
+    if (!displayLabel && !selectedQuickReplyLabel && userInput.includes('|')) {
+      // Extract the label part (everything after the pipe)
+      displayText = userInput.split('|')[1] || userInput;
+    }
+
     await insertMessage({
       sessionId,
-      text: selectedQuickReplyLabel || userInput,
+      text: displayText,
       role: senderRole,
       nodeId: originalNodeId,
     });
@@ -657,6 +667,10 @@ export class JsonbFlowProcessor {
 
       // Check if this input matches a service category selection (format: "category_id|category_name")
       const isCategorySelection = userInput.includes('|');
+      // Check if this is "create_new_category" option (for admin-add-service flow)
+      const isCreateNewCategory =
+        userInput.toLowerCase() === 'create_new_category' ||
+        userInput.toLowerCase() === 'create a new category';
 
       if (isOrderSelection) {
         // Store the order selection in context
@@ -674,10 +688,19 @@ export class JsonbFlowProcessor {
 
         stateManager.updateContext({
           selected_category: categoryId,
+          category_id: categoryId, // Also store as category_id for consistency
         });
 
-        // Move to category_dynamic node
+        // Move to category_dynamic node (for services-offered flow)
+        // For admin-add-service flow, quick replies handle routing via next property
         stateManager.setCurrentNode('category_dynamic');
+        optionMatched = true;
+      } else if (isCreateNewCategory) {
+        // Store the create_new_category selection in context
+        stateManager.updateContext({
+          user_selection: 'create_new_category',
+        });
+        // Routing will be handled by quick reply next property, but we mark it as matched
         optionMatched = true;
       }
     }

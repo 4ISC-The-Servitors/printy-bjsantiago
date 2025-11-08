@@ -12,6 +12,9 @@
 - LIAM, update scripts for backup ulit. Avoid query for performance na lang muna.
 - extracted all tables, indexes, triggers, functions into supabase folder LOCALLY for backup plan B using python scripts
 - fixed security issue on service_order_stats view
+- fixed sign up issue when not putting bldg/house num since optional siya (location_ID must be NULLABLE)
+- fixed fetching admin sessions, must only read their OWN sessions in their chat history page
+- porfolio functionalities done (notifs, adding, updating)
 
 ### 2025-11-06-Andeng
 

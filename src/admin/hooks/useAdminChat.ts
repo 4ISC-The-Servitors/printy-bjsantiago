@@ -10,7 +10,10 @@ import {
   FlowTriggerService,
   type AdminPage,
 } from '@features/chat/services/FlowTriggerService';
-import { getFlowDefinition } from '@features/chat/api/jsonbChatFlowApi';
+import {
+  getFlowDefinition,
+  fetchSessionMessagesV2,
+} from '@features/chat/api/jsonbChatFlowApi';
 import { useAdminConversations } from './useAdminConversations';
 import { useChatLoadingToast } from '@features/chat/hooks/shared/useChatLoadingToast';
 import {
@@ -18,6 +21,14 @@ import {
   sendQuoteProposal,
 } from '@features/chat/actions/admin';
 import { supabase } from '@lib/supabase';
+
+// Helper to extract display label from value (e.g., "uuid|Category Name" -> "Category Name")
+function extractDisplayText(text: string): string {
+  if (text.includes('|')) {
+    return text.split('|')[1].trim();
+  }
+  return text;
+}
 
 export interface UseAdminChatReturn {
   chatOpen: boolean;
@@ -53,7 +64,7 @@ export const useAdminChat = (): UseAdminChatReturn => {
     startConversation,
     addMessage: addConvMessage,
     loadAdminChatSessions,
-    loadHistoricalMessages,
+    setConversations,
   } = useAdminConversations();
   const [currentConversationId, setCurrentConversationId] = useState<
     string | null
@@ -254,6 +265,240 @@ export const useAdminChat = (): UseAdminChatReturn => {
     // Dispatch event for notification visibility
     window.dispatchEvent(new CustomEvent('admin-chat-opened'));
 
+    // Handle special flows that don't require entity IDs (e.g., admin-add-service)
+    if (topic === 'add-service') {
+      void (async () => {
+        let start: any = null;
+        let flowId: any;
+        let context: any;
+        let sessionTitle: string;
+
+        try {
+          // Use FlowTriggerService to get the flow context
+          const flowContext =
+            await FlowTriggerService.getAdminFlowContext('admin-add-service');
+
+          if (!flowContext) {
+            console.error('❌ Failed to determine flow for admin-add-service');
+            return;
+          }
+
+          ({ flowId, context, sessionTitle } = flowContext);
+
+          // Load flow definition
+          const flowDef = await getFlowDefinition(flowId);
+          if (!flowDef) {
+            console.error(`Failed to load flow definition for ${flowId}`);
+            return;
+          }
+
+          // Start the flow
+          start = await JsonbFlowProcessor.startFlow({
+            flowId,
+            customerId:
+              (await supabase.auth.getUser()).data?.user?.id ||
+              '00000000-0000-0000-0000-000000000000',
+            flowDefinition: flowDef,
+            initialContext: context,
+          });
+          setDbSessionId(start.sessionId);
+        } catch (error) {
+          console.error(`❌ Error starting flow:`, error);
+          return;
+        }
+
+        if (!start) {
+          console.error('❌ Flow start failed - no result');
+          return;
+        }
+
+        // Persist admin chat session metadata to database
+        try {
+          const { data: existingSession } = await supabase
+            .from('chat_sessions_v2')
+            .select('metadata')
+            .eq('session_id', start.sessionId)
+            .single();
+
+          const titleMetadata = {
+            ...(existingSession?.metadata || {}),
+            admin_chat: true,
+            context: {
+              ...(existingSession?.metadata?.context || {}),
+              ...context,
+            },
+          };
+
+          await supabase
+            .from('chat_sessions_v2')
+            .update({
+              metadata: {
+                ...titleMetadata,
+                title: sessionTitle,
+              },
+            })
+            .eq('session_id', start.sessionId);
+
+          // Refresh the conversations list
+          await loadAdminChatSessions();
+        } catch (e) {
+          console.error('Failed to update admin chat metadata:', e);
+        }
+
+        // Reset chat state for new flow
+        setMessages([]);
+        setQuickReplies([]);
+        setCurrentPage(null);
+        setCurrentEntityId(null);
+
+        // Temporary title for UI
+        const tempTitle = sessionTitle;
+        const convId = startConversation
+          ? startConversation(tempTitle)
+          : 'conv';
+        setCurrentConversationId(convId);
+
+        // Display messages with appropriate typing delay
+        const skipDelay = FlowTriggerService.shouldSkipTypingDelay(flowId);
+        await appendMessagesWithTyping(
+          start.messages.map((m: any) => ({
+            role: m.role as ChatRole,
+            text: m.text,
+          })),
+          skipDelay
+        );
+
+        // Set quick replies
+        setQuickReplies(start.quickReplies || []);
+
+        // Persist messages to conversation
+        start.messages.forEach((m: any) =>
+          addConvMessage('printy', m.text, convId)
+        );
+      })();
+      return;
+    }
+
+    // Handle portfolio/update-service flow that requires service_id
+    if (topic === 'portfolio' && orderId) {
+      void (async () => {
+        let start: any = null;
+        let flowId: any;
+        let context: any;
+        let sessionTitle: string;
+
+        try {
+          // Use FlowTriggerService to get the flow context with service_id
+          const flowContext =
+            await FlowTriggerService.getAdminServiceFlowContext(
+              'admin-update-service',
+              orderId
+            );
+
+          if (!flowContext) {
+            console.error(
+              '❌ Failed to determine flow for admin-update-service'
+            );
+            return;
+          }
+
+          ({ flowId, context, sessionTitle } = flowContext);
+
+          // Load flow definition
+          const flowDef = await getFlowDefinition(flowId);
+          if (!flowDef) {
+            console.error(`Failed to load flow definition for ${flowId}`);
+            return;
+          }
+
+          // Start the flow
+          start = await JsonbFlowProcessor.startFlow({
+            flowId,
+            customerId:
+              (await supabase.auth.getUser()).data?.user?.id ||
+              '00000000-0000-0000-0000-000000000000',
+            flowDefinition: flowDef,
+            initialContext: context,
+          });
+          setDbSessionId(start.sessionId);
+        } catch (error) {
+          console.error(`❌ Error starting flow:`, error);
+          return;
+        }
+
+        if (!start) {
+          console.error('❌ Flow start failed - no result');
+          return;
+        }
+
+        // Persist admin chat session metadata to database
+        try {
+          const { data: existingSession } = await supabase
+            .from('chat_sessions_v2')
+            .select('metadata')
+            .eq('session_id', start.sessionId)
+            .single();
+
+          const titleMetadata = {
+            ...(existingSession?.metadata || {}),
+            admin_chat: true,
+            context: {
+              ...(existingSession?.metadata?.context || {}),
+              ...context,
+            },
+          };
+
+          await supabase
+            .from('chat_sessions_v2')
+            .update({
+              metadata: {
+                ...titleMetadata,
+                title: sessionTitle,
+              },
+            })
+            .eq('session_id', start.sessionId);
+
+          // Refresh the conversations list
+          await loadAdminChatSessions();
+        } catch (e) {
+          console.error('Failed to update admin chat metadata:', e);
+        }
+
+        // Reset chat state for new flow
+        setMessages([]);
+        setQuickReplies([]);
+        setCurrentPage(null);
+        setCurrentEntityId(null);
+
+        // Temporary title for UI
+        const tempTitle = sessionTitle;
+        const convId = startConversation
+          ? startConversation(tempTitle)
+          : 'conv';
+        setCurrentConversationId(convId);
+
+        // Display messages with appropriate typing delay
+        const skipDelay = FlowTriggerService.shouldSkipTypingDelay(flowId);
+        await appendMessagesWithTyping(
+          start.messages.map((m: any) => ({
+            role: m.role as ChatRole,
+            text: m.text,
+          })),
+          skipDelay
+        );
+
+        // Set quick replies
+        setQuickReplies(start.quickReplies || []);
+
+        // Persist messages to conversation
+        start.messages.forEach((m: any) =>
+          addConvMessage('printy', m.text, convId)
+        );
+      })();
+      return;
+    }
+
+    // For flows that require entity IDs
     if (!orderId) {
       console.warn('⚠️ No entity ID provided for topic:', topic);
       return;
@@ -441,33 +686,196 @@ export const useAdminChat = (): UseAdminChatReturn => {
     setChatOpen(true);
     setCurrentConversationId(conversationId);
 
-    if (conv.status === 'ended') {
-      // For ended conversations, load historical messages from database
-      setViewingHistorical(true);
-      setReadOnly(true);
-      setQuickReplies([]);
+    // For database-loaded conversations, the conversation ID is the session ID
+    // For locally created conversations, use the stored sessionId
+    const sessionId = conv.sessionId || conversationId;
+    setDbSessionId(sessionId);
 
-      // For database-loaded conversations, the conversation ID is the session ID
-      // For locally created conversations, use the stored sessionId
-      const sessionId = conv.sessionId || conversationId;
-      setDbSessionId(sessionId);
+    // Helper function to map role names (admin -> user for UI)
+    const mapRole = (
+      role: 'customer' | 'admin' | 'printy'
+    ): 'user' | 'printy' => {
+      return role === 'admin' ? 'user' : 'printy';
+    };
 
-      try {
-        const historicalMessages = await loadHistoricalMessages(sessionId);
-        setMessages(historicalMessages);
-      } catch (error) {
-        console.error('Failed to load historical messages:', error);
-        setMessages([]);
+    try {
+      // Check actual session status from database (similar to customer implementation)
+      const isSessionEnded = await ChatEndService.isSessionEnded(sessionId);
+      const actualStatus = isSessionEnded ? 'ended' : 'active';
+
+      // Fetch messages from database for both active and ended conversations
+      // This ensures we have the complete message history, not just what's in local state
+      const fetched = await fetchSessionMessagesV2(sessionId);
+      const mappedMessages: ChatMessage[] = fetched.map(m => ({
+        id: m.id,
+        role: mapRole(m.role as any),
+        // Extract display text for user/admin messages (clean UUID|CategoryName to CategoryName)
+        text: m.role === 'admin' ? extractDisplayText(m.text) : m.text,
+        ts: m.ts,
+        isHistorical: true, // Mark all loaded messages as historical to prevent typing animations
+        metadata: m.metadata || null,
+      }));
+
+      setMessages(mappedMessages);
+
+      if (actualStatus === 'ended') {
+        // For ended conversations, set read-only mode
+        setViewingHistorical(true);
+        setReadOnly(true);
+        setQuickReplies([]);
+      } else {
+        // For active conversations, allow interaction
+        setViewingHistorical(false);
+        setReadOnly(false);
+
+        // Restore quick replies from current node in DB (flow-aware)
+        try {
+          const { data: sessionRow } = await supabase
+            .from('chat_sessions_v2')
+            .select('flow_id, metadata, customer_id')
+            .eq('session_id', sessionId)
+            .single();
+
+          const flowId = sessionRow?.flow_id as string | undefined;
+          const currentNodeId = sessionRow?.metadata?.current_node_id as
+            | string
+            | undefined;
+          const pendingFromContext = sessionRow?.metadata?.context
+            ?._pending_quick_replies as any[] | undefined;
+
+          if (flowId && currentNodeId) {
+            const flowDef = await getFlowDefinition(flowId);
+            const node = flowDef?.nodes?.[currentNodeId as any];
+            // Prefer dynamic quick replies persisted by actions in metadata context
+            let replies: any[] = Array.isArray(pendingFromContext)
+              ? pendingFromContext.map((qr: any, i: number) => ({
+                  id: qr.id || `qr-${i}`,
+                  label: qr.label,
+                  value: qr.value,
+                }))
+              : [];
+
+            // If no dynamic quick replies and current node is an action that generates them,
+            // re-execute the action to regenerate quick replies
+            if (
+              replies.length === 0 &&
+              node &&
+              node.type === 'action' &&
+              (node as any).action
+            ) {
+              const actionName = (node as any).action;
+              // Check if this action node should show quick replies:
+              // 1. Action has no next node (designed for interaction)
+              // 2. Action is explicitly listed as generating quick replies
+              const shouldRegenerateQuickReplies =
+                !(node as any).next ||
+                ['display_categories_for_admin'].includes(actionName);
+
+              if (shouldRegenerateQuickReplies) {
+                try {
+                  // Re-execute the action to regenerate quick replies
+                  const { actionHandlers } = await import(
+                    '@features/chat/actions/admin'
+                  );
+                  const handler = actionHandlers[actionName];
+                  if (handler) {
+                    const { data: userData } = await supabase.auth.getUser();
+                    const adminId = userData?.user?.id;
+                    if (adminId) {
+                      const actionResult = await handler({
+                        actionNode: node as any,
+                        sessionId: sessionId,
+                        customerId: adminId,
+                        context: sessionRow?.metadata?.context || {},
+                      });
+
+                      // Only use quick replies if the action returns them
+                      // This matches the JsonbFlowProcessor logic
+                      if (
+                        actionResult.quickReplies &&
+                        actionResult.quickReplies.length > 0
+                      ) {
+                        replies = actionResult.quickReplies.map(
+                          (qr: any, i: number) => ({
+                            id: qr.id || `qr-${i}`,
+                            label: qr.label,
+                            value: qr.value,
+                          })
+                        );
+
+                        // Persist regenerated quick replies to session metadata
+                        const updatedContext = {
+                          ...(sessionRow?.metadata?.context || {}),
+                          _pending_quick_replies: actionResult.quickReplies,
+                        };
+                        await supabase
+                          .from('chat_sessions_v2')
+                          .update({
+                            metadata: {
+                              ...sessionRow?.metadata,
+                              context: updatedContext,
+                            },
+                          })
+                          .eq('session_id', sessionId);
+                      }
+                    }
+                  }
+                } catch (error) {
+                  console.error(
+                    'Failed to regenerate dynamic quick replies:',
+                    error
+                  );
+                }
+              }
+            }
+
+            // Fallback to node options if no dynamic quick replies are present
+            if (replies.length === 0 && node && (node as any).options) {
+              replies = (node as any).options.map((o: any, i: number) => ({
+                id: `qr-${i}`,
+                label: o.label,
+                value: o.label,
+              }));
+            }
+            setQuickReplies(
+              replies.length > 0
+                ? replies
+                : [{ id: 'qr-end', label: 'End Chat', value: 'End Chat' }]
+            );
+          } else {
+            setQuickReplies([
+              { id: 'qr-end', label: 'End Chat', value: 'End Chat' },
+            ]);
+          }
+        } catch (error) {
+          console.error('Failed to restore quick replies:', error);
+          setQuickReplies([
+            { id: 'qr-end', label: 'End Chat', value: 'End Chat' },
+          ]);
+        }
       }
-    } else {
-      // For active conversations, use existing messages
-      setViewingHistorical(false);
-      setReadOnly(false);
-      // Mark messages as historical if they're loaded from storage to prevent typing animations
+
+      // Update conversation status if it changed
+      if (conv.status !== actualStatus) {
+        setConversations(prev =>
+          prev.map(c =>
+            c.id === conversationId
+              ? { ...c, status: actualStatus as 'active' | 'ended' }
+              : c
+          )
+        );
+      }
+    } catch (error) {
+      console.error('Failed to load conversation messages:', error);
+      // Fallback to local messages if database fetch fails
+      // This can happen if the conversation hasn't been saved to the database yet
+      // or if there's a network/database error
+      setViewingHistorical(conv.status === 'ended');
+      setReadOnly(conv.status === 'ended');
       setMessages(
-        (conv.messages as any).map((m: any) => ({
+        (conv.messages || []).map((m: any) => ({
           ...m,
-          isHistorical: true, // Mark as historical to prevent typing animations on refresh
+          isHistorical: true,
         }))
       );
       setQuickReplies([]);
@@ -581,11 +989,18 @@ export const useAdminChat = (): UseAdminChatReturn => {
 
   const handleQuickReply = (v: string | { value: string; label: string }) => {
     // Handle both old string format and new object format
-    const val = typeof v === 'string' ? v.trim() : v.value.trim();
+    const isObject = typeof v === 'object' && v !== null;
+    const val = isObject ? v.value.trim() : v.trim();
+    const label = isObject ? v.label.trim() : undefined;
+
     if (val.toLowerCase() === 'end chat') {
       setMessages([]);
       return;
     }
+
+    // Set typing state and clear quick replies immediately for better UX
+    setIsTyping(true);
+    setQuickReplies([]);
 
     // Intercepts for admin-quote-propose special actions
     if (val === '__edit_specs__' && dbSessionId) {
@@ -673,29 +1088,9 @@ export const useAdminChat = (): UseAdminChatReturn => {
       return;
     }
 
-    // Echo the user's quick reply as a user message for proper transcript
-    const userMsg = {
-      id: crypto.randomUUID(),
-      role: 'user' as const,
-      text: val,
-      ts: Date.now(),
-    };
-    setMessages(prev => [...prev, userMsg]);
-    if (currentConversationId)
-      addConvMessage('user', val, currentConversationId);
-    // ✅ FIX: Don't insert message here - JsonbFlowProcessor will handle it
-    // This prevents duplicate quick reply messages in the database
-    // if (dbSessionId) {
-    //   void ChatDatabaseService.insertMessage({
-    //     sessionId: dbSessionId,
-    //     text: val,
-    //     role: 'printy',
-    //   });
-    // }
-    // ✅ FIX: Don't set typing here - appendMessagesWithTyping will manage it
-    // This prevents duplicate typing indicators
-
     // Drive JSONB flow for quick replies
+    // Note: Don't add user message locally here - JsonbFlowProcessor will insert it to DB
+    // and we'll fetch all messages (including the user message) from the database after processing
     if (!dbSessionId) {
       // No session, nothing to process
       return;
@@ -724,21 +1119,38 @@ export const useAdminChat = (): UseAdminChatReturn => {
           // No flow found, no typing needed
           return;
         }
+        // Track existing message IDs before processing to distinguish old vs new messages
+        const existingMessageIds = new Set(messages.map(m => m.id));
+
         const resp = await JsonbFlowProcessor.processInput({
           sessionId: dbSessionId,
           userInput: val,
           flowDefinition: flowDef,
           senderRole: 'admin',
+          displayLabel: label,
         });
-        // Use FlowTriggerService to determine typing delay behavior
-        const skipDelay = FlowTriggerService.shouldSkipTypingDelay(
-          flowId as any
-        );
-        // appendMessagesWithTyping will handle typing state completely
-        await appendMessagesWithTyping(
-          resp.messages.map(m => ({ role: m.role as ChatRole, text: m.text })),
-          skipDelay
-        );
+
+        // Fetch all messages from database to ensure consistency (includes user message with cleaned text)
+        const allMessages = await fetchSessionMessagesV2(dbSessionId);
+        const mappedMessages: ChatMessage[] = allMessages.map(m => {
+          const isExisting = existingMessageIds.has(m.id);
+          return {
+            id: m.id,
+            role: m.role === 'admin' ? 'user' : 'printy',
+            // Extract display text for user/admin messages (clean UUID|CategoryName to CategoryName)
+            text: m.role === 'admin' ? extractDisplayText(m.text) : m.text,
+            ts: m.ts,
+            metadata: m.metadata || null,
+            // Mark existing messages as historical to prevent typing animations
+            // New messages (from this quick reply click) should animate
+            isHistorical: isExisting,
+          };
+        });
+
+        // Update UI with all messages from database (includes cleaned user message)
+        // Don't call appendMessagesWithTyping here since all messages are already in the state
+        // The typing animation will be handled by the MessageGroup component based on isHistorical flag
+        setMessages(mappedMessages);
         setQuickReplies(
           (resp.quickReplies || []).map((qr, i) => ({
             id: qr.id || `qr-${i}`,
@@ -746,17 +1158,15 @@ export const useAdminChat = (): UseAdminChatReturn => {
             value: qr.value,
           }))
         );
-        if (currentConversationId) {
-          resp.messages.forEach(m =>
-            addConvMessage('printy', m.text, currentConversationId)
-          );
-        }
+        // Note: Messages are already in the database from JsonbFlowProcessor.processInput
+        // No need to add them again via addConvMessage
+        // Ensure typing is off after processing
+        setIsTyping(false);
       } catch (e) {
         console.error('Failed to process quick reply', e);
         // Ensure typing is off on error
         setIsTyping(false);
       }
-      // ✅ FIX: No finally block needed - appendMessagesWithTyping handles typing state
     })();
   };
 

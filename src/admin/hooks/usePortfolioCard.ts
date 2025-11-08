@@ -1,9 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   fetchAllServices,
   fetchActiveServices,
   fetchServicesByCategory,
   fetchActiveServicesByCategory,
+  subscribeToServices,
+  subscribeToServiceCategories,
+  subscribeToActiveServices,
 } from '@features/chat/api/servicesApi';
 import type {
   ServiceWithCategory,
@@ -33,32 +36,72 @@ export const usePortfolioCard = () => {
     ServiceCategoryWithCount[]
   >([]);
 
-  // Fetch services data
-  useEffect(() => {
-    const loadServices = async () => {
-      try {
+  // Load services data function
+  const loadServices = useCallback(async (showLoading = true) => {
+    try {
+      if (showLoading) {
         setIsLoading(true);
-        const [all, active, allCategories, activeCategories] =
-          await Promise.all([
-            fetchAllServices(),
-            fetchActiveServices(),
-            fetchServicesByCategory(),
-            fetchActiveServicesByCategory(),
-          ]);
+      }
+      const [all, active, allCategories, activeCategories] = await Promise.all([
+        fetchAllServices(),
+        fetchActiveServices(),
+        fetchServicesByCategory(),
+        fetchActiveServicesByCategory(),
+      ]);
 
-        setAllServices(all);
-        setOfferedServices(active);
-        setCategoriesAll(allCategories);
-        setCategoriesOffered(activeCategories);
-      } catch (error) {
-        console.error('Error loading services:', error);
-      } finally {
+      setAllServices(all);
+      setOfferedServices(active);
+      setCategoriesAll(allCategories);
+      setCategoriesOffered(activeCategories);
+    } catch (error) {
+      console.error('Error loading services:', error);
+    } finally {
+      if (showLoading) {
         setIsLoading(false);
       }
+    }
+  }, []);
+
+  // Fetch services data on mount
+  useEffect(() => {
+    loadServices();
+  }, [loadServices]);
+
+  // Set up realtime subscriptions for services and categories
+  useEffect(() => {
+    // Debounce function to prevent rapid updates
+    let debounceTimer: NodeJS.Timeout;
+    const debouncedLoadServices = () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        // Update silently in background without showing loading state
+        loadServices(false);
+      }, 500); // 500ms debounce
     };
 
-    loadServices();
-  }, []);
+    const servicesSubscription = subscribeToServices(() => {
+      // Update silently in background when services change
+      debouncedLoadServices();
+    });
+
+    const categoriesSubscription = subscribeToServiceCategories(() => {
+      // Update silently in background when categories change
+      debouncedLoadServices();
+    });
+
+    const activeServicesSubscription = subscribeToActiveServices(() => {
+      // Update silently in background when active services change
+      debouncedLoadServices();
+    });
+
+    // Cleanup subscriptions on unmount
+    return () => {
+      clearTimeout(debounceTimer);
+      servicesSubscription.unsubscribe();
+      categoriesSubscription.unsubscribe();
+      activeServicesSubscription.unsubscribe();
+    };
+  }, [loadServices]);
 
   const toggleServiceSelection = (_serviceId: string) => {
     // no selection; noop

@@ -31,6 +31,12 @@ export function buildQuickReplies(node: FlowNode): Array<{
     return quickReplies;
   }
 
+  // If node expects input (text input), don't show quick replies
+  // The user should type their response instead
+  if (node.type === 'message' && node.expects_input) {
+    return [];
+  }
+
   // Default quick reply
   return [{ id: 'qr-end', label: 'End Chat', value: 'End Chat' }];
 }
