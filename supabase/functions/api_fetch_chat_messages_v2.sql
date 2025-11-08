@@ -3,35 +3,64 @@ CREATE OR REPLACE FUNCTION public.api_fetch_chat_messages_v2(p_session_id uuid)
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public'
-AS $function$
-declare
-  v_customer_id uuid;
-begin
-  -- Get session customer_id
-  select customer_id into v_customer_id
-  from public.chat_sessions_v2
-  where session_id = p_session_id;
-
-  -- Check authorization
-  if v_customer_id is null then
-    raise exception 'session not found';
-  end if;
-
-  if not (v_customer_id = auth.uid() or priv.is_admin()) then
-    raise exception 'not authorized';
-  end if;
-
-  -- Return messages with metadata (convert bytea to text, no decryption needed)
-  return query
-  select
-    m.message_id,
-    m.sender_role,
-    convert_from(m.message_text_enc, 'UTF8') as message_text,
-    m.sent_at,
-    (m.metadata->>'node_id')::text as node_id,
-    m.metadata
-  from public.chat_messages_v2 m
-  where m.session_id = p_session_id
-  order by m.sent_at asc;
-end;
+AS $function$
+
+declare
+
+  v_customer_id uuid;
+
+begin
+
+  -- Get session customer_id
+
+  select customer_id into v_customer_id
+  from public.chat_sessions_v2
+  where session_id = p_session_id;
+
+
+
+  -- Check authorization
+
+  if v_customer_id is null then
+
+    raise exception 'session not found';
+
+  end if;
+
+
+
+  if not (v_customer_id = auth.uid() or priv.is_admin()) then
+
+    raise exception 'not authorized';
+
+  end if;
+
+
+
+  -- Return messages with metadata (convert bytea to text, no decryption needed)
+
+  return query
+
+  select
+
+    m.message_id,
+
+    m.sender_role,
+
+    convert_from(m.message_text_enc, 'UTF8') as message_text,
+
+    m.sent_at,
+
+    (m.metadata->>'node_id')::text as node_id,
+
+    m.metadata
+
+  from public.chat_messages_v2 m
+
+  where m.session_id = p_session_id
+
+  order by m.sent_at asc;
+
+end;
+
 $function$
