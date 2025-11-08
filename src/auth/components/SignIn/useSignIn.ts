@@ -130,30 +130,38 @@ export const useSignIn = () => {
                 );
                 if (rpcError) throw rpcError;
                 locationId = (rpcData as string | null) ?? null;
-                if (!locationId) throw new Error('No location_id returned');
               } catch (rpcError: unknown) {
-                const { data: locData, error: locError } = await supabase.rpc(
-                  'upsert_location_from_meta',
-                  {
-                    p_region: (addr.region as string) || null,
-                    p_province: (addr.province as string) || null,
-                    p_city: (addr.city as string) || null,
-                    p_zip_code: ((addr as { zip_code?: string; zip?: string })
-                      .zip_code ||
-                      (addr as { zip?: string }).zip ||
-                      null) as string | null,
-                    p_barangay: (addr.barangay as string) || null,
-                    p_street: (addr.street as string) || null,
-                    p_building_number: (addr.building_number as string) || null,
-                    p_building_name: (addr.building_name as string) || null,
-                  }
-                );
-                if (locError) throw locError;
-                locationId = (locData as string | null) ?? null;
+                // Try fallback function
+                try {
+                  const { data: locData, error: locError } = await supabase.rpc(
+                    'upsert_location_from_meta',
+                    {
+                      p_region: (addr.region as string) || null,
+                      p_province: (addr.province as string) || null,
+                      p_city: (addr.city as string) || null,
+                      p_zip_code: ((addr as { zip_code?: string; zip?: string })
+                        .zip_code ||
+                        (addr as { zip?: string }).zip ||
+                        null) as string | null,
+                      p_barangay: (addr.barangay as string) || null,
+                      p_street: (addr.street as string) || null,
+                      p_building_number:
+                        (addr.building_number as string) || null,
+                      p_building_name: (addr.building_name as string) || null,
+                    }
+                  );
+                  if (locError) throw locError;
+                  locationId = (locData as string | null) ?? null;
+                } catch {
+                  // Location creation failed, but we can still create customer with NULL location_id
+                  locationId = null;
+                }
               }
             }
-            if (locationId) {
-              const insertRes = await supabase.from('customer').insert({
+            // Upsert customer record (trigger may have already created it with NULL location_id)
+            // Always upsert even if locationId is NULL, since location_id is now nullable
+            const upsertRes = await supabase.from('customer').upsert(
+              {
                 customer_id: userId,
                 first_name: (
                   (user?.user_metadata ?? {}) as Record<string, unknown>
@@ -169,9 +177,13 @@ export const useSignIn = () => {
                   (((user?.user_metadata ?? {}) as Record<string, unknown>)
                     .role as string) || 'regular',
                 location_id: locationId,
-              });
-              if (insertRes.error) throw insertRes.error;
-            }
+              },
+              {
+                onConflict: 'customer_id',
+                ignoreDuplicates: false,
+              }
+            );
+            if (upsertRes.error) throw upsertRes.error;
             customerById = {
               customer_type:
                 (((user?.user_metadata ?? {}) as Record<string, unknown>)

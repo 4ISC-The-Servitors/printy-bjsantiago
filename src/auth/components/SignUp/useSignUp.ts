@@ -208,25 +208,42 @@ export const useSignUp = () => {
         )?.identities;
         if (Array.isArray(identities) && identities.length === 0)
           throw new Error('Email already registered');
-        if (authData.session) {
-          try {
-            // Create customer record immediately after successful sign up
-            const locationId = await supabase.rpc('upsert_full_address', {
-              p_region: formData.region || null,
-              p_province: formData.province || null,
-              p_city: formData.city || null,
-              p_zip_code: formData.zipCode || null,
-              p_barangay: formData.barangay || null,
-              p_street: formData.street || null,
-              p_building_number: null,
-              p_building_name: formData.buildingNumber || null,
-            });
 
-            if (locationId.data && authData.user) {
-              // Insert customer record
-              const { error: customerError } = await supabase
-                .from('customer')
-                .insert({
+        // Only attempt to upsert customer record if user has a session (email confirmed)
+        // If no session, the trigger will create the customer record, and signin will update it
+        if (authData.user && authData.session) {
+          try {
+            // Create location from address if available
+            let locationId: string | null = null;
+            if (
+              formData.region &&
+              formData.province &&
+              formData.city &&
+              formData.barangay &&
+              formData.street
+            ) {
+              const locationResult = await supabase.rpc('upsert_full_address', {
+                p_region: formData.region || null,
+                p_province: formData.province || null,
+                p_city: formData.city || null,
+                p_zip_code: formData.zipCode || null,
+                p_barangay: formData.barangay || null,
+                p_street: formData.street || null,
+                p_building_number: null,
+                p_building_name: formData.buildingNumber || null,
+              });
+
+              if (locationResult.data) {
+                locationId = locationResult.data;
+              }
+            }
+
+            // Upsert customer record (trigger may have already created it)
+            // Only attempt if session exists (email confirmed), otherwise RLS will block it
+            const { error: customerError } = await supabase
+              .from('customer')
+              .upsert(
+                {
                   customer_id: authData.user.id,
                   first_name: formData.firstName || null,
                   last_name: formData.lastName || null,
@@ -235,19 +252,32 @@ export const useSignUp = () => {
                   customer_type: 'regular',
                   gender: formData.gender || null,
                   birthday: formData.birthday || null,
-                  location_id: locationId.data,
-                });
+                  location_id: locationId,
+                },
+                {
+                  onConflict: 'customer_id',
+                  ignoreDuplicates: false,
+                }
+              );
 
-              if (customerError) {
-                console.error('Error creating customer record:', customerError);
-                // Don't throw error, just log it - user can still sign in
-              }
+            if (customerError) {
+              console.error('Error upserting customer record:', {
+                message: customerError.message,
+                details: customerError.details,
+                hint: customerError.hint,
+                code: customerError.code,
+                fullError: customerError,
+              });
+              // Don't throw error, just log it - trigger created the record, signin will update it
             }
           } catch (e) {
             console.warn('Customer creation skipped:', e);
-            // Don't throw error, just log it - user can still sign in
+            // Don't throw error - trigger created the record, signin will update it
           }
         }
+        // If no session (email confirmation required):
+        // - Trigger will create customer record with metadata from raw_user_meta_data
+        // - When user confirms email and signs in, signin code will update customer record
         toast.show({
           title: 'Check your email',
           message:
