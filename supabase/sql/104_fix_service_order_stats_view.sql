@@ -24,3 +24,5 @@ GROUP BY s.service_id;
 COMMENT ON VIEW public.service_order_stats IS 
 'All-time count of completed orders per service_id. Includes orders matched by service_id column or by display_id in order_specs JSON.';
 
+
+
