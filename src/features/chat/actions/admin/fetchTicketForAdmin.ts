@@ -11,10 +11,12 @@ import type {
   ActionExecutionResult,
 } from '@features/chat/types';
 import { formatShortDate } from '@shared/utils/dateFormatter';
+import { formatShortTime } from '@shared/utils/timeFormatter';
 import {
   formatInquiryType,
   formatOrderStatus,
 } from '@shared/utils/statusFormatter';
+import { getAdminUserInfoBatch } from '@features/chat/utils/admin/getAdminUserId';
 
 /**
  * Fetch ticket details for admin review
@@ -151,13 +153,12 @@ export async function fetchTicketForAdmin(
 
     // Build ticket info display based on status (header will be emitted separately)
 
-    // Restore aggregation per TICKET_REPLY_SESSION_LOGIC: append replies from reply sessions
+    // Fetch replies from reply sessions per TICKET_REPLY_SESSION_LOGIC
     // Match customer trackTicket logic: fetch ALL reply sessions for this inquiry
     // (both admin and customer replies, regardless of who created them)
     // Note: Removed customer_id filter to match customer trackTicket behavior exactly
     // This ensures we fetch ALL reply sessions for the inquiry, not just those
     // with a specific customer_id (which might cause issues with RLS or admin-created sessions)
-    let aggregatedHistory = '';
     const { data: ticketConversations, error: ticketError } = await supabase
       .from('chat_sessions_v2')
       .select('session_id')
@@ -190,6 +191,15 @@ export async function fetchTicketForAdmin(
         }
       }
     }
+
+    // Store reply messages - each will be in its own bubble
+    const replyMessages: Array<{
+      id: string;
+      role: 'printy';
+      text: string;
+      ts: number;
+      isHistorical: boolean;
+    }> = [];
 
     if (ticketMessages.length > 0) {
       const relevantMessages = ticketMessages.filter(
@@ -224,10 +234,37 @@ export async function fetchTicketForAdmin(
         (a, b) => new Date(a.sent_at).getTime() - new Date(b.sent_at).getTime()
       );
 
-      // Emit one bubble per message even if the same sender posts consecutively.
+      // Extract admin sender IDs from metadata for batch lookup
+      const adminIds = new Set<string>();
       for (const msg of uniqueMessages) {
-        const time = formatShortDate(msg.sent_at);
-        const sender = msg.sender_role === 'customer' ? 'Customer' : 'Admin';
+        if (msg.sender_role === 'admin' && msg.metadata?.sender_id) {
+          adminIds.add(msg.metadata.sender_id);
+        }
+      }
+
+      // Fetch admin user info for all admin messages
+      const adminInfoMap = await getAdminUserInfoBatch(Array.from(adminIds));
+
+      // Create a separate message bubble for each message (no grouping)
+      for (const msg of uniqueMessages) {
+        const date = formatShortDate(msg.sent_at);
+        const time = formatShortTime(msg.sent_at);
+        const dateTime = `${date} • ${time}`;
+        let sender: string;
+        
+        if (msg.sender_role === 'customer') {
+          sender = 'Customer';
+        } else {
+          // For admin messages, try to get the admin's name from metadata
+          const senderId = msg.metadata?.sender_id;
+          if (senderId && adminInfoMap.has(senderId)) {
+            const adminInfo = adminInfoMap.get(senderId)!;
+            sender = `Admin ${adminInfo.fullName}`;
+          } else {
+            sender = 'Admin';
+          }
+        }
+        
         const lines = String(msg.decryptedText || '')
           .split('\n')
           .map(s => s.trim())
@@ -235,11 +272,18 @@ export async function fetchTicketForAdmin(
         const textLines = lines.filter(l => !l.startsWith('supabase://'));
         const imageLines = lines.filter(l => l.startsWith('supabase://'));
 
-        aggregatedHistory += `\n${sender} (${time}):\n`;
-        if (textLines.length > 0)
-          aggregatedHistory += textLines.join('\n') + '\n';
-        if (imageLines.length > 0)
-          aggregatedHistory += imageLines.join('\n') + '\n';
+        const parts: string[] = [];
+        parts.push(`${sender} (${dateTime}):`);
+        if (textLines.length > 0) parts.push(textLines.join('\n'));
+        if (imageLines.length > 0) parts.push(imageLines.join('\n'));
+
+        replyMessages.push({
+          id: crypto.randomUUID(),
+          role: 'printy',
+          text: parts.join('\n'),
+          ts: new Date(msg.sent_at).getTime(),
+          isHistorical: true,
+        });
       }
     }
 
@@ -261,30 +305,19 @@ export async function fetchTicketForAdmin(
     });
 
     // First conversation bubble: original customer details + initial images
+    const customerDate = formatShortDate(inquiry.received_at);
+    const customerTime = formatShortTime(inquiry.received_at);
     messages.push({
       id: crypto.randomUUID(),
       role: 'printy',
-      text: `Customer (${formatShortDate(inquiry.received_at)}):\n${customerDescription}`,
+      text: `Customer (${customerDate} • ${customerTime}):\n${customerDescription}`,
       ts: Date.now(),
       isHistorical: true,
     });
 
-    // Append grouped reply-session bubbles
-    if (aggregatedHistory.trim()) {
-      // aggregatedHistory already formatted into per-group blocks; split and emit
-      const blocks = aggregatedHistory
-        .trim()
-        .split(/\n(?=Customer \(|Admin \()/)
-        .filter(Boolean);
-      for (const block of blocks) {
-        messages.push({
-          id: crypto.randomUUID(),
-          role: 'printy',
-          text: block,
-          ts: Date.now(),
-          isHistorical: true,
-        });
-      }
+    // Append reply messages - each in its own bubble
+    if (replyMessages.length > 0) {
+      messages.push(...replyMessages);
     }
 
     messages.push({

@@ -13,8 +13,10 @@ import type {
   ActionExecutionResult,
 } from '@features/chat/types';
 import { formatShortDate } from '@shared/utils/dateFormatter';
+import { formatShortTime } from '@shared/utils/timeFormatter';
 import { formatInquiryType } from '@shared/utils/statusFormatter';
 import { insertMessageV2 } from '@features/chat/api/jsonbChatFlowApi';
+import { getAdminUserInfoBatch } from '@features/chat/utils/admin/getAdminUserId';
 
 /**
  * Fetch ticket details and conversation history
@@ -143,7 +145,9 @@ export async function fetchTicketDetails(
           md?.context?.issue_details || md?.issue_details || initialDetails;
       }
     }
-    conversationText += `You (${formatShortDate(inquiry.received_at)}):\n`;
+    const receivedDate = formatShortDate(inquiry.received_at);
+    const receivedTime = formatShortTime(inquiry.received_at);
+    conversationText += `You (${receivedDate} • ${receivedTime}):\n`;
     conversationText += `${initialDetails}`;
 
     // Include any images uploaded during the initial ticket creation from the
@@ -241,9 +245,36 @@ export async function fetchTicketDetails(
         (a, b) => new Date(a.sent_at).getTime() - new Date(b.sent_at).getTime()
       );
 
+      // Extract admin sender IDs from metadata for batch lookup
+      const adminIds = new Set<string>();
       for (const msg of uniqueMessages) {
-        const timeAgo = formatShortDate(msg.sent_at);
-        const sender = msg.sender_role === 'customer' ? 'You' : 'Admin';
+        if (msg.sender_role === 'admin' && msg.metadata?.sender_id) {
+          adminIds.add(msg.metadata.sender_id);
+        }
+      }
+
+      // Fetch admin user info for all admin messages
+      const adminInfoMap = await getAdminUserInfoBatch(Array.from(adminIds));
+
+      for (const msg of uniqueMessages) {
+        const msgDate = formatShortDate(msg.sent_at);
+        const msgTime = formatShortTime(msg.sent_at);
+        const dateTime = `${msgDate} • ${msgTime}`;
+        let sender: string;
+        
+        if (msg.sender_role === 'customer') {
+          sender = 'You';
+        } else {
+          // For admin messages, try to get the admin's name from metadata
+          const senderId = msg.metadata?.sender_id;
+          if (senderId && adminInfoMap.has(senderId)) {
+            const adminInfo = adminInfoMap.get(senderId)!;
+            sender = `Admin ${adminInfo.fullName}`;
+          } else {
+            sender = 'Admin';
+          }
+        }
+        
         const lines = String(msg.decryptedText || '')
           .split('\n')
           .map(s => s.trim())
@@ -251,7 +282,7 @@ export async function fetchTicketDetails(
         const textMessages = lines.filter(t => !t.startsWith('supabase://'));
         const imageUrls = lines.filter(t => t.startsWith('supabase://'));
         const parts: string[] = [];
-        parts.push(`${sender} (${timeAgo}):`);
+        parts.push(`${sender} (${dateTime}):`);
         if (textMessages.length > 0) parts.push(textMessages.join('\n'));
         if (imageUrls.length > 0) parts.push(imageUrls.join('\n'));
         messages.push({
@@ -506,7 +537,7 @@ export async function sendCustomerReply(
     messages.push({
       id: crypto.randomUUID(),
       role: 'printy',
-      text: 'Your reply has been sent to our support team. They will respond as soon as possible.',
+      text: 'Your reply has been sent to our support team.',
       ts: Date.now(),
     });
 
