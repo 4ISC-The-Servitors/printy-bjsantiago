@@ -2,6 +2,11 @@
 
 ## 📄 Changelogs
 
+### 2025-11-10-Andeng
+
+- added Admin Settings for personal info, password management
+- added Customer Role Management functionality in admin settings (regular to valued role change)
+
 ### 2025-11-09-Andeng
 
 - added PDF file type support for all uploads

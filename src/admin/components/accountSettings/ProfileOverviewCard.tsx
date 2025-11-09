@@ -5,14 +5,14 @@ interface ProfileOverviewCardProps {
   initials: string;
   displayName: string;
   email: string;
-  membership?: 'Valued' | 'Regular';
+  role?: string;
 }
 
 const ProfileOverviewCard: React.FC<ProfileOverviewCardProps> = ({
   initials,
   displayName,
   email,
-  membership = 'Regular',
+  role = 'Admin',
 }) => {
   return (
     <Card className="device-spacing-component">
@@ -28,12 +28,8 @@ const ProfileOverviewCard: React.FC<ProfileOverviewCardProps> = ({
             {email}
           </Text>
           <div className="mt-2 flex justify-center sm:justify-start">
-            <Badge
-              variant={membership === 'Valued' ? 'warning' : 'info'}
-              size="sm"
-              className="device-badge-sm"
-            >
-              {membership} Member
+            <Badge variant="info" size="sm" className="device-badge-sm">
+              {role}
             </Badge>
           </div>
         </div>

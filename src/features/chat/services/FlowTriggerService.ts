@@ -374,11 +374,6 @@ export class FlowTriggerService {
         }),
       };
     }
-
-    console.warn(
-      '⚠️ No specific flow defined for order status:',
-      orderData.status
-    );
     return null;
   }
 

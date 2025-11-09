@@ -500,7 +500,6 @@ export const useAdminChat = (): UseAdminChatReturn => {
 
     // For flows that require entity IDs
     if (!orderId) {
-      console.warn('⚠️ No entity ID provided for topic:', topic);
       return;
     }
 

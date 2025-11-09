@@ -1,11 +1,25 @@
 import React, { useState } from 'react';
 import { Card, Text, Button, Input, Modal } from '@shared/components';
 import { Pencil } from 'lucide-react';
-import type { UserData } from '@customer/pages/CustomerAccountSettings';
+
+export interface AdminUserData {
+  displayName: string;
+  email: string;
+  phone: string;
+  address: string;
+  city: string;
+  zipCode: string;
+  province: string;
+  barangay: string;
+  building: string;
+  avatarUrl?: string;
+  firstName: string;
+  lastName: string;
+}
 
 interface PersonalInfoFormProps {
-  value: UserData;
-  onSave: (partial: Partial<UserData>) => void; // TODO(BACKEND): Wire to profile update service
+  value: AdminUserData;
+  onSave: (partial: Partial<AdminUserData>) => void;
 }
 
 const PersonalInfoForm: React.FC<PersonalInfoFormProps> = ({
@@ -13,12 +27,11 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = ({
   onSave,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
-  const [form, setForm] = useState<UserData>(value);
+  const [form, setForm] = useState<AdminUserData>(value);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   const startEdit = () => {
-    // TODO(BACKEND): Optionally refetch latest profile before editing
     setForm(value);
     setIsEditing(true);
   };

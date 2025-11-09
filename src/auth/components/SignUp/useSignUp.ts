@@ -333,7 +333,7 @@ export const useSignUp = () => {
               console.error('Error upserting customer record:', customerError);
             }
           } catch (e) {
-            console.warn('Customer creation skipped:', e);
+            // Customer creation skipped
           }
         }
 

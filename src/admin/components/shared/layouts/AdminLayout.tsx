@@ -59,11 +59,6 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   // Enhanced file upload handler that uses ticket image upload for ticket review flows
   const handleFileUpload = useCallback(
     async (files: FileList) => {
-      console.log('[Admin handleFileUpload] Starting upload:', {
-        filesCount: files.length,
-        dbSessionId,
-      });
-
       // Check if we're in admin-review-ticket flow
       if (dbSessionId) {
         // Fetch session metadata to check flow_id and get inquiry_id
@@ -73,12 +68,6 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           .eq('session_id', dbSessionId)
           .single();
 
-        console.log('[Admin handleFileUpload] Session data:', {
-          flowId: sessionData?.flow_id,
-          hasInquiryId: !!sessionData?.metadata?.context?.inquiry_id,
-          hasCustomerId: !!sessionData?.metadata?.context?.customer_id,
-        });
-
         if (
           sessionData?.flow_id === 'admin-review-ticket' &&
           sessionData?.metadata?.context?.inquiry_id
@@ -87,9 +76,6 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           const customerId = sessionData.metadata.context.customer_id;
 
           if (inquiryId && customerId) {
-            console.log(
-              '[Admin handleFileUpload] Admin-review-ticket detected, uploading to ticket-uploads bucket'
-            );
             // Use ticket file upload for ticket review flows
             setUploadPct(0);
             await handleTicketImageUpload(
@@ -98,9 +84,6 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
               customerId,
               urls => {
                 if (urls && urls.length > 0) {
-                  console.log(
-                    '[Admin handleFileUpload] Upload successful, sending URLs in one message'
-                  );
                   handleSendMessage(urls.join('\n'));
                 }
                 setTimeout(() => setUploadPct(null), 400);
@@ -128,9 +111,6 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       }
 
       // Use regular chat attachments for other flows
-      console.log(
-        '[Admin handleFileUpload] Using regular chat attachments (blob URL)'
-      );
       handleAttachFiles(files);
     },
     [dbSessionId, handleTicketImageUpload, handleSendMessage, handleAttachFiles]

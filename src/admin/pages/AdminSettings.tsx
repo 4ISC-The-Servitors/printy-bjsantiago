@@ -1,236 +1,225 @@
-// BACKEND_TODO: Replace local state with Supabase-backed profile, preferences, and notifications.
-// Hydrate on mount and persist via RPCs or direct table updates with RLS. Remove demo data below.
-import React, { useState, useEffect } from 'react';
-import { Container, Text, Card, ToastContainer } from '@shared/components';
+import React, {
+  useMemo,
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+} from 'react';
+import { Container, Text, ToastContainer } from '@shared/components';
 import { useToast } from '@lib/useToast';
-//
-import * as SettingsDesktop from '../components/settings/desktop';
-import * as SettingsMobile from '../components/settings/mobile';
-
-export interface AdminData {
-  displayName: string;
-  email: string;
-  role: 'admin';
-  department: string;
-  permissions: string[];
-  lastLogin: string;
-  avatarUrl?: string;
-}
-
-export interface SystemPreferencesData {
-  autoBackup: boolean;
-  maintenanceMode: boolean;
-  debugLogging: boolean;
-  performanceMonitoring: boolean;
-  dataRetention: '30_days' | '90_days' | '1_year' | 'indefinite';
-}
-
-export interface UserManagementData {
-  autoApproval: boolean;
-  requireEmailVerification: boolean;
-  allowGuestAccess: boolean;
-  maxLoginAttempts: number;
-  sessionTimeout: number;
-}
-
-export interface AdminNotificationData {
-  systemAlerts: boolean;
-  userReports: boolean;
-  securityEvents: boolean;
-  performanceIssues: boolean;
-  maintenanceUpdates: boolean;
-}
+import ProfileOverviewCard from '@admin/components/accountSettings/ProfileOverviewCard';
+import PersonalInfoForm, {
+  type AdminUserData,
+} from '@admin/components/accountSettings/PersonalInfoForm';
+import SecuritySettings from '@admin/components/accountSettings/SecuritySettings';
+import CustomerTypeManagement from '@admin/components/accountSettings/CustomerTypeManagement';
+import { ProfileService } from '@customer/services/profileService';
+import { useAuth } from '@auth/hooks/AuthContext';
+import { AdminAccountSettingsLoading } from '@admin/components/loadingStates';
 
 const AdminSettingsPage: React.FC = () => {
   const [toasts, toast] = useToast();
-  // Wrapped by AdminLayout at route level; no internal layout duplication
+  const { user } = useAuth();
 
-  // TODO(BACKEND): Replace local state with data fetched from backend (Supabase)
-  const [adminData, setAdminData] = useState<AdminData | null>(null);
-  const [systemPrefs, setSystemPrefs] = useState<SystemPreferencesData | null>(
-    null
+  const [userData, setUserData] = useState<AdminUserData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const fetchingRef = useRef(false);
+
+  const fetchProfileData = useCallback(async () => {
+    if (fetchingRef.current) {
+      return;
+    }
+
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      fetchingRef.current = true;
+      setLoading(true);
+
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Request timeout')), 10000)
+      );
+
+      const profilePromise = ProfileService.getProfile(user.id);
+      const profile = (await Promise.race([
+        profilePromise,
+        timeoutPromise,
+      ])) as any;
+
+      if (profile) {
+        const displayName = ProfileService.getDisplayName(
+          profile.first_name,
+          profile.last_name
+        );
+        const address = ProfileService.formatAddress(profile.address);
+
+        const userDataToSet = {
+          displayName,
+          email: profile.email_address,
+          phone: profile.contact_no,
+          address,
+          city: profile.address.city_name || '',
+          zipCode: profile.address.zip_code || '',
+          province: profile.address.province_name || '',
+          barangay: profile.address.barangay_name || '',
+          building: profile.address.building_name || '',
+          avatarUrl: '',
+          firstName: profile.first_name,
+          lastName: profile.last_name,
+        };
+
+        setUserData(userDataToSet);
+      } else {
+        const fallbackData = {
+          displayName: user.email?.split('@')[0] || 'Admin User',
+          email: user.email || '',
+          phone: '',
+          address: '',
+          city: '',
+          zipCode: '',
+          province: '',
+          barangay: '',
+          building: '',
+          avatarUrl: '',
+          firstName: '',
+          lastName: '',
+        };
+        setUserData(fallbackData);
+      }
+    } catch (error) {
+      console.error('Error fetching profile data:', error);
+      toast.error(
+        'Error',
+        `Failed to load profile data: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+
+      setUserData({
+        displayName: user.email?.split('@')[0] || 'Admin User',
+        email: user.email || '',
+        phone: '',
+        address: '',
+        city: '',
+        zipCode: '',
+        province: '',
+        barangay: '',
+        building: '',
+        avatarUrl: '',
+        firstName: '',
+        lastName: '',
+      });
+    } finally {
+      fetchingRef.current = false;
+      setLoading(false);
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    fetchProfileData();
+  }, [fetchProfileData]);
+
+  const initials = useMemo(
+    () =>
+      (userData?.displayName || '')
+        .split(' ')
+        .map(n => n[0])
+        .join(''),
+    [userData?.displayName]
   );
-  const [userMgmt, setUserMgmt] = useState<UserManagementData | null>(null);
-  const [notifications, setNotifications] =
-    useState<AdminNotificationData | null>(null);
 
-  const [isDesktop, setIsDesktop] = useState(false);
+  const handleSavePersonalInfo = async (next: Partial<AdminUserData>) => {
+    if (!user?.id) {
+      toast.error('Error', 'User not authenticated');
+      return;
+    }
 
-  useEffect(() => {
-    // TODO(BACKEND): Fetch admin profile and preferences from backend
-    setAdminData({
-      displayName: 'Admin User',
-      email: 'admin@printy.com',
-      role: 'admin',
-      department: 'Operations',
-      permissions: ['user_management', 'system_settings', 'reports'],
-      lastLogin: '2024-01-15T10:30:00Z',
-      avatarUrl: '',
-    });
+    try {
+      const profileUpdates = {
+        contact_no: next.phone,
+        email_address: next.email,
+        address: {
+          street_name: next.address,
+          building_name: next.building,
+          barangay_name: next.barangay,
+          city_name: next.city,
+          province_name: next.province,
+          zip_code: next.zipCode,
+        },
+      };
 
-    setSystemPrefs({
-      autoBackup: true,
-      maintenanceMode: false,
-      debugLogging: false,
-      performanceMonitoring: true,
-      dataRetention: '90_days',
-    });
+      const success = await ProfileService.updateProfile(
+        user.id,
+        profileUpdates
+      );
 
-    setUserMgmt({
-      autoApproval: false,
-      requireEmailVerification: true,
-      allowGuestAccess: true,
-      maxLoginAttempts: 5,
-      sessionTimeout: 30,
-    });
-
-    setNotifications({
-      systemAlerts: true,
-      userReports: true,
-      securityEvents: true,
-      performanceIssues: true,
-      maintenanceUpdates: true,
-    });
-  }, []);
-
-  // Removed unused initials variable since AdminProfileCard is not currently used
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const mql = window.matchMedia('(min-width: 1024px)');
-    const handleModern = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
-    const handleLegacy = function (
-      this: MediaQueryList,
-      e: MediaQueryListEvent
-    ) {
-      setIsDesktop(e.matches);
-    };
-    setIsDesktop(mql.matches);
-    if (mql.addEventListener) mql.addEventListener('change', handleModern);
-    else (mql as MediaQueryList).addListener(handleLegacy);
-    return () => {
-      if (mql.removeEventListener)
-        mql.removeEventListener('change', handleModern);
-      else (mql as MediaQueryList).removeListener(handleLegacy);
-    };
-  }, []);
-
-  const handleSystemPrefsUpdate = (updates: Partial<SystemPreferencesData>) => {
-    if (!systemPrefs) return;
-    setSystemPrefs({ ...systemPrefs, ...updates });
-    toast.success('Updated', 'System preferences have been updated.');
-  };
-
-  const handleUserMgmtUpdate = (updates: Partial<UserManagementData>) => {
-    if (!userMgmt) return;
-    setUserMgmt({ ...userMgmt, ...updates });
-    toast.success('Updated', 'User management settings have been updated.');
-  };
-
-  const handleNotificationUpdate = (key: keyof AdminNotificationData) => {
-    if (!notifications) return;
-    const turnedOn = !notifications[key];
-    setNotifications({ ...notifications, [key]: turnedOn });
-
-    const labelMap: Record<keyof AdminNotificationData, string> = {
-      systemAlerts: 'system alerts',
-      userReports: 'user reports',
-      securityEvents: 'security events',
-      performanceIssues: 'performance issues',
-      maintenanceUpdates: 'maintenance updates',
-    };
-
-    if (turnedOn) {
-      toast.info('Preference updated', `Turned on ${labelMap[key]}`);
-    } else {
-      toast.info('Preference updated', `Turned off ${labelMap[key]}`);
+      if (success) {
+        setUserData(prev => ({ ...(prev as AdminUserData), ...next }));
+        toast.success('Saved', 'Your personal information has been updated.');
+      } else {
+        toast.error('Error', 'Failed to update profile. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast.error('Error', 'Failed to update profile. Please try again.');
     }
   };
 
   return (
-    <div className="min-h-[calc(100vh-0px)]">
-      <Container size="xl" className="py-6 md:py-10">
-        <div className="space-y-6 md:space-y-8">
-          {adminData && (
-            <Card className="p-6">
-              <Text variant="h3" size="lg" weight="semibold" className="mb-4">
-                Admin Profile
-              </Text>
-              <Text variant="p" size="sm" color="muted">
-                AdminProfileCard component needs to be recreated for the new
-                structure. Current user: {adminData.displayName} (
-                {adminData.email})
-              </Text>
-            </Card>
-          )}
+    <Container size="xl" className="device-spacing-section">
+      <div className="mb-6 flex items-center gap-3">
+        <Text
+          variant="h1"
+          size="xl"
+          weight="bold"
+          className="device-text-heading"
+        >
+          Account Settings
+        </Text>
+      </div>
 
-          {systemPrefs &&
-            (isDesktop ? (
-              <SettingsDesktop.SystemPreferences
-                value={systemPrefs}
-                onUpdate={handleSystemPrefsUpdate}
+      <div className="space-y-6 sm:space-y-8">
+        {loading ? (
+          <AdminAccountSettingsLoading />
+        ) : (
+          <>
+            {userData && (
+              <ProfileOverviewCard
+                initials={initials}
+                displayName={userData.displayName}
+                email={userData.email}
+                role="Admin"
               />
-            ) : (
-              <SettingsMobile.SystemPreferences
-                value={systemPrefs}
-                onUpdate={handleSystemPrefsUpdate}
-              />
-            ))}
+            )}
 
-          {userMgmt &&
-            (isDesktop ? (
-              <SettingsDesktop.UserManagementSettings
-                value={userMgmt}
-                onUpdate={handleUserMgmtUpdate}
+            {userData && (
+              <PersonalInfoForm
+                value={userData}
+                onSave={handleSavePersonalInfo}
               />
-            ) : (
-              <SettingsMobile.UserManagementSettings
-                value={userMgmt}
-                onUpdate={handleUserMgmtUpdate}
-              />
-            ))}
+            )}
 
-          {isDesktop ? (
-            <SettingsDesktop.SecuritySettings
+            <SecuritySettings
               onPasswordUpdated={() =>
                 toast.success(
                   'Password updated',
-                  'Your admin password has been changed successfully.'
+                  'Your password has been changed successfully.'
                 )
               }
             />
-          ) : (
-            <SettingsMobile.SecuritySettings
-              onPasswordUpdated={() =>
-                toast.success(
-                  'Password updated',
-                  'Your admin password has been changed successfully.'
-                )
-              }
-            />
-          )}
 
-          {notifications &&
-            (isDesktop ? (
-              <SettingsDesktop.NotificationSettings
-                value={notifications}
-                onToggle={handleNotificationUpdate}
-              />
-            ) : (
-              <SettingsMobile.NotificationSettings
-                value={notifications}
-                onToggle={handleNotificationUpdate}
-              />
-            ))}
-        </div>
-      </Container>
+            <CustomerTypeManagement />
+          </>
+        )}
+      </div>
 
       <ToastContainer
         toasts={toasts}
         onRemoveToast={toast.remove}
-        position={isDesktop ? 'bottom-right' : 'top-center'}
+        position="bottom-right"
       />
-    </div>
+    </Container>
   );
 };
 

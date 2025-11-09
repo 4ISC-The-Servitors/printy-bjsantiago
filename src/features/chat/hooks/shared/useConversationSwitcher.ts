@@ -267,10 +267,6 @@ export function useConversationSwitcher() {
           setActiveNodeId?.(null);
         }
       } catch (error) {
-        console.warn(
-          'Failed to get v2 flow state, falling back to no replies:',
-          error
-        );
         setQuickReplies([]);
         updatePlaceholder(conv.flowId, []);
         setActiveNodeId?.(null);

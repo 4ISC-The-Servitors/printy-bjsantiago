@@ -11,14 +11,11 @@ const ESCALATION_FLOW_IDS = [
   'pay-order',
 ];
 
-const ORDER_STATUS_INQUIRY_FLOW_IDS = [
-  'track-quote',
-  'track-ticket',
-];
+const ORDER_STATUS_INQUIRY_FLOW_IDS = ['track-quote', 'track-ticket'];
 
 export interface DateRange {
   startDate: string; // 'YYYY-MM-DD' or ISO
-  endDate: string;   // 'YYYY-MM-DD' or ISO
+  endDate: string; // 'YYYY-MM-DD' or ISO
 }
 
 function getNextDayString(dateString: string): string {
@@ -34,7 +31,9 @@ function getNextDayString(dateString: string): string {
  * KPI 1: First Contact Resolution Rate
  * Uses chat_sessions_v2 only (no views).
  */
-export async function getFirstContactResolutionRate(range: DateRange): Promise<number | null> {
+export async function getFirstContactResolutionRate(
+  range: DateRange
+): Promise<number | null> {
   const exclusiveEndDate = getNextDayString(range.endDate);
 
   // Count total sessions and admin sessions in parallel, then subtract admin sessions
@@ -65,7 +64,11 @@ export async function getFirstContactResolutionRate(range: DateRange): Promise<n
   const totalSessions = Math.max(0, allCount - adminCount);
 
   if (totalSessions === 0) {
-    console.debug('[KPI 1] no non-admin sessions in range', { range, allCount, adminCount });
+    console.debug('[KPI 1] no non-admin sessions in range', {
+      range,
+      allCount,
+      adminCount,
+    });
     return 0;
   }
 
@@ -85,14 +88,15 @@ export async function getFirstContactResolutionRate(range: DateRange): Promise<n
   const escalatedCount = escalatedCountRaw ?? 0;
 
   // Count ended sessions that are NOT admin
-  const { count: endedNonAdminCountRaw, error: endedNonAdminErr } = await supabase
-    .from('chat_sessions_v2')
-    .select('session_id', { count: 'exact', head: true })
-    .neq('flow_id', null)
-    .not('flow_id', 'ilike', 'admin%')
-    .eq('status', 'ended')
-    .gte('created_at', range.startDate)
-    .lt('created_at', exclusiveEndDate);
+  const { count: endedNonAdminCountRaw, error: endedNonAdminErr } =
+    await supabase
+      .from('chat_sessions_v2')
+      .select('session_id', { count: 'exact', head: true })
+      .neq('flow_id', null)
+      .not('flow_id', 'ilike', 'admin%')
+      .eq('status', 'ended')
+      .gte('created_at', range.startDate)
+      .lt('created_at', exclusiveEndDate);
 
   if (endedNonAdminErr) {
     console.debug('[KPI 1] ended non-admin fetch error', endedNonAdminErr);
@@ -100,7 +104,10 @@ export async function getFirstContactResolutionRate(range: DateRange): Promise<n
   }
   const endedNonAdminCount = endedNonAdminCountRaw ?? 0;
 
-  const finalNonEscalatedResolved = Math.max(0, endedNonAdminCount - escalatedCount);
+  const finalNonEscalatedResolved = Math.max(
+    0,
+    endedNonAdminCount - escalatedCount
+  );
 
   console.debug('[KPI 1]', {
     range,
@@ -119,7 +126,9 @@ export async function getFirstContactResolutionRate(range: DateRange): Promise<n
  * KPI 2: Average Initial Response Time
  * Computes per-session first customer message -> first printy reply after it using chat_messages_v2.
  */
-export async function getAverageInitialResponseTime(range: DateRange): Promise<number | null> {
+export async function getAverageInitialResponseTime(
+  range: DateRange
+): Promise<number | null> {
   const exclusiveEndDate = getNextDayString(range.endDate);
 
   const { data: messages, error } = await supabase
@@ -131,17 +140,26 @@ export async function getAverageInitialResponseTime(range: DateRange): Promise<n
   const messagesArr = (messages ?? []) as any[]; // avoid implicit-any / undefined issues
 
   if (error || messagesArr.length === 0) {
-    console.debug('[KPI 2] messages fetch error or empty', { error, messagesLength: messagesArr.length });
+    console.debug('[KPI 2] messages fetch error or empty', {
+      error,
+      messagesLength: messagesArr.length,
+    });
     return null;
   }
 
-  const bySession = new Map<string, { customerFirst?: string; printyFirstAfter?: string }>();
+  const bySession = new Map<
+    string,
+    { customerFirst?: string; printyFirstAfter?: string }
+  >();
 
   for (const m of messagesArr) {
     const sid = String(m.session_id);
     const entry = bySession.get(sid) ?? {};
     if (m.sender_role === 'customer') {
-      if (!entry.customerFirst || new Date(m.sent_at) < new Date(entry.customerFirst)) {
+      if (
+        !entry.customerFirst ||
+        new Date(m.sent_at) < new Date(entry.customerFirst)
+      ) {
         entry.customerFirst = m.sent_at;
       }
     }
@@ -157,7 +175,10 @@ export async function getAverageInitialResponseTime(range: DateRange): Promise<n
     const custAt = new Date(entry.customerFirst);
     const printAt = new Date(m.sent_at);
     if (printAt > custAt) {
-      if (!entry.printyFirstAfter || printAt < new Date(entry.printyFirstAfter)) {
+      if (
+        !entry.printyFirstAfter ||
+        printAt < new Date(entry.printyFirstAfter)
+      ) {
         entry.printyFirstAfter = m.sent_at;
         bySession.set(sid, entry);
       }
@@ -167,7 +188,10 @@ export async function getAverageInitialResponseTime(range: DateRange): Promise<n
   const responseSeconds: number[] = [];
   for (const [, v] of bySession) {
     if (v.customerFirst && v.printyFirstAfter) {
-      const diff = (new Date(v.printyFirstAfter).getTime() - new Date(v.customerFirst).getTime()) / 1000;
+      const diff =
+        (new Date(v.printyFirstAfter).getTime() -
+          new Date(v.customerFirst).getTime()) /
+        1000;
       if (Number.isFinite(diff) && diff >= 0) responseSeconds.push(diff);
     }
   }
@@ -189,7 +213,9 @@ export async function getAverageInitialResponseTime(range: DateRange): Promise<n
  * KPI 3: Average Customer Satisfaction Score
  * Uses chat_session_feedback.
  */
-export async function getAverageCustomerSatisfactionScore(range: DateRange): Promise<number | null> {
+export async function getAverageCustomerSatisfactionScore(
+  range: DateRange
+): Promise<number | null> {
   const exclusiveEndDate = getNextDayString(range.endDate);
 
   const { data, error } = await supabase
@@ -203,7 +229,10 @@ export async function getAverageCustomerSatisfactionScore(range: DateRange): Pro
     return null;
   }
   const count = data?.length ?? 0;
-  const avg = count === 0 ? 0 : data.reduce((s: number, r: any) => s + (r.rating ?? 0), 0) / count;
+  const avg =
+    count === 0
+      ? 0
+      : data.reduce((s: number, r: any) => s + (r.rating ?? 0), 0) / count;
 
   console.debug('[KPI 3]', { range, feedbackCount: count, avg });
 
@@ -215,7 +244,9 @@ export async function getAverageCustomerSatisfactionScore(range: DateRange): Pro
  * KPI 4: Escalation Rate
  * Uses chat_sessions_v2.
  */
-export async function getEscalationRate(range: DateRange): Promise<number | null> {
+export async function getEscalationRate(
+  range: DateRange
+): Promise<number | null> {
   const exclusiveEndDate = getNextDayString(range.endDate);
 
   // Count total sessions and admin sessions in parallel, then subtract admin sessions
@@ -246,7 +277,11 @@ export async function getEscalationRate(range: DateRange): Promise<number | null
   const totalSessions = Math.max(0, allCount - adminCount);
 
   if (totalSessions === 0) {
-    console.debug('[KPI 4] no non-admin sessions in range', { range, allCount, adminCount });
+    console.debug('[KPI 4] no non-admin sessions in range', {
+      range,
+      allCount,
+      adminCount,
+    });
     return 0;
   }
 
@@ -269,9 +304,17 @@ export async function getEscalationRate(range: DateRange): Promise<number | null
     return !(typeof f === 'string' && f.toLowerCase().startsWith('admin'));
   });
 
-  const escalatedCount = Array.from(new Set(escalatedNonAdmin.map((r: any) => r.session_id))).length;
+  const escalatedCount = Array.from(
+    new Set(escalatedNonAdmin.map((r: any) => r.session_id))
+  ).length;
 
-  console.debug('[KPI 4]', { range, allCount, adminCount, totalSessions, escalatedCount });
+  console.debug('[KPI 4]', {
+    range,
+    allCount,
+    adminCount,
+    totalSessions,
+    escalatedCount,
+  });
 
   return (escalatedCount / totalSessions) * 100;
 }
@@ -281,7 +324,10 @@ export async function getEscalationRate(range: DateRange): Promise<number | null
  * Primary: orders linked to quote_id -> earliest session for that quote.
  * Fallback: latest session before order per customer.
  */
-async function calculateSrttByQuoteLinkage(range: DateRange, exclusiveEndDate: string) {
+async function calculateSrttByQuoteLinkage(
+  range: DateRange,
+  exclusiveEndDate: string
+) {
   const { data: orders, error: ordErr } = await supabase
     .from('orders')
     .select('order_id, quote_id, created_at')
@@ -292,7 +338,10 @@ async function calculateSrttByQuoteLinkage(range: DateRange, exclusiveEndDate: s
   const ordersArr = (orders ?? []) as any[];
 
   if (ordErr || ordersArr.length === 0) {
-    console.debug('[KPI 5 - quote] no orders or error', { ordErr, ordersLength: ordersArr.length });
+    console.debug('[KPI 5 - quote] no orders or error', {
+      ordErr,
+      ordersLength: ordersArr.length,
+    });
     return null;
   }
 
@@ -315,17 +364,26 @@ async function calculateSrttByQuoteLinkage(range: DateRange, exclusiveEndDate: s
     const minCreatedAt = sessionsArr[0]?.created_at;
     if (!minCreatedAt) continue;
 
-    const diff = (new Date(o.created_at).getTime() - new Date(minCreatedAt).getTime()) / 1000;
+    const diff =
+      (new Date(o.created_at).getTime() - new Date(minCreatedAt).getTime()) /
+      1000;
     if (Number.isFinite(diff) && diff >= 0) times.push(diff);
   }
 
-  console.debug('[KPI 5 - quote]', { range, ordersCount: ordersArr.length, throughputSamples: times.length });
+  console.debug('[KPI 5 - quote]', {
+    range,
+    ordersCount: ordersArr.length,
+    throughputSamples: times.length,
+  });
 
   if (times.length === 0) return null;
   return { time: times.reduce((s, v) => s + v, 0), count: times.length };
 }
 
-async function calculateSrttByCustomerLinkage(range: DateRange, exclusiveEndDate: string) {
+async function calculateSrttByCustomerLinkage(
+  range: DateRange,
+  exclusiveEndDate: string
+) {
   const { data: orders, error: ordErr } = await supabase
     .from('orders')
     .select('order_id, customer_id, created_at')
@@ -336,7 +394,10 @@ async function calculateSrttByCustomerLinkage(range: DateRange, exclusiveEndDate
   const ordersArr = (orders ?? []) as any[];
 
   if (ordErr || ordersArr.length === 0) {
-    console.debug('[KPI 5 - cust] no orders or error', { ordErr, ordersLength: ordersArr.length });
+    console.debug('[KPI 5 - cust] no orders or error', {
+      ordErr,
+      ordersLength: ordersArr.length,
+    });
     return null;
   }
 
@@ -357,28 +418,46 @@ async function calculateSrttByCustomerLinkage(range: DateRange, exclusiveEndDate
     if (sErr || sessionsArr.length === 0) continue;
     const sessionCreatedAt = sessionsArr[0].created_at;
     if (!sessionCreatedAt) continue;
-    const diff = (new Date(o.created_at).getTime() - new Date(sessionCreatedAt).getTime()) / 1000;
+    const diff =
+      (new Date(o.created_at).getTime() -
+        new Date(sessionCreatedAt).getTime()) /
+      1000;
     if (Number.isFinite(diff) && diff >= 0) times.push(diff);
   }
 
-  console.debug('[KPI 5 - cust]', { range, ordersCount: ordersArr.length, throughputSamples: times.length });
+  console.debug('[KPI 5 - cust]', {
+    range,
+    ordersCount: ordersArr.length,
+    throughputSamples: times.length,
+  });
 
   if (times.length === 0) return null;
   return { time: times.reduce((s, v) => s + v, 0), count: times.length };
 }
 
-export async function getAverageServiceRequestThroughputTime(range: DateRange): Promise<number | null> {
+export async function getAverageServiceRequestThroughputTime(
+  range: DateRange
+): Promise<number | null> {
   const exclusiveEndDate = getNextDayString(range.endDate);
   const primary = await calculateSrttByQuoteLinkage(range, exclusiveEndDate);
   if (primary) {
     const avg = primary.time / primary.count;
-    console.debug('[KPI 5] used quote linkage', { avg, samples: primary.count });
+    console.debug('[KPI 5] used quote linkage', {
+      avg,
+      samples: primary.count,
+    });
     return avg;
   }
-  const fallback = await calculateSrttByCustomerLinkage(range, exclusiveEndDate);
+  const fallback = await calculateSrttByCustomerLinkage(
+    range,
+    exclusiveEndDate
+  );
   if (fallback) {
     const avg = fallback.time / fallback.count;
-    console.debug('[KPI 5] used customer linkage fallback', { avg, samples: fallback.count });
+    console.debug('[KPI 5] used customer linkage fallback', {
+      avg,
+      samples: fallback.count,
+    });
     return avg;
   }
   console.debug('[KPI 5] no throughput samples found');
@@ -390,7 +469,10 @@ export async function getAverageServiceRequestThroughputTime(range: DateRange): 
  * Primary: match orders by quote_id produced in chat sessions in range.
  * Fallback: match orders by customers who had chats in range.
  */
-async function getOrdersSourcedFromChatByQuoteLinkage(range: DateRange, exclusiveEndDate: string): Promise<number | null> {
+async function getOrdersSourcedFromChatByQuoteLinkage(
+  range: DateRange,
+  exclusiveEndDate: string
+): Promise<number | null> {
   const { data: sessions, error: sessErr } = await supabase
     .from('chat_sessions_v2')
     .select('quote_id')
@@ -402,7 +484,9 @@ async function getOrdersSourcedFromChatByQuoteLinkage(range: DateRange, exclusiv
     console.debug('[KPI 6 - quote] sessions fetch error', sessErr);
     return null;
   }
-  const quoteIds = Array.from(new Set((sessions ?? []).map((s: any) => s.quote_id).filter(Boolean)));
+  const quoteIds = Array.from(
+    new Set((sessions ?? []).map((s: any) => s.quote_id).filter(Boolean))
+  );
   console.debug('[KPI 6 - quote] quoteIdsCount=', quoteIds.length);
 
   if (quoteIds.length === 0) return 0;
@@ -423,7 +507,10 @@ async function getOrdersSourcedFromChatByQuoteLinkage(range: DateRange, exclusiv
   return count;
 }
 
-async function getOrdersSourcedFromChatByCustomerLinkage(range: DateRange, exclusiveEndDate: string): Promise<number | null> {
+async function getOrdersSourcedFromChatByCustomerLinkage(
+  range: DateRange,
+  exclusiveEndDate: string
+): Promise<number | null> {
   const { data: sessions, error: sessErr } = await supabase
     .from('chat_sessions_v2')
     .select('customer_id')
@@ -435,7 +522,9 @@ async function getOrdersSourcedFromChatByCustomerLinkage(range: DateRange, exclu
     console.debug('[KPI 6 - cust] sessions fetch error', sessErr);
     return null;
   }
-  const customerIds = Array.from(new Set((sessions ?? []).map((s: any) => s.customer_id).filter(Boolean)));
+  const customerIds = Array.from(
+    new Set((sessions ?? []).map((s: any) => s.customer_id).filter(Boolean))
+  );
   console.debug('[KPI 6 - cust] customerIdsCount=', customerIds.length);
 
   if (customerIds.length === 0) return 0;
@@ -456,13 +545,22 @@ async function getOrdersSourcedFromChatByCustomerLinkage(range: DateRange, exclu
   return count;
 }
 
-export async function getOrdersSourcedFromChatRate(range: DateRange, ordersFromOtherChannels: number): Promise<number | null> {
+export async function getOrdersSourcedFromChatRate(
+  range: DateRange,
+  ordersFromOtherChannels: number
+): Promise<number | null> {
   const exclusiveEndDate = getNextDayString(range.endDate);
 
-  let sourced = await getOrdersSourcedFromChatByQuoteLinkage(range, exclusiveEndDate);
+  let sourced = await getOrdersSourcedFromChatByQuoteLinkage(
+    range,
+    exclusiveEndDate
+  );
   let sourceUsed = 'quote';
   if (sourced === null || sourced === 0) {
-    sourced = await getOrdersSourcedFromChatByCustomerLinkage(range, exclusiveEndDate);
+    sourced = await getOrdersSourcedFromChatByCustomerLinkage(
+      range,
+      exclusiveEndDate
+    );
     sourceUsed = 'customer';
     if (sourced === null) {
       console.debug('[KPI 6] both quote and customer linkage returned null');
@@ -473,7 +571,14 @@ export async function getOrdersSourcedFromChatRate(range: DateRange, ordersFromO
   const totalAll = sourced + ordersFromOtherChannels;
   const pct = totalAll === 0 ? 0 : (sourced / totalAll) * 100;
 
-  console.debug('[KPI 6]', { range, sourceUsed, sourced, ordersFromOtherChannels, totalAll, pct });
+  console.debug('[KPI 6]', {
+    range,
+    sourceUsed,
+    sourced,
+    ordersFromOtherChannels,
+    totalAll,
+    pct,
+  });
 
   if (totalAll === 0) return 0;
   return pct;
@@ -482,7 +587,9 @@ export async function getOrdersSourcedFromChatRate(range: DateRange, ordersFromO
 /**
  * KPI 7: Job Order Accuracy Rate (JOAR)
  */
-export async function getJobOrderAccuracyRate(range: DateRange): Promise<number | null> {
+export async function getJobOrderAccuracyRate(
+  range: DateRange
+): Promise<number | null> {
   const exclusiveEndDate = getNextDayString(range.endDate);
 
   const { count: totalOrders, error: totErr } = await supabase
@@ -492,7 +599,10 @@ export async function getJobOrderAccuracyRate(range: DateRange): Promise<number 
     .lt('created_at', exclusiveEndDate);
 
   if (totErr || totalOrders === null || totalOrders === 0) {
-    console.debug('[KPI 7] totalOrders fetch error or zero', { totErr, totalOrders });
+    console.debug('[KPI 7] totalOrders fetch error or zero', {
+      totErr,
+      totalOrders,
+    });
     return 0;
   }
 
@@ -516,7 +626,10 @@ export async function getJobOrderAccuracyRate(range: DateRange): Promise<number 
 /**
  * KPI 8: Order Status Inquiry Rate
  */
-async function getRawOrderStatusInquiryTriggersByInquiryId(range: DateRange, exclusiveEndDate: string): Promise<number | null> {
+async function getRawOrderStatusInquiryTriggersByInquiryId(
+  range: DateRange,
+  exclusiveEndDate: string
+): Promise<number | null> {
   const { data, error } = await supabase
     .from('chat_sessions_v2')
     .select('inquiry_id')
@@ -529,12 +642,21 @@ async function getRawOrderStatusInquiryTriggersByInquiryId(range: DateRange, exc
     console.debug('[KPI 8 - inquiryId] fetch error', error);
     return null;
   }
-  const unique = Array.from(new Set((data ?? []).map((r: any) => r.inquiry_id).filter(Boolean)));
-  console.debug('[KPI 8 - inquiryId]', { range, returned: (data ?? []).length, uniqueCount: unique.length });
+  const unique = Array.from(
+    new Set((data ?? []).map((r: any) => r.inquiry_id).filter(Boolean))
+  );
+  console.debug('[KPI 8 - inquiryId]', {
+    range,
+    returned: (data ?? []).length,
+    uniqueCount: unique.length,
+  });
   return unique.length;
 }
 
-async function getRawOrderStatusInquiryTriggersByFlowId(range: DateRange, exclusiveEndDate: string): Promise<number | null> {
+async function getRawOrderStatusInquiryTriggersByFlowId(
+  range: DateRange,
+  exclusiveEndDate: string
+): Promise<number | null> {
   const { count, error } = await supabase
     .from('chat_sessions_v2')
     .select('session_id', { count: 'exact', head: true })
@@ -550,12 +672,20 @@ async function getRawOrderStatusInquiryTriggersByFlowId(range: DateRange, exclus
   return count;
 }
 
-export async function getOrderStatusInquiryRate(range: DateRange): Promise<number | null> {
+export async function getOrderStatusInquiryRate(
+  range: DateRange
+): Promise<number | null> {
   const exclusiveEndDate = getNextDayString(range.endDate);
 
-  let inquiries = await getRawOrderStatusInquiryTriggersByInquiryId(range, exclusiveEndDate);
+  let inquiries = await getRawOrderStatusInquiryTriggersByInquiryId(
+    range,
+    exclusiveEndDate
+  );
   if (inquiries === null || inquiries === 0) {
-    inquiries = await getRawOrderStatusInquiryTriggersByFlowId(range, exclusiveEndDate);
+    inquiries = await getRawOrderStatusInquiryTriggersByFlowId(
+      range,
+      exclusiveEndDate
+    );
     if (inquiries === null) {
       console.debug('[KPI 8] both inquiryId and flowId retrieval failed');
       return null;
@@ -569,11 +699,19 @@ export async function getOrderStatusInquiryRate(range: DateRange): Promise<numbe
     .lt('created_at', exclusiveEndDate);
 
   if (orderErr || totalOrders === null || totalOrders === 0) {
-    console.debug('[KPI 8] totalOrders fetch error or zero', { orderErr, totalOrders });
+    console.debug('[KPI 8] totalOrders fetch error or zero', {
+      orderErr,
+      totalOrders,
+    });
     return inquiries > 0 ? null : 0;
   }
 
-  console.debug('[KPI 8]', { range, inquiries, totalOrders, rate: inquiries / totalOrders });
+  console.debug('[KPI 8]', {
+    range,
+    inquiries,
+    totalOrders,
+    rate: inquiries / totalOrders,
+  });
 
   return inquiries / totalOrders;
 }
@@ -581,7 +719,9 @@ export async function getOrderStatusInquiryRate(range: DateRange): Promise<numbe
 /**
  * KPI 9: Up-To-Date Service Portfolio Rate
  */
-export async function getUpToDateServicePortfolioRate(range: DateRange): Promise<number | null> {
+export async function getUpToDateServicePortfolioRate(
+  range: DateRange
+): Promise<number | null> {
   const exclusiveEndDate = getNextDayString(range.endDate);
 
   const { count: totalServices, error: totErr } = await supabase
@@ -589,7 +729,10 @@ export async function getUpToDateServicePortfolioRate(range: DateRange): Promise
     .select('service_id', { count: 'exact', head: true });
 
   if (totErr || totalServices === null || totalServices === 0) {
-    console.debug('[KPI 9] totalServices fetch error or zero', { totErr, totalServices });
+    console.debug('[KPI 9] totalServices fetch error or zero', {
+      totErr,
+      totalServices,
+    });
     return 0;
   }
 
@@ -614,7 +757,9 @@ export async function getUpToDateServicePortfolioRate(range: DateRange): Promise
  * Option A - percent of unique customers who consulted the portfolio within the range.
  * Unit returned: percent_of_customers (0-100)
  */
-export async function getServicePortfolioUtilizationRate(range: DateRange): Promise<number | null> {
+export async function getServicePortfolioUtilizationRate(
+  range: DateRange
+): Promise<number | null> {
   const exclusiveEndDate = getNextDayString(range.endDate);
   const PORTFOLIO_FLOW_IDS = ['service-offered', 'faqs', 'about-us'];
 

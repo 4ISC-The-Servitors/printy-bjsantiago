@@ -90,7 +90,7 @@ export async function rejectQuoteProposal(
 
   try {
     // Update quotes status to 'rejected'
-    const { data: quoteData, error: quoteError } = await supabase
+    const { error: quoteError } = await supabase
       .from('quotes')
       .update({
         status: 'rejected',
@@ -109,13 +109,6 @@ export async function rejectQuoteProposal(
         ts: Date.now(),
       });
       return { messages };
-    }
-
-    if (!quoteData || quoteData.length === 0) {
-      console.warn(
-        '[rejectQuoteProposal] No quotes found for session_id:',
-        conversationId
-      );
     }
 
     // Notifications are handled by database trigger (notify_quote_events)

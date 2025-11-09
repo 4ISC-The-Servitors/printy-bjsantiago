@@ -47,7 +47,7 @@ export async function submitSessionFeedback(
 
       // Handle duplicate feedback error gracefully
       if (error.code === '23505') {
-        console.warn('Feedback already submitted for this session');
+        // Feedback already submitted for this session
       }
 
       return null;
