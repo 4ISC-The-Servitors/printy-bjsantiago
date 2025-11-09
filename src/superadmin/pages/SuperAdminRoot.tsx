@@ -19,6 +19,7 @@ const SuperAdminRoot: React.FC = () => {
   const { isMobileOrTablet } = useDeviceUtils();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Check for signin success toast
   useEffect(() => {
@@ -68,35 +69,47 @@ const SuperAdminRoot: React.FC = () => {
     toast.info('Refreshing data', 'KPI data is being updated');
   };
 
+  // Listen for loading state changes from Dashboard
+  useEffect(() => {
+    const handleLoadingChange = (event: Event) => {
+      const customEvent = event as CustomEvent<{ loading: boolean }>;
+      setIsRefreshing(customEvent.detail.loading);
+    };
+
+    window.addEventListener('superadmin-refresh-loading', handleLoadingChange);
+    return () => {
+      window.removeEventListener('superadmin-refresh-loading', handleLoadingChange);
+    };
+  }, []);
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-neutral-50">
       {/* Top Navigation Bar */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
+      <header className="bg-neutral-0 shadow-sm border-b border-neutral-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Logo/Title */}
             <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-indigo-700">
-                PRINTY SuperAdmin
-              </h1>
             </div>
 
             {/* Action Buttons */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
               <button
                 onClick={handleRefreshData}
-                className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200"
+                disabled={isRefreshing}
+                className="btn btn-secondary device-btn-secondary"
                 title="Refresh KPI data"
               >
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Refresh Data
+                <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                <span className="hidden sm:inline">{isRefreshing ? 'Refreshing...' : 'Refresh Data'}</span>
+                <span className="sm:hidden">{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
               </button>
 
               <button
                 onClick={handleLogout}
-                className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors duration-200"
+                className="btn btn-error device-btn-secondary"
               >
-                <LogOut className="w-4 h-4 mr-2" />
+                <LogOut className="w-4 h-4" />
                 Logout
               </button>
             </div>
@@ -115,9 +128,9 @@ const SuperAdminRoot: React.FC = () => {
         onClose={() => !isLoggingOut && setShowLogoutModal(false)}
         size="sm"
       >
-        <div className="bg-white rounded-2xl shadow-xl border border-neutral-200">
-          <div className="flex items-center justify-between p-6 pb-4">
-            <Text variant="h3" size="lg" weight="semibold">
+        <div className="card">
+          <div className="flex items-center justify-between device-spacing-component pb-4">
+            <Text variant="h3" className="device-text-heading font-semibold text-neutral-900">
               Confirm Logout
             </Text>
             {!isLoggingOut && (
@@ -132,14 +145,14 @@ const SuperAdminRoot: React.FC = () => {
             )}
           </div>
 
-          <div className="px-6 pb-4">
-            <Text variant="p">
+          <div className="device-spacing-component pb-4">
+            <Text variant="p" className="device-text-body text-neutral-700">
               Are you sure you want to log out? You'll need to sign in again to
               access the superadmin dashboard.
             </Text>
           </div>
 
-          <div className="flex items-center justify-end gap-3 p-6 pt-4">
+          <div className="flex items-center justify-end gap-3 device-spacing-component pt-4">
             <Button
               variant="ghost"
               onClick={() => setShowLogoutModal(false)}
