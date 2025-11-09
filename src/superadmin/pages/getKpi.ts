@@ -49,22 +49,8 @@ function getNextDayString(dateString: string): string {
   return `${year}-${month}-${day}`;
 }
 
-/**
- * Helper function to parse a PostgreSQL timestamp string (which includes up to 6 digits for microseconds)
- * into a floating-point number representing milliseconds since the Unix epoch.
- */
-function parseTimestampToMilliseconds(timestamp: string): number {
-  const date = new Date(timestamp);
-  let ms = date.getTime();
-  const microsecondMatch = timestamp.match(/\.(\d{3})(\d{3})/);
+// NOTE: parseTimestampToMilliseconds and timestampInRange removed as filtering is now done by Supabase/PostgreSQL.
 
-  if (microsecondMatch) {
-    const microsecondRemainder = parseInt(microsecondMatch[2], 10);
-    const msFraction = microsecondRemainder / 1000;
-    ms += msFraction;
-  }
-  return ms;
-}
 
 // --- KPI 1: First Contact Resolution Rate ---
 export async function getFirstContactResolutionRate(
@@ -118,85 +104,41 @@ export async function getFirstContactResolutionRate(
 }
 
 // --- KPI 2: Average Initial Response Time ---
+/**
+ * Uses the security function 'get_admin_initial_response' and applies server-side date filtering.
+ */
 export async function getAverageInitialResponseTime(
   range: DateRange
 ): Promise<number | null> {
   console.log(
     `[KPI 2] Fetching Avg Initial Response Time for range: ${range.startDate} to ${range.endDate}`
   );
+  
   const exclusiveEndDate = getNextDayString(range.endDate);
 
-  const { data: sessions, error: sessionError } = await supabase
-    .from('chat_sessions_v2')
-    .select('session_id')
-    .gte('created_at', range.startDate)
-    .lt('created_at', exclusiveEndDate);
+  // FIX: Apply date filtering directly to the RPC call (server-side)
+  const { data: responseData, error: rpcError } = await supabase
+    .rpc('get_admin_initial_response')
+    .gte('customer_first_at', range.startDate)
+    .lt('customer_first_at', exclusiveEndDate); // Ensure column name matches view
 
-  if (sessionError || !sessions || sessions.length === 0) return null;
-
-  const sessionIds = sessions.map(s => s.session_id);
-
-  const { data: combinedMessages, error: combinedError } = await supabase
-    .from('chat_messages_v2')
-    .select(
-      `
-      session_id,
-      sent_at,
-      sender_role,
-      metadata
-    `
-    )
-    .in('session_id', sessionIds)
-    .order('sent_at', { ascending: true });
-
-  if (combinedError || !combinedMessages || combinedMessages.length === 0)
+  if (rpcError || !responseData || responseData.length === 0) {
+    console.warn('[KPI 2 WARNING] No initial responses returned by RPC.');
+    // IMPORTANT: If you still see failures after this fix, the issue is Auth.uid() failing.
+    console.error('[KPI 2 RPC ERROR]', rpcError); 
     return null;
-
-  const groupedMessages = combinedMessages.reduce((acc, msg) => {
-    const sender_role = msg.sender_role;
-    if (!sender_role) return acc;
-
-    const messageWithRole = {
-      session_id: msg.session_id,
-      sent_at: msg.sent_at,
-      sender_role: sender_role,
-    };
-
-    if (!acc.has(msg.session_id)) {
-      acc.set(msg.session_id, []);
-    }
-    acc.get(msg.session_id)?.push(messageWithRole);
-    return acc;
-  }, new Map<string, Array<{ session_id: string; sent_at: string; sender_role: string }>>());
-
-  let totalResponseTime = 0;
-  let count = 0;
-
-  for (const sessionMessages of groupedMessages.values()) {
-    let customerMsgTime: number | null = null;
-    let printyMsgTime: number | null = null;
-
-    for (const msg of sessionMessages) {
-      if (msg.sender_role === 'customer' && customerMsgTime === null) {
-        customerMsgTime = parseTimestampToMilliseconds(msg.sent_at);
-      } else if (msg.sender_role === 'printy' && customerMsgTime !== null) {
-        printyMsgTime = parseTimestampToMilliseconds(msg.sent_at);
-        if (printyMsgTime > customerMsgTime) {
-          break;
-        }
-      }
-    }
-
-    if (customerMsgTime !== null && printyMsgTime !== null) {
-      totalResponseTime += (printyMsgTime - customerMsgTime) / 1000;
-      count++;
-    }
   }
 
-  if (count === 0) return null;
+  const times = (responseData as any[])
+    .map(r => Number(r.response_time_seconds))
+    .filter(v => Number.isFinite(v) && v >= 0);
 
-  return totalResponseTime / count;
+  if (times.length === 0) return null;
+
+  const totalResponseTime = times.reduce((sum, t) => sum + t, 0);
+  return totalResponseTime / times.length;
 }
+
 
 // --- KPI 3: Average Customer Satisfaction Score ---
 export async function getAverageCustomerSatisfactionScore(
@@ -206,7 +148,6 @@ export async function getAverageCustomerSatisfactionScore(
     `[KPI 3] Fetching Avg CSAT for range: ${range.startDate} to ${range.endDate}`
   );
 
-  // ADDED BY ANDENG, IDK IF THIS WILL WORK
   const exclusiveEndDate = getNextDayString(range.endDate);
 
   const { data, error } = await supabase
@@ -230,7 +171,7 @@ export async function getAverageCustomerSatisfactionScore(
     `[KPI 3 SUCCESS] Calculated average CSAT: ${avgRating.toFixed(2)}`
   );
   return avgRating;
-} // ADDED BY ANDENG, IDK IF THIS WILL WORK
+} 
 
 // --- KPI 4: Escalation Rate ---
 export async function getEscalationRate(
@@ -270,182 +211,58 @@ export async function getEscalationRate(
 
 /**
  * Primary Logic: SRTT based on orders linked to a chat-generated quote_id.
+ * FIX: Apply server-side date filtering.
  */
 async function calculateSrttByQuoteLinkage(
   range: DateRange,
   exclusiveEndDate: string
 ): Promise<{ time: number; count: number } | null> {
-  // 1. Get all orders in the range that have a quote_id
-  const { data: orders, error: orderError } = await supabase
-    .from('orders')
-    .select('order_id, quote_id, created_at')
-    .not('quote_id', 'is', null) // Primary Logic: Only consider orders linked to a quote
-    .gte('created_at', range.startDate)
-    .lt('created_at', exclusiveEndDate);
 
-  if (orderError || !orders || orders.length === 0) {
-    return null; // Return null if primary data is missing
-  }
+  // FIX: Apply date filtering directly to the RPC call (server-side)
+  const { data: throughputData, error: rpcError } = await supabase
+    .rpc('get_admin_srt_by_quote')
+    .gte('order_created_at', range.startDate) // Ensure column name matches view
+    .lt('order_created_at', exclusiveEndDate); // Ensure column name matches view
 
-  const orderQuoteIds = Array.from(new Set(orders.map(o => o.quote_id)));
-
-  // 2. Get the chat session start time for all relevant quotes
-  const { data: sessions, error: sessionError } = await supabase
-    .from('chat_sessions_v2')
-    .select('quote_id, created_at')
-    .in('quote_id', orderQuoteIds);
-
-  if (sessionError || !sessions || sessions.length === 0) {
+  if (rpcError || !throughputData || throughputData.length === 0) {
     return null;
   }
 
-  const sessionStartTimeMap = new Map<string, string>();
-  for (const session of sessions) {
-    // Find the EARLIEST session associated with a quote_id to mark the request start
-    if (
-      !sessionStartTimeMap.has(session.quote_id) ||
-      new Date(session.created_at) <
-        new Date(sessionStartTimeMap.get(session.quote_id)!)
-    ) {
-      sessionStartTimeMap.set(session.quote_id, session.created_at);
-    }
-  }
+  const times = (throughputData as any[])
+    .map(r => Number(r.throughput_seconds))
+    .filter(v => Number.isFinite(v) && v >= 0);
+    
+  if (times.length === 0) return null;
 
-  let totalThroughputTime = 0;
-  let calculatedOrdersCount = 0;
-
-  // 3. Calculate throughput time for each linked order
-  for (const order of orders) {
-    const sessionStartTime = sessionStartTimeMap.get(order.quote_id);
-
-    if (sessionStartTime) {
-      const sessionTimeMs = new Date(sessionStartTime).getTime();
-      const orderTimeMs = new Date(order.created_at).getTime();
-
-      if (orderTimeMs >= sessionTimeMs) {
-        totalThroughputTime += (orderTimeMs - sessionTimeMs) / 1000;
-        calculatedOrdersCount++;
-      }
-    }
-  }
-
-  if (calculatedOrdersCount === 0) return null;
-
-  return { time: totalThroughputTime, count: calculatedOrdersCount };
+  return { time: times.reduce((s, v) => s + v, 0), count: times.length };
 }
 
 /**
  * KPI 5 Fallback Logic: Calculates SRTT by finding the LATEST CHAT SESSION START TIME
- * for a customer that occurred BEFORE their order was placed. (Corrected logic)
+ * FIX: Apply server-side date filtering.
  */
 async function calculateSrttByCustomerLinkage(
   range: DateRange,
   exclusiveEndDate: string
 ): Promise<{ time: number; count: number } | null> {
-  console.warn(
-    '[KPI 5 FALLBACK] Falling back to Customer-Linked SRTT calculation (using LATEST session start time before order).'
-  );
 
-  // 1. Get all orders in the range with customer_id
-  const { data: orders, error: orderError } = await supabase
-    .from('orders')
-    .select('order_id, customer_id, created_at')
-    .not('customer_id', 'is', null)
-    .gte('created_at', range.startDate)
-    .lt('created_at', exclusiveEndDate);
+  // FIX: Apply date filtering directly to the RPC call (server-side)
+  const { data: throughputData, error: rpcError } = await supabase
+    .rpc('get_admin_srt_by_customer')
+    .gte('order_created_at', range.startDate) // Ensure column name matches view
+    .lt('order_created_at', exclusiveEndDate); // Ensure column name matches view
 
-  if (orderError || !orders || orders.length === 0) return null;
-
-  const allCustomerIds = Array.from(
-    new Set(orders.map(o => o.customer_id).filter((id): id is string => !!id))
-  );
-
-  if (allCustomerIds.length === 0) return null;
-
-  // 2. Fetch all relevant chat session start times for the customers in the range
-  // NOTE: We order by DESCENDING created_at to easily find the LATEST session in step 4.
-  const { data: allSessions, error: sessionError } = await supabase
-    .from('chat_sessions_v2')
-    .select('customer_id, created_at')
-    .in('customer_id', allCustomerIds)
-    .order('created_at', { ascending: false }); // <-- Critical: Order DESCENDING
-
-  if (sessionError || !allSessions || allSessions.length === 0) {
-    console.error(
-      '[KPI 5 FALLBACK ERROR] Failed to fetch customer sessions for SRTT fallback:',
-      sessionError
-    );
+  if (rpcError || !throughputData || throughputData.length === 0) {
     return null;
   }
 
-  // 3. Index session start times by customer_id
-  // We don't need to filter by range here, as step 4 handles matching the time relative to the order.
-  const sessionsByCustomer = allSessions.reduce((acc, session) => {
-    if (!session.customer_id) return acc;
-    if (!acc.has(session.customer_id)) {
-      // Because we fetched the data sorted DESC, the array will be sorted from
-      // most recent session to oldest session for that customer.
-      acc.set(session.customer_id, []);
-    }
-    // Store the object { ms: milliseconds, created_at: string }
-    acc.get(session.customer_id)?.push({
-      ms: new Date(session.created_at).getTime(),
-      created_at: session.created_at,
-    });
-    return acc;
-  }, new Map<string, Array<{ ms: number; created_at: string }>>());
+  const times = (throughputData as any[])
+    .map(r => Number(r.throughput_seconds))
+    .filter(v => Number.isFinite(v) && v >= 0);
+    
+  if (times.length === 0) return null;
 
-  let totalThroughputTime = 0;
-  let calculatedOrdersCount = 0;
-
-  // 4. Client-side matching and calculation
-  for (const order of orders) {
-    if (!order.customer_id) continue;
-
-    const orderTimeMs = new Date(order.created_at).getTime();
-    const customerSessionTimes = sessionsByCustomer.get(order.customer_id);
-
-    if (!customerSessionTimes) continue;
-
-    let latestSession: { ms: number; created_at: string } | null = null;
-
-    // Find the LATEST session time that is LESS than the order time
-    // Because the array is sorted DESC (most recent first), the first session
-    // we find that is BEFORE the order is the correct LATEST touchpoint.
-    for (const session of customerSessionTimes) {
-      if (session.ms < orderTimeMs) {
-        latestSession = session;
-        break; // Stop looking, this is the LATEST
-      }
-    }
-
-    if (latestSession !== null) {
-      const durationSeconds = (orderTimeMs - latestSession.ms) / 1000;
-
-      // --- CRITICAL DEBUGGING LOGS ---
-      // These logs will help you confirm the fix is working by showing the selected duration
-      if (calculatedOrdersCount < 5) {
-        // Log the first few successful calculations
-        console.log(`[KPI 5 FALLBACK DEBUG] Order ID: ${order.order_id}`);
-        console.log(
-          `[KPI 5 FALLBACK DEBUG] 1. Order Time: ${order.created_at}`
-        );
-        console.log(
-          `[KPI 5 FALLBACK DEBUG] 2. Matched Session Start Time (Latest): ${latestSession.created_at}`
-        );
-        console.log(
-          `[KPI 5 FALLBACK DEBUG] 3. Calculated Duration: ${durationSeconds.toFixed(2)} seconds`
-        );
-      }
-      // --- END CRITICAL DEBUGGING LOGS ---
-
-      totalThroughputTime += durationSeconds;
-      calculatedOrdersCount++;
-    }
-  }
-
-  if (calculatedOrdersCount === 0) return null;
-  return { time: totalThroughputTime, count: calculatedOrdersCount };
+  return { time: times.reduce((s, v) => s + v, 0), count: times.length };
 }
 
 export async function getAverageServiceRequestThroughputTime(
@@ -490,10 +307,6 @@ export async function getAverageServiceRequestThroughputTime(
 }
 
 // --- KPI 6: Percentage of Service Requests Initiated via PRINTY ---
-
-/**
- * Primary Logic: Orders linked directly to a quote ID generated within a chat session.
- */
 async function getOrdersSourcedFromChatByQuoteLinkage(
   range: DateRange,
   exclusiveEndDate: string
@@ -735,8 +548,8 @@ export async function getUpToDateServicePortfolioRate(
   const { count: updatedServices, error: updatedError } = await supabase
     .from('printing_services')
     .select('service_id', { count: 'exact', head: true })
-    .gte('date_last_modified', range.startDate)
-    .lt('date_last_modified', exclusiveEndDate);
+    .gte('updated_at', range.startDate)
+    .lt('updated_at', exclusiveEndDate);
 
   if (updatedError || updatedServices === null) return 0;
 
