@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  RefreshCw,
   Zap,
   Star,
   Shield,
@@ -176,8 +175,7 @@ const Card: React.FC<CardProps> = ({ kpi, value, loading }) => {
   }
 
   return (
-    // Applied rounded-2xl and increased padding for a softer, more modern card
-    <div className="bg-white p-6 rounded-2xl shadow-lg transition duration-300 hover:shadow-xl border border-gray-100">
+    <div className="card p-6">
       <div className="flex items-center justify-between">
         {/* Icon container retains the custom color logic */}
         <div
@@ -189,18 +187,18 @@ const Card: React.FC<CardProps> = ({ kpi, value, loading }) => {
           <Icon size={24} className={kpi.color} />
         </div>
         <div className="text-right">
-          <p className="text-3xl font-bold text-gray-800 tabular-nums">
+          <p className="device-text-heading font-semibold text-neutral-900 tabular-nums">
             {displayValue}
           </p>
         </div>
       </div>
-      <p className="mt-3 text-lg font-semibold text-gray-700">{kpi.name}</p>
-      <p className="text-sm text-gray-500 mt-1">
+      <p className="mt-3 device-text-body font-semibold text-neutral-700">{kpi.name}</p>
+      <p className="device-text-caption text-neutral-600 mt-1">
         Target Impact:{' '}
-        <span className="font-medium text-gray-600">{kpi.target}</span>
+        <span className="font-medium text-neutral-700">{kpi.target}</span>
       </p>
       {value === null && !loading && (
-        <p className="text-xs text-red-500 mt-2">
+        <p className="text-xs text-error mt-2">
           Error: Data missing or calculation failed.
         </p>
       )}
@@ -208,24 +206,81 @@ const Card: React.FC<CardProps> = ({ kpi, value, loading }) => {
   );
 };
 
+// Storage key for persisting KPI data
+const STORAGE_KEY = 'superadmin-kpi-data';
+
+// Interface for stored data
+interface StoredKpiData {
+  kpiData: Record<string, number | null | undefined>;
+  dateRange: DateRange;
+  ordersFromOtherChannels: number;
+  timestamp: number;
+}
+
+// Helper function to load data from localStorage
+const loadStoredData = (): Partial<StoredKpiData> | null => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored) as StoredKpiData;
+      // Validate that stored data is not too old (e.g., 24 hours)
+      const maxAge = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+      const now = Date.now();
+      if (now - parsed.timestamp < maxAge) {
+        return parsed;
+      }
+    }
+  } catch (error) {
+    console.error('Error loading stored KPI data:', error);
+  }
+  return null;
+};
+
+// Helper function to save data to localStorage
+const saveStoredData = (
+  kpiData: Record<string, number | null | undefined>,
+  dateRange: DateRange,
+  ordersFromOtherChannels: number
+) => {
+  try {
+    const data: StoredKpiData = {
+      kpiData,
+      dateRange,
+      ordersFromOtherChannels,
+      timestamp: Date.now(),
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch (error) {
+    console.error('Error saving KPI data to storage:', error);
+  }
+};
+
 // Use React.FC for the main component
 const SuperAdminDashboard: React.FC = () => {
-  const [dateRange, setDateRange] = useState<DateRange>({
-    startDate: getOneMonthAgo(),
-    endDate: getToday(),
-  });
+  // Load initial state from localStorage or use defaults
+  const storedData = loadStoredData();
+  
+  const [dateRange, setDateRange] = useState<DateRange>(
+    storedData?.dateRange || {
+      startDate: getOneMonthAgo(),
+      endDate: getToday(),
+    }
+  );
   // The state will hold KPI IDs mapped to their number values, or null if failed.
   const [kpiData, setKpiData] = useState<
     Record<string, number | null | undefined>
-  >({});
+  >(storedData?.kpiData || {});
   const [loading, setLoading] = useState<boolean>(false);
   // State for the external input required by KPI 6
   const [ordersFromOtherChannels, setOrdersFromOtherChannels] =
-    useState<number>(0);
+    useState<number>(storedData?.ordersFromOtherChannels || 0);
 
   // Function to fetch all KPI data, explicitly typed
   const fetchKpiData = useCallback(async () => {
     setLoading(true);
+    // Dispatch loading started event for header button state
+    window.dispatchEvent(new CustomEvent('superadmin-refresh-loading', { detail: { loading: true } }));
+    
     const results: Record<string, number | null | undefined> = {};
 
     const promises = kpiDefinitions.map(async kpi => {
@@ -263,12 +318,15 @@ const SuperAdminDashboard: React.FC = () => {
 
     setKpiData(results);
     setLoading(false);
+    // Save to localStorage for persistence
+    saveStoredData(results, dateRange, ordersFromOtherChannels);
+    // Dispatch loading finished event for header button state
+    window.dispatchEvent(new CustomEvent('superadmin-refresh-loading', { detail: { loading: false } }));
   }, [dateRange, ordersFromOtherChannels]);
 
-  // NOTE: Removed automatic fetch on mount / effect that called fetchKpiData immediately.
-  // KPI processing will now only run when:
-  // - user clicks the "Refresh Data" button below, or
-  // - a 'superadmin-refresh-data' event is dispatched (e.g., from SuperAdminRoot)
+  // NOTE: KPI processing will only run when:
+  // - a 'superadmin-refresh-data' event is dispatched from the header "Refresh Data" button
+  // Data is loaded from localStorage on mount and persists across page refreshes
 
   // Listen for refresh events from SuperAdminRoot navbar
   useEffect(() => {
@@ -288,25 +346,35 @@ const SuperAdminDashboard: React.FC = () => {
     };
   }, [fetchKpiData]);
 
+  // Save dateRange and ordersFromOtherChannels to localStorage when they change
+  // (but only if we already have KPI data, to avoid overwriting with empty data)
+  // The kpiData will be saved when fetchKpiData completes
+  useEffect(() => {
+    if (Object.keys(kpiData).length > 0) {
+      saveStoredData(kpiData, dateRange, ordersFromOtherChannels);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dateRange, ordersFromOtherChannels]); // Note: kpiData intentionally excluded to avoid circular updates
+
   // Render Section
   return (
-    <div className="min-h-screen bg-gray-50 p-4 sm:p-8 font-['Inter']">
+    <div className="min-h-screen bg-neutral-50 p-4 sm:p-8">
       <div className="max-w-7xl mx-auto">
-        {/* Header and Controls: Updated to use rounded-2xl and indigo-700 */}
-        <header className="bg-white p-8 rounded-2xl shadow-xl mb-10">
-          <h1 className="text-4xl font-extrabold text-indigo-700 mb-2">
+        {/* Header and Controls */}
+        <header className="card device-spacing-component mb-10">
+          <h1 className="device-text-hero font-semibold text-brand-primary mb-2">
             PRINTY Superadmin KPI Dashboard
           </h1>
-          <p className="text-gray-500 mb-6">
+          <p className="device-text-body text-neutral-600 mb-6">
             Monitoring key metrics for chatbot effectiveness and service
             management.
           </p>
 
-          <div className="flex flex-col md:flex-row gap-4 items-end">
+          <div className="flex flex-col lg:flex-row gap-4 lg:items-end">
             {/* Date Range Picker */}
-            <div className="flex flex-col sm:flex-row gap-3 flex-grow">
-              <label className="block">
-                <span className="text-sm font-medium text-gray-700">
+            <div className="flex flex-col lg:flex-row gap-3 flex-grow">
+              <label className="block w-full lg:w-auto">
+                <span className="device-text-caption font-medium text-neutral-700">
                   Start Date
                 </span>
                 <input
@@ -315,13 +383,12 @@ const SuperAdminDashboard: React.FC = () => {
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                     setDateRange({ ...dateRange, startDate: e.target.value })
                   }
-                  // Added rounded-lg and focused ring color
-                  className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2 border focus:border-indigo-500 focus:ring-indigo-500 focus:ring-1 transition duration-150"
+                  className="input device-input mt-1 w-full"
                   max={dateRange.endDate}
                 />
               </label>
-              <label className="block">
-                <span className="text-sm font-medium text-gray-700">
+              <label className="block w-full lg:w-auto">
+                <span className="device-text-caption font-medium text-neutral-700">
                   End Date
                 </span>
                 <input
@@ -330,8 +397,7 @@ const SuperAdminDashboard: React.FC = () => {
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                     setDateRange({ ...dateRange, endDate: e.target.value })
                   }
-                  // Added rounded-lg and focused ring color
-                  className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2 border focus:border-indigo-500 focus:ring-indigo-500 focus:ring-1 transition duration-150"
+                  className="input device-input mt-1 w-full"
                   min={dateRange.startDate}
                   max={getToday()}
                 />
@@ -339,8 +405,8 @@ const SuperAdminDashboard: React.FC = () => {
             </div>
 
             {/* External Input for KPI 6 */}
-            <label className="block w-full sm:w-auto md:w-1/4">
-              <span className="text-sm font-medium text-gray-700 whitespace-nowrap">
+            <label className="block w-full lg:w-auto lg:min-w-[200px]">
+              <span className="device-text-caption font-medium text-neutral-700">
                 Orders via Email/Call (#6)
               </span>
               <input
@@ -349,29 +415,11 @@ const SuperAdminDashboard: React.FC = () => {
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                   setOrdersFromOtherChannels(Number(e.target.value) || 0)
                 }
-                // Added rounded-lg and focused ring color
-                className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2 border focus:border-indigo-500 focus:ring-indigo-500 focus:ring-1 transition duration-150"
+                className="input device-input mt-1 w-full"
                 placeholder="Enter non-chat orders"
                 min="0"
               />
             </label>
-
-            <button
-              onClick={fetchKpiData}
-              disabled={loading}
-              // Updated to use bg-indigo-700 and font-bold, larger padding/size, and rounded-xl
-              className={`w-full md:w-auto px-6 py-3 rounded-xl font-bold text-white transition duration-300 flex items-center justify-center ${
-                loading
-                  ? 'bg-indigo-400 cursor-not-allowed'
-                  : 'bg-indigo-700 hover:bg-indigo-800 shadow-md hover:shadow-lg'
-              }`}
-            >
-              <RefreshCw
-                size={18}
-                className={loading ? 'animate-spin mr-2' : 'mr-2'}
-              />
-              {loading ? 'Processing...' : 'Refresh Data'}
-            </button>
           </div>
         </header>
 
@@ -387,10 +435,10 @@ const SuperAdminDashboard: React.FC = () => {
           ))}
         </section>
 
-        {/* Footer/Instructions: Updated to use rounded-2xl */}
-        <footer className="mt-8 text-center text-gray-500 text-sm p-4 bg-white rounded-2xl shadow-lg">
-          <p>
-            Values are processed on demand. Click "Refresh Data" to pull KPIs
+        {/* Footer/Instructions */}
+        <footer className="card device-spacing-component mt-8 text-center">
+          <p className="device-text-caption text-neutral-600">
+            Values are processed on demand. Click "Refresh Data" in the header to pull KPIs
             from Supabase.
           </p>
         </footer>

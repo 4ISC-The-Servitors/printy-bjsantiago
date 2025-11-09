@@ -9,8 +9,9 @@
 - updated image renders to be just like pdf with file names instead for cleaner UI
 - added downloadable image/pdf files
 - added Customer Information modal for admins
-- adjusted mobile UI for admin pages to cater new Customer Information modal\
+- adjusted mobile UI for admin pages to cater new Customer Information modal
 - fixed admin review ticket not getting their own reply and customer replies
+- enhanced Superadmin UI, added localStorage for persisting KPI data to avoid re-querying if needed
 
 ### 2025-11-08-Andeng
 
