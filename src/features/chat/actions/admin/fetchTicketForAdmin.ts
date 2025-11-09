@@ -173,9 +173,6 @@ export async function fetchTicketForAdmin(
 
     let ticketMessages: any[] = [];
     if (!ticketError && ticketConversations && ticketConversations.length > 0) {
-      console.log(
-        `[fetchTicketForAdmin] Found ${ticketConversations.length} reply sessions for inquiry ${inquiryId}`
-      );
       for (const ticketSession of ticketConversations) {
         const { data: ticketChatMessages, error: messagesError } =
           await supabase.rpc('api_fetch_chat_messages_v2', {
@@ -189,16 +186,9 @@ export async function fetchTicketForAdmin(
           continue;
         }
         if (ticketChatMessages && Array.isArray(ticketChatMessages)) {
-          console.log(
-            `[fetchTicketForAdmin] Fetched ${ticketChatMessages.length} messages from session ${ticketSession.session_id}`
-          );
           ticketMessages.push(...ticketChatMessages);
         }
       }
-    } else {
-      console.log(
-        `[fetchTicketForAdmin] No reply sessions found for inquiry ${inquiryId}`
-      );
     }
 
     if (ticketMessages.length > 0) {

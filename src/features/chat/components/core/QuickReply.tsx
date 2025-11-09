@@ -85,14 +85,7 @@ export const QuickReplyGrid: React.FC<QuickReplyGridProps> = ({
         const isEnd = endLabels.has(normalizedLabel);
         const isSecondary = secondaryLabels.has(normalizedLabel);
         const handleClick = () => {
-          console.log('[QuickReply] Button clicked:', {
-            reply,
-            isEnd,
-            timestamp: Date.now(),
-          });
-
           if (isEnd) {
-            console.log('[QuickReply] Calling handleEndChat');
             void handleEndChat();
           } else {
             // Extract the label from the value if it contains a pipe (category_id|category_name)
@@ -100,11 +93,6 @@ export const QuickReplyGrid: React.FC<QuickReplyGridProps> = ({
             const displayLabel = reply.value.includes('|')
               ? reply.value.split('|')[1]
               : reply.label;
-
-            console.log('[QuickReply] Calling onQuickReply with:', {
-              value: reply.value,
-              label: displayLabel,
-            });
 
             // Pass both value (for routing) and label (for display) as an object
             // The handler will extract what it needs

@@ -55,11 +55,6 @@ export async function displayServicesByCategory(
     // The context now stores only the category_id (not "category_id|category_name")
     const categoryId = context?.selected_category;
 
-    console.log('[displayServicesByCategory] Received context:', {
-      selected_category: categoryId,
-      fullContext: context,
-    });
-
     if (!categoryId) {
       messages.push({
         id: crypto.randomUUID(),

@@ -5,7 +5,7 @@ import { supabase } from '@lib/supabase';
 import { useToast } from '@lib/useToast';
 
 interface SecuritySettingsProps {
-  onPasswordUpdated?: () => void; // Triggered after successful password update
+  onPasswordUpdated?: () => void;
 }
 
 const SecuritySettings: React.FC<SecuritySettingsProps> = ({
@@ -26,7 +26,6 @@ const SecuritySettings: React.FC<SecuritySettingsProps> = ({
   const toggle = (k: 'current' | 'next' | 'confirm') =>
     setShow(p => ({ ...p, [k]: !p[k] }));
 
-  // Password requirements validation
   const passwordRequirements = [
     {
       text: 'At least 8 characters',
@@ -50,7 +49,6 @@ const SecuritySettings: React.FC<SecuritySettingsProps> = ({
     },
   ];
 
-  // Password confirmation validation
   const isPasswordMatch = pw.next && pw.confirm && pw.next === pw.confirm;
   const isPasswordMismatch = pw.next && pw.confirm && pw.next !== pw.confirm;
 
@@ -74,26 +72,22 @@ const SecuritySettings: React.FC<SecuritySettingsProps> = ({
     return errors;
   };
 
-  // Handle password update
   const handlePasswordUpdate = async () => {
     setError(null);
     setIsLoading(true);
 
     try {
-      // Validate new password
       const passwordErrors = validatePassword(pw.next);
       if (passwordErrors.length > 0) {
         setError(passwordErrors.join(', '));
         return;
       }
 
-      // Check if passwords match
       if (pw.next !== pw.confirm) {
         setError('New passwords do not match');
         return;
       }
 
-      // Update password using Supabase Auth
       const { error: updateError } = await supabase.auth.updateUser({
         password: pw.next,
       });
@@ -107,7 +101,6 @@ const SecuritySettings: React.FC<SecuritySettingsProps> = ({
         return;
       }
 
-      // Success
       toast.success('Password updated successfully!');
       setConfirmOpen(false);
       setIsChanging(false);
@@ -122,7 +115,6 @@ const SecuritySettings: React.FC<SecuritySettingsProps> = ({
     }
   };
 
-  // Reset form and errors
   const resetForm = () => {
     setIsChanging(false);
     setPw({ current: '', next: '', confirm: '' });
@@ -142,7 +134,6 @@ const SecuritySettings: React.FC<SecuritySettingsProps> = ({
             <Text variant="span" className="device-text-body" weight="medium">
               Password
             </Text>
-            {/* Password change date indicator removed */}
           </div>
           {!isChanging && (
             <Button
@@ -217,7 +208,6 @@ const SecuritySettings: React.FC<SecuritySettingsProps> = ({
                 </Button>
               </div>
 
-              {/* Password Requirements */}
               {pw.next && (
                 <div className="mt-2 space-y-1">
                   <Text
@@ -300,7 +290,6 @@ const SecuritySettings: React.FC<SecuritySettingsProps> = ({
                   )}
                 </Button>
 
-                {/* Password Match Indicator */}
                 {pw.confirm && (
                   <div className="absolute right-10 top-1/2 -translate-y-1/2">
                     {isPasswordMatch ? (
@@ -336,7 +325,6 @@ const SecuritySettings: React.FC<SecuritySettingsProps> = ({
                 )}
               </div>
 
-              {/* Password Match Status Text */}
               {pw.confirm && (
                 <div className="mt-1">
                   {isPasswordMatch ? (

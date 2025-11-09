@@ -6,12 +6,11 @@ import { Skeleton, Card } from '@shared/components';
  *
  * Enhanced loading skeleton that accurately mimics the Account Settings layout:
  * - Full-screen gradient background matching the actual page
- * - Mobile header with burger menu (hidden on desktop)
+ * - Mobile header with burger menu (hidden on larger screens)
  * - Back button and page header with proper device-text classes
  * - Profile Overview Card with avatar, name, email, and membership badge using responsive design
  * - Personal Information Form with all field groups properly structured
  * - Security Settings section with password change
- * - Notification Preferences section with toggle switches
  * - Proper responsive spacing and device-* classes for consistency
  * - Container layout that matches the actual page structure
  */
@@ -33,14 +32,14 @@ const CustomerAccountSettingsLoading: React.FC = () => {
 
       {/* Main content area */}
       <main className="flex-1 flex flex-col overflow-hidden">
-        <div className="device-container py-6 md:py-10">
+        <div className="device-container device-spacing-section">
           {/* Back button and page header - matches actual component */}
           <div className="mb-6 flex items-center gap-3">
             <Skeleton
               variant="rectangular"
               width="80px"
               height="36px"
-              className="rounded h-9 w-9 md:h-auto md:w-auto md:px-4 md:py-2 p-0"
+              className="rounded device-btn-secondary"
             />
             <Skeleton
               variant="text"
@@ -50,25 +49,30 @@ const CustomerAccountSettingsLoading: React.FC = () => {
             />
           </div>
 
-          <div className="space-y-6 md:space-y-8">
+          <div className="space-y-6 sm:space-y-8">
             {/* Profile Overview Card - enhanced with device classes */}
             <Card className="device-spacing-component">
-              <div className="flex flex-col md:flex-row items-center md:items-start gap-4">
-                <Skeleton variant="circular" width="80px" height="80px" />
-                <div className="w-full space-y-2 text-center md:text-left">
+              <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+                <Skeleton
+                  variant="circular"
+                  width="80px"
+                  height="80px"
+                  className="mx-auto sm:mx-0"
+                />
+                <div className="w-full space-y-2 text-center sm:text-left">
                   <Skeleton
                     variant="text"
                     width="250px"
                     height="24px"
-                    className="mx-auto md:mx-0 device-text-heading"
+                    className="mx-auto sm:mx-0 device-text-heading"
                   />
                   <Skeleton
                     variant="text"
                     width="200px"
                     height="20px"
-                    className="mx-auto md:mx-0 device-text-body"
+                    className="mx-auto sm:mx-0 device-text-body"
                   />
-                  <div className="flex justify-center md:justify-start">
+                  <div className="flex justify-center sm:justify-start">
                     <Skeleton
                       variant="rectangular"
                       width="100px"
@@ -82,7 +86,7 @@ const CustomerAccountSettingsLoading: React.FC = () => {
 
             {/* Personal Information Form - enhanced with realistic field structure */}
             <Card className="device-spacing-component relative">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-3">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-3">
                 <div className="space-y-1">
                   <Skeleton
                     variant="text"
@@ -131,7 +135,7 @@ const CustomerAccountSettingsLoading: React.FC = () => {
                 </div>
 
                 {/* Address fields in grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Skeleton
                       variant="text"
@@ -188,7 +192,7 @@ const CustomerAccountSettingsLoading: React.FC = () => {
                       className="rounded device-input"
                     />
                   </div>
-                  <div className="space-y-2 md:col-span-2">
+                  <div className="space-y-2 sm:col-span-2">
                     <Skeleton
                       variant="text"
                       width="120px"
@@ -239,12 +243,6 @@ const CustomerAccountSettingsLoading: React.FC = () => {
                       height="16px"
                       className="device-text-body"
                     />
-                    <Skeleton
-                      variant="text"
-                      width="180px"
-                      height="14px"
-                      className="device-text-caption"
-                    />
                   </div>
                   <Skeleton
                     variant="rectangular"
@@ -253,58 +251,6 @@ const CustomerAccountSettingsLoading: React.FC = () => {
                     className="rounded device-btn-secondary"
                   />
                 </div>
-              </div>
-            </Card>
-
-            {/* Notification Preferences - enhanced with multiple toggles */}
-            <Card className="device-spacing-component">
-              <div className="mb-4 space-y-2">
-                <Skeleton
-                  variant="text"
-                  width="240px"
-                  height="24px"
-                  className="device-text-heading"
-                />
-                <Skeleton
-                  variant="text"
-                  width="350px"
-                  height="16px"
-                  className="device-text-body"
-                />
-              </div>
-              <div className="space-y-4">
-                {[
-                  {
-                    label: 'Email Notifications',
-                    desc: 'Receive updates via email',
-                  },
-                ].map((item, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between p-3 hover:bg-neutral-50 rounded-lg transition-colors"
-                  >
-                    <div className="space-y-1">
-                      <Skeleton
-                        variant="text"
-                        width={item.label.length * 10}
-                        height="16px"
-                        className="device-text-body"
-                      />
-                      <Skeleton
-                        variant="text"
-                        width={180 + index * 15}
-                        height="14px"
-                        className="device-text-caption"
-                      />
-                    </div>
-                    <Skeleton
-                      variant="rectangular"
-                      width="48px"
-                      height="28px"
-                      className="rounded-full"
-                    />
-                  </div>
-                ))}
               </div>
             </Card>
           </div>

@@ -89,3 +89,16 @@ export function formatInquiryType(type: string): string {
 
   return typeMap[type.toLowerCase()] || formatStatus(type);
 }
+
+/**
+ * Formats customer type for display
+ */
+export function formatCustomerType(type: string): string {
+  const typeMap: Record<string, string> = {
+    regular: 'Regular',
+    valued: 'Valued',
+    admin: 'Admin',
+  };
+
+  return typeMap[type.toLowerCase()] || formatStatus(type);
+}

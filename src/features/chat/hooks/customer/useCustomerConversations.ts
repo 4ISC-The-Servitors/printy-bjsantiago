@@ -102,35 +102,18 @@ export function useCustomerConversations() {
           // For track-quote, conversation_id is actually the original ask-quote session_id
           // We need to find the quote_id from that session
           try {
-            const {
-              data: quoteData,
-              error: quoteErr,
-              status: httpStatus,
-            } = await supabase
+            const { data: quoteData } = await supabase
               .from('quotes')
               .select('quote_id, created_at')
               .eq('session_id', ctx.conversation_id)
               .order('created_at', { ascending: false })
               .limit(1)
               .maybeSingle();
-            if (quoteErr) {
-              console.warn(
-                '[initializeFlow] quotes lookup by session_id failed',
-                {
-                  conversation_id: ctx.conversation_id,
-                  httpStatus,
-                  errorMessage: quoteErr.message,
-                }
-              );
-            }
             if (quoteData) {
               fkUpdates.quote_id = (quoteData as any).quote_id;
-              console.debug('[initializeFlow] quotes lookup success', {
-                resolvedQuoteId: (quoteData as any).quote_id,
-              });
             }
           } catch (e) {
-            console.warn('[initializeFlow] quotes lookup threw', e);
+            // Quote lookup failed, continue without quote_id
           }
         }
 

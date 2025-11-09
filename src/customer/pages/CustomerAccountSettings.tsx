@@ -15,7 +15,6 @@ import { ArrowLeft } from 'lucide-react';
 import ProfileOverviewCard from '@/customer/components/accountSettings/ProfileOverviewCard';
 import PersonalInfoForm from '@/customer/components/accountSettings/PersonalInfoForm';
 import SecuritySettings from '@/customer/components/accountSettings/SecuritySettings';
-import NotificationPreferences from '@/customer/components/accountSettings/NotificationPreferences';
 import { ProfileService } from '@customer/services/profileService';
 import { useAuth } from '@auth/hooks/AuthContext';
 import { CustomerAccountSettingsLoading } from '@customer/components/loadingStates';
@@ -36,22 +35,12 @@ export interface UserData {
   customerType: string;
 }
 
-export interface NotificationPreferencesData {
-  emailNotifications: boolean;
-  smsNotifications: boolean;
-  orderUpdates: boolean;
-  chatMessages: boolean;
-  ticketUpdates: boolean;
-}
-
 const AccountSettings: React.FC = () => {
   const [toasts, toast] = useToast();
   const navigate = useNavigate();
   const { user } = useAuth();
 
   const [userData, setUserData] = useState<UserData | null>(null);
-  const [preferences, setPreferences] =
-    useState<NotificationPreferencesData | null>(null);
   const [loading, setLoading] = useState(true);
   const fetchingRef = useRef(false);
 
@@ -134,15 +123,6 @@ const AccountSettings: React.FC = () => {
         };
         setUserData(fallbackData);
       }
-
-      // TODO: Fetch notification preferences from backend
-      setPreferences({
-        emailNotifications: true,
-        smsNotifications: true,
-        orderUpdates: true,
-        chatMessages: true,
-        ticketUpdates: true,
-      });
     } catch (error) {
       console.error('Error fetching profile data:', error);
       toast.error(
@@ -244,27 +224,6 @@ const AccountSettings: React.FC = () => {
     }
   };
 
-  const handleTogglePreference = (key: keyof NotificationPreferencesData) => {
-    if (!preferences) return;
-    // TODO(BACKEND): Persist preference toggle
-    const labelMap: Record<keyof NotificationPreferencesData, string> = {
-      emailNotifications: 'email notifications',
-      smsNotifications: 'SMS notifications',
-      orderUpdates: 'order updates',
-      chatMessages: 'chat messages',
-      ticketUpdates: 'ticket updates',
-    };
-
-    const turnedOn = !preferences[key];
-    setPreferences({ ...preferences, [key]: turnedOn });
-
-    if (turnedOn) {
-      toast.info('Preference updated', `Turned on ${labelMap[key]}`);
-    } else {
-      toast.info('Preference updated', `Turned off ${labelMap[key]}`);
-    }
-  };
-
   return (
     <div className="h-screen bg-gradient-to-br from-neutral-50 to-brand-primary-50 flex flex-col">
       {/* Mobile header with burger */}
@@ -300,25 +259,33 @@ const AccountSettings: React.FC = () => {
 
       {/* Main content - full screen */}
       <main className="flex-1 flex flex-col overflow-hidden">
-        <Container size="xl" className="py-6 md:py-10 flex-1 overflow-y-auto">
+        <Container
+          size="xl"
+          className="device-spacing-section flex-1 overflow-y-auto"
+        >
           <div className="mb-6 flex items-center gap-3">
             <Button
               onClick={() => navigate('/customer')}
               variant="secondary"
               size="sm"
               threeD
-              className="h-9 w-9 md:h-auto md:w-auto md:px-4 md:py-2 p-0 flex items-center justify-center"
+              className="device-btn-secondary flex items-center justify-center"
               aria-label="Back to dashboard"
             >
-              <ArrowLeft className="h-4 w-4 md:mr-2" />
-              <span className="hidden md:inline">Back</span>
+              <ArrowLeft className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Back</span>
             </Button>
-            <Text variant="h1" size="xl" weight="bold">
+            <Text
+              variant="h1"
+              size="xl"
+              weight="bold"
+              className="device-text-heading"
+            >
               Account Settings
             </Text>
           </div>
 
-          <div className="space-y-6 md:space-y-8">
+          <div className="space-y-6 sm:space-y-8">
             {loading ? (
               <CustomerAccountSettingsLoading />
             ) : (
@@ -353,13 +320,6 @@ const AccountSettings: React.FC = () => {
                     )
                   }
                 />
-
-                {preferences && (
-                  <NotificationPreferences
-                    value={preferences}
-                    onToggle={handleTogglePreference}
-                  />
-                )}
               </>
             )}
           </div>

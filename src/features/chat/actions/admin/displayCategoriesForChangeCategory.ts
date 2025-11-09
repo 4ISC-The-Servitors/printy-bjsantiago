@@ -58,12 +58,6 @@ export async function displayCategoriesForChangeCategory(
       };
     }
 
-    console.log(
-      '[displayCategoriesForChangeCategory] Fetching categories (excluding:',
-      currentCategoryId,
-      ')'
-    );
-
     // Query ALL service categories (both active and inactive) ordered by display_order
     // Exclude the current category
     const { data: categories, error } = await supabase
@@ -71,11 +65,6 @@ export async function displayCategoriesForChangeCategory(
       .select('category_id, category_name, description, is_active')
       .neq('category_id', currentCategoryId)
       .order('display_order', { ascending: true });
-
-    console.log('[displayCategoriesForChangeCategory] Query result:', {
-      categories,
-      error,
-    });
 
     if (error) {
       console.error(
@@ -114,25 +103,10 @@ export async function displayCategoriesForChangeCategory(
       next: string;
     }> = [];
 
-    console.log(
-      '[displayCategoriesForChangeCategory] Processing categories:',
-      categories
-    );
-
     // Generate quick replies for each category (excluding current category)
     if (categories && categories.length > 0) {
-      console.log(
-        '[displayCategoriesForChangeCategory] Found',
-        categories.length,
-        'categories'
-      );
-
       categories.forEach(category => {
         const statusLabel = category.is_active ? '' : ' (Inactive)';
-        console.log(
-          '[displayCategoriesForChangeCategory] Adding category:',
-          category.category_name
-        );
         // Store category_id and category_name in value for later parsing
         quickReplies.push({
           label: `${category.category_name}${statusLabel}`,
@@ -158,11 +132,6 @@ export async function displayCategoriesForChangeCategory(
         ],
       };
     }
-
-    console.log(
-      '[displayCategoriesForChangeCategory] Final quick replies:',
-      quickReplies
-    );
 
     return {
       messages,

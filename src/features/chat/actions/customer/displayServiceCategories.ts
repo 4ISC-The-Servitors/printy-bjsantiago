@@ -49,19 +49,12 @@ export async function displayServiceCategories(
   }> = [];
 
   try {
-    console.log('[displayServiceCategories] Starting to fetch categories...');
-
     // Query active service categories ordered by display_order
     const { data: categories, error } = await supabase
       .from('service_categories')
       .select('category_id, category_name, description')
       .eq('is_active', true)
       .order('display_order', { ascending: true });
-
-    console.log('[displayServiceCategories] Query result:', {
-      categories,
-      error,
-    });
 
     if (error) {
       console.error(
@@ -97,24 +90,9 @@ export async function displayServiceCategories(
     const quickReplies: Array<{ label: string; value: string; next: string }> =
       [];
 
-    console.log(
-      '[displayServiceCategories] Processing categories:',
-      categories
-    );
-
     if (categories && categories.length > 0) {
-      console.log(
-        '[displayServiceCategories] Found',
-        categories.length,
-        'active categories'
-      );
-
       // Generate quick replies for each active category
       categories.forEach(category => {
-        console.log(
-          '[displayServiceCategories] Adding category:',
-          category.category_name
-        );
         quickReplies.push({
           label: category.category_name,
           value: `${category.category_id}|${category.category_name}`,
@@ -129,8 +107,6 @@ export async function displayServiceCategories(
         next: 'end',
       });
     } else {
-      console.log('[displayServiceCategories] No active categories found');
-
       // No active categories found
       messages.push({
         id: crypto.randomUUID(),
@@ -145,11 +121,6 @@ export async function displayServiceCategories(
         next: 'end',
       });
     }
-
-    console.log(
-      '[displayServiceCategories] Final quick replies:',
-      quickReplies
-    );
 
     return {
       messages,

@@ -1,151 +1,221 @@
 import { supabase } from '@lib/supabase';
 
 // --- GLOBAL CONFIGURATION CONSTANTS ---
-
-/**
- * These are the flow_ids that signify a user has requested human assistance,
- * a quote, or initiated a formal ticket/process requiring human intervention.
- */
 const ESCALATION_FLOW_IDS = [
-  'ask-assistance',
-  'ask-quote',
   'issue-ticket',
+  'place-order',
+  'ask-quote',
+  'reupload-payment',
   'track-quote',
+  'track-ticket',
+  'pay-order',
 ];
 
-/**
- * These are the flow_ids that signify a user has requested assistance specifically
- * related to the status of an existing order or quote, used for KPI 8.
- */
-const ORDER_STATUS_INQUIRY_FLOW_IDS = [
-  'track-order',
-  'track-quote',
-  'ask-assistance',
-];
+const ORDER_STATUS_INQUIRY_FLOW_IDS = ['track-quote', 'track-ticket'];
 
-/**
- * Interface for standard date range filtering.
- * Dates should be provided in a valid string format (e.g., 'YYYY-MM-DD' or ISO 8601).
- */
 export interface DateRange {
-  startDate: string;
-  endDate: string;
+  startDate: string; // 'YYYY-MM-DD' or ISO
+  endDate: string; // 'YYYY-MM-DD' or ISO
 }
 
-/**
- * Helper function to calculate the date string for the day immediately following the input date.
- */
 function getNextDayString(dateString: string): string {
-  // Use a Date object initialized with UTC to avoid local timezone effects
   const date = new Date(dateString + 'T00:00:00Z');
-  // Add 24 hours (in milliseconds)
   date.setTime(date.getTime() + 24 * 60 * 60 * 1000);
-
-  // Format back to YYYY-MM-DD
   const year = date.getUTCFullYear();
   const month = String(date.getUTCMonth() + 1).padStart(2, '0');
   const day = String(date.getUTCDate()).padStart(2, '0');
-
   return `${year}-${month}-${day}`;
 }
 
-// NOTE: parseTimestampToMilliseconds and timestampInRange removed as filtering is now done by Supabase/PostgreSQL.
-
-// --- KPI 1: First Contact Resolution Rate ---
+/**
+ * KPI 1: First Contact Resolution Rate
+ * Uses chat_sessions_v2 only (no views).
+ */
 export async function getFirstContactResolutionRate(
   range: DateRange
 ): Promise<number | null> {
-  console.log(
-    `[KPI 1] Fetching FCR Rate for range: ${range.startDate} to ${range.endDate}`
-  );
   const exclusiveEndDate = getNextDayString(range.endDate);
 
-  const { count: totalSessions, error: countError } = await supabase
-    .from('chat_sessions_v2')
-    .select('session_id', { count: 'exact', head: true })
-    .gte('created_at', range.startDate)
-    .lt('created_at', exclusiveEndDate);
+  // Count total sessions and admin sessions in parallel, then subtract admin sessions
+  const [allRes, adminRes] = await Promise.all([
+    supabase
+      .from('chat_sessions_v2')
+      .select('session_id', { count: 'exact', head: true })
+      .gte('created_at', range.startDate)
+      .lt('created_at', exclusiveEndDate),
+    supabase
+      .from('chat_sessions_v2')
+      .select('session_id', { count: 'exact', head: true })
+      .ilike('flow_id', 'admin%')
+      .gte('created_at', range.startDate)
+      .lt('created_at', exclusiveEndDate),
+  ]);
 
-  if (countError || totalSessions === null || totalSessions === 0) {
-    console.warn('[KPI 1 WARNING] No total chat sessions found in the range.');
+  const allCount = (allRes as any).count ?? 0;
+  const adminCount = (adminRes as any).count ?? 0;
+  const allErr = (allRes as any).error;
+  const adminErr = (adminRes as any).error;
+
+  if (allErr || adminErr) {
+    console.debug('[KPI 1] sessions count fetch error', { allErr, adminErr });
+    return null;
+  }
+
+  const totalSessions = Math.max(0, allCount - adminCount);
+
+  if (totalSessions === 0) {
+    console.debug('[KPI 1] no non-admin sessions in range', {
+      range,
+      allCount,
+      adminCount,
+    });
     return 0;
   }
 
-  const { data: escalatedFlows, error: flowError } = await supabase
+  // Count escalated sessions that are NOT admin
+  const { count: escalatedCountRaw, error: escErr } = await supabase
     .from('chat_sessions_v2')
-    .select('session_id')
+    .select('session_id', { count: 'exact', head: true })
     .in('flow_id', ESCALATION_FLOW_IDS)
+    .not('flow_id', 'ilike', 'admin%')
     .gte('created_at', range.startDate)
     .lt('created_at', exclusiveEndDate);
 
-  if (flowError || !escalatedFlows) return null;
+  if (escErr) {
+    console.debug('[KPI 1] escalated fetch error=', escErr);
+    return null;
+  }
+  const escalatedCount = escalatedCountRaw ?? 0;
 
-  const escalatedSessionIds = Array.from(
-    new Set(escalatedFlows.map(f => f.session_id))
+  // Count ended sessions that are NOT admin
+  const { count: endedNonAdminCountRaw, error: endedNonAdminErr } =
+    await supabase
+      .from('chat_sessions_v2')
+      .select('session_id', { count: 'exact', head: true })
+      .neq('flow_id', null)
+      .not('flow_id', 'ilike', 'admin%')
+      .eq('status', 'ended')
+      .gte('created_at', range.startDate)
+      .lt('created_at', exclusiveEndDate);
+
+  if (endedNonAdminErr) {
+    console.debug('[KPI 1] ended non-admin fetch error', endedNonAdminErr);
+    return null;
+  }
+  const endedNonAdminCount = endedNonAdminCountRaw ?? 0;
+
+  const finalNonEscalatedResolved = Math.max(
+    0,
+    endedNonAdminCount - escalatedCount
   );
 
-  const { data: endedSessions, error: endedSessionsError } = await supabase
-    .from('chat_sessions_v2')
-    .select('session_id')
-    .eq('status', 'ended')
-    .gte('created_at', range.startDate)
-    .lt('created_at', exclusiveEndDate);
+  console.debug('[KPI 1]', {
+    range,
+    allCount,
+    adminCount,
+    totalSessions,
+    endedNonAdminCount,
+    escalatedCount,
+    nonEscalatedResolved: finalNonEscalatedResolved,
+  });
 
-  if (endedSessionsError || !endedSessions) return null;
-
-  const escalatedSet = new Set(escalatedSessionIds);
-  const nonEscalatedResolvedSessions = endedSessions.filter(
-    session => !escalatedSet.has(session.session_id)
-  );
-
-  const resolvedByPrinty = nonEscalatedResolvedSessions.length;
-  return (resolvedByPrinty / totalSessions) * 100;
+  return (finalNonEscalatedResolved / totalSessions) * 100;
 }
 
-// --- KPI 2: Average Initial Response Time ---
 /**
- * Uses the security function 'get_admin_initial_response' and applies server-side date filtering.
+ * KPI 2: Average Initial Response Time
+ * Computes per-session first customer message -> first printy reply after it using chat_messages_v2.
  */
 export async function getAverageInitialResponseTime(
   range: DateRange
 ): Promise<number | null> {
-  console.log(
-    `[KPI 2] Fetching Avg Initial Response Time for range: ${range.startDate} to ${range.endDate}`
-  );
-
   const exclusiveEndDate = getNextDayString(range.endDate);
 
-  // FIX: Apply date filtering directly to the RPC call (server-side)
-  const { data: responseData, error: rpcError } = await supabase
-    .rpc('get_admin_initial_response')
-    .gte('customer_first_at', range.startDate)
-    .lt('customer_first_at', exclusiveEndDate); // Ensure column name matches view
+  const { data: messages, error } = await supabase
+    .from('chat_messages_v2')
+    .select('session_id, sender_role, sent_at')
+    .gte('sent_at', range.startDate)
+    .lt('sent_at', exclusiveEndDate);
 
-  if (rpcError || !responseData || responseData.length === 0) {
-    console.warn('[KPI 2 WARNING] No initial responses returned by RPC.');
-    // IMPORTANT: If you still see failures after this fix, the issue is Auth.uid() failing.
-    console.error('[KPI 2 RPC ERROR]', rpcError);
+  const messagesArr = (messages ?? []) as any[]; // avoid implicit-any / undefined issues
+
+  if (error || messagesArr.length === 0) {
+    console.debug('[KPI 2] messages fetch error or empty', {
+      error,
+      messagesLength: messagesArr.length,
+    });
     return null;
   }
 
-  const times = (responseData as any[])
-    .map(r => Number(r.response_time_seconds))
-    .filter(v => Number.isFinite(v) && v >= 0);
+  const bySession = new Map<
+    string,
+    { customerFirst?: string; printyFirstAfter?: string }
+  >();
 
-  if (times.length === 0) return null;
+  for (const m of messagesArr) {
+    const sid = String(m.session_id);
+    const entry = bySession.get(sid) ?? {};
+    if (m.sender_role === 'customer') {
+      if (
+        !entry.customerFirst ||
+        new Date(m.sent_at) < new Date(entry.customerFirst)
+      ) {
+        entry.customerFirst = m.sent_at;
+      }
+    }
+    bySession.set(sid, entry);
+  }
 
-  const totalResponseTime = times.reduce((sum, t) => sum + t, 0);
-  return totalResponseTime / times.length;
+  // For printy responses, find first printy message after customerFirst
+  for (const m of messagesArr) {
+    if (m.sender_role !== 'printy') continue;
+    const sid = String(m.session_id);
+    const entry = bySession.get(sid);
+    if (!entry || !entry.customerFirst) continue;
+    const custAt = new Date(entry.customerFirst);
+    const printAt = new Date(m.sent_at);
+    if (printAt > custAt) {
+      if (
+        !entry.printyFirstAfter ||
+        printAt < new Date(entry.printyFirstAfter)
+      ) {
+        entry.printyFirstAfter = m.sent_at;
+        bySession.set(sid, entry);
+      }
+    }
+  }
+
+  const responseSeconds: number[] = [];
+  for (const [, v] of bySession) {
+    if (v.customerFirst && v.printyFirstAfter) {
+      const diff =
+        (new Date(v.printyFirstAfter).getTime() -
+          new Date(v.customerFirst).getTime()) /
+        1000;
+      if (Number.isFinite(diff) && diff >= 0) responseSeconds.push(diff);
+    }
+  }
+
+  console.debug('[KPI 2]', {
+    range,
+    messagesCount: messagesArr.length,
+    sessionsConsidered: bySession.size,
+    responseSamples: responseSeconds.length,
+    sampleFirst: responseSeconds[0] ?? null,
+  });
+
+  if (responseSeconds.length === 0) return null;
+  const sum = responseSeconds.reduce((s, x) => s + x, 0);
+  return sum / responseSeconds.length;
 }
 
-// --- KPI 3: Average Customer Satisfaction Score ---
+/**
+ * KPI 3: Average Customer Satisfaction Score
+ * Uses chat_session_feedback.
+ */
 export async function getAverageCustomerSatisfactionScore(
   range: DateRange
 ): Promise<number | null> {
-  console.log(
-    `[KPI 3] Fetching Avg CSAT for range: ${range.startDate} to ${range.endDate}`
-  );
-
   const exclusiveEndDate = getNextDayString(range.endDate);
 
   const { data, error } = await supabase
@@ -155,431 +225,593 @@ export async function getAverageCustomerSatisfactionScore(
     .lt('submitted_at', exclusiveEndDate);
 
   if (error) {
-    console.error('[KPI 3 ERROR] Failed to fetch feedback:', error);
+    console.debug('[KPI 3] feedback fetch error=', error);
     return null;
   }
+  const count = data?.length ?? 0;
+  const avg =
+    count === 0
+      ? 0
+      : data.reduce((s: number, r: any) => s + (r.rating ?? 0), 0) / count;
 
-  if (!data || data.length === 0) {
-    console.warn('[KPI 3 WARNING] No feedback data found in the range.');
-    return 0;
-  }
+  console.debug('[KPI 3]', { range, feedbackCount: count, avg });
 
-  const avgRating = data.reduce((sum, f) => sum + f.rating, 0) / data.length;
-  console.log(
-    `[KPI 3 SUCCESS] Calculated average CSAT: ${avgRating.toFixed(2)}`
-  );
-  return avgRating;
+  if (!data || data.length === 0) return 0;
+  return avg;
 }
 
-// --- KPI 4: Escalation Rate ---
+/**
+ * KPI 4: Escalation Rate
+ * Uses chat_sessions_v2.
+ */
 export async function getEscalationRate(
   range: DateRange
 ): Promise<number | null> {
-  console.log(
-    `[KPI 4] Fetching Escalation Rate for range: ${range.startDate} to ${range.endDate}`
-  );
   const exclusiveEndDate = getNextDayString(range.endDate);
 
-  const { count: totalSessions, error: countError } = await supabase
-    .from('chat_sessions_v2')
-    .select('session_id', { count: 'exact', head: true })
-    .gte('created_at', range.startDate)
-    .lt('created_at', exclusiveEndDate);
+  // Count total sessions and admin sessions in parallel, then subtract admin sessions
+  const [allRes, adminRes] = await Promise.all([
+    supabase
+      .from('chat_sessions_v2')
+      .select('session_id', { count: 'exact', head: true })
+      .gte('created_at', range.startDate)
+      .lt('created_at', exclusiveEndDate),
+    supabase
+      .from('chat_sessions_v2')
+      .select('session_id', { count: 'exact', head: true })
+      .ilike('flow_id', 'admin%')
+      .gte('created_at', range.startDate)
+      .lt('created_at', exclusiveEndDate),
+  ]);
 
-  if (countError || totalSessions === null || totalSessions === 0) return 0;
+  const allCount = (allRes as any).count ?? 0;
+  const adminCount = (adminRes as any).count ?? 0;
+  const allErr = (allRes as any).error;
+  const adminErr = (adminRes as any).error;
 
-  const { data: escalatedFlows, error: flowError } = await supabase
+  if (allErr || adminErr) {
+    console.debug('[KPI 4] sessions count fetch error', { allErr, adminErr });
+    return null;
+  }
+
+  const totalSessions = Math.max(0, allCount - adminCount);
+
+  if (totalSessions === 0) {
+    console.debug('[KPI 4] no non-admin sessions in range', {
+      range,
+      allCount,
+      adminCount,
+    });
+    return 0;
+  }
+
+  const { data: escalated, error: escErr } = await supabase
     .from('chat_sessions_v2')
-    .select('session_id')
+    .select('session_id, flow_id')
     .in('flow_id', ESCALATION_FLOW_IDS)
     .gte('created_at', range.startDate)
     .lt('created_at', exclusiveEndDate);
 
-  if (flowError || !escalatedFlows) return null;
+  if (escErr) {
+    console.debug('[KPI 4] escalated fetch error=', escErr);
+    return null;
+  }
 
-  const escalatedSessionIds = Array.from(
-    new Set(escalatedFlows.map(f => f.session_id))
-  );
-  const totalEscalated = escalatedSessionIds.length;
+  // Filter escalated sessions to exclude admin ones
+  const escalatedArr = (escalated ?? []) as any[];
+  const escalatedNonAdmin = escalatedArr.filter((r: any) => {
+    const f = r.flow_id;
+    return !(typeof f === 'string' && f.toLowerCase().startsWith('admin'));
+  });
 
-  return (totalEscalated / totalSessions) * 100;
+  const escalatedCount = Array.from(
+    new Set(escalatedNonAdmin.map((r: any) => r.session_id))
+  ).length;
+
+  console.debug('[KPI 4]', {
+    range,
+    allCount,
+    adminCount,
+    totalSessions,
+    escalatedCount,
+  });
+
+  return (escalatedCount / totalSessions) * 100;
 }
 
-// --- KPI 5: Average Service Request Throughput Time (SRTT) ---
-
 /**
- * Primary Logic: SRTT based on orders linked to a chat-generated quote_id.
- * FIX: Apply server-side date filtering.
+ * KPI 5: Average Service Request Throughput Time (SRTT)
+ * Primary: orders linked to quote_id -> earliest session for that quote.
+ * Fallback: latest session before order per customer.
  */
 async function calculateSrttByQuoteLinkage(
   range: DateRange,
   exclusiveEndDate: string
-): Promise<{ time: number; count: number } | null> {
-  // FIX: Apply date filtering directly to the RPC call (server-side)
-  const { data: throughputData, error: rpcError } = await supabase
-    .rpc('get_admin_srt_by_quote')
-    .gte('order_created_at', range.startDate) // Ensure column name matches view
-    .lt('order_created_at', exclusiveEndDate); // Ensure column name matches view
+) {
+  const { data: orders, error: ordErr } = await supabase
+    .from('orders')
+    .select('order_id, quote_id, created_at')
+    .not('quote_id', 'is', null)
+    .gte('created_at', range.startDate)
+    .lt('created_at', exclusiveEndDate);
 
-  if (rpcError || !throughputData || throughputData.length === 0) {
+  const ordersArr = (orders ?? []) as any[];
+
+  if (ordErr || ordersArr.length === 0) {
+    console.debug('[KPI 5 - quote] no orders or error', {
+      ordErr,
+      ordersLength: ordersArr.length,
+    });
     return null;
   }
 
-  const times = (throughputData as any[])
-    .map(r => Number(r.throughput_seconds))
-    .filter(v => Number.isFinite(v) && v >= 0);
+  const times: number[] = [];
+
+  for (const o of ordersArr) {
+    const quoteId = o.quote_id;
+    if (!quoteId) continue;
+
+    // Get earliest chat session for this quote_id deterministically
+    const { data: sessions, error: sErr } = await supabase
+      .from('chat_sessions_v2')
+      .select('created_at')
+      .eq('quote_id', quoteId)
+      .order('created_at', { ascending: true })
+      .limit(1);
+
+    const sessionsArr = (sessions ?? []) as any[];
+    if (sErr || sessionsArr.length === 0) continue;
+    const minCreatedAt = sessionsArr[0]?.created_at;
+    if (!minCreatedAt) continue;
+
+    const diff =
+      (new Date(o.created_at).getTime() - new Date(minCreatedAt).getTime()) /
+      1000;
+    if (Number.isFinite(diff) && diff >= 0) times.push(diff);
+  }
+
+  console.debug('[KPI 5 - quote]', {
+    range,
+    ordersCount: ordersArr.length,
+    throughputSamples: times.length,
+  });
 
   if (times.length === 0) return null;
-
   return { time: times.reduce((s, v) => s + v, 0), count: times.length };
 }
 
-/**
- * KPI 5 Fallback Logic: Calculates SRTT by finding the LATEST CHAT SESSION START TIME
- * FIX: Apply server-side date filtering.
- */
 async function calculateSrttByCustomerLinkage(
   range: DateRange,
   exclusiveEndDate: string
-): Promise<{ time: number; count: number } | null> {
-  // FIX: Apply date filtering directly to the RPC call (server-side)
-  const { data: throughputData, error: rpcError } = await supabase
-    .rpc('get_admin_srt_by_customer')
-    .gte('order_created_at', range.startDate) // Ensure column name matches view
-    .lt('order_created_at', exclusiveEndDate); // Ensure column name matches view
+) {
+  const { data: orders, error: ordErr } = await supabase
+    .from('orders')
+    .select('order_id, customer_id, created_at')
+    .not('customer_id', 'is', null)
+    .gte('created_at', range.startDate)
+    .lt('created_at', exclusiveEndDate);
 
-  if (rpcError || !throughputData || throughputData.length === 0) {
+  const ordersArr = (orders ?? []) as any[];
+
+  if (ordErr || ordersArr.length === 0) {
+    console.debug('[KPI 5 - cust] no orders or error', {
+      ordErr,
+      ordersLength: ordersArr.length,
+    });
     return null;
   }
 
-  const times = (throughputData as any[])
-    .map(r => Number(r.throughput_seconds))
-    .filter(v => Number.isFinite(v) && v >= 0);
+  const times: number[] = [];
+
+  for (const o of ordersArr) {
+    const customerId = o.customer_id;
+    if (!customerId) continue;
+    const { data: sessions, error: sErr } = await supabase
+      .from('chat_sessions_v2')
+      .select('created_at')
+      .eq('customer_id', customerId)
+      .lt('created_at', o.created_at)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    const sessionsArr = (sessions ?? []) as any[];
+    if (sErr || sessionsArr.length === 0) continue;
+    const sessionCreatedAt = sessionsArr[0].created_at;
+    if (!sessionCreatedAt) continue;
+    const diff =
+      (new Date(o.created_at).getTime() -
+        new Date(sessionCreatedAt).getTime()) /
+      1000;
+    if (Number.isFinite(diff) && diff >= 0) times.push(diff);
+  }
+
+  console.debug('[KPI 5 - cust]', {
+    range,
+    ordersCount: ordersArr.length,
+    throughputSamples: times.length,
+  });
 
   if (times.length === 0) return null;
-
   return { time: times.reduce((s, v) => s + v, 0), count: times.length };
 }
 
 export async function getAverageServiceRequestThroughputTime(
   range: DateRange
 ): Promise<number | null> {
-  console.log(
-    `[KPI 5] Fetching Avg SRTT for range: ${range.startDate} to ${range.endDate}`
-  );
-
   const exclusiveEndDate = getNextDayString(range.endDate);
-
-  // PRIMARY LOGIC: Quote-Linked
-  const primaryResult = await calculateSrttByQuoteLinkage(
+  const primary = await calculateSrttByQuoteLinkage(range, exclusiveEndDate);
+  if (primary) {
+    const avg = primary.time / primary.count;
+    console.debug('[KPI 5] used quote linkage', {
+      avg,
+      samples: primary.count,
+    });
+    return avg;
+  }
+  const fallback = await calculateSrttByCustomerLinkage(
     range,
     exclusiveEndDate
   );
-
-  if (primaryResult) {
-    console.log(
-      `[KPI 5 DEBUG] Primary (Quote-Linked) SRTT calculated using ${primaryResult.count} orders.`
-    );
-    return primaryResult.time / primaryResult.count;
+  if (fallback) {
+    const avg = fallback.time / fallback.count;
+    console.debug('[KPI 5] used customer linkage fallback', {
+      avg,
+      samples: fallback.count,
+    });
+    return avg;
   }
-
-  // FALLBACK LOGIC: Customer-Linked
-  const fallbackResult = await calculateSrttByCustomerLinkage(
-    range,
-    exclusiveEndDate
-  );
-
-  if (fallbackResult) {
-    console.log(
-      `[KPI 5 DEBUG] Fallback (Customer-Linked) SRTT calculated using ${fallbackResult.count} orders.`
-    );
-    return fallbackResult.time / fallbackResult.count;
-  }
-
-  console.warn(
-    '[KPI 5 WARNING] Could not calculate SRTT using either Primary (Quote-Linked) or Fallback (Customer-Linked) logic.'
-  );
+  console.debug('[KPI 5] no throughput samples found');
   return null;
 }
 
-// --- KPI 6: Percentage of Service Requests Initiated via PRINTY ---
+/**
+ * KPI 6: Orders Sourced From Chat Rate
+ * Primary: match orders by quote_id produced in chat sessions in range.
+ * Fallback: match orders by customers who had chats in range.
+ */
 async function getOrdersSourcedFromChatByQuoteLinkage(
   range: DateRange,
   exclusiveEndDate: string
 ): Promise<number | null> {
-  // 1. Get all unique quote_ids generated by chat sessions
-  const { data: sessions, error: sessionError } = await supabase
+  const { data: sessions, error: sessErr } = await supabase
     .from('chat_sessions_v2')
     .select('quote_id')
     .not('quote_id', 'is', null)
     .gte('created_at', range.startDate)
     .lt('created_at', exclusiveEndDate);
 
-  if (sessionError || !sessions) return null;
-
-  const quotedInChatIds = Array.from(
-    new Set(
-      sessions.map(s => s.quote_id).filter((id): id is string => id !== null)
-    )
+  if (sessErr) {
+    console.debug('[KPI 6 - quote] sessions fetch error', sessErr);
+    return null;
+  }
+  const quoteIds = Array.from(
+    new Set((sessions ?? []).map((s: any) => s.quote_id).filter(Boolean))
   );
+  console.debug('[KPI 6 - quote] quoteIdsCount=', quoteIds.length);
 
-  if (quotedInChatIds.length === 0) return 0;
+  if (quoteIds.length === 0) return 0;
 
-  // 2. Count orders placed that match one of the quote IDs
-  const { count: ordersCount, error: orderError } = await supabase
+  const { count, error: orderErr } = await supabase
     .from('orders')
     .select('order_id', { count: 'exact', head: true })
-    .in('quote_id', quotedInChatIds)
+    .in('quote_id', quoteIds)
     .gte('created_at', range.startDate)
     .lt('created_at', exclusiveEndDate);
 
-  if (orderError || ordersCount === null) return null;
+  if (orderErr || count === null) {
+    console.debug('[KPI 6 - quote] orders count error', orderErr);
+    return null;
+  }
 
-  return ordersCount;
+  console.debug('[KPI 6 - quote] ordersMatched=', count);
+  return count;
 }
 
-/**
- * Fallback Logic: Orders placed by ANY customer who had a chat session in the range.
- */
 async function getOrdersSourcedFromChatByCustomerLinkage(
   range: DateRange,
   exclusiveEndDate: string
 ): Promise<number | null> {
-  console.warn(
-    '[KPI 6 FALLBACK] Falling back to less precise Customer-Linked Sourced Orders calculation.'
-  );
-
-  // 1. Get all unique customer IDs that started a chat session in the range
-  const { data: chatCustomers, error: chatError } = await supabase
+  const { data: sessions, error: sessErr } = await supabase
     .from('chat_sessions_v2')
     .select('customer_id')
     .not('customer_id', 'is', null)
     .gte('created_at', range.startDate)
     .lt('created_at', exclusiveEndDate);
 
-  if (chatError || !chatCustomers || chatCustomers.length === 0) return 0;
-
-  const chattingCustomerIds = Array.from(
-    new Set(chatCustomers.map(c => c.customer_id))
+  if (sessErr) {
+    console.debug('[KPI 6 - cust] sessions fetch error', sessErr);
+    return null;
+  }
+  const customerIds = Array.from(
+    new Set((sessions ?? []).map((s: any) => s.customer_id).filter(Boolean))
   );
+  console.debug('[KPI 6 - cust] customerIdsCount=', customerIds.length);
 
-  // 2. Count orders placed by those same customer IDs in the range
-  const { count: ordersCount, error: orderError } = await supabase
+  if (customerIds.length === 0) return 0;
+
+  const { count, error: orderErr } = await supabase
     .from('orders')
     .select('order_id', { count: 'exact', head: true })
-    .in('customer_id', chattingCustomerIds)
+    .in('customer_id', customerIds)
     .gte('created_at', range.startDate)
     .lt('created_at', exclusiveEndDate);
 
-  if (orderError || ordersCount === null) return null;
+  if (orderErr || count === null) {
+    console.debug('[KPI 6 - cust] orders count error', orderErr);
+    return null;
+  }
 
-  return ordersCount;
+  console.debug('[KPI 6 - cust] ordersMatched=', count);
+  return count;
 }
 
 export async function getOrdersSourcedFromChatRate(
   range: DateRange,
   ordersFromOtherChannels: number
 ): Promise<number | null> {
-  console.log(
-    `[KPI 6] Fetching Chat Sourced Orders Rate for range: ${range.startDate} to ${range.endDate}`
-  );
-
   const exclusiveEndDate = getNextDayString(range.endDate);
 
-  // PRIMARY LOGIC: Quote-Linked
-  let totalOrdersViaPrinty = await getOrdersSourcedFromChatByQuoteLinkage(
+  let sourced = await getOrdersSourcedFromChatByQuoteLinkage(
     range,
     exclusiveEndDate
   );
-
-  if (totalOrdersViaPrinty === null || totalOrdersViaPrinty === 0) {
-    // FALLBACK LOGIC: Customer-Linked
-    totalOrdersViaPrinty = await getOrdersSourcedFromChatByCustomerLinkage(
+  let sourceUsed = 'quote';
+  if (sourced === null || sourced === 0) {
+    sourced = await getOrdersSourcedFromChatByCustomerLinkage(
       range,
       exclusiveEndDate
     );
-    if (totalOrdersViaPrinty === null) return null;
-  } else {
-    console.log(
-      `[KPI 6 DEBUG] Primary (Quote-Linked) Sourced Orders: ${totalOrdersViaPrinty}`
-    );
+    sourceUsed = 'customer';
+    if (sourced === null) {
+      console.debug('[KPI 6] both quote and customer linkage returned null');
+      return null;
+    }
   }
 
-  const totalAllRequests = totalOrdersViaPrinty + ordersFromOtherChannels;
+  const totalAll = sourced + ordersFromOtherChannels;
+  const pct = totalAll === 0 ? 0 : (sourced / totalAll) * 100;
 
-  if (totalAllRequests === 0) return 0;
+  console.debug('[KPI 6]', {
+    range,
+    sourceUsed,
+    sourced,
+    ordersFromOtherChannels,
+    totalAll,
+    pct,
+  });
 
-  return (totalOrdersViaPrinty / totalAllRequests) * 100;
+  if (totalAll === 0) return 0;
+  return pct;
 }
 
-// --- KPI 7: Job Order Accuracy Rate (JOAR) ---
+/**
+ * KPI 7: Job Order Accuracy Rate (JOAR)
+ */
 export async function getJobOrderAccuracyRate(
   range: DateRange
 ): Promise<number | null> {
-  console.log(
-    `[KPI 7] Fetching JOAR for range: ${range.startDate} to ${range.endDate}`
-  );
-
   const exclusiveEndDate = getNextDayString(range.endDate);
 
-  const { count: totalOrders, error: totalOrdersError } = await supabase
+  const { count: totalOrders, error: totErr } = await supabase
     .from('orders')
     .select('order_id', { count: 'exact', head: true })
     .gte('created_at', range.startDate)
     .lt('created_at', exclusiveEndDate);
 
-  if (totalOrdersError || totalOrders === null || totalOrders === 0) return 0;
+  if (totErr || totalOrders === null || totalOrders === 0) {
+    console.debug('[KPI 7] totalOrders fetch error or zero', {
+      totErr,
+      totalOrders,
+    });
+    return 0;
+  }
 
-  const { count: accurateOrders, error: accurateOrdersError } = await supabase
+  const { count: goodOrders, error: goodErr } = await supabase
     .from('orders')
     .select('order_id', { count: 'exact', head: true })
     .gte('created_at', range.startDate)
     .lt('created_at', exclusiveEndDate)
     .neq('status', 'cancelled');
 
-  if (accurateOrdersError || accurateOrders === null) return null;
+  if (goodErr || goodOrders === null) {
+    console.debug('[KPI 7] goodOrders fetch error', goodErr);
+    return null;
+  }
 
-  return (accurateOrders / totalOrders) * 100;
+  console.debug('[KPI 7]', { range, totalOrders, goodOrders });
+
+  return (goodOrders / totalOrders) * 100;
 }
 
-// --- KPI 8: Order Status Inquiry Rate ---
+/**
+ * KPI 8: Order Status Inquiry Rate
+ */
 async function getRawOrderStatusInquiryTriggersByInquiryId(
   range: DateRange,
   exclusiveEndDate: string
 ): Promise<number | null> {
-  // Primary Logic: Count unique inquiry_ids
-  const { data: inquirySessions, error: dataError } = await supabase
+  const { data, error } = await supabase
     .from('chat_sessions_v2')
     .select('inquiry_id')
     .in('flow_id', ORDER_STATUS_INQUIRY_FLOW_IDS)
-    .not('inquiry_id', 'is', null) // Only count if a related inquiry_id was generated
+    .not('inquiry_id', 'is', null)
     .gte('created_at', range.startDate)
     .lt('created_at', exclusiveEndDate);
 
-  if (dataError || !inquirySessions) return null;
-
-  const uniqueInquiryIds = Array.from(
-    new Set(inquirySessions.map(s => s.inquiry_id))
+  if (error) {
+    console.debug('[KPI 8 - inquiryId] fetch error', error);
+    return null;
+  }
+  const unique = Array.from(
+    new Set((data ?? []).map((r: any) => r.inquiry_id).filter(Boolean))
   );
-
-  return uniqueInquiryIds.length;
+  console.debug('[KPI 8 - inquiryId]', {
+    range,
+    returned: (data ?? []).length,
+    uniqueCount: unique.length,
+  });
+  return unique.length;
 }
 
 async function getRawOrderStatusInquiryTriggersByFlowId(
   range: DateRange,
   exclusiveEndDate: string
 ): Promise<number | null> {
-  console.warn(
-    '[KPI 8 FALLBACK] Falling back to less precise Flow-ID Inquiries calculation (may overcount).'
-  );
-
-  // Fallback Logic: Count all sessions that hit the inquiry flow
-  const { count: flowCount, error: countError } = await supabase
+  const { count, error } = await supabase
     .from('chat_sessions_v2')
     .select('session_id', { count: 'exact', head: true })
     .in('flow_id', ORDER_STATUS_INQUIRY_FLOW_IDS)
     .gte('created_at', range.startDate)
     .lt('created_at', exclusiveEndDate);
 
-  if (countError || flowCount === null) return null;
-  return flowCount;
+  if (error || count === null) {
+    console.debug('[KPI 8 - flowId] fetch error', error);
+    return null;
+  }
+  console.debug('[KPI 8 - flowId]', { range, flowCount: count });
+  return count;
 }
 
 export async function getOrderStatusInquiryRate(
   range: DateRange
 ): Promise<number | null> {
-  console.log(
-    `[KPI 8] Fetching Order Status Inquiry Rate for range: ${range.startDate} to ${range.endDate}`
-  );
-
   const exclusiveEndDate = getNextDayString(range.endDate);
 
-  // PRIMARY LOGIC: Unique Inquiry ID
-  let totalInquiries = await getRawOrderStatusInquiryTriggersByInquiryId(
+  let inquiries = await getRawOrderStatusInquiryTriggersByInquiryId(
     range,
     exclusiveEndDate
   );
-
-  if (totalInquiries === null || totalInquiries === 0) {
-    // FALLBACK LOGIC: Flow ID Count
-    totalInquiries = await getRawOrderStatusInquiryTriggersByFlowId(
+  if (inquiries === null || inquiries === 0) {
+    inquiries = await getRawOrderStatusInquiryTriggersByFlowId(
       range,
       exclusiveEndDate
     );
-    if (totalInquiries === null) return null;
-  } else {
-    console.log(
-      `[KPI 8 DEBUG] Primary (Inquiry-ID) Inquiries Counted: ${totalInquiries}`
-    );
+    if (inquiries === null) {
+      console.debug('[KPI 8] both inquiryId and flowId retrieval failed');
+      return null;
+    }
   }
 
-  const { count: totalOrders, error: orderError } = await supabase
+  const { count: totalOrders, error: orderErr } = await supabase
     .from('orders')
     .select('order_id', { count: 'exact', head: true })
     .gte('created_at', range.startDate)
     .lt('created_at', exclusiveEndDate);
 
-  if (orderError || totalOrders === null || totalOrders === 0) {
-    return totalInquiries > 0 ? null : 0;
+  if (orderErr || totalOrders === null || totalOrders === 0) {
+    console.debug('[KPI 8] totalOrders fetch error or zero', {
+      orderErr,
+      totalOrders,
+    });
+    return inquiries > 0 ? null : 0;
   }
 
-  return totalInquiries / totalOrders;
+  console.debug('[KPI 8]', {
+    range,
+    inquiries,
+    totalOrders,
+    rate: inquiries / totalOrders,
+  });
+
+  return inquiries / totalOrders;
 }
 
-// --- KPI 9: Up-To-Date Service Portfolio Rate ---
+/**
+ * KPI 9: Up-To-Date Service Portfolio Rate
+ */
 export async function getUpToDateServicePortfolioRate(
   range: DateRange
 ): Promise<number | null> {
-  console.log(
-    `[KPI 9] Fetching Portfolio Rate for range: ${range.startDate} to ${range.endDate}`
-  );
   const exclusiveEndDate = getNextDayString(range.endDate);
 
-  const { count: totalServices, error: totalError } = await supabase
+  const { count: totalServices, error: totErr } = await supabase
     .from('printing_services')
     .select('service_id', { count: 'exact', head: true });
 
-  if (totalError || totalServices === null || totalServices === 0) return 0;
+  if (totErr || totalServices === null || totalServices === 0) {
+    console.debug('[KPI 9] totalServices fetch error or zero', {
+      totErr,
+      totalServices,
+    });
+    return 0;
+  }
 
-  const { count: updatedServices, error: updatedError } = await supabase
+  const { count: updated, error: updErr } = await supabase
     .from('printing_services')
     .select('service_id', { count: 'exact', head: true })
     .gte('updated_at', range.startDate)
     .lt('updated_at', exclusiveEndDate);
 
-  if (updatedError || updatedServices === null) return 0;
+  if (updErr || updated === null) {
+    console.debug('[KPI 9] updated fetch error', updErr);
+    return 0;
+  }
 
-  return (updatedServices / totalServices) * 100;
+  console.debug('[KPI 9]', { range, totalServices, updated });
+
+  return (updated / totalServices) * 100;
 }
 
-// --- KPI 10: Service Portfolio Utilization Rate (SPUR) ---
+/**
+ * KPI 10: Service Portfolio Utilization Rate (SPUR)
+ * Option A - percent of unique customers who consulted the portfolio within the range.
+ * Unit returned: percent_of_customers (0-100)
+ */
 export async function getServicePortfolioUtilizationRate(
   range: DateRange
 ): Promise<number | null> {
-  console.log(
-    `[KPI 10] Fetching SPUR for range: ${range.startDate} to ${range.endDate}`
-  );
   const exclusiveEndDate = getNextDayString(range.endDate);
+  const PORTFOLIO_FLOW_IDS = ['service-offered', 'faqs', 'about-us'];
 
-  const { count: totalSessions, error: sessionError } = await supabase
-    .from('chat_sessions_v2')
-    .select('session_id', { count: 'exact', head: true })
-    .gte('created_at', range.startDate)
-    .lt('created_at', exclusiveEndDate);
+  // Fetch portfolio-consult sessions and all sessions (customer_id) in parallel
+  const [portfolioRes, allRes] = await Promise.all([
+    supabase
+      .from('chat_sessions_v2')
+      .select('customer_id')
+      .in('flow_id', PORTFOLIO_FLOW_IDS)
+      .not('customer_id', 'is', null)
+      .gte('created_at', range.startDate)
+      .lt('created_at', exclusiveEndDate),
+    supabase
+      .from('chat_sessions_v2')
+      .select('customer_id')
+      .not('customer_id', 'is', null)
+      .gte('created_at', range.startDate)
+      .lt('created_at', exclusiveEndDate),
+  ]);
 
-  if (sessionError || totalSessions === null) return null;
+  const portfolioData = (portfolioRes as any).data ?? [];
+  const allData = (allRes as any).data ?? [];
+  const portfolioErr = (portfolioRes as any).error;
+  const allErr = (allRes as any).error;
 
-  if (totalSessions === 0) return 0;
+  if (portfolioErr) {
+    console.debug('[KPI 10] portfolio sessions fetch error', portfolioErr);
+    return null;
+  }
+  if (allErr) {
+    console.debug('[KPI 10] all sessions fetch error', allErr);
+    return null;
+  }
 
-  const { count: totalOrders, error: orderError } = await supabase
-    .from('orders')
-    .select('order_id', { count: 'exact', head: true })
-    .gte('created_at', range.startDate)
-    .lt('created_at', exclusiveEndDate);
+  const uniquePortfolioCustomers = new Set(
+    (portfolioData as any[]).map((r: any) => r.customer_id).filter(Boolean)
+  );
+  const uniqueAllCustomers = new Set(
+    (allData as any[]).map((r: any) => r.customer_id).filter(Boolean)
+  );
 
-  if (orderError || totalOrders === null) return null;
+  const portfolioCustomerCount = uniquePortfolioCustomers.size;
+  const totalCustomerCount = uniqueAllCustomers.size;
 
-  const totalOrdersCreated = totalOrders;
+  console.debug('[KPI 10]', {
+    range,
+    flowsTracked: PORTFOLIO_FLOW_IDS,
+    portfolioCustomerCount,
+    totalCustomerCount,
+    unit: 'percent_of_customers',
+  });
 
-  return (totalOrdersCreated / totalSessions) * 100;
+  if (totalCustomerCount === 0) return 0;
+  return (portfolioCustomerCount / totalCustomerCount) * 100;
 }

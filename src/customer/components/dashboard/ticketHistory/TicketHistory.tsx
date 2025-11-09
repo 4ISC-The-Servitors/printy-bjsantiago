@@ -155,14 +155,6 @@ const TicketHistory: React.FC = () => {
         (currentConversation.title?.toLowerCase().includes('track ticket') ||
           currentConversation.flowId === 'track-ticket');
 
-      console.log('[handleFileUpload] Called', {
-        isTicketFlowNow,
-        activeId,
-        flowId: currentConversation?.flowId,
-        title: currentConversation?.title,
-        hasActiveConversation: !!currentConversation,
-      });
-
       if (isTicketFlowNow && activeId) {
         // Try to get inquiry ID from multiple sources:
         // 1. From conversation context (both camelCase and snake_case)
@@ -189,18 +181,11 @@ const TicketHistory: React.FC = () => {
         }
 
         if (inquiryId && typeof inquiryId === 'string') {
-          console.log('[handleFileUpload] Uploading to ticket-uploads bucket', {
-            inquiryId,
-          });
           // Use ticket image upload for ticket flows - wait for upload to complete
           await handleTicketImageUpload(
             files,
             inquiryId,
             url => {
-              console.log(
-                '[handleFileUpload] Upload successful, sending URL:',
-                url
-              );
               // Send the uploaded storage URL (not blob URL) to the chat
               // This ensures the image persists in the database
               sendViaHook(String(url));
@@ -224,9 +209,6 @@ const TicketHistory: React.FC = () => {
           );
         }
       } else {
-        console.log(
-          '[handleFileUpload] Not a ticket flow, using regular attachments'
-        );
         // Use regular chat attachments for other flows (these create blob URLs)
         handleAttachFiles(files);
       }

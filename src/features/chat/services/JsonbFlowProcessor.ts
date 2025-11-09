@@ -412,9 +412,6 @@ export class JsonbFlowProcessor {
             currentNode = flowDefinition.nodes[currentNodeId];
           } else {
             // No matching case, break out
-            console.warn(
-              `[JsonbFlowProcessor] Conditional node "${conditionalNode.condition}" has no matching case for value: ${conditionValue}. Available cases: ${Object.keys(conditionalNode.cases).join(', ')}`
-            );
             break;
           }
         }
