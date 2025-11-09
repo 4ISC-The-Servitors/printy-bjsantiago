@@ -4,6 +4,7 @@
 
 import type { FlowNode, SessionMetadata } from '@features/chat/types';
 import { supabase } from '@lib/supabase';
+import { ChatEndService } from '@features/chat/services/ChatEndService';
 
 /**
  * Build quick replies from node
@@ -151,9 +152,6 @@ export async function endSession(sessionId: string): Promise<void> {
     const userId = session.customer_id; // Both admin and customer IDs are stored here
 
     // Use ChatEndService to ensure consistent end messages across all flows
-    const { ChatEndService } = await import(
-      '@features/chat/services/ChatEndService'
-    );
     const result = await ChatEndService.endChatSession({
       sessionId,
       userId,

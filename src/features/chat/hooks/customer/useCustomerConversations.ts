@@ -11,7 +11,9 @@ import { ChatEndService } from '@features/chat/services/ChatEndService';
 import {
   getFlowDefinition,
   fetchSessionMessagesV2,
+  endSessionV2,
 } from '@features/chat/api/jsonbChatFlowApi';
+import { actionHandlers } from '@features/chat/actions';
 import type { ChatMessage, ChatRole } from '@features/chat/types/chat';
 
 // Helper to map JSONB roles to ChatRole
@@ -296,9 +298,7 @@ export function useCustomerConversations() {
     setTimeout(async () => {
       try {
         // End the session in the database (using JSONB flow API)
-        await import('@features/chat/api/jsonbChatFlowApi').then(api =>
-          api.endSessionV2(sessionId)
-        );
+        await endSessionV2(sessionId);
 
         // Refresh messages from database
         const fetched = await fetchSessionMessagesV2(sessionId);
@@ -588,9 +588,6 @@ export function useCustomerConversations() {
                 if (dynamicActions.includes(actionName)) {
                   try {
                     // Re-execute the action to regenerate quick replies
-                    const { actionHandlers } = await import(
-                      '@features/chat/actions/customer'
-                    );
                     const handler = actionHandlers[actionName];
                     if (handler) {
                       const { data: userData } = await auth.getUser();
