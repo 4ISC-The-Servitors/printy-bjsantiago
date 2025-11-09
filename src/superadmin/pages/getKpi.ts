@@ -3,7 +3,7 @@ import { supabase } from '@lib/supabase';
 // --- GLOBAL CONFIGURATION CONSTANTS ---
 const ESCALATION_FLOW_IDS = [
   'ask-assistance',
-  'ask-quote',
+  //'ask-quote',
   'issue-ticket',
   'track-quote',
 ];
@@ -35,21 +35,44 @@ function getNextDayString(dateString: string): string {
 export async function getFirstContactResolutionRate(range: DateRange): Promise<number | null> {
   const exclusiveEndDate = getNextDayString(range.endDate);
 
-  const { count: totalSessions, error: totalErr } = await supabase
-    .from('chat_sessions_v2')
-    .select('session_id', { count: 'exact', head: true })
-    .gte('created_at', range.startDate)
-    .lt('created_at', exclusiveEndDate);
+  // Count total sessions and admin sessions in parallel, then subtract admin sessions
+  const [allRes, adminRes] = await Promise.all([
+    supabase
+      .from('chat_sessions_v2')
+      .select('session_id', { count: 'exact', head: true })
+      .gte('created_at', range.startDate)
+      .lt('created_at', exclusiveEndDate),
+    supabase
+      .from('chat_sessions_v2')
+      .select('session_id', { count: 'exact', head: true })
+      .ilike('flow_id', 'admin%')
+      .gte('created_at', range.startDate)
+      .lt('created_at', exclusiveEndDate),
+  ]);
 
-  if (totalErr || totalSessions === null || totalSessions === 0) {
-    console.debug('[KPI 1] totalSessions=', totalSessions, 'error=', totalErr);
+  const allCount = (allRes as any).count ?? 0;
+  const adminCount = (adminRes as any).count ?? 0;
+  const allErr = (allRes as any).error;
+  const adminErr = (adminRes as any).error;
+
+  if (allErr || adminErr) {
+    console.debug('[KPI 1] sessions count fetch error', { allErr, adminErr });
+    return null;
+  }
+
+  const totalSessions = Math.max(0, allCount - adminCount);
+
+  if (totalSessions === 0) {
+    console.debug('[KPI 1] no non-admin sessions in range', { range, allCount, adminCount });
     return 0;
   }
 
-  const { data: escalated, error: escErr } = await supabase
+  // Count escalated sessions that are NOT admin
+  const { count: escalatedCountRaw, error: escErr } = await supabase
     .from('chat_sessions_v2')
-    .select('session_id')
+    .select('session_id', { count: 'exact', head: true })
     .in('flow_id', ESCALATION_FLOW_IDS)
+    .not('flow_id', 'ilike', 'admin%')
     .gte('created_at', range.startDate)
     .lt('created_at', exclusiveEndDate);
 
@@ -57,31 +80,37 @@ export async function getFirstContactResolutionRate(range: DateRange): Promise<n
     console.debug('[KPI 1] escalated fetch error=', escErr);
     return null;
   }
-  const escalatedSet = new Set((escalated ?? []).map((r: any) => r.session_id));
+  const escalatedCount = escalatedCountRaw ?? 0;
 
-  const { data: ended, error: endErr } = await supabase
+  // Count ended sessions that are NOT admin
+  const { count: endedNonAdminCountRaw, error: endedNonAdminErr } = await supabase
     .from('chat_sessions_v2')
-    .select('session_id')
+    .select('session_id', { count: 'exact', head: true })
+    .neq('flow_id', null)
+    .not('flow_id', 'ilike', 'admin%')
     .eq('status', 'ended')
     .gte('created_at', range.startDate)
     .lt('created_at', exclusiveEndDate);
 
-  if (endErr) {
-    console.debug('[KPI 1] ended fetch error=', endErr);
+  if (endedNonAdminErr) {
+    console.debug('[KPI 1] ended non-admin fetch error', endedNonAdminErr);
     return null;
   }
+  const endedNonAdminCount = endedNonAdminCountRaw ?? 0;
 
-  const nonEscalatedResolved = (ended ?? []).filter((s: any) => !escalatedSet.has(s.session_id)).length;
+  const finalNonEscalatedResolved = Math.max(0, endedNonAdminCount - escalatedCount);
 
   console.debug('[KPI 1]', {
     range,
+    allCount,
+    adminCount,
     totalSessions,
-    escalatedCount: escalatedSet.size,
-    endedCount: (ended ?? []).length,
-    nonEscalatedResolved,
+    endedNonAdminCount,
+    escalatedCount,
+    nonEscalatedResolved: finalNonEscalatedResolved,
   });
 
-  return (nonEscalatedResolved / totalSessions) * 100;
+  return (finalNonEscalatedResolved / totalSessions) * 100;
 }
 
 /**
@@ -187,20 +216,41 @@ export async function getAverageCustomerSatisfactionScore(range: DateRange): Pro
 export async function getEscalationRate(range: DateRange): Promise<number | null> {
   const exclusiveEndDate = getNextDayString(range.endDate);
 
-  const { count: totalSessions, error: totalErr } = await supabase
-    .from('chat_sessions_v2')
-    .select('session_id', { count: 'exact', head: true })
-    .gte('created_at', range.startDate)
-    .lt('created_at', exclusiveEndDate);
+  // Count total sessions and admin sessions in parallel, then subtract admin sessions
+  const [allRes, adminRes] = await Promise.all([
+    supabase
+      .from('chat_sessions_v2')
+      .select('session_id', { count: 'exact', head: true })
+      .gte('created_at', range.startDate)
+      .lt('created_at', exclusiveEndDate),
+    supabase
+      .from('chat_sessions_v2')
+      .select('session_id', { count: 'exact', head: true })
+      .ilike('flow_id', 'admin%')
+      .gte('created_at', range.startDate)
+      .lt('created_at', exclusiveEndDate),
+  ]);
 
-  if (totalErr || totalSessions === null || totalSessions === 0) {
-    console.debug('[KPI 4] totalSessions fetch error or zero', { totalErr, totalSessions });
+  const allCount = (allRes as any).count ?? 0;
+  const adminCount = (adminRes as any).count ?? 0;
+  const allErr = (allRes as any).error;
+  const adminErr = (adminRes as any).error;
+
+  if (allErr || adminErr) {
+    console.debug('[KPI 4] sessions count fetch error', { allErr, adminErr });
+    return null;
+  }
+
+  const totalSessions = Math.max(0, allCount - adminCount);
+
+  if (totalSessions === 0) {
+    console.debug('[KPI 4] no non-admin sessions in range', { range, allCount, adminCount });
     return 0;
   }
 
   const { data: escalated, error: escErr } = await supabase
     .from('chat_sessions_v2')
-    .select('session_id')
+    .select('session_id, flow_id')
     .in('flow_id', ESCALATION_FLOW_IDS)
     .gte('created_at', range.startDate)
     .lt('created_at', exclusiveEndDate);
@@ -209,9 +259,17 @@ export async function getEscalationRate(range: DateRange): Promise<number | null
     console.debug('[KPI 4] escalated fetch error=', escErr);
     return null;
   }
-  const escalatedCount = Array.from(new Set((escalated ?? []).map((r: any) => r.session_id))).length;
 
-  console.debug('[KPI 4]', { range, totalSessions, escalatedCount });
+  // Filter escalated sessions to exclude admin ones
+  const escalatedArr = (escalated ?? []) as any[];
+  const escalatedNonAdmin = escalatedArr.filter((r: any) => {
+    const f = r.flow_id;
+    return !(typeof f === 'string' && f.toLowerCase().startsWith('admin'));
+  });
+
+  const escalatedCount = Array.from(new Set(escalatedNonAdmin.map((r: any) => r.session_id))).length;
+
+  console.debug('[KPI 4]', { range, allCount, adminCount, totalSessions, escalatedCount });
 
   return (escalatedCount / totalSessions) * 100;
 }
