@@ -68,6 +68,10 @@ function cleanMessageText(text: string): string {
       // If line is empty after URL removal, skip it
       if (!trimmed) return null;
 
+      
+      // If line is empty after URL removal, skip it
+      if (!trimmed) return null;
+      
       // Check if line starts with file upload prefix
       for (const prefix of FILE_UPLOAD_PREFIXES) {
         if (prefix.test(trimmed)) {
@@ -84,11 +88,13 @@ function cleanMessageText(text: string): string {
         }
       }
 
+      
       // If line contains only punctuation or whitespace, skip it
       if (/^[,;\s:]*$/.test(trimmed)) {
         return null;
       }
 
+      
       return trimmed;
     })
     .filter((line): line is string => line !== null);
