@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@lib/supabase';
+import { supabase, SITE_URL } from '@lib/supabase';
 import { useToast } from '@lib/useToast';
 
 // Import validation + formatting helpers (fixed import path)
@@ -253,29 +253,31 @@ export const useSignUp = () => {
           return;
         }
 
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-          email: formData.email,
-          password: formData.password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/auth/signin`,
-            data: {
-              first_name: formData.firstName || null,
-              last_name: formData.lastName || null,
-              phone: normalizedPhone || null,
-              gender: formData.gender || null,
-              birthday: formData.birthday || null,
-              address: {
-                region: formData.region || null,
-                province: formData.province || null,
-                city: formData.city || null,
-                zip_code: formData.zipCode || null,
-                barangay: formData.barangay || null,
-                street: formData.street || null,
-                building_name: formData.buildingNumber || null,
+        const { data: authData, error: authError } = await supabase.auth.signUp(
+          {
+            email: formData.email,
+            password: formData.password,
+            options: {
+              emailRedirectTo: `${window.location.origin}/auth/signin`,
+              data: {
+                first_name: formData.firstName || null,
+                last_name: formData.lastName || null,
+                phone: normalizedPhone || null,
+                gender: formData.gender || null,
+                birthday: formData.birthday || null,
+                address: {
+                  region: formData.region || null,
+                  province: formData.province || null,
+                  city: formData.city || null,
+                  zip_code: formData.zipCode || null,
+                  barangay: formData.barangay || null,
+                  street: formData.street || null,
+                  building_name: formData.buildingNumber || null,
+                },
               },
             },
-          },
-        });
+          }
+        );
         if (authError) throw authError;
 
         const identities = (
@@ -365,7 +367,7 @@ export const useSignUp = () => {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/customer`,
+          redirectTo: `${SITE_URL}/customer`,
           queryParams: { prompt: 'select_account' },
         },
       });
@@ -401,5 +403,3 @@ export const useSignUp = () => {
     handleGoogleSignUp,
   };
 };
-
-

@@ -106,9 +106,7 @@ const Step2Personal: React.FC<Props> = ({
             <Phone className="w-5 h-5" />
           </div>
         </Input>
-        {errors.phone && (
-          <p className="text-error text-sm">{errors.phone}</p>
-        )}
+        {errors.phone && <p className="text-error text-sm">{errors.phone}</p>}
       </div>
 
       {/* Gender */}
@@ -139,9 +137,7 @@ const Step2Personal: React.FC<Props> = ({
             </svg>
           </div>
         </div>
-        {errors.gender && (
-          <p className="text-error text-sm">{errors.gender}</p>
-        )}
+        {errors.gender && <p className="text-error text-sm">{errors.gender}</p>}
       </div>
 
       {/* Birthday */}

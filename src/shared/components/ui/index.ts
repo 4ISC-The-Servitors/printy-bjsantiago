@@ -41,3 +41,4 @@ export { default as MarkAllReadButton } from './MarkAllReadButton';
 export { default as DeleteAllNotificationsButton } from './DeleteAllNotificationsButton';
 
 export { default as AuditInfoModal } from './AuditInfoModal';
+export { default as CustomerInfoModal } from './CustomerInfoModal';

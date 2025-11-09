@@ -72,7 +72,7 @@ export async function showQuoteDecisionPrompt(
   // Add warning message (branch for valued)
   const warningText =
     roleNormalized === 'valued'
-      ? 'IMPORTANT: Once you accept this quote, you CANNOT cancel your order. As a valued customer, no upfront payment is required; your order will proceed to processing.'
+      ? 'IMPORTANT: Once you accept this quote, you CANNOT cancel your order. As a valued customer, no upfront payment is required.'
       : 'IMPORTANT: Once you accept this quote, you CANNOT cancel your order. Payment is required upfront before we begin processing your order.';
 
   console.debug('[showQuoteDecisionPrompt] Warning text selected', {

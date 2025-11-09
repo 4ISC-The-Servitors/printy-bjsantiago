@@ -20,6 +20,7 @@ export interface SpecFormData {
   finishing: string[];
   quantity?: number;
   deadline?: string;
+  delivery_method?: string;
   quoted_price: number;
   admin_notes?: string;
 }
@@ -50,6 +51,7 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
     finishing: [],
     quantity: 1,
     deadline: '',
+    delivery_method: '',
     quoted_price: 0,
     admin_notes: '',
     ...initialData,
@@ -434,6 +436,22 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
           placeholder="Internal notes for this quote"
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-transparent"
           rows={3}
+        />
+      </div>
+
+      {/* Delivery Method */}
+      <div>
+        <label
+          className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}
+        >
+          Delivery Method
+        </label>
+        <Input
+          value={formData.delivery_method || ''}
+          onChange={e =>
+            setFormData(prev => ({ ...prev, delivery_method: e.target.value }))
+          }
+          placeholder="e.g., Pick-up, Delivery, Courier, Same-day delivery"
         />
       </div>
 

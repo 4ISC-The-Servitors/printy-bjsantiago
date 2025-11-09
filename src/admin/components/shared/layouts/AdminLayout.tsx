@@ -90,7 +90,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
             console.log(
               '[Admin handleFileUpload] Admin-review-ticket detected, uploading to ticket-uploads bucket'
             );
-            // Use ticket image upload for ticket review flows
+            // Use ticket file upload for ticket review flows
             setUploadPct(0);
             await handleTicketImageUpload(
               files,

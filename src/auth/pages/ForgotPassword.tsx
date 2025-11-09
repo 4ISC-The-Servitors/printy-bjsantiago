@@ -9,7 +9,7 @@ import {
 } from '@shared/components';
 import { useToast } from '@lib/useToast';
 import { ArrowLeft, Mail, CheckCircle2 } from 'lucide-react';
-import { supabase } from '@lib/supabase';
+import { supabase, SITE_URL } from '@lib/supabase';
 
 // TODO: Backend Integration
 // - Implement real password reset with Supabase Auth
@@ -63,7 +63,7 @@ const ForgotPassword: React.FC = () => {
       }
 
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/reset-password/confirm`,
+        redirectTo: `${SITE_URL}/auth/reset-password/confirm`,
       });
 
       if (error) throw error;

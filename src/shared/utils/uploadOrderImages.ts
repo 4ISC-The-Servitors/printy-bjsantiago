@@ -23,20 +23,23 @@ export async function uploadOrderImages(
     if (files.length > maxFiles) {
       return {
         urls: [],
-        errors: [`You can upload a maximum of ${maxFiles} images at once.`],
+        errors: [`You can upload a maximum of ${maxFiles} files at once.`],
       };
     }
 
     const allowedTypes = IMAGE_UPLOAD_CONFIG.allowedTypes;
     for (const f of files) {
       if (!allowedTypes.includes(f.type)) {
-        errors.push(`${f.name}: Invalid file type. Please upload photos only.`);
+        errors.push(
+          `${f.name}: Invalid file type. Please upload images or PDFs only.`
+        );
       }
     }
     if (errors.length > 0) {
       return { urls: [], errors };
     }
 
+    // Convert HEIC files to JPEG (PDFs and other files pass through unchanged)
     const processedFiles = await convertMultipleHeicToJpeg(files);
 
     const maxFileSize =
@@ -44,7 +47,7 @@ export async function uploadOrderImages(
       IMAGE_UPLOAD_CONFIG.ticket.maxFileSize;
     for (const f of processedFiles) {
       if (f.size > maxFileSize) {
-        errors.push(`${f.name}: File too large.`);
+        errors.push(`${f.name}: File too large (max 10MB per file).`);
       }
     }
 
@@ -55,13 +58,81 @@ export async function uploadOrderImages(
     if (totalSize > maxTotalSize) {
       return {
         urls: [],
-        errors: ['Total file size exceeds limit. Please reduce images.'],
+        errors: [
+          'Total file size exceeds 10MB. Please reduce file size or number of files.',
+        ],
       };
     }
 
     if (errors.length > 0) {
       return { urls: [], errors };
     }
+
+    // Helper function to find an available filename within a session folder
+    const findAvailableFileName = async (
+      baseFileName: string,
+      folderPath: string,
+      bucket: string
+    ): Promise<string> => {
+      // Split filename into name and extension
+      const lastDotIndex = baseFileName.lastIndexOf('.');
+      const baseName =
+        lastDotIndex > 0
+          ? baseFileName.substring(0, lastDotIndex)
+          : baseFileName;
+      const extension =
+        lastDotIndex > 0 ? baseFileName.substring(lastDotIndex) : '';
+
+      // Check if files exist in the session folder
+      const { data: listData } = await supabase.storage
+        .from(bucket)
+        .list(folderPath, {
+          limit: 1000,
+          sortBy: { column: 'name', order: 'asc' },
+        });
+
+      if (!listData || listData.length === 0) {
+        // No files exist, use original filename
+        return baseFileName;
+      }
+
+      // Check if original filename exists
+      const fileNames = listData.map(f => f.name);
+      if (!fileNames.includes(baseFileName)) {
+        return baseFileName;
+      }
+
+      // Find the next available number
+      // Escape the extension for regex (e.g., .pdf becomes \.pdf)
+      const escapedExtension = extension.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const pattern = new RegExp(
+        `^${baseName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}_(\\d+)${escapedExtension}$`
+      );
+      const existingNumbers = fileNames
+        .map(name => {
+          const match = name.match(pattern);
+          return match ? parseInt(match[1], 10) : null;
+        })
+        .filter((num): num is number => num !== null)
+        .sort((a, b) => a - b);
+
+      // Find the next available number
+      let nextNumber = 1;
+      for (const num of existingNumbers) {
+        if (num === nextNumber) {
+          nextNumber++;
+        } else {
+          break;
+        }
+      }
+
+      // Format with zero-padding (01, 02, etc.)
+      const paddedNumber = nextNumber.toString().padStart(2, '0');
+      return `${baseName}_${paddedNumber}${extension}`;
+    };
+
+    const identifier = orderId || 'pending';
+    const folderPath = `${customerId}/${identifier}`;
 
     for (let i = 0; i < processedFiles.length; i++) {
       const file = processedFiles[i];
@@ -70,11 +141,16 @@ export async function uploadOrderImages(
           const base = Math.floor((i / processedFiles.length) * 100);
           onProgress(Math.min(99, base));
         }
-        const timestamp = Date.now();
+
+        // Generate filename using only the original filename (sanitized)
+        // Format: sanitized_filename.ext (or filename_01.ext, filename_02.ext, etc. if duplicate exists)
         const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-        const fileName = `${timestamp}_${i}_${sanitizedFileName}`;
-        const identifier = orderId || 'pending';
-        const filePath = `${customerId}/${identifier}/${fileName}`;
+        const fileName = await findAvailableFileName(
+          sanitizedFileName,
+          folderPath,
+          'order-uploads'
+        );
+        const filePath = `${folderPath}/${fileName}`;
 
         const { error } = await supabase.storage
           .from('order-uploads')

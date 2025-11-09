@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Badge, Button } from '@admin/components/shared';
+import { CustomerInfoModal } from '@shared/components';
 import { getQuoteStatusBadgeVariant } from '@shared/utils/statusColors';
 import { formatQuoteStatus } from '@shared/utils/statusFormatter';
 import { formatDateWithTimeDesktop } from '@shared/utils/dateFormatter';
 import { formatRelativeTimeLabel } from '@shared/utils/timeFormatter';
-import { MessageSquare } from 'lucide-react';
+import { MessageSquare, User } from 'lucide-react';
 import type { AdminQuoteRow } from '@admin/hooks/useAdminQuotes';
 import { useResponsiveLayout, useResponsiveClasses } from '@shared/hooks/ui';
 
@@ -22,6 +23,8 @@ export const QuoteItem: React.FC<QuoteItemProps> = ({
   onHover,
   onViewInChat,
 }) => {
+  const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
+
   // Get responsive layout classes
   const { getQuoteCardLayout } = useResponsiveLayout();
   const { textClasses } = useResponsiveClasses();
@@ -84,7 +87,19 @@ export const QuoteItem: React.FC<QuoteItemProps> = ({
       {/* Row 2: Customer Name | Quoted Amount */}
       <div className={layout.structure.row2}>
         <div className={layout.leftSection}>
-          <span className={layout.customerName}>{quote.customer_name}</span>
+          <div className="flex items-center gap-2">
+            {/* Desktop/Tablet: User icon button */}
+            <Button
+              variant="ghost"
+              size="sm"
+              aria-label="View customer information"
+              onClick={() => setIsCustomerModalOpen(true)}
+              className="hidden sm:inline-flex shrink-0"
+            >
+              <User className="w-4 h-4" />
+            </Button>
+            <span className={layout.customerName}>{quote.customer_name}</span>
+          </div>
         </div>
 
         <div className="text-right">
@@ -95,7 +110,7 @@ export const QuoteItem: React.FC<QuoteItemProps> = ({
       {/* Row 3: Chat Button and Dates */}
       <div className={layout.structure.row3}>
         {/* Dates stacked vertically */}
-        <div className="mt-1">
+        <div className="mt-1 flex-1 min-w-0">
           <div
             className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
           >
@@ -126,17 +141,48 @@ export const QuoteItem: React.FC<QuoteItemProps> = ({
           )}
         </div>
 
+        {/* Desktop/Tablet: Chat button */}
+        <div className="hidden sm:flex shrink-0">
+          <Button
+            variant="secondary"
+            size="sm"
+            threeD
+            aria-label={`Ask about ${displayId}`}
+            onClick={() => onViewInChat(quote.id)}
+            className="shrink-0"
+          >
+            <MessageSquare className="w-4 h-4" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Mobile: Text buttons below dates */}
+      <div className="mt-3 sm:hidden space-y-2">
         <Button
           variant="secondary"
           size="sm"
           threeD
-          aria-label={`Ask about ${displayId}`}
           onClick={() => onViewInChat(quote.id)}
-          className="shrink-0"
+          className="w-full"
         >
-          <MessageSquare className="w-4 h-4" />
+          Chat with Printy
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setIsCustomerModalOpen(true)}
+          className="w-full"
+        >
+          See Customer Info
         </Button>
       </div>
+
+      <CustomerInfoModal
+        isOpen={isCustomerModalOpen}
+        onClose={() => setIsCustomerModalOpen(false)}
+        customerId={quote.customer_id}
+        customerName={quote.customer_name}
+      />
     </div>
   );
 };
