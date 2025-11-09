@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Badge, Button } from '@admin/components/shared';
+import { CustomerInfoModal } from '@shared/components';
 import { getTicketStatusBadgeVariant } from '@shared/utils/statusColors';
 import {
   formatTicketStatus,
@@ -7,30 +8,12 @@ import {
 } from '@shared/utils/statusFormatter';
 import { formatDateWithTimeDesktop } from '@shared/utils/dateFormatter';
 import { formatRelativeTimeLabel } from '@shared/utils/timeFormatter';
-import { MessageSquare } from 'lucide-react';
+import { MessageSquare, User } from 'lucide-react';
 import { useResponsiveLayout, useResponsiveClasses } from '@shared/hooks/ui';
+import type { AdminTicketRow } from '@features/chat/hooks/admin/useAdminTickets';
 
-interface Ticket {
-  inquiry_id: string;
-  display_id?: string | null;
-  inquiry_type: string | null;
-  inquiry_status: string | null;
-  customer_full_name?: string | null;
-  first_name?: string | null;
-  last_name?: string | null;
-  email_address?: string | null;
-  customer_type?: string | null;
-  received_at?: string | null;
-  updated_at?: string | null;
-  resolved_at?: string | null;
-  order_id?: string | null;
-  session_id?: string | null;
-  customer?: {
-    first_name?: string | null;
-    last_name?: string | null;
-    customer_type?: string | null;
-  } | null;
-}
+// Use AdminTicketRow type instead of local Ticket interface
+type Ticket = AdminTicketRow;
 
 interface TicketItemProps {
   ticket: Ticket;
@@ -41,7 +24,7 @@ export const TicketItem: React.FC<TicketItemProps> = ({
   ticket,
   onViewInChat,
 }) => {
-  // Debug logging
+  const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
 
   // Get responsive layout classes
   const { getTicketCardLayout } = useResponsiveLayout();
@@ -49,21 +32,17 @@ export const TicketItem: React.FC<TicketItemProps> = ({
   const layout = getTicketCardLayout;
 
   // Show Urgent badge for valued customers
-  const showUrgentBadge =
-    ticket.customer_type === 'valued' ||
-    ticket.customer?.customer_type === 'valued';
+  const showUrgentBadge = ticket.customer_type === 'valued';
 
   // Get display ID with fallback to UUID
   const displayId = ticket.display_id || ticket.inquiry_id;
 
-  // Format customer name - check multiple possible data structures
+  // Format customer name
   const customerName =
     ticket.customer_full_name ||
-    (ticket.first_name && ticket.last_name
-      ? `${ticket.first_name} ${ticket.last_name}`
-      : ticket.customer?.first_name && ticket.customer?.last_name
-        ? `${ticket.customer.first_name} ${ticket.customer.last_name}`
-        : 'Customer');
+    (ticket.customer_first_name && ticket.customer_last_name
+      ? `${ticket.customer_first_name} ${ticket.customer_last_name}`
+      : 'Customer');
 
   // Format inquiry type for display
   const inquiryType = formatInquiryType(ticket.inquiry_type || 'other');
@@ -113,10 +92,23 @@ export const TicketItem: React.FC<TicketItemProps> = ({
       {/* Row 2: Customer Name | Chat Button */}
       <div className={layout.structure.row2}>
         <div className={layout.leftSection}>
-          <span className={layout.customerName}>{customerName}</span>
+          <div className="flex items-center gap-2">
+            {/* Desktop/Tablet: User icon button */}
+            <Button
+              variant="ghost"
+              size="sm"
+              aria-label="View customer information"
+              onClick={() => setIsCustomerModalOpen(true)}
+              className="hidden sm:inline-flex shrink-0"
+            >
+              <User className="w-4 h-4" />
+            </Button>
+            <span className={layout.customerName}>{customerName}</span>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
+        {/* Desktop/Tablet: Chat button */}
+        <div className="hidden sm:flex shrink-0">
           <Button
             variant="secondary"
             size="sm"
@@ -155,6 +147,34 @@ export const TicketItem: React.FC<TicketItemProps> = ({
           </div>
         )}
       </div>
+
+      {/* Mobile: Text buttons below dates */}
+      <div className="mt-3 sm:hidden space-y-2">
+        <Button
+          variant="secondary"
+          size="sm"
+          threeD
+          onClick={() => onViewInChat(ticket.inquiry_id)}
+          className="w-full"
+        >
+          Chat with Printy
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setIsCustomerModalOpen(true)}
+          className="w-full"
+        >
+          See Customer Info
+        </Button>
+      </div>
+
+      <CustomerInfoModal
+        isOpen={isCustomerModalOpen}
+        onClose={() => setIsCustomerModalOpen(false)}
+        customerId={ticket.customer_id || null}
+        customerName={customerName}
+      />
     </div>
   );
 };

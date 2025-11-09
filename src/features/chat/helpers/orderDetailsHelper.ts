@@ -146,6 +146,10 @@ export async function formatOrderSpecs(
     lines.push(`• Deadline: ${orderSpecs.deadline}`);
   }
 
+  if (orderSpecs.delivery_method) {
+    lines.push(`• Delivery Method: ${orderSpecs.delivery_method}`);
+  }
+
   if (orderSpecs.notes) {
     lines.push(`• Notes: ${orderSpecs.notes}`);
   }

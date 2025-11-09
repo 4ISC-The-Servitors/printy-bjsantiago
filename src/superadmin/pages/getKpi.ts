@@ -51,7 +51,6 @@ function getNextDayString(dateString: string): string {
 
 // NOTE: parseTimestampToMilliseconds and timestampInRange removed as filtering is now done by Supabase/PostgreSQL.
 
-
 // --- KPI 1: First Contact Resolution Rate ---
 export async function getFirstContactResolutionRate(
   range: DateRange
@@ -113,7 +112,7 @@ export async function getAverageInitialResponseTime(
   console.log(
     `[KPI 2] Fetching Avg Initial Response Time for range: ${range.startDate} to ${range.endDate}`
   );
-  
+
   const exclusiveEndDate = getNextDayString(range.endDate);
 
   // FIX: Apply date filtering directly to the RPC call (server-side)
@@ -125,7 +124,7 @@ export async function getAverageInitialResponseTime(
   if (rpcError || !responseData || responseData.length === 0) {
     console.warn('[KPI 2 WARNING] No initial responses returned by RPC.');
     // IMPORTANT: If you still see failures after this fix, the issue is Auth.uid() failing.
-    console.error('[KPI 2 RPC ERROR]', rpcError); 
+    console.error('[KPI 2 RPC ERROR]', rpcError);
     return null;
   }
 
@@ -138,7 +137,6 @@ export async function getAverageInitialResponseTime(
   const totalResponseTime = times.reduce((sum, t) => sum + t, 0);
   return totalResponseTime / times.length;
 }
-
 
 // --- KPI 3: Average Customer Satisfaction Score ---
 export async function getAverageCustomerSatisfactionScore(
@@ -171,7 +169,7 @@ export async function getAverageCustomerSatisfactionScore(
     `[KPI 3 SUCCESS] Calculated average CSAT: ${avgRating.toFixed(2)}`
   );
   return avgRating;
-} 
+}
 
 // --- KPI 4: Escalation Rate ---
 export async function getEscalationRate(
@@ -217,7 +215,6 @@ async function calculateSrttByQuoteLinkage(
   range: DateRange,
   exclusiveEndDate: string
 ): Promise<{ time: number; count: number } | null> {
-
   // FIX: Apply date filtering directly to the RPC call (server-side)
   const { data: throughputData, error: rpcError } = await supabase
     .rpc('get_admin_srt_by_quote')
@@ -231,7 +228,7 @@ async function calculateSrttByQuoteLinkage(
   const times = (throughputData as any[])
     .map(r => Number(r.throughput_seconds))
     .filter(v => Number.isFinite(v) && v >= 0);
-    
+
   if (times.length === 0) return null;
 
   return { time: times.reduce((s, v) => s + v, 0), count: times.length };
@@ -245,7 +242,6 @@ async function calculateSrttByCustomerLinkage(
   range: DateRange,
   exclusiveEndDate: string
 ): Promise<{ time: number; count: number } | null> {
-
   // FIX: Apply date filtering directly to the RPC call (server-side)
   const { data: throughputData, error: rpcError } = await supabase
     .rpc('get_admin_srt_by_customer')
@@ -259,7 +255,7 @@ async function calculateSrttByCustomerLinkage(
   const times = (throughputData as any[])
     .map(r => Number(r.throughput_seconds))
     .filter(v => Number.isFinite(v) && v >= 0);
-    
+
   if (times.length === 0) return null;
 
   return { time: times.reduce((s, v) => s + v, 0), count: times.length };

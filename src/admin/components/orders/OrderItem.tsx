@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Badge, Button } from '@admin/components/shared';
+import { CustomerInfoModal } from '@shared/components';
 import { getOrderStatusBadgeVariant } from '@shared/utils/statusColors';
 import { formatOrderStatus } from '@shared/utils';
 import { formatDateWithTimeDesktop } from '@shared/utils/dateFormatter';
 import { formatRelativeTimeLabel } from '@shared/utils/timeFormatter';
-import { MessageSquare } from 'lucide-react';
+import { MessageSquare, User } from 'lucide-react';
 import type { AdminOrderRow } from '@admin/hooks/useAdminOrders';
 import { useResponsiveClasses } from '@shared/hooks/ui';
 
@@ -22,6 +23,8 @@ export const OrderItem: React.FC<OrderItemProps> = ({
   onHover,
   onViewInChat,
 }) => {
+  const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
+
   // Get responsive classes
   const { textClasses, badgeClasses } = useResponsiveClasses();
 
@@ -91,7 +94,17 @@ export const OrderItem: React.FC<OrderItemProps> = ({
 
       {/* Row 2: Customer Name | Amount */}
       <div className="flex items-center justify-between gap-2 sm:gap-3 md:gap-4 lg:gap-6 mb-2 sm:mb-3">
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 flex items-center gap-2">
+          {/* Desktop/Tablet: User icon button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            aria-label="View customer information"
+            onClick={() => setIsCustomerModalOpen(true)}
+            className="hidden sm:inline-flex shrink-0"
+          >
+            <User className="w-4 h-4" />
+          </Button>
           <span
             className={`${textClasses.caption} font-medium text-neutral-700`}
           >
@@ -126,17 +139,48 @@ export const OrderItem: React.FC<OrderItemProps> = ({
           </div>
         </div>
 
+        {/* Desktop/Tablet: Chat button */}
+        <div className="hidden sm:flex shrink-0">
+          <Button
+            variant="secondary"
+            size="sm"
+            threeD
+            aria-label={`Ask about ${displayId}`}
+            onClick={() => onViewInChat(order.order_id)}
+            className="shrink-0"
+          >
+            <MessageSquare className="w-4 h-4" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Mobile: Text buttons below dates */}
+      <div className="mt-3 sm:hidden space-y-2">
         <Button
           variant="secondary"
           size="sm"
           threeD
-          aria-label={`Ask about ${displayId}`}
           onClick={() => onViewInChat(order.order_id)}
-          className="shrink-0"
+          className="w-full"
         >
-          <MessageSquare className="w-4 h-4" />
+          Chat with Printy
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setIsCustomerModalOpen(true)}
+          className="w-full"
+        >
+          See Customer Info
         </Button>
       </div>
+
+      <CustomerInfoModal
+        isOpen={isCustomerModalOpen}
+        onClose={() => setIsCustomerModalOpen(false)}
+        customerId={order.customer_id}
+        customerName={order.customer_name}
+      />
     </div>
   );
 };

@@ -190,12 +190,35 @@ export class JsonbFlowProcessor {
         // If the next node is a conditional, process it immediately
         if (initialNode && initialNode.type === 'conditional') {
           const conditionalNode = initialNode as ConditionalNode;
-          const conditionValue = updatedContext[conditionalNode.condition];
+          let conditionValue = updatedContext[conditionalNode.condition];
 
-          // Find matching case
-          const nextNodeId =
-            conditionalNode.cases[conditionValue] ||
-            conditionalNode.cases['default'];
+          // ✅ FIX: Normalize condition value to string and lowercase for case-insensitive matching
+          if (conditionValue !== null && conditionValue !== undefined) {
+            conditionValue = String(conditionValue).toLowerCase().trim();
+          } else {
+            conditionValue = null;
+          }
+
+          // Find matching case (try exact match first, then try case-insensitive if needed)
+          let nextNodeId =
+            (conditionValue && conditionalNode.cases[conditionValue]) || null;
+
+          // ✅ FIX: If no exact match and condition value exists, try case-insensitive lookup
+          if (!nextNodeId && conditionValue) {
+            const caseKeys = Object.keys(conditionalNode.cases);
+            const matchedKey = caseKeys.find(
+              key => key.toLowerCase() === conditionValue
+            );
+            if (matchedKey) {
+              nextNodeId = conditionalNode.cases[matchedKey];
+            }
+          }
+
+          // ✅ FIX: Fall back to default case if no match found
+          // Note: default is a separate property, not inside cases
+          if (!nextNodeId && conditionalNode.default) {
+            nextNodeId = conditionalNode.default;
+          }
 
           if (nextNodeId) {
             currentNodeId = nextNodeId;
@@ -352,12 +375,36 @@ export class JsonbFlowProcessor {
           // ✅ PHASE 3 OPTIMIZATION: Use in-memory context from stateManager
           // No need to fetch from database as stateManager has latest values
           const freshContext = stateManager.getContext();
-          const conditionValue = freshContext[conditionalNode.condition];
+          let conditionValue = freshContext[conditionalNode.condition];
 
-          // Find matching case
-          const nextNodeId =
-            conditionalNode.cases[conditionValue] ||
-            conditionalNode.cases['default'];
+          // ✅ FIX: Normalize condition value to string and lowercase for case-insensitive matching
+          // This ensures condition values match even if database returns different cases
+          if (conditionValue !== null && conditionValue !== undefined) {
+            conditionValue = String(conditionValue).toLowerCase().trim();
+          } else {
+            conditionValue = null;
+          }
+
+          // Find matching case (try exact match first, then try case-insensitive if needed)
+          let nextNodeId =
+            (conditionValue && conditionalNode.cases[conditionValue]) || null;
+
+          // ✅ FIX: If no exact match and condition value exists, try case-insensitive lookup
+          if (!nextNodeId && conditionValue) {
+            const caseKeys = Object.keys(conditionalNode.cases);
+            const matchedKey = caseKeys.find(
+              key => key.toLowerCase() === conditionValue
+            );
+            if (matchedKey) {
+              nextNodeId = conditionalNode.cases[matchedKey];
+            }
+          }
+
+          // ✅ FIX: Fall back to default case if no match found
+          // Note: default is a separate property, not inside cases
+          if (!nextNodeId && conditionalNode.default) {
+            nextNodeId = conditionalNode.default;
+          }
 
           if (nextNodeId) {
             currentNodeId = nextNodeId;
@@ -365,6 +412,9 @@ export class JsonbFlowProcessor {
             currentNode = flowDefinition.nodes[currentNodeId];
           } else {
             // No matching case, break out
+            console.warn(
+              `[JsonbFlowProcessor] Conditional node "${conditionalNode.condition}" has no matching case for value: ${conditionValue}. Available cases: ${Object.keys(conditionalNode.cases).join(', ')}`
+            );
             break;
           }
         }
@@ -798,12 +848,36 @@ export class JsonbFlowProcessor {
       // ✅ PHASE 3 OPTIMIZATION: Use in-memory context from stateManager
       // No need to fetch from database as stateManager has latest values
       const freshContext = stateManager.getContext();
-      const conditionValue = freshContext[conditionalNode.condition];
+      let conditionValue = freshContext[conditionalNode.condition];
 
-      // Find matching case
-      const nextNodeId =
-        conditionalNode.cases[conditionValue] ||
-        conditionalNode.cases['default'];
+      // ✅ FIX: Normalize condition value to string and lowercase for case-insensitive matching
+      // This ensures condition values match even if database returns different cases
+      if (conditionValue !== null && conditionValue !== undefined) {
+        conditionValue = String(conditionValue).toLowerCase().trim();
+      } else {
+        conditionValue = null;
+      }
+
+      // Find matching case (try exact match first, then try case-insensitive if needed)
+      let nextNodeId =
+        (conditionValue && conditionalNode.cases[conditionValue]) || null;
+
+      // ✅ FIX: If no exact match and condition value exists, try case-insensitive lookup
+      if (!nextNodeId && conditionValue) {
+        const caseKeys = Object.keys(conditionalNode.cases);
+        const matchedKey = caseKeys.find(
+          key => key.toLowerCase() === conditionValue
+        );
+        if (matchedKey) {
+          nextNodeId = conditionalNode.cases[matchedKey];
+        }
+      }
+
+      // ✅ FIX: Fall back to default case if no match found
+      // Note: default is a separate property, not inside cases
+      if (!nextNodeId && conditionalNode.default) {
+        nextNodeId = conditionalNode.default;
+      }
 
       if (nextNodeId) {
         stateManager.setCurrentNode(nextNodeId);

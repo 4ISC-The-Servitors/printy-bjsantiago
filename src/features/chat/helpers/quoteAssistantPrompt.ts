@@ -25,6 +25,7 @@ OUTPUT: JSON only, no prose.
     "finishing": string[]|undefined,
     "quantity": number|undefined,
     "deadline": string|undefined,
+    "delivery_method": string|undefined,
   }
 }
 `;
@@ -49,6 +50,7 @@ export interface SpecData {
   finishing?: string[];
   quantity?: number;
   deadline?: string;
+  delivery_method?: string;
   quoted_price?: number;
 }
 

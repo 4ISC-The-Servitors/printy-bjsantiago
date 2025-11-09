@@ -51,6 +51,7 @@ export function buildSpecDetailLines(
     materials?: string[] | string;
     finishing?: string[] | string;
     deadline?: string;
+    delivery_method?: string;
   },
   adminNotes?: string
 ): string[] {
@@ -81,6 +82,8 @@ export function buildSpecDetailLines(
   }
 
   if (spec.deadline) lines.push(`• Deadline: ${spec.deadline}`);
+  if (spec.delivery_method)
+    lines.push(`• Delivery Method: ${spec.delivery_method}`);
   if (adminNotes) lines.push(`• Admin Notes: ${adminNotes}`);
   return lines;
 }

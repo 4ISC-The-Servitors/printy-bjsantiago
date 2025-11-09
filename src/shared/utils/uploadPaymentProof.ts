@@ -13,13 +13,13 @@ export interface UploadResult {
 /**
  * Uploads a payment proof file to Supabase Storage
  * @param file - The file to upload
- * @param orderId - The order ID for organizing the file
+ * @param _orderId - The order ID (currently unused, files are organized by customerId only)
  * @param customerId - The customer ID for organizing the file
  * @returns Promise with upload result containing URL or error
  */
 export async function uploadPaymentProof(
   file: File,
-  orderId: string,
+  _orderId: string,
   customerId: string
 ): Promise<UploadResult> {
   try {
@@ -34,10 +34,11 @@ export async function uploadPaymentProof(
       return {
         url: '',
         error:
-          'Invalid file type. Please upload a photo (JPEG, PNG, GIF, WebP, or HEIC).',
+          'Invalid file type. Please upload an image (JPEG, PNG, WebP, HEIC) or PDF.',
       };
     }
 
+    // Convert HEIC files to JPEG (PDFs pass through unchanged)
     let processedFile = file;
     if (IMAGE_UPLOAD_CONFIG.conversionRequired.includes(file.type)) {
       processedFile = await convertHeicToJpeg(file);
@@ -48,16 +49,81 @@ export async function uploadPaymentProof(
     if (processedFile.size > maxSize) {
       return {
         url: '',
-        error: 'File too large. Please upload an image smaller than 5MB.',
+        error: 'File too large. Please upload a file smaller than 10MB.',
       };
     }
 
-    // Generate unique filename with timestamp
-    const timestamp = Date.now();
-    const fileExtension = (
-      processedFile.name.split('.').pop() || 'jpg'
-    ).toLowerCase();
-    const fileName = `${orderId}_${timestamp}.${fileExtension}`;
+    // Generate filename using only the original filename (sanitized)
+    // Format: sanitized_filename.ext (or filename_01.ext, filename_02.ext, etc. if duplicate exists)
+    const sanitizedFileName = processedFile.name.replace(
+      /[^a-zA-Z0-9.-]/g,
+      '_'
+    );
+
+    // Helper function to find an available filename
+    const findAvailableFileName = async (
+      baseFileName: string,
+      customerPath: string
+    ): Promise<string> => {
+      // Split filename into name and extension
+      const lastDotIndex = baseFileName.lastIndexOf('.');
+      const baseName =
+        lastDotIndex > 0
+          ? baseFileName.substring(0, lastDotIndex)
+          : baseFileName;
+      const extension =
+        lastDotIndex > 0 ? baseFileName.substring(lastDotIndex) : '';
+
+      // Check if the original filename exists
+      const { data: listData } = await supabase.storage
+        .from('payment-proofs')
+        .list(customerPath, {
+          limit: 1000,
+          sortBy: { column: 'name', order: 'asc' },
+        });
+
+      if (!listData || listData.length === 0) {
+        // No files exist, use original filename
+        return baseFileName;
+      }
+
+      // Check if original filename exists
+      const fileNames = listData.map(f => f.name);
+      if (!fileNames.includes(baseFileName)) {
+        return baseFileName;
+      }
+
+      // Find the next available number
+      // Escape the extension for regex (e.g., .pdf becomes \.pdf)
+      const escapedExtension = extension.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const pattern = new RegExp(
+        `^${baseName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}_(\\d+)${escapedExtension}$`
+      );
+      const existingNumbers = fileNames
+        .map(name => {
+          const match = name.match(pattern);
+          return match ? parseInt(match[1], 10) : null;
+        })
+        .filter((num): num is number => num !== null)
+        .sort((a, b) => a - b);
+
+      // Find the next available number
+      let nextNumber = 1;
+      for (const num of existingNumbers) {
+        if (num === nextNumber) {
+          nextNumber++;
+        } else {
+          break;
+        }
+      }
+
+      // Format with zero-padding (01, 02, etc.)
+      const paddedNumber = nextNumber.toString().padStart(2, '0');
+      return `${baseName}_${paddedNumber}${extension}`;
+    };
+
+    // Find an available filename
+    const fileName = await findAvailableFileName(sanitizedFileName, customerId);
     const filePath = `${customerId}/${fileName}`;
 
     // Upload to Supabase Storage
@@ -107,21 +173,26 @@ export async function uploadPaymentMethod(
 ): Promise<UploadResult> {
   try {
     // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    const allowedTypes = [
+      'image/jpeg',
+      'image/png',
+      'image/webp',
+      'application/pdf',
+    ];
     if (!allowedTypes.includes(file.type)) {
       return {
         url: '',
         error:
-          'Invalid file type. Please upload an image file (JPEG, PNG, GIF, or WebP).',
+          'Invalid file type. Please upload an image file (JPEG, PNG, WebP) or PDF.',
       };
     }
 
-    // Validate file size (5MB limit)
-    const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+    // Validate file size (10MB limit)
+    const maxSize = 10 * 1024 * 1024; // 10MB in bytes
     if (file.size > maxSize) {
       return {
         url: '',
-        error: 'File too large. Please upload an image smaller than 5MB.',
+        error: 'File too large. Please upload a file smaller than 10MB.',
       };
     }
 

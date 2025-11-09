@@ -98,7 +98,7 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({
     return formatShortTime(ts);
   };
 
-  // Extract image URLs from message text
+  // Extract image URLs from message text (excluding PDFs)
   // Filter out blob URLs and data URLs (they're temporary and won't persist)
   // Keep supabase:// URLs as they persist in storage
   const extractImageUrls = (text: string): string[] => {
@@ -113,18 +113,46 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({
       return [];
     }
 
+    // Extract images from all other messages (including QR codes and payment proofs)
+    // They will be rendered as filename buttons for consistent UI
     const imageUrlRegex =
-      /(blob:[^\s]+|https?:\/\/[^\s]+?\.(?:jpg|jpeg|png|gif|webp)(?:\?[^\s]*)?|\/(?:[\w.-]+)\.(?:jpg|jpeg|png|gif|webp)|data:image\/[a-zA-Z0-9+]+;base64,[^\s)]+|supabase:\/\/payment-proofs\/[^\s,\"')\]]+|supabase:\/\/ticket-uploads\/[^\s,\"')\]]+|supabase:\/\/order-uploads\/[^\s,\"')\]]+)/gi;
+      /(blob:[^\s]+|https?:\/\/[^\s]+?\.(?:jpg|jpeg|png|webp)(?:\?[^\s]*)?|\/(?:[\w.-]+)\.(?:jpg|jpeg|png|webp)|data:image\/[a-zA-Z0-9+]+;base64,[^\s)]+|supabase:\/\/payment-proofs\/[^\s,\"')\]]+|supabase:\/\/ticket-uploads\/[^\s,\"')\]]+|supabase:\/\/order-uploads\/[^\s,\"')\]]+)/gi;
     const matches = Array.from(text.matchAll(imageUrlRegex)).map(
       match => match[0]
     );
 
     // Always filter out blob URLs and data URLs - they're temporary and won't work in history
     // Keep supabase:// URLs and http/https URLs as they persist and de-duplicate
+    // Also filter out PDFs - they're handled separately
     const filtered = matches.filter(
-      url => !url.startsWith('blob:') && !url.startsWith('data:image/')
+      url =>
+        !url.startsWith('blob:') &&
+        !url.startsWith('data:image/') &&
+        !url.toLowerCase().includes('.pdf')
     );
     return Array.from(new Set(filtered));
+  };
+
+  // Extract PDF URLs from message text
+  const extractPdfUrls = (text: string): string[] => {
+    if (!text || typeof text !== 'string') return [];
+
+    // Don't extract PDFs from conversation history blocks
+    if (
+      text.includes('Conversation History:') ||
+      text.includes('NEW TICKET REQUEST')
+    ) {
+      return [];
+    }
+
+    // Match supabase:// URLs that contain .pdf
+    const pdfUrlRegex =
+      /(supabase:\/\/payment-proofs\/[^\s,\"')\]]+\.pdf|supabase:\/\/ticket-uploads\/[^\s,\"')\]]+\.pdf|supabase:\/\/order-uploads\/[^\s,\"')\]]+\.pdf)/gi;
+    const matches = Array.from(text.matchAll(pdfUrlRegex)).map(
+      match => match[0]
+    );
+
+    return Array.from(new Set(matches));
   };
 
   const removeImageTokens = (text: string): string => {
@@ -139,11 +167,11 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({
       return text;
     }
 
-    // Remove image URLs from display text, but keep the message readable
-    const imageUrlRegex =
-      /(blob:[^\s]+|https?:\/\/[^\s]+?\.(?:jpg|jpeg|png|gif|webp)(?:\?[^\s]*)?|\/(?:[\w.-]+)\.(?:jpg|jpeg|png|gif|webp)|data:image\/[a-zA-Z0-9+]+;base64,[^\s)]+|supabase:\/\/payment-proofs\/[^\s,\"')\]]+|supabase:\/\/ticket-uploads\/[^\s,\"')\]]+|supabase:\/\/order-uploads\/[^\s,\"')\]]+)/gi;
+    // Remove image and PDF URLs from display text, but keep the message readable
+    const urlRegex =
+      /(blob:[^\s]+|https?:\/\/[^\s]+?\.(?:jpg|jpeg|png|webp|pdf)(?:\?[^\s]*)?|\/(?:[\w.-]+)\.(?:jpg|jpeg|png|webp|pdf)|data:image\/[a-zA-Z0-9+]+;base64,[^\s)]+|supabase:\/\/payment-proofs\/[^\s,\"')\]]+|supabase:\/\/ticket-uploads\/[^\s,\"')\]]+|supabase:\/\/order-uploads\/[^\s,\"')\]]+)/gi;
     return text
-      .replace(imageUrlRegex, '')
+      .replace(urlRegex, '')
       .replace(/\(\s*\)/g, ' ')
       .trim();
   };
@@ -157,6 +185,7 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({
     return visibleMessages.map(m => ({
       ...m,
       imageUrls: extractImageUrls(m.text || ''),
+      pdfUrls: extractPdfUrls(m.text || ''),
       cleanText: removeImageTokens(m.text || ''),
       preserveNewlines:
         isBot &&
@@ -174,6 +203,7 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({
           text={m.cleanText}
           timestamp={formatRelativeTime(m.ts, m.ts === mostRecentTs)}
           imageUrls={m.imageUrls}
+          pdfUrls={m.pdfUrls}
           preserveNewlines={m.preserveNewlines}
           showAvatar={true}
           showTimestamp={true}

@@ -28,6 +28,7 @@ export interface AdminOrderRow {
   id: string;
   order_id: string; // The actual UUID for database operations
   display_id?: string;
+  customer_id: string;
   customer_name: string;
   customer_type: string;
   product_name: string;
@@ -113,6 +114,7 @@ export function useAdminOrders(options: LoadOrdersOptions = {}) {
           id: order.order_id, // Use actual UUID for database operations
           order_id: order.order_id, // Store the actual UUID separately
           display_id: order.display_id,
+          customer_id: order.customer_id,
           customer_name: customerName,
           customer_type: customerData?.customer_type || 'regular',
           product_name: productName,

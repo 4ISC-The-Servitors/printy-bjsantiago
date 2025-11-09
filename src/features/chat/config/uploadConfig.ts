@@ -1,28 +1,28 @@
 export const IMAGE_UPLOAD_CONFIG = {
-  // Ticket uploads (multiple images)
+  // Ticket uploads (multiple files)
   ticket: {
-    maxFileSize: 5 * 1024 * 1024, // 5MB per file
-    maxFilesPerUpload: 3, // 3 images max
+    maxFileSize: 10 * 1024 * 1024, // 10MB per file
+    maxFilesPerUpload: 3, // 3 files max
     maxTotalSize: 10 * 1024 * 1024, // 10MB total per upload
   },
 
-  // Payment proof uploads (single image)
+  // Payment proof uploads (single file)
   payment: {
-    maxFileSize: 5 * 1024 * 1024, // 5MB per file
-    maxFilesPerUpload: 1, // Single image only
-    maxTotalSize: 5 * 1024 * 1024, // 5MB total
+    maxFileSize: 10 * 1024 * 1024, // 10MB per file
+    maxFilesPerUpload: 1, // Single file only
+    maxTotalSize: 10 * 1024 * 1024, // 10MB total
   },
 
-  // Supported file types (mobile-friendly)
+  // Supported file types (static images + PDFs)
   allowedTypes: [
     'image/jpeg',
     'image/jpg',
     'image/png',
-    'image/gif',
     'image/webp',
     'image/heic', // iOS default
     'image/heif', // iOS/some Android
     'image/avif', // Future-proofing
+    'application/pdf', // PDF support
   ],
 
   // File types that need conversion

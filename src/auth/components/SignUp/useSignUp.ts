@@ -253,29 +253,31 @@ export const useSignUp = () => {
           return;
         }
 
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-          email: formData.email,
-          password: formData.password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/auth/signin`,
-            data: {
-              first_name: formData.firstName || null,
-              last_name: formData.lastName || null,
-              phone: normalizedPhone || null,
-              gender: formData.gender || null,
-              birthday: formData.birthday || null,
-              address: {
-                region: formData.region || null,
-                province: formData.province || null,
-                city: formData.city || null,
-                zip_code: formData.zipCode || null,
-                barangay: formData.barangay || null,
-                street: formData.street || null,
-                building_name: formData.buildingNumber || null,
+        const { data: authData, error: authError } = await supabase.auth.signUp(
+          {
+            email: formData.email,
+            password: formData.password,
+            options: {
+              emailRedirectTo: `${window.location.origin}/auth/signin`,
+              data: {
+                first_name: formData.firstName || null,
+                last_name: formData.lastName || null,
+                phone: normalizedPhone || null,
+                gender: formData.gender || null,
+                birthday: formData.birthday || null,
+                address: {
+                  region: formData.region || null,
+                  province: formData.province || null,
+                  city: formData.city || null,
+                  zip_code: formData.zipCode || null,
+                  barangay: formData.barangay || null,
+                  street: formData.street || null,
+                  building_name: formData.buildingNumber || null,
+                },
               },
             },
-          },
-        });
+          }
+        );
         if (authError) throw authError;
 
         const identities = (
@@ -401,5 +403,3 @@ export const useSignUp = () => {
     handleGoogleSignUp,
   };
 };
-
-

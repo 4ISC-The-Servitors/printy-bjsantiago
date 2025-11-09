@@ -71,25 +71,25 @@ export async function sendAdminReply(
     /Upload failed|No files selected|maximu[mn] of 3 images/i.test(rawString);
   const hasAttachment = uploadedImageUrls.length > 0;
 
-  // If this step expects an image reply, do not proceed on failed/empty upload
+  // If this step expects a file reply, do not proceed on failed/empty upload
   if (expectsImageReply && (!hasAttachment || explicitUploadFailure)) {
     messages.push({
       id: crypto.randomUUID(),
       role: 'printy',
       text:
         uploadErrors[0] ||
-        'No image selected. Please upload up to 3 images and try again.',
+        'No file selected. Please upload up to 3 files (images or PDFs) and try again.',
       ts: Date.now(),
     });
     return { messages };
   }
 
-  // Otherwise, require either a text reply OR an image upload
+  // Otherwise, require either a text reply OR a file upload
   if (!adminReply.trim() && !hasAttachment) {
     messages.push({
       id: crypto.randomUUID(),
       role: 'printy',
-      text: 'Please attach an image or enter a reply.',
+      text: 'Please attach a file (image or PDF) or enter a reply.',
       ts: Date.now(),
     });
     return { messages };
@@ -142,13 +142,14 @@ export async function sendAdminReply(
     }
 
     // Create a separate ticket conversation session (marked as ended so it doesn't appear in Recent Chats)
-    const { data: ticketSession, error: sessionError } = await supabase
-      .from('chat_sessions_v2')
-      .insert({
-        flow_id: 'track-ticket',
-        customer_id: customerId,
-        status: 'ended', // Mark as ended so it doesn't appear in Recent Chats
-        metadata: {
+    // Use database function to bypass RLS since admin is creating session for customer
+    const { data: ticketSessionData, error: sessionError } = await supabase.rpc(
+      'create_admin_ticket_reply_session',
+      {
+        p_customer_id: customerId,
+        p_flow_id: 'track-ticket',
+        p_status: 'ended', // Mark as ended so it doesn't appear in Recent Chats
+        p_metadata: {
           title: ticketDisplayId
             ? `Track Ticket: ${ticketDisplayId}`
             : 'Track Ticket',
@@ -158,21 +159,39 @@ export async function sendAdminReply(
           conversation_type: 'ticket_reply',
           admin_chat: true,
         },
-      })
-      .select('session_id')
-      .single();
+      }
+    );
+
+    const ticketSession = ticketSessionData
+      ? { session_id: ticketSessionData }
+      : null;
 
     if (sessionError || !ticketSession?.session_id) {
       console.error(
         'Error creating ticket conversation session for admin reply:',
         sessionError
       );
-      messages.push({
-        id: crypto.randomUUID(),
-        role: 'printy',
-        text: 'Failed to create conversation session. Please try again.',
-        ts: Date.now(),
-      });
+
+      // Check if this is a PostgREST schema cache issue
+      if (
+        sessionError?.code === 'PGRST202' ||
+        sessionError?.message?.includes('schema cache') ||
+        sessionError?.message?.includes('Could not find the function')
+      ) {
+        messages.push({
+          id: crypto.randomUUID(),
+          role: 'printy',
+          text: 'Database function not yet available. Please wait 2-5 minutes for the system to refresh, then try again. If the issue persists, contact support.',
+          ts: Date.now(),
+        });
+      } else {
+        messages.push({
+          id: crypto.randomUUID(),
+          role: 'printy',
+          text: 'Failed to create conversation session. Please try again.',
+          ts: Date.now(),
+        });
+      }
       return { messages };
     }
 
@@ -182,7 +201,7 @@ export async function sendAdminReply(
     let messageText = adminReply.trim();
     if (hasAttachment) {
       if (!messageText) {
-        messageText = 'Uploaded image(s):';
+        messageText = 'Uploaded file(s):';
       }
       // Place each storage URL on its own line
       messageText = `${messageText}\n${uploadedImageUrls.join('\n')}`;

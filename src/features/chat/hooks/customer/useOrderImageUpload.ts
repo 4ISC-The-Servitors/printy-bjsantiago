@@ -32,7 +32,7 @@ export function useOrderImageUpload(): UseOrderImageUploadResult {
           data: { user },
         } = await supabase.auth.getUser();
         if (!user) {
-          onError?.(['You must be logged in to upload order images']);
+          onError?.(['You must be logged in to upload files']);
           return;
         }
 

@@ -126,6 +126,10 @@ export async function displayPaymentProof(
           // Ensure order_id is maintained in context
           order_id: orderDetails.orderId,
           payment_proof_url: orderDetails.paymentProof,
+          // ✅ FIX: Include order_status for conditional routing (normalized to lowercase)
+          // The status_prompt_router conditional node needs this to route correctly
+          // Normalize to lowercase to match conditional case keys and initial context from FlowTriggerService
+          order_status: String(orderDetails.status || '').toLowerCase(),
         },
       };
     },

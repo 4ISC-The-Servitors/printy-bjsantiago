@@ -19,7 +19,7 @@ import { ToastContainer, Text } from '@shared/components';
 import Progress from '@shared/components/ui/Progress';
 import Notification from '@shared/components/feedback/Notification';
 // Loading states
-import { SimpleLoading } from '@shared/components/ui/SimpleLoading';
+import { CustomerDashboardLoading } from '@customer/components/loadingStates';
 import { useLogoutWithToast } from '@/auth/hooks/useLogoutWithToast';
 import { useRecentOrder } from '@customer/hooks/useRecentOrder';
 import { useRecentTicket } from '@customer/hooks/useRecentTicket';
@@ -185,6 +185,10 @@ const CustomerDashboardContent: React.FC = () => {
     }
   }, [toast]);
 
+  // Determine loading based on data hooks
+  const isLoading =
+    loadingRecentOrder || loadingRecentTicket || loadingRecentQuote;
+
   // Determine if there is any recent activity or saved sessions
   const hasRecentActivity = Boolean(
     recentOrder ||
@@ -192,10 +196,6 @@ const CustomerDashboardContent: React.FC = () => {
       recentQuote ||
       (conversations && conversations.length > 0)
   );
-
-  // Determine if all data is still loading (for initial page load)
-  const isInitialLoad =
-    loadingRecentOrder && loadingRecentTicket && loadingRecentQuote;
 
   // ---------------- Chat logic ----------------
   // Initialize flow via useCustomerConversations
@@ -457,8 +457,8 @@ const CustomerDashboardContent: React.FC = () => {
     <>
       {/* Notification Bell - Fixed Position for dashboard only */}
       <Notification />
-      {isInitialLoad ? (
-        <SimpleLoading text="Loading your dashboard..." />
+      {isLoading ? (
+        <CustomerDashboardLoading />
       ) : activeId ? (
         <>
           {/* Desktop/Laptop chat panel */}
@@ -537,17 +537,11 @@ const CustomerDashboardContent: React.FC = () => {
 
           <DashboardGrid
             recentCard={
-              hasRecentActivity ||
-              loadingRecentOrder ||
-              loadingRecentTicket ||
-              loadingRecentQuote ? (
+              hasRecentActivity ? (
                 <RecentCard
                   orderData={recentOrder}
                   ticketData={recentTicket}
                   quoteData={recentQuote}
-                  loadingOrder={loadingRecentOrder}
-                  loadingTicket={loadingRecentTicket}
-                  loadingQuote={loadingRecentQuote}
                   onTopicSelect={key => handleTopic(key as TopicKey)}
                 />
               ) : undefined

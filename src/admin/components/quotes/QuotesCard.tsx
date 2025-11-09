@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, Pagination } from '@admin/components/shared';
-import { SimpleLoading } from '@shared/components/ui/SimpleLoading';
+import { AdminListSkeleton } from '@shared/components/feedback';
 import { useQuotesCard } from '@admin/hooks/useQuotesCard';
 import { QuoteItem } from './QuoteItem';
 import { useResponsiveLayout } from '@shared/hooks/ui';
@@ -30,7 +30,9 @@ const QuotesCard: React.FC<QuotesCardProps> = ({ filteredQuotes }) => {
 
   // Now we can do early return for loading state
   if (isLoading) {
-    return <SimpleLoading text="Loading quotes..." />;
+    return (
+      <AdminListSkeleton itemCount={5} showCheckbox={false} showAction={true} />
+    );
   }
 
   return (
