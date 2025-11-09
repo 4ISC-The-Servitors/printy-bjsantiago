@@ -2,14 +2,15 @@
 
 ## 📄 Changelogs
 
-### 2025-11-0-Andeng
+### 2025-11-09-Andeng
 
 - added PDF file type support for all uploads
 - fixed bug on 'Processing' order status chat flow not working properly
 - updated image renders to be just like pdf with file names instead for cleaner UI
 - added downloadable image/pdf files
 - added Customer Information modal for admins
-- adjusted mobile UI for admin pages to cater new Customer Information modal
+- adjusted mobile UI for admin pages to cater new Customer Information modal\
+- fixed admin review ticket not getting their own reply and customer replies
 
 ### 2025-11-08-Andeng
 
