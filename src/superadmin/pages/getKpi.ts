@@ -2,16 +2,18 @@ import { supabase } from '@lib/supabase';
 
 // --- GLOBAL CONFIGURATION CONSTANTS ---
 const ESCALATION_FLOW_IDS = [
-  'ask-assistance',
-  //'ask-quote',
   'issue-ticket',
+  'place-order',
+  'ask-quote',
+  'reupload-payment',
   'track-quote',
+  'track-ticket',
+  'pay-order',
 ];
 
 const ORDER_STATUS_INQUIRY_FLOW_IDS = [
-  'track-order',
   'track-quote',
-  'ask-assistance',
+  'track-ticket',
 ];
 
 export interface DateRange {

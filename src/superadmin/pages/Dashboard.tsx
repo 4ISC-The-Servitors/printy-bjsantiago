@@ -92,7 +92,7 @@ const kpiDefinitions: KpiDefinition[] = [
     id: 'srtt',
     name: '5. Avg Request Throughput Time (SRTT)',
     func: getAverageServiceRequestThroughputTime,
-    unit: 'h', // display hours in the dashboard (getKpi still returns seconds)
+    unit: 'hrs', // display hours in the dashboard (getKpi still returns seconds)
     icon: Clock,
     color: 'text-orange-500',
     target: 'Low',
@@ -117,9 +117,9 @@ const kpiDefinitions: KpiDefinition[] = [
   },
   {
     id: 'inquiryRate',
-    name: '8. Order Status Inquiry Rate',
+    name: '8. Status Inquiry Rate',
     func: getOrderStatusInquiryRate,
-    unit: 'per order',
+    unit: ' per order',
     icon: HelpCircle,
     color: 'text-pink-500',
     target: 'Diagnostic (Low)',
