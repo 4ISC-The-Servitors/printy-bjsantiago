@@ -152,25 +152,53 @@ export async function fetchTicketForAdmin(
     // Build ticket info display based on status (header will be emitted separately)
 
     // Restore aggregation per TICKET_REPLY_SESSION_LOGIC: append replies from reply sessions
+    // Match customer trackTicket logic: fetch ALL reply sessions for this inquiry
+    // (both admin and customer replies, regardless of who created them)
+    // Note: Removed customer_id filter to match customer trackTicket behavior exactly
+    // This ensures we fetch ALL reply sessions for the inquiry, not just those
+    // with a specific customer_id (which might cause issues with RLS or admin-created sessions)
     let aggregatedHistory = '';
     const { data: ticketConversations, error: ticketError } = await supabase
       .from('chat_sessions_v2')
       .select('session_id')
-      .eq('customer_id', inquiry.customer_id)
       .eq('metadata->>inquiry_id', inquiryId)
       .eq('metadata->>ticket_conversation', true);
 
+    if (ticketError) {
+      console.error(
+        '[fetchTicketForAdmin] Error fetching ticket conversations:',
+        ticketError
+      );
+    }
+
     let ticketMessages: any[] = [];
     if (!ticketError && ticketConversations && ticketConversations.length > 0) {
+      console.log(
+        `[fetchTicketForAdmin] Found ${ticketConversations.length} reply sessions for inquiry ${inquiryId}`
+      );
       for (const ticketSession of ticketConversations) {
-        const { data: ticketChatMessages } = await supabase.rpc(
-          'api_fetch_chat_messages_v2',
-          { p_session_id: ticketSession.session_id }
-        );
-        if (ticketChatMessages) {
+        const { data: ticketChatMessages, error: messagesError } =
+          await supabase.rpc('api_fetch_chat_messages_v2', {
+            p_session_id: ticketSession.session_id,
+          });
+        if (messagesError) {
+          console.error(
+            `[fetchTicketForAdmin] Error fetching messages for session ${ticketSession.session_id}:`,
+            messagesError
+          );
+          continue;
+        }
+        if (ticketChatMessages && Array.isArray(ticketChatMessages)) {
+          console.log(
+            `[fetchTicketForAdmin] Fetched ${ticketChatMessages.length} messages from session ${ticketSession.session_id}`
+          );
           ticketMessages.push(...ticketChatMessages);
         }
       }
+    } else {
+      console.log(
+        `[fetchTicketForAdmin] No reply sessions found for inquiry ${inquiryId}`
+      );
     }
 
     if (ticketMessages.length > 0) {

@@ -64,6 +64,10 @@ function cleanMessageText(text: string): string {
   const filteredLines = lines
     .map(line => {
       const trimmed = line.trim();
+
+      // If line is empty after URL removal, skip it
+      if (!trimmed) return null;
+
       
       // If line is empty after URL removal, skip it
       if (!trimmed) return null;
@@ -83,11 +87,13 @@ function cleanMessageText(text: string): string {
           return afterPrefix;
         }
       }
+
       
       // If line contains only punctuation or whitespace, skip it
       if (/^[,;\s:]*$/.test(trimmed)) {
         return null;
       }
+
       
       return trimmed;
     })
