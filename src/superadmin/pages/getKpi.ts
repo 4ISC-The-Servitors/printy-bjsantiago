@@ -551,37 +551,62 @@ export async function getUpToDateServicePortfolioRate(range: DateRange): Promise
 
 /**
  * KPI 10: Service Portfolio Utilization Rate (SPUR)
+ * Option A - percent of unique customers who consulted the portfolio within the range.
+ * Unit returned: percent_of_customers (0-100)
  */
 export async function getServicePortfolioUtilizationRate(range: DateRange): Promise<number | null> {
   const exclusiveEndDate = getNextDayString(range.endDate);
+  const PORTFOLIO_FLOW_IDS = ['service-offered', 'faqs', 'about-us'];
 
-  const { count: totalSessions, error: sessErr } = await supabase
-    .from('chat_sessions_v2')
-    .select('session_id', { count: 'exact', head: true })
-    .gte('created_at', range.startDate)
-    .lt('created_at', exclusiveEndDate);
+  // Fetch portfolio-consult sessions and all sessions (customer_id) in parallel
+  const [portfolioRes, allRes] = await Promise.all([
+    supabase
+      .from('chat_sessions_v2')
+      .select('customer_id')
+      .in('flow_id', PORTFOLIO_FLOW_IDS)
+      .not('customer_id', 'is', null)
+      .gte('created_at', range.startDate)
+      .lt('created_at', exclusiveEndDate),
+    supabase
+      .from('chat_sessions_v2')
+      .select('customer_id')
+      .not('customer_id', 'is', null)
+      .gte('created_at', range.startDate)
+      .lt('created_at', exclusiveEndDate),
+  ]);
 
-  if (sessErr || totalSessions === null) {
-    console.debug('[KPI 10] session fetch error', sessErr);
+  const portfolioData = (portfolioRes as any).data ?? [];
+  const allData = (allRes as any).data ?? [];
+  const portfolioErr = (portfolioRes as any).error;
+  const allErr = (allRes as any).error;
+
+  if (portfolioErr) {
+    console.debug('[KPI 10] portfolio sessions fetch error', portfolioErr);
     return null;
   }
-  if (totalSessions === 0) {
-    console.debug('[KPI 10] no sessions in range', { range });
-    return 0;
-  }
-
-  const { count: totalOrders, error: ordErr } = await supabase
-    .from('orders')
-    .select('order_id', { count: 'exact', head: true })
-    .gte('created_at', range.startDate)
-    .lt('created_at', exclusiveEndDate);
-
-  if (ordErr || totalOrders === null) {
-    console.debug('[KPI 10] orders fetch error', ordErr);
+  if (allErr) {
+    console.debug('[KPI 10] all sessions fetch error', allErr);
     return null;
   }
 
-  console.debug('[KPI 10]', { range, totalSessions, totalOrders });
+  const uniquePortfolioCustomers = new Set(
+    (portfolioData as any[]).map((r: any) => r.customer_id).filter(Boolean)
+  );
+  const uniqueAllCustomers = new Set(
+    (allData as any[]).map((r: any) => r.customer_id).filter(Boolean)
+  );
 
-  return (totalOrders / totalSessions) * 100;
+  const portfolioCustomerCount = uniquePortfolioCustomers.size;
+  const totalCustomerCount = uniqueAllCustomers.size;
+
+  console.debug('[KPI 10]', {
+    range,
+    flowsTracked: PORTFOLIO_FLOW_IDS,
+    portfolioCustomerCount,
+    totalCustomerCount,
+    unit: 'percent_of_customers',
+  });
+
+  if (totalCustomerCount === 0) return 0;
+  return (portfolioCustomerCount / totalCustomerCount) * 100;
 }

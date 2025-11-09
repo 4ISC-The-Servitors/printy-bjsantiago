@@ -93,7 +93,7 @@ const kpiDefinitions: KpiDefinition[] = [
     id: 'srtt',
     name: '5. Avg Request Throughput Time (SRTT)',
     func: getAverageServiceRequestThroughputTime,
-    unit: 's',
+    unit: 'h', // display hours in the dashboard (getKpi still returns seconds)
     icon: Clock,
     color: 'text-orange-500',
     target: 'Low',
@@ -157,14 +157,23 @@ const getOneMonthAgo = (): string => {
 // Use React.FC with CardProps for strict typing
 const Card: React.FC<CardProps> = ({ kpi, value, loading }) => {
   const Icon = kpi.icon;
-  // Use 'value === undefined' for initial render check, 'value === null' for explicit error
-  const displayValue = loading
-    ? '...'
-    : value === undefined || value === null
-      ? 'N/A'
-      : typeof value === 'number'
-        ? value.toFixed(1) + kpi.unit
-        : value;
+
+  // Convert SRTT seconds -> hours for display; leave other KPIs unchanged.
+  let displayValue: string;
+  if (loading) {
+    displayValue = '...';
+  } else if (value === undefined || value === null) {
+    displayValue = 'N/A';
+  } else if (typeof value === 'number') {
+    if (kpi.id === 'srtt') {
+      const hours = value / 3600;
+      displayValue = `${Number(hours.toFixed(2))} ${kpi.unit}`; // unit set to 'h' above
+    } else {
+      displayValue = `${value.toFixed(1)}${kpi.unit}`;
+    }
+  } else {
+    displayValue = String(value);
+  }
 
   return (
     // Applied rounded-2xl and increased padding for a softer, more modern card
