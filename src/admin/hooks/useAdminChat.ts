@@ -20,6 +20,7 @@ import {
   editSavedSpecs,
   sendQuoteProposal,
 } from '@features/chat/actions/admin';
+import { actionHandlers } from '@features/chat/actions';
 import { supabase } from '@lib/supabase';
 
 // Helper to extract display label from value (e.g., "uuid|Category Name" -> "Category Name")
@@ -172,9 +173,6 @@ export const useAdminChat = (): UseAdminChatReturn => {
 
           if (result.success) {
             // Fetch the end message from database to show it in UI
-            const { fetchSessionMessagesV2 } = await import(
-              '@features/chat/api/jsonbChatFlowApi'
-            );
             const messages = await fetchSessionMessagesV2(dbSessionId);
             const lastMessage = messages[messages.length - 1];
 
@@ -773,9 +771,6 @@ export const useAdminChat = (): UseAdminChatReturn => {
               if (shouldRegenerateQuickReplies) {
                 try {
                   // Re-execute the action to regenerate quick replies
-                  const { actionHandlers } = await import(
-                    '@features/chat/actions/admin'
-                  );
                   const handler = actionHandlers[actionName];
                   if (handler) {
                     const { data: userData } = await supabase.auth.getUser();

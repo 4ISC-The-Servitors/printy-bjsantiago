@@ -71,23 +71,40 @@ export default defineConfig({
       },
       output: {
         manualChunks: id => {
-          // Vendor chunks
+          // Vendor chunks - split large dependencies
           if (id.includes('node_modules')) {
+            // React core
             if (id.includes('react') || id.includes('react-dom')) {
               return 'react-vendor';
             }
+            // Router
             if (id.includes('react-router')) {
               return 'router-vendor';
             }
+            // UI libraries
             if (id.includes('lucide-react')) {
               return 'ui-vendor';
             }
-            if (id.includes('@supabase')) {
+            // Supabase core
+            if (id.includes('@supabase/supabase-js')) {
               return 'supabase-vendor';
             }
+            // Supabase Auth UI (can be large, split separately)
+            if (
+              id.includes('@supabase/auth-ui') ||
+              id.includes('@radix-ui/react-progress')
+            ) {
+              return 'auth-ui-vendor';
+            }
+            // HEIC converter (large library, split separately)
+            if (id.includes('heic2any')) {
+              return 'heic-vendor';
+            }
+            // Utility libraries
             if (id.includes('tslib')) {
               return 'tslib-vendor';
             }
+            // Other vendor code
             return 'vendor';
           }
 
@@ -116,7 +133,8 @@ export default defineConfig({
         },
       },
     },
-    // Increase chunk size warning limit to 1000kb
-    chunkSizeWarningLimit: 1000,
+    // Increase chunk size warning limit to 1500kb
+    // Note: heic-vendor chunk is intentionally large and loads on-demand only
+    chunkSizeWarningLimit: 1500,
   },
 });

@@ -1,6 +1,5 @@
 import { supabase } from '@lib/supabase';
 import { IMAGE_UPLOAD_CONFIG } from '@features/chat/config/uploadConfig';
-import { convertMultipleHeicToJpeg } from './convertHeicToJpeg';
 
 export interface MultipleUploadResult {
   urls: string[];
@@ -44,6 +43,7 @@ export async function uploadTicketImages(
     }
 
     // Convert HEIC files to JPEG (PDFs and other files pass through unchanged)
+    const { convertMultipleHeicToJpeg } = await import('./convertHeicToJpeg');
     const processedFiles = await convertMultipleHeicToJpeg(files);
 
     // Validate individual file sizes
