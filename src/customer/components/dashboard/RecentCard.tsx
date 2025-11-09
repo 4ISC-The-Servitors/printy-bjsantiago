@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Card } from '@shared/components';
-import { SimpleLoading } from '@shared/components/ui/SimpleLoading';
 import { Package, Ticket, FileText } from 'lucide-react';
 
 // Import the existing components
@@ -18,10 +17,6 @@ interface RecentCardProps {
   orderData?: any;
   ticketData?: any;
   quoteData?: any;
-  // Loading states for each type
-  loadingOrder?: boolean;
-  loadingTicket?: boolean;
-  loadingQuote?: boolean;
 }
 
 /**
@@ -39,11 +34,8 @@ const RecentCard: React.FC<RecentCardProps> = ({
   orderData,
   ticketData,
   quoteData,
-  loadingOrder = false,
-  loadingTicket = false,
-  loadingQuote = false,
 }) => {
-  // Compute which types actually have recent data or are loading
+  // Compute which types actually have recent data
   const availableOptions: Array<{
     type: RecentCardType;
     label: string;
@@ -54,21 +46,14 @@ const RecentCard: React.FC<RecentCardProps> = ({
       label: string;
       icon: React.ComponentType<any>;
     }> = [];
-    if (orderData || loadingOrder)
+    if (orderData)
       options.push({ type: 'order', label: 'Order', icon: Package });
-    if (ticketData || loadingTicket)
+    if (ticketData)
       options.push({ type: 'ticket', label: 'Ticket', icon: Ticket });
-    if (quoteData || loadingQuote)
+    if (quoteData)
       options.push({ type: 'quote', label: 'Quote', icon: FileText });
     return options;
-  }, [
-    orderData,
-    ticketData,
-    quoteData,
-    loadingOrder,
-    loadingTicket,
-    loadingQuote,
-  ]);
+  }, [orderData, ticketData, quoteData]);
 
   // Default active type to the first available option
   const [activeType, setActiveType] = useState<RecentCardType>(
@@ -92,16 +77,12 @@ const RecentCard: React.FC<RecentCardProps> = ({
   const renderRecentComponent = () => {
     switch (activeType) {
       case 'order':
-        if (loadingOrder) return <SimpleLoading text="Loading order..." />;
         return <RecentOrder recentOrder={orderData} />;
       case 'ticket':
-        if (loadingTicket) return <SimpleLoading text="Loading ticket..." />;
         return <RecentTickets recentTicket={ticketData} />;
       case 'quote':
-        if (loadingQuote) return <SimpleLoading text="Loading quote..." />;
         return <RecentQuotes recentQuote={quoteData} />;
       default:
-        if (loadingOrder) return <SimpleLoading text="Loading order..." />;
         return <RecentOrder recentOrder={orderData} />;
     }
   };

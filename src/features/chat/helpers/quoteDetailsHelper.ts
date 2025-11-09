@@ -53,9 +53,10 @@ export async function fetchOriginalCustomerRequest(
     // Filter out upload-related content: image URLs and upload prompts
     const orderUploadRegex = /supabase:\/\/order-uploads\/[^\s,"')\]]+/gi;
     const uploadPromptPatterns = [
-      /yes,?\s*upload\s+image/i,
-      /upload\s+image/i,
-      /attach\s+image/i,
+      /yes,?\s*upload\s+(image|file|files)/i,
+      /upload\s+(image|file|files)/i,
+      /attach\s+(image|file|files)/i,
+      /yes,?\s*upload/i,
     ];
 
     const cleanedMessages = customerOnlyMessages
@@ -69,8 +70,11 @@ export async function fetchOriginalCustomerRequest(
         const lines = text.split('\n').filter(line => {
           const trimmed = line.trim();
           if (!trimmed) return true; // Keep empty lines
-          // Filter out quick reply options like "No, continue without image"
+          // Filter out quick reply options like "No, continue without image" and "No, let's continue"
           if (/^no,?\s*continue\s+without\s+image$/i.test(trimmed)) {
+            return false;
+          }
+          if (/^no,?\s*lets?\s*continue/i.test(trimmed)) {
             return false;
           }
           return !uploadPromptPatterns.some(pattern => pattern.test(trimmed));
@@ -196,6 +200,10 @@ export function formatProposalSpecs(
 
   if (specData.deadline) {
     lines.push(`• Deadline: ${specData.deadline}`);
+  }
+
+  if (specData.delivery_method) {
+    lines.push(`• Delivery Method: ${specData.delivery_method}`);
   }
 
   if (specData.notes) {

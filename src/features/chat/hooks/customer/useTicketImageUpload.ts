@@ -1,6 +1,6 @@
 /**
  * useTicketImageUpload
- * Specialized hook for handling ticket image uploads in customer chat
+ * Specialized hook for handling ticket file uploads (images and PDFs) in customer chat
  * Extends the basic file attachment functionality for ticket conversations
  */
 
@@ -20,7 +20,7 @@ export interface UseTicketImageUploadResult {
 }
 
 /**
- * Hook for handling ticket image uploads
+ * Hook for handling ticket file uploads (images and PDFs)
  */
 export function useTicketImageUpload(): UseTicketImageUploadResult {
   const handleTicketImageUpload = useCallback(
@@ -43,7 +43,7 @@ export function useTicketImageUpload(): UseTicketImageUploadResult {
           data: { user },
         } = await supabase.auth.getUser();
         if (!user) {
-          onError?.(['You must be logged in to upload ticket images']);
+          onError?.(['You must be logged in to upload files']);
           return;
         }
 
@@ -65,7 +65,7 @@ export function useTicketImageUpload(): UseTicketImageUploadResult {
 
         onSuccess?.(result.urls);
       } catch (error) {
-        console.error('Error uploading ticket images:', error);
+        console.error('Error uploading files:', error);
         onError?.([
           error instanceof Error
             ? error.message

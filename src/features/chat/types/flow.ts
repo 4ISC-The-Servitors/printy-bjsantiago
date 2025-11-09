@@ -208,6 +208,7 @@ export interface ConditionalNode extends BaseNode {
   type: 'conditional';
   condition: string;
   cases: Record<string, string>;
+  default?: string; // Default case when no matching case is found
 }
 
 export interface EndNode extends BaseNode {

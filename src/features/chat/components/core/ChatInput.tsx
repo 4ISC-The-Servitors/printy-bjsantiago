@@ -84,7 +84,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             ref={fileInputRef}
             type="file"
             multiple
-            accept="image/*"
+            accept="image/*,application/pdf"
             className="hidden"
             onChange={e => {
               if (e.target.files && onAttachFiles) {

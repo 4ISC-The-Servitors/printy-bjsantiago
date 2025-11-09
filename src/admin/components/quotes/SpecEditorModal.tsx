@@ -61,6 +61,8 @@ export function SpecEditorModal() {
           finishing: customEvent.detail.specData.finishing || [],
           quantity: customEvent.detail.specData.quantity || 1,
           deadline: customEvent.detail.specData.deadline || '',
+          delivery_method:
+            (customEvent.detail.specData as any).delivery_method || '',
           quoted_price: (customEvent.detail.specData as any).quoted_price || 0,
           admin_notes: (customEvent.detail.specData as any).admin_notes || '',
         };
@@ -114,6 +116,7 @@ export function SpecEditorModal() {
     finishing: modalData.specData.finishing || [],
     quantity: modalData.specData.quantity || 1,
     deadline: modalData.specData.deadline || '',
+    delivery_method: (modalData.specData as any).delivery_method || '',
     quoted_price: (modalData.specData as any).quoted_price || 0,
     admin_notes: (modalData.specData as any).admin_notes || '',
   };
@@ -177,16 +180,6 @@ export function SpecEditorModal() {
                 });
                 if (error) throw error;
                 setSaveSuccess(true);
-                try {
-                  if (modalData.sessionId) {
-                    await supabase.rpc('api_insert_chat_message_v2', {
-                      p_session_id: modalData.sessionId,
-                      p_text: 'Draft saved successfully.',
-                      p_role: 'printy',
-                      p_node_id: 'wait_for_draft_save',
-                    });
-                  }
-                } catch {}
                 setTimeout(() => {
                   setIsOpen(false);
                   setSaveError(null);

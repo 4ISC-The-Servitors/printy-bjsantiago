@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, Pagination } from '@admin/components/shared';
-import { SimpleLoading } from '@shared/components/ui/SimpleLoading';
+import { AdminListSkeleton } from '@shared/components/feedback';
 import { useTicketsCard } from '@admin/hooks/useTicketsCard';
 import { TicketItem } from './TicketItem';
 import { useResponsiveLayout } from '@shared/hooks/ui';
@@ -32,7 +32,9 @@ const TicketsCard: React.FC<TicketsCardProps> = ({ filteredTickets }) => {
   }, [filteredTickets?.length, pageSize, page, setPage]);
 
   if (isLoading) {
-    return <SimpleLoading text="Loading tickets..." />;
+    return (
+      <AdminListSkeleton itemCount={5} showCheckbox={true} showAction={true} />
+    );
   }
 
   return (

@@ -111,6 +111,9 @@ export async function displayOrderPrice(
           // Ensure order_id is maintained in context
           order_id: orderDetails.orderId,
           total_amount: orderDetails.totalAmount,
+          // ✅ FIX: Preserve order_status in context for conditional routing
+          // This ensures downstream conditionals (like status_prompt_router) have the status
+          order_status: String(orderDetails.status || '').toLowerCase(),
         },
       };
     },

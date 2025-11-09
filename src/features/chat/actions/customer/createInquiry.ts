@@ -95,15 +95,6 @@ export async function createInquiry(
 
   // Create inquiry in v2 table - let database auto-generate display_id
 
-  console.log('[createInquiry] Creating inquiry with data:', {
-    customer_id: customerId,
-    inquiry_type: inquiryType,
-    inquiry_status: 'new',
-    session_id: sessionId,
-    order_id: actualOrderId,
-    updated_by: customerId,
-  });
-
   const { data: inquiryData, error } = await supabase
     .from('inquiries_v2')
     .insert({

@@ -185,28 +185,6 @@ export const AdminConversationsProvider: React.FC<{
     loadAdminChatSessions();
   }, []);
 
-  // Add real-time subscription for chat_sessions_v2 table changes
-  useEffect(() => {
-    const channel = supabase
-      .channel('chat_sessions_v2-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'chat_sessions_v2',
-        },
-        () => {
-          void loadAdminChatSessions();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [loadAdminChatSessions]);
-
   const startConversation = (title: string) => {
     const id = crypto.randomUUID();
     const conv: AdminConversation = {

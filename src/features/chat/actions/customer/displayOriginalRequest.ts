@@ -78,9 +78,10 @@ export async function displayOriginalRequest(
         // Filter out order-uploads URLs and upload prompts so images render in a separate bubble
         const orderUploadRegex = /supabase:\/\/order-uploads\/[^\s,"')\]]+/gi;
         const uploadPromptPatterns = [
-          /yes,?\s*upload\s+image/i,
-          /upload\s+image/i,
-          /attach\s+image/i,
+          /yes,?\s*upload\s+(image|file|files)/i,
+          /upload\s+(image|file|files)/i,
+          /attach\s+(image|file|files)/i,
+          /yes,?\s*upload/i,
         ];
 
         const cleaned = customerOnlyMessages
@@ -90,8 +91,11 @@ export async function displayOriginalRequest(
             const lines = text.split('\n').filter(line => {
               const trimmed = line.trim();
               if (!trimmed) return true; // Keep empty lines
-              // Filter out quick reply options like "No, continue without image" from JSONB flow
+              // Filter out quick reply options like "No, continue without image" and "No, let's continue" from JSONB flow
               if (/^no,?\s*continue\s+without\s+image$/i.test(trimmed)) {
+                return false;
+              }
+              if (/^no,?\s*lets?\s*continue/i.test(trimmed)) {
                 return false;
               }
               return !uploadPromptPatterns.some(p => p.test(trimmed));
@@ -117,13 +121,27 @@ export async function displayOriginalRequest(
           | string
           | undefined;
 
-        // Filter out quick reply options like "No, continue without image" from JSONB flow
+        // Filter out quick reply options and upload prompts from JSONB flow
         if (contextQuoteDetails && typeof contextQuoteDetails === 'string') {
+          const uploadPromptPatterns = [
+            /yes,?\s*upload\s+(image|file|files)/i,
+            /upload\s+(image|file|files)/i,
+            /attach\s+(image|file|files)/i,
+            /yes,?\s*upload/i,
+          ];
+
           const lines = contextQuoteDetails.split('\n').filter(line => {
             const trimmed = line.trim();
             if (!trimmed) return true; // Keep empty lines
-            // Filter out "No, continue without image" quick reply option
+            // Filter out "No, continue without image" and "No, let's continue" quick reply options
             if (/^no,?\s*continue\s+without\s+image$/i.test(trimmed)) {
+              return false;
+            }
+            if (/^no,?\s*lets?\s*continue/i.test(trimmed)) {
+              return false;
+            }
+            // Filter out upload prompts
+            if (uploadPromptPatterns.some(p => p.test(trimmed))) {
               return false;
             }
             return true;

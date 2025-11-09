@@ -1,6 +1,6 @@
 /**
  * useTicketImageUpload
- * Specialized hook for handling ticket image uploads in admin chat
+ * Specialized hook for handling ticket file uploads (images and PDFs) in admin chat
  * Similar to customer hook but may have admin-specific logic in future
  */
 
@@ -20,7 +20,7 @@ export interface UseTicketImageUploadResult {
 }
 
 /**
- * Hook for handling ticket image uploads (admin version)
+ * Hook for handling ticket file uploads (images and PDFs) (admin version)
  * Admin can upload to any customer's ticket
  */
 export function useTicketImageUpload(): UseTicketImageUploadResult {
@@ -43,7 +43,7 @@ export function useTicketImageUpload(): UseTicketImageUploadResult {
         // Verify admin is authenticated
         const adminId = await getAdminUserId();
         if (!adminId) {
-          onError?.(['You must be logged in as admin to upload ticket images']);
+          onError?.(['You must be logged in as admin to upload files']);
           return;
         }
 
@@ -65,7 +65,7 @@ export function useTicketImageUpload(): UseTicketImageUploadResult {
         }
         onSuccess?.(result.urls);
       } catch (error) {
-        console.error('Error uploading ticket image:', error);
+        console.error('Error uploading file:', error);
         onError?.([
           error instanceof Error
             ? error.message

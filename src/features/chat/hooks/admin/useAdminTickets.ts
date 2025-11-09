@@ -15,6 +15,7 @@ export type AdminTicketRow = {
   customer_full_name?: string | null;
   customer_first_name?: string | null;
   customer_last_name?: string | null;
+  customer_type?: string | null;
 };
 
 type LoadInquiriesOptions = {
@@ -26,19 +27,11 @@ type LoadInquiriesOptions = {
 export function useAdminTickets(options: LoadInquiriesOptions = {}) {
   const { page = 1, pageSize = 10, useAdvancedFallbacks = false } = options;
 
-  console.log('[useAdminTickets] Hook initialized with options:', options);
-
   const [tickets, setTickets] = useState<AdminTicketRow[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState<boolean>(false);
-
-  // Create unique channel ID to prevent conflicts
-  const channelId = useMemo(
-    () => `inquiries_v2-changes-${Math.random().toString(36).slice(2, 9)}`,
-    []
-  );
 
   const loadInquiries = useCallback(async () => {
     setLoading(true);
@@ -87,14 +80,15 @@ export function useAdminTickets(options: LoadInquiriesOptions = {}) {
       }
 
       const normalized: AdminTicketRow[] = (rows || []).map(row => {
+        // Handle customer data - it might be an array or object
+        const customerData = Array.isArray((row as any).customer)
+          ? (row as any).customer[0]
+          : (row as any).customer;
+
         const first =
-          (row as any).customer_first_name ||
-          (row as any).customer?.first_name ||
-          '';
+          (row as any).customer_first_name || customerData?.first_name || '';
         const last =
-          (row as any).customer_last_name ||
-          (row as any).customer?.last_name ||
-          '';
+          (row as any).customer_last_name || customerData?.last_name || '';
         const full = `${first} ${last}`.trim() || null;
 
         const normalizedRow = {
@@ -111,6 +105,7 @@ export function useAdminTickets(options: LoadInquiriesOptions = {}) {
           customer_full_name: full,
           customer_first_name: first || null,
           customer_last_name: last || null,
+          customer_type: customerData?.customer_type ?? null,
         } as AdminTicketRow;
 
         return normalizedRow;
@@ -137,36 +132,21 @@ export function useAdminTickets(options: LoadInquiriesOptions = {}) {
   }, [loadInquiries]);
 
   useEffect(() => {
-    console.log(
-      '[useAdminTickets] Setting up real-time subscription for inquiries_v2'
-    );
-    console.log('[useAdminTickets] Using channel ID:', channelId);
-
     const channel = supabase
-      .channel(channelId)
+      .channel('inquiries-changes')
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'inquiries_v2' },
-        payload => {
-          console.log(
-            '[useAdminTickets] Real-time INSERT event received:',
-            payload
-          );
+        { event: '*', schema: 'public', table: 'inquiries' },
+        () => {
           void loadInquiries();
         }
       )
-      .subscribe((status, err) => {
-        console.log('[useAdminTickets] Subscription status:', status);
-        if (err) {
-          console.error('[useAdminTickets] Subscription error:', err);
-        }
-      });
+      .subscribe();
 
     return () => {
-      console.log('[useAdminTickets] Cleaning up real-time subscription');
       supabase.removeChannel(channel);
     };
-  }, [loadInquiries, channelId]);
+  }, [loadInquiries]);
 
   const active = useMemo(
     () => tickets.find(t => t.inquiry_id === activeId) || null,

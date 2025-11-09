@@ -61,8 +61,8 @@ export async function displayOrderUploads(
   const urlList = Array.from(urls);
   const text =
     urlList.length > 0
-      ? ['Customer Uploaded Images:', '', ...urlList].join('\n')
-      : 'No uploaded images found for this request.';
+      ? ['Uploaded Files:', '', ...urlList].join('\n')
+      : 'No uploaded files found for this request.';
 
   return {
     messages: [

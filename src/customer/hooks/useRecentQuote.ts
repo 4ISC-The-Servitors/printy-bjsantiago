@@ -1,7 +1,6 @@
 // src/hooks/customer/useRecentQuote.ts
 
-import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@lib/supabase';
+import { useState, useEffect } from 'react';
 import { getCustomerQuotes } from '@features/chat/api/sessionQueries';
 import { formatCurrency } from '@shared/utils/priceFormatter';
 import type { RecentQuote } from '@shared/types/customer';
@@ -11,87 +10,62 @@ export function useRecentQuote(customerId?: string) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadRecentQuote = useCallback(async () => {
-    if (!customerId) {
-      setLoading(false);
-      return;
-    }
-
-    try {
-      // Use new sessionQueries to get customer quotes
-      const quotes = await getCustomerQuotes(customerId);
-      const latestQuote = quotes[0]; // Most recent quote
-
-      if (latestQuote) {
-        let quotedPrice: string | undefined;
-        if (latestQuote.quoted_price) {
-          quotedPrice = formatCurrency(Number(latestQuote.quoted_price));
-        }
-
-        // Set acceptedAt or rejectedAt based on status
-        const updatedAt = latestQuote.updatedAt || latestQuote.createdAt;
-        const acceptedAt =
-          latestQuote.status === 'accepted' ? updatedAt : undefined;
-        const rejectedAt =
-          latestQuote.status === 'rejected' ? updatedAt : undefined;
-
-        setRecentQuote({
-          id: latestQuote.quote_id,
-          displayId:
-            latestQuote.displayId ||
-            latestQuote.quote_id.slice(0, 8).toUpperCase(),
-          status: latestQuote.status as any, // Type casting due to v2 schema differences
-          quotedPrice,
-          createdAt: latestQuote.createdAt,
-          updatedAt: updatedAt,
-          endedAt: latestQuote.endedAt,
-          acceptedAt: acceptedAt,
-          rejectedAt: rejectedAt,
-        });
-      } else {
-        setRecentQuote(null);
+  useEffect(() => {
+    const loadRecentQuote = async () => {
+      if (!customerId) {
+        setLoading(false);
+        return;
       }
 
-      setError(null);
-    } catch (err) {
-      console.error('Error loading recent quote:', err);
-      setError(
-        err instanceof Error ? err.message : 'Failed to load recent quote'
-      );
-      setRecentQuote(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [customerId]);
+      try {
+        // Use new sessionQueries to get customer quotes
+        const quotes = await getCustomerQuotes(customerId);
+        const latestQuote = quotes[0]; // Most recent quote
 
-  useEffect(() => {
-    loadRecentQuote();
-  }, [loadRecentQuote]);
+        if (latestQuote) {
+          let quotedPrice: string | undefined;
+          if (latestQuote.quoted_price) {
+            quotedPrice = formatCurrency(Number(latestQuote.quoted_price));
+          }
 
-  // Add real-time subscription for quotes table changes
-  useEffect(() => {
-    if (!customerId) return;
+          // Set acceptedAt or rejectedAt based on status
+          const updatedAt = latestQuote.updatedAt || latestQuote.createdAt;
+          const acceptedAt =
+            latestQuote.status === 'accepted' ? updatedAt : undefined;
+          const rejectedAt =
+            latestQuote.status === 'rejected' ? updatedAt : undefined;
 
-    const channel = supabase
-      .channel('customer-quotes-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'quotes',
-          filter: `customer_id=eq.${customerId}`,
-        },
-        () => {
-          void loadRecentQuote();
+          setRecentQuote({
+            id: latestQuote.quote_id,
+            displayId:
+              latestQuote.displayId ||
+              latestQuote.quote_id.slice(0, 8).toUpperCase(),
+            status: latestQuote.status as any, // Type casting due to v2 schema differences
+            quotedPrice,
+            createdAt: latestQuote.createdAt,
+            updatedAt: updatedAt,
+            endedAt: latestQuote.endedAt,
+            acceptedAt: acceptedAt,
+            rejectedAt: rejectedAt,
+          });
+        } else {
+          setRecentQuote(null);
         }
-      )
-      .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
+        setError(null);
+      } catch (err) {
+        console.error('Error loading recent quote:', err);
+        setError(
+          err instanceof Error ? err.message : 'Failed to load recent quote'
+        );
+        setRecentQuote(null);
+      } finally {
+        setLoading(false);
+      }
     };
-  }, [customerId, loadRecentQuote]);
+
+    loadRecentQuote();
+  }, [customerId]);
 
   return {
     data: recentQuote,
