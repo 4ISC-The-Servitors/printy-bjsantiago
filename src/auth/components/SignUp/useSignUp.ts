@@ -258,7 +258,7 @@ export const useSignUp = () => {
             email: formData.email,
             password: formData.password,
             options: {
-              emailRedirectTo: `${window.location.origin}/auth/signin`,
+              emailRedirectTo: `${SITE_URL}/auth/confirm`,
               data: {
                 first_name: formData.firstName || null,
                 last_name: formData.lastName || null,

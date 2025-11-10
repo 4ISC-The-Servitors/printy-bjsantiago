@@ -24,6 +24,7 @@ import SuperAdminDashboard from '@superadmin/pages/Dashboard';
 import './index.css';
 import { RequireAuth } from '@auth/components/guards/RequireAuth';
 import { GuestOnly } from '@auth/components/guards/GuestOnly';
+import ConfirmEmail from '@auth/pages/ConfirmEmail';
 
 // Lazy load heavy components (only less frequently accessed pages)
 // Note: CustomerAccountSettings is kept as eager import since it's not lazy loaded
@@ -48,6 +49,7 @@ function App() {
           </GuestOnly>
         }
       />
+      <Route path="/auth/confirm" element={<ConfirmEmail />} />
       <Route path="/auth/forgot-password" element={<ForgotPassword />} />
       <Route path="/auth/reset-password/confirm" element={<ResetPassword />} />
       <Route
