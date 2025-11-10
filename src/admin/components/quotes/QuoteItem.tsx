@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Badge, Button } from '@admin/components/shared';
 import { CustomerInfoModal } from '@shared/components';
 import { getQuoteStatusBadgeVariant } from '@shared/utils/statusColors';
@@ -16,12 +16,18 @@ interface QuoteItemProps {
   quote: Quote;
   onHover: (quoteId: string | null) => void;
   onViewInChat: (quoteId: string) => void;
+  isUnread: boolean;
+  onMarkViewed: (quoteId: string, version?: string | null) => void;
+  currentUserId?: string | null;
 }
 
 export const QuoteItem: React.FC<QuoteItemProps> = ({
   quote,
   onHover,
   onViewInChat,
+  isUnread,
+  onMarkViewed,
+  currentUserId,
 }) => {
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
 
@@ -39,32 +45,53 @@ export const QuoteItem: React.FC<QuoteItemProps> = ({
   // Format dates with time
   const createdDate = formatDateWithTimeDesktop(quote.created_at);
 
-  // Use ended_at if status is 'ended', otherwise use updated_at
-  const isEnded = quote.status === 'ended';
-  const lastActionDateSource =
-    isEnded && quote.ended_at ? quote.ended_at : quote.updated_at;
-  const lastActionLabel = isEnded ? 'Ended' : 'Updated';
+  // Updated timestamp should always be visible
+  const lastActionLabel = 'Updated';
+  const lastActionDate = quote.updated_at
+    ? formatRelativeTimeLabel(quote.updated_at)
+    : '';
 
-  // For "Updated" dates, use relative time format; for "Ended" dates, use regular date format
-  const useRelativeTime = !isEnded && lastActionDateSource;
+  // For accepted date, prefer persisted accepted_at
+  const acceptedDate = quote.accepted_at
+    ? formatDateWithTimeDesktop(quote.accepted_at)
+    : '';
 
-  const lastActionDate = useRelativeTime
-    ? formatRelativeTimeLabel(lastActionDateSource)
-    : formatDateWithTimeDesktop(lastActionDateSource);
+  const quoteIdentifier = quote.session_id || quote.id;
+  const version = quote.updated_at ?? quote.created_at ?? null;
 
-  // For accepted/rejected dates, always use date with time format (not relative time)
-  const acceptedRejectedDate = formatDateWithTimeDesktop(quote.updated_at);
+  useEffect(() => {
+    if (!currentUserId || !quote.updated_by || !version) return;
+    if (quote.updated_by !== currentUserId) return;
+    onMarkViewed(quoteIdentifier, version);
+  }, [currentUserId, onMarkViewed, quote.updated_by, quoteIdentifier, version]);
+
+  const handleMouseEnter = () => {
+    onHover(quote.id);
+  };
+
+  const handleViewInChat = () => {
+    onMarkViewed(quoteIdentifier, version);
+    onViewInChat(quote.id);
+  };
 
   return (
     <div
-      className={`group ${layout.container}`}
-      onMouseEnter={() => onHover(quote.id)}
+      className={`group ${layout.container} ${
+        isUnread ? 'border-blue-200 bg-blue-50/40' : ''
+      }`}
+      onMouseEnter={handleMouseEnter}
       onMouseLeave={() => onHover(null)}
     >
       {/* Row 1: Quote ID + Product Name | Status Badge */}
       <div className={layout.structure.row1}>
         <div className={layout.leftSection}>
           <div className={`flex items-center ${layout.elementGap} min-w-0`}>
+            {isUnread && (
+              <span
+                className="w-2 h-2 bg-blue-500 rounded-full shrink-0"
+                aria-hidden="true"
+              />
+            )}
             <span className={layout.orderId}>{displayId}</span>
           </div>
         </div>
@@ -117,26 +144,31 @@ export const QuoteItem: React.FC<QuoteItemProps> = ({
             <span className="font-medium">Created:</span>
             <span className="truncate">{createdDate}</span>
           </div>
-          <div
-            className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
-          >
-            <span className="font-medium">{lastActionLabel}:</span>
-            <span className="truncate">{lastActionDate}</span>
-          </div>
-          {quote.status === 'accepted' && (
-            <div
-              className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
-            >
-              <span className="font-medium">Accepted:</span>
-              <span className="truncate">{acceptedRejectedDate}</span>
-            </div>
-          )}
+          {(quote.status === 'accepted' || quote.status === 'ended') &&
+            quote.accepted_at && (
+              <div
+                className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
+              >
+                <span className="font-medium">Accepted:</span>
+                <span className="truncate">{acceptedDate}</span>
+              </div>
+            )}
           {quote.status === 'rejected' && (
             <div
               className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
             >
               <span className="font-medium">Rejected:</span>
-              <span className="truncate">{acceptedRejectedDate}</span>
+              <span className="truncate">
+                {formatDateWithTimeDesktop(quote.updated_at)}
+              </span>
+            </div>
+          )}
+          {quote.updated_at && (
+            <div
+              className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
+            >
+              <span className="font-medium">{lastActionLabel}:</span>
+              <span className="truncate">{lastActionDate}</span>
             </div>
           )}
         </div>
@@ -148,7 +180,7 @@ export const QuoteItem: React.FC<QuoteItemProps> = ({
             size="sm"
             threeD
             aria-label={`Ask about ${displayId}`}
-            onClick={() => onViewInChat(quote.id)}
+            onClick={handleViewInChat}
             className="shrink-0"
           >
             <MessageSquare className="w-4 h-4" />
@@ -162,7 +194,7 @@ export const QuoteItem: React.FC<QuoteItemProps> = ({
           variant="secondary"
           size="sm"
           threeD
-          onClick={() => onViewInChat(quote.id)}
+          onClick={handleViewInChat}
           className="w-full"
         >
           Chat with Printy

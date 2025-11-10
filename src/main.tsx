@@ -26,6 +26,16 @@ const RootApp = () => {
       setCustomerId(user?.id);
     };
     getCustomerId();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setCustomerId(session?.user?.id);
+      }
+    );
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
   }, []);
 
   return (

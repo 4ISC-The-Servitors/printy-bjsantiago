@@ -6,6 +6,7 @@ import Progress from '@shared/components/ui/Progress';
 import { MessageGroup, ChatInput } from '../core';
 import { SessionFeedback } from '../feedback';
 import { getSessionFeedback } from '@features/chat/api';
+import { ChatEndService } from '@features/chat/services/ChatEndService';
 import { useChatLoadingToast } from '@features/chat/hooks/shared/useChatLoadingToast';
 import type { ChatMessage, QuickReply, ChatRole } from '@features/chat/types';
 
@@ -44,6 +45,7 @@ export const AdminChatDock: React.FC<AdminChatDockProps> = ({
   onAttachFiles,
   readOnly = false,
   sessionId,
+  conversationId,
   toast,
   uploadProgressPct,
 }) => {
@@ -174,6 +176,35 @@ export const AdminChatDock: React.FC<AdminChatDockProps> = ({
     }
   }, [readOnly]);
 
+  const handleClose = async () => {
+    try {
+      window.dispatchEvent(new Event('spec-editor-hidden'));
+    } catch {}
+    // If we don't have session info, fall back to legacy behavior
+    if (!sessionId) {
+      onEndChat?.();
+      return;
+    }
+
+    try {
+      // Check if session is already ended
+      const isEnded = await ChatEndService.isSessionEnded(sessionId);
+
+      if (!isEnded) {
+        // Session is active, end it using the unified service
+        // This will be handled by the parent component through the updated endChat function
+        onEndChat?.();
+      } else {
+        // Session already ended, just toggle the dock closed
+        onToggle?.();
+      }
+    } catch (error) {
+      console.error('Error handling close:', error);
+      // Fallback to legacy behavior
+      onEndChat?.();
+    }
+  };
+
   const handleSubmit = () => {
     const text = input.trim();
     if (!text || readOnly) return;
@@ -209,12 +240,7 @@ export const AdminChatDock: React.FC<AdminChatDockProps> = ({
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => {
-              try {
-                window.dispatchEvent(new Event('spec-editor-hidden'));
-              } catch {}
-              onEndChat?.();
-            }}
+            onClick={handleClose}
             className="h-8 w-8 p-0"
             aria-label="Close chat"
           >
@@ -239,6 +265,7 @@ export const AdminChatDock: React.FC<AdminChatDockProps> = ({
             isHistorical={group.messages.every(m => m.isHistorical === true)}
             userRole={'admin'}
             sessionId={sessionId}
+            conversationId={conversationId}
           />
         ))}
         {/* Global typing indicator removed to avoid duplication; MessageGroup handles typing */}
@@ -293,8 +320,16 @@ export const AdminChatDock: React.FC<AdminChatDockProps> = ({
           sessionId={sessionId}
           userRole="admin"
           isOpen={showFeedback}
-          onClose={() => setShowFeedback(false)}
-          onSubmitted={() => setShowFeedback(false)}
+          onClose={() => {
+            setShowFeedback(false);
+            // After closing feedback, the X button will check if session is ended
+            // and just close the dock instead of trying to end again
+          }}
+          onSubmitted={() => {
+            setShowFeedback(false);
+            // After feedback is submitted, session is already ended
+            // Quick replies are hidden, so End Chat button won't be visible
+          }}
           isModal={true}
         />
       )}

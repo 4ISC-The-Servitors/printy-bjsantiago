@@ -11,6 +11,7 @@ export interface ConversationItem {
   id: string;
   title: string;
   createdAt: number;
+  updatedAt?: number;
   messages: ChatMessage[];
   flowId: string;
   status: 'active' | 'ended';

@@ -365,8 +365,16 @@ export const AdminChatOverlay: React.FC<AdminChatOverlayProps> = ({
           sessionId={sessionId}
           userRole="admin"
           isOpen={showFeedback}
-          onClose={() => setShowFeedback(false)}
-          onSubmitted={() => setShowFeedback(false)}
+          onClose={() => {
+            setShowFeedback(false);
+            // After closing feedback, the X button will check if session is ended
+            // and just close the overlay instead of trying to end again
+          }}
+          onSubmitted={() => {
+            setShowFeedback(false);
+            // After feedback is submitted, session is already ended
+            // Quick replies are hidden, so End Chat button won't be visible
+          }}
           isModal={true}
         />
       )}

@@ -110,7 +110,7 @@ const ChatHistory: React.FC = () => {
   } = useGenericSearchFilter({
     items: conversations,
     searchFields: ['title', 'id'],
-    dateField: 'createdAt',
+    dateField: 'updatedAt',
     filterConfig,
     statusField: 'status',
   });
@@ -129,24 +129,53 @@ const ChatHistory: React.FC = () => {
   }, [search, filter]);
 
   // Use shared session cache instead of individual query
-  const { sessions: cachedSessions, loading: isLoading } =
-    useCustomerSessionCache();
+  const {
+    sessions: cachedSessions,
+    loading: isLoading,
+    isLoadingMore,
+    loadMore,
+    hasMore,
+  } = useCustomerSessionCache();
 
   // Convert cached sessions to Conversation format
   useEffect(() => {
-    const convertedConversations: Conversation[] = cachedSessions.map(
-      session => ({
+    const convertedConversations: Conversation[] = cachedSessions
+      .map(session => ({
         id: session.id,
         title: session.title,
         createdAt: session.createdAt,
-        updatedAt: session.createdAt, // Use created_at as fallback since we don't have updated_at in cache
+        updatedAt: session.updatedAt ?? session.createdAt,
         messages: session.messages,
         status: session.status,
-      })
-    );
+      }))
+      .sort((a, b) => b.updatedAt - a.updatedAt);
     // Update the conversations state for filtering and display
     setConversations(convertedConversations);
   }, [cachedSessions]);
+
+  // Automatically load more sessions when user reaches the end of the current data
+  useEffect(() => {
+    if (!hasMore) {
+      return;
+    }
+
+    const needsMore =
+      endIndex >= conversations.length &&
+      conversations.length > 0 &&
+      !isLoading &&
+      !isLoadingMore;
+
+    if (needsMore) {
+      loadMore();
+    }
+  }, [
+    endIndex,
+    conversations.length,
+    hasMore,
+    isLoading,
+    isLoadingMore,
+    loadMore,
+  ]);
 
   // Initialize flow via useCustomerConversations
   const initializeFlow = (flowId: string, title: string, ctx: unknown = {}) => {

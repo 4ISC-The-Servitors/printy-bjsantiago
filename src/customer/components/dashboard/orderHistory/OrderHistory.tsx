@@ -1,4 +1,10 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, {
+  useEffect,
+  useState,
+  useCallback,
+  useMemo,
+  useRef,
+} from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@lib/supabase';
 import ResponsivePageLayout from '@customer/components/shared/layouts/ResponsivePageLayout';
@@ -58,6 +64,58 @@ const OrderHistory: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [customerId, setCustomerId] = useState<string | null>(null);
+  const ordersRef = useRef<Order[]>([]);
+
+  const PAGE_SIZE = 50;
+
+  const sortOrders = useCallback((list: Order[]) => {
+    return [...list].sort((a, b) => b.updatedAt - a.updatedAt);
+  }, []);
+
+  const replaceOrders = useCallback(
+    (next: Order[]) => {
+      const sorted = sortOrders(next);
+      ordersRef.current = sorted;
+      setOrders(sorted);
+    },
+    [sortOrders]
+  );
+
+  const appendOrders = useCallback(
+    (incoming: Order[]) => {
+      setOrders(prev => {
+        const existingIds = new Set(prev.map(order => order.id));
+        const merged = [...prev];
+        incoming.forEach(order => {
+          if (!existingIds.has(order.id)) {
+            merged.push(order);
+          }
+        });
+        const sorted = sortOrders(merged);
+        ordersRef.current = sorted;
+        return sorted;
+      });
+    },
+    [sortOrders]
+  );
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchCustomerId = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!isMounted) return;
+      setCustomerId(user?.id ?? null);
+    };
+    fetchCustomerId();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Chat state management
   const { logout, toasts, toast } = useLogoutWithToast();
@@ -116,7 +174,7 @@ const OrderHistory: React.FC = () => {
       'createdAt',
       'updatedAt',
     ],
-    dateField: 'createdAt',
+    dateField: 'updatedAt',
     filterConfig: FILTER_CONFIGS.orders,
     statusField: 'status',
   });
@@ -205,18 +263,23 @@ const OrderHistory: React.FC = () => {
     await logout('/auth/signin');
   };
 
-  // Load orders from database
-  useEffect(() => {
-    const loadOrders = async () => {
-      setIsLoading(true);
+  const loadOrders = useCallback(
+    async ({ reset }: { reset: boolean }) => {
+      if (!customerId) {
+        return;
+      }
+
+      if (reset) {
+        setIsLoading(true);
+        setIsLoadingMore(false);
+        setHasMore(true);
+      } else {
+        setIsLoadingMore(true);
+      }
+
       try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (!user) {
-          setIsLoading(false);
-          return;
-        }
+        const rangeFrom = reset ? 0 : ordersRef.current.length;
+        const rangeTo = rangeFrom + PAGE_SIZE - 1;
 
         const { data, error } = await supabase
           .from('orders')
@@ -233,12 +296,12 @@ const OrderHistory: React.FC = () => {
             completed_at
           `
           )
-          .eq('customer_id', user.id)
-          .order('created_at', { ascending: false });
+          .eq('customer_id', customerId)
+          .order('updated_at', { ascending: false })
+          .range(rangeFrom, rangeTo);
 
         if (error) {
           console.error('Error loading orders:', error);
-          setIsLoading(false);
           return;
         }
 
@@ -261,19 +324,169 @@ const OrderHistory: React.FC = () => {
             : undefined,
         }));
 
-        // Sort by updatedAt descending (most recent first)
-        orderList.sort((a, b) => b.updatedAt - a.updatedAt);
+        if (reset) {
+          replaceOrders(orderList);
+        } else if (orderList.length > 0) {
+          appendOrders(orderList);
+        }
 
-        setOrders(orderList);
+        setHasMore((data?.length ?? 0) === PAGE_SIZE);
       } catch (error) {
         console.error('Error loading orders:', error);
       } finally {
-        setIsLoading(false);
+        if (reset) {
+          setIsLoading(false);
+        } else {
+          setIsLoadingMore(false);
+        }
+      }
+    },
+    [customerId, appendOrders, replaceOrders]
+  );
+
+  useEffect(() => {
+    if (!customerId) {
+      return;
+    }
+    setCurrentPage(1);
+    void loadOrders({ reset: true });
+  }, [customerId, loadOrders]);
+
+  const loadMore = useCallback(() => {
+    if (!customerId || isLoading || isLoadingMore || !hasMore) {
+      return;
+    }
+    void loadOrders({ reset: false });
+  }, [customerId, isLoading, isLoadingMore, hasMore, loadOrders]);
+
+  useEffect(() => {
+    if (!customerId || !hasMore) {
+      return;
+    }
+    const needsMore =
+      endIndex >= allFilteredOrders.length &&
+      orders.length > 0 &&
+      !isLoading &&
+      !isLoadingMore;
+    if (needsMore) {
+      loadMore();
+    }
+  }, [
+    customerId,
+    endIndex,
+    allFilteredOrders.length,
+    orders.length,
+    hasMore,
+    isLoading,
+    isLoadingMore,
+    loadMore,
+  ]);
+
+  // Real-time subscription for orders changes
+  useEffect(() => {
+    if (!customerId) return;
+
+    const upsertFromPayload = async (orderId: string) => {
+      try {
+        const { data, error } = await supabase
+          .from('orders')
+          .select(
+            `
+            order_id,
+            display_id,
+            status,
+            created_at,
+            updated_at,
+            total_amount,
+            order_specs,
+            payment_verified_at,
+            completed_at
+          `
+          )
+          .eq('order_id', orderId)
+          .single();
+
+        if (error || !data) {
+          console.error('[OrderHistory] Error fetching updated order:', error);
+          return;
+        }
+
+        const order: Order = {
+          id: data.order_id,
+          title: data.order_specs?.product_name || 'Order',
+          createdAt: new Date(data.created_at).getTime(),
+          updatedAt: new Date(data.updated_at).getTime(),
+          status: data.status,
+          displayId: data.display_id || data.order_id,
+          total: data.total_amount
+            ? `₱${Number(data.total_amount).toLocaleString()}`
+            : undefined,
+          order_specs: data.order_specs,
+          paymentVerifiedAt: data.payment_verified_at
+            ? new Date(data.payment_verified_at).getTime()
+            : undefined,
+          completedAt: data.completed_at
+            ? new Date(data.completed_at).getTime()
+            : undefined,
+        };
+
+        setOrders(prev => {
+          const existingIndex = prev.findIndex(o => o.id === orderId);
+          if (existingIndex >= 0) {
+            // Update existing order
+            const updated = [...prev];
+            updated[existingIndex] = order;
+            const sorted = sortOrders(updated);
+            ordersRef.current = sorted;
+            return sorted;
+          } else {
+            // Insert new order
+            const merged = [order, ...prev];
+            const sorted = sortOrders(merged);
+            ordersRef.current = sorted;
+            return sorted;
+          }
+        });
+      } catch (e) {
+        console.error('[OrderHistory] Error processing realtime update:', e);
       }
     };
 
-    loadOrders();
-  }, []);
+    const channel = supabase
+      .channel(`orders-customer:${customerId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'orders',
+          filter: `customer_id=eq.${customerId}`,
+        },
+        async payload => {
+          const orderId =
+            (payload.new as any)?.order_id || (payload.old as any)?.order_id;
+          if (!orderId) return;
+
+          // Handle DELETE: remove from local state
+          if (payload.eventType === 'DELETE') {
+            setOrders(prev => {
+              const filtered = prev.filter(o => o.id !== orderId);
+              ordersRef.current = sortOrders(filtered);
+              return sortOrders(filtered);
+            });
+            return;
+          }
+
+          // Handle INSERT/UPDATE: fetch single row and merge into state
+          await upsertFromPayload(orderId);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [customerId, sortOrders]);
 
   const handleItemClick = (_order: Order) => {
     // TODO: Navigate to order details page

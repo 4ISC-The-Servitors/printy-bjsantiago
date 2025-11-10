@@ -1,8 +1,7 @@
-// Admin tickets page with real-time subscriptions and consistent context pattern
+// Admin tickets page with real-time subscriptions
 import React from 'react';
 import { TicketsCard } from '@admin/components';
 import { Search, Filter, Card, Text } from '@shared/components';
-import { TicketsProvider } from '@admin/hooks/TicketsContext';
 import { useGenericSearchFilter } from '@shared/hooks/ui/useGenericSearchFilter';
 import {
   useResponsiveClasses,
@@ -12,12 +11,17 @@ import { FILTER_CONFIGS } from '@shared/types/filters';
 import { useAdminTickets } from '@features/chat/hooks/admin/useAdminTickets';
 
 const TicketsContent: React.FC = () => {
-  // Get all tickets for search/filter (using a larger page size to get all data)
-  const { tickets: ticketsAll } = useAdminTickets({
-    page: 1,
-    pageSize: 1000, // Large page size to get all tickets for client-side filtering
-    useAdvancedFallbacks: false, // Disabled to avoid 404 errors from inaccessible RPC functions
-  });
+  const {
+    tickets: ticketsAll,
+    hasMore,
+    loadMore,
+    loadAll,
+    loading,
+    loadingMore,
+    loadingAll,
+    reload,
+    totalCount,
+  } = useAdminTickets({ useAdvancedFallbacks: false });
 
   // Responsive hooks
   const { spacingClasses } = useResponsiveClasses();
@@ -40,13 +44,36 @@ const TicketsContent: React.FC = () => {
       'customer_full_name',
       'customer_first_name',
       'customer_last_name',
-      'received_at',
+      'updated_at',
       'order_id',
     ],
-    dateField: 'received_at',
+    dateField: 'updated_at',
     filterConfig: FILTER_CONFIGS.tickets,
     statusField: 'inquiry_status',
   });
+
+  const hasStatusFilter = Boolean(filter.statuses?.length);
+  const hasRoleFilter = Boolean(filter.roles?.length);
+  const hasDateFilter = Boolean(filter.dateFrom || filter.dateTo);
+  const hasSearch = Boolean(search.trim());
+
+  // When searching/filtering, load all pages so client-side search can find old IDs
+  React.useEffect(() => {
+    if (!hasMore || loading || loadingMore || loadingAll) return;
+    if (hasStatusFilter || hasRoleFilter || hasDateFilter || hasSearch) {
+      void loadAll();
+    }
+  }, [
+    hasMore,
+    loading,
+    loadingMore,
+    loadingAll,
+    hasStatusFilter,
+    hasRoleFilter,
+    hasDateFilter,
+    hasSearch,
+    loadAll,
+  ]);
 
   return (
     <div className="px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-5 md:py-6">
@@ -93,6 +120,7 @@ const TicketsContent: React.FC = () => {
         )}
       </div>
 
+      {/* Tickets List / Empty State */}
       {filteredTickets.length === 0 ? (
         <Card className="p-8 text-center">
           <Text variant="p" className="text-neutral-500">
@@ -102,18 +130,24 @@ const TicketsContent: React.FC = () => {
           </Text>
         </Card>
       ) : (
-        <TicketsCard filteredTickets={filteredTickets} />
+        <TicketsCard
+          filteredTickets={filteredTickets}
+          allTickets={ticketsAll}
+          hasMore={hasMore}
+          loadMore={loadMore}
+          loading={loading}
+          loadingMore={loadingMore}
+          loadingAll={loadingAll}
+          refreshTickets={reload}
+          totalCount={totalCount}
+        />
       )}
     </div>
   );
 };
 
 const AdminTickets: React.FC = () => {
-  return (
-    <TicketsProvider>
-      <TicketsContent />
-    </TicketsProvider>
-  );
+  return <TicketsContent />;
 };
 
 export default AdminTickets;

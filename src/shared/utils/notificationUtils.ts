@@ -28,6 +28,23 @@ export interface UINotificationItem {
 // Alias to keep backward compatibility with any existing imports
 export type NotificationItem = UINotificationItem;
 
+export interface NotificationQueryOptions {
+  /**
+   * Zero-based offset for pagination. Defaults to 0.
+   */
+  offset?: number;
+  /**
+   * Maximum number of notifications to return. Defaults to 20 and is capped at 100.
+   */
+  limit?: number;
+}
+
+export interface NotificationQueryResult {
+  items: UINotificationItem[];
+  totalCount: number;
+  unreadCount: number;
+}
+
 /**
  * Convert ISO timestamp to a human-readable label like "2 min ago"
  */
@@ -112,20 +129,38 @@ export function startNotificationListener(
  * Fetch all existing notifications for a user (sorted by most recent first)
  */
 export async function fetchUserNotifications(
-  userId: string
-): Promise<UINotificationItem[]> {
-  const { data, error } = await supabase
+  userId: string,
+  options: NotificationQueryOptions = {}
+): Promise<NotificationQueryResult> {
+  const limit = Math.max(1, Math.min(options.limit ?? 20, 100));
+  const offset = Math.max(0, options.offset ?? 0);
+  const to = offset + limit - 1;
+
+  const { data, error, count } = await supabase
     .from('notifications')
-    .select('id,title,message,type,category,is_read,created_at')
+    .select('id,title,message,type,category,is_read,created_at', {
+      count: 'exact',
+    })
     .eq('customer_id', userId)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .range(offset, to);
 
   if (error) {
     console.error('Error loading notifications:', error.message);
-    return [];
+    return {
+      items: [],
+      totalCount: 0,
+      unreadCount: 0,
+    };
   }
 
-  return (
+  const { count: unreadCount } = await supabase
+    .from('notifications')
+    .select('id', { count: 'exact', head: true })
+    .eq('customer_id', userId)
+    .eq('is_read', false);
+
+  const items =
     data?.map(n => ({
       id: n.id,
       title: n.title,
@@ -134,8 +169,13 @@ export async function fetchUserNotifications(
       type: n.type,
       timestamp: timeAgoLabel(n.created_at),
       isRead: n.is_read,
-    })) ?? []
-  );
+    })) ?? [];
+
+  return {
+    items,
+    totalCount: count ?? 0,
+    unreadCount: unreadCount ?? 0,
+  };
 }
 
 /**
