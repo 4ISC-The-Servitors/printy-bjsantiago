@@ -90,7 +90,7 @@ export async function acceptQuoteProposal(
   try {
     // Update quotes status to 'accepted'
 
-    const { data: quoteData, error: quoteError } = await supabase
+    const { error: quoteError } = await supabase
       .from('quotes')
       .update({
         status: 'accepted',
@@ -109,13 +109,6 @@ export async function acceptQuoteProposal(
         ts: Date.now(),
       });
       return { messages };
-    }
-
-    if (!quoteData || quoteData.length === 0) {
-      console.warn(
-        '[acceptQuoteProposal] No quotes found for session_id:',
-        conversationId
-      );
     }
 
     // Notifications are handled by database trigger (notify_quote_events)

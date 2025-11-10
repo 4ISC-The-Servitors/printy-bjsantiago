@@ -46,7 +46,6 @@ export class ProfileService {
     try {
       // Check if Supabase is available
       if (!supabase) {
-        console.warn('Supabase client not available, returning null');
         return null;
       }
 
@@ -68,9 +67,6 @@ export class ProfileService {
           customerError.message.includes('NetworkError') ||
           customerError.message.includes('TypeError')
         ) {
-          console.warn(
-            'Network error detected, returning null to allow fallback'
-          );
           return null;
         }
 
@@ -150,7 +146,7 @@ export class ProfileService {
             };
           }
         } catch (e) {
-          console.warn('Failed to fetch joined address data', e);
+          // Failed to fetch joined address data, continue with empty address
         }
       }
 
@@ -177,9 +173,6 @@ export class ProfileService {
           error.message.includes('NetworkError') ||
           error.message.includes('TypeError'))
       ) {
-        console.warn(
-          'Network error detected, returning null to allow fallback'
-        );
         return null;
       }
 

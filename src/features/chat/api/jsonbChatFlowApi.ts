@@ -142,13 +142,6 @@ export async function fetchSessionMessagesV2(sessionId: string): Promise<
     metadata?: Record<string, any> | null;
   }>
 > {
-  const caller = new Error().stack?.split('\n')[2]?.trim() || 'unknown';
-  console.log(
-    '[fetchSessionMessagesV2] Fetching messages for session:',
-    sessionId,
-    'from:',
-    caller
-  );
   const { data, error } = await supabase.rpc('api_fetch_chat_messages_v2', {
     p_session_id: sessionId,
   });
@@ -167,8 +160,6 @@ export async function fetchSessionMessagesV2(sessionId: string): Promise<
     metadata: msg.metadata || null,
   }));
 
-  console.log('[fetchSessionMessagesV2] Raw messages from DB:', data);
-  console.log('[fetchSessionMessagesV2] Mapped messages:', messages);
   return messages;
 }
 

@@ -78,7 +78,10 @@ const SuperAdminRoot: React.FC = () => {
 
     window.addEventListener('superadmin-refresh-loading', handleLoadingChange);
     return () => {
-      window.removeEventListener('superadmin-refresh-loading', handleLoadingChange);
+      window.removeEventListener(
+        'superadmin-refresh-loading',
+        handleLoadingChange
+      );
     };
   }, []);
 
@@ -89,8 +92,7 @@ const SuperAdminRoot: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Logo/Title */}
-            <div className="flex items-center">
-            </div>
+            <div className="flex items-center"></div>
 
             {/* Action Buttons */}
             <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
@@ -100,9 +102,15 @@ const SuperAdminRoot: React.FC = () => {
                 className="btn btn-secondary device-btn-secondary"
                 title="Refresh KPI data"
               >
-                <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                <span className="hidden sm:inline">{isRefreshing ? 'Refreshing...' : 'Refresh Data'}</span>
-                <span className="sm:hidden">{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
+                <RefreshCw
+                  className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`}
+                />
+                <span className="hidden sm:inline">
+                  {isRefreshing ? 'Refreshing...' : 'Refresh Data'}
+                </span>
+                <span className="sm:hidden">
+                  {isRefreshing ? 'Refreshing...' : 'Refresh'}
+                </span>
               </button>
 
               <button
@@ -130,7 +138,10 @@ const SuperAdminRoot: React.FC = () => {
       >
         <div className="card">
           <div className="flex items-center justify-between device-spacing-component pb-4">
-            <Text variant="h3" className="device-text-heading font-semibold text-neutral-900">
+            <Text
+              variant="h3"
+              className="device-text-heading font-semibold text-neutral-900"
+            >
               Confirm Logout
             </Text>
             {!isLoggingOut && (

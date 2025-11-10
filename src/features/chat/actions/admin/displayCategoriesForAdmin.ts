@@ -37,19 +37,12 @@ export async function displayCategoriesForAdmin(
   }> = [];
 
   try {
-    console.log('[displayCategoriesForAdmin] Starting to fetch categories...');
-
     // Query ALL service categories (both active and inactive) ordered by display_order
     // This is similar to displayServiceCategories but without the is_active filter
     const { data: categories, error } = await supabase
       .from('service_categories')
       .select('category_id, category_name, description, is_active')
       .order('display_order', { ascending: true });
-
-    console.log('[displayCategoriesForAdmin] Query result:', {
-      categories,
-      error,
-    });
 
     if (error) {
       console.error(
@@ -95,19 +88,8 @@ export async function displayCategoriesForAdmin(
       next: string;
     }> = [];
 
-    console.log(
-      '[displayCategoriesForAdmin] Processing categories:',
-      categories
-    );
-
     // Generate quick replies for each category (both active and inactive)
     if (categories && categories.length > 0) {
-      console.log(
-        '[displayCategoriesForAdmin] Found',
-        categories.length,
-        'categories'
-      );
-
       categories.forEach(category => {
         // Skip excluded category (e.g., current category when changing service category)
         if (excludeCategoryId && category.category_id === excludeCategoryId) {
@@ -115,10 +97,6 @@ export async function displayCategoriesForAdmin(
         }
 
         const statusLabel = category.is_active ? '' : ' (Inactive)';
-        console.log(
-          '[displayCategoriesForAdmin] Adding category:',
-          category.category_name
-        );
         // Store category_id and category_name in value for later parsing
         // Use custom next node if provided, otherwise default to ask_service_name
         quickReplies.push({
@@ -135,11 +113,6 @@ export async function displayCategoriesForAdmin(
       value: 'create_new_category',
       next: 'ask_category_name',
     });
-
-    console.log(
-      '[displayCategoriesForAdmin] Final quick replies:',
-      quickReplies
-    );
 
     return {
       messages,

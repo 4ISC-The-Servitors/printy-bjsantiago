@@ -1,4 +1,5 @@
 import React, { useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { LogOut, Bot, X, User } from 'lucide-react';
 import { Button, Text } from '@shared/components';
 import RecentChats from './RecentChats';
@@ -37,6 +38,7 @@ const CustomerMobileSidebarMenu: React.FC<CustomerMobileSidebarMenuProps> = ({
   onAccount,
   onLogout,
 }) => {
+  const navigate = useNavigate();
   const listContainerRef = useRef<HTMLDivElement>(null);
 
   return (
@@ -78,9 +80,7 @@ const CustomerMobileSidebarMenu: React.FC<CustomerMobileSidebarMenuProps> = ({
             >
               Recent Chats
             </Text>
-            <ViewAllChat
-              onClick={() => window.location.assign('/customer/chats')}
-            />
+            <ViewAllChat onClick={() => navigate('/customer/chats')} />
           </div>
           <div className="mt-2 border-t border-neutral-200" />
         </div>

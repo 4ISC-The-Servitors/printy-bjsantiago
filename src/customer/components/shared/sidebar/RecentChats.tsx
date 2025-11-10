@@ -70,39 +70,45 @@ const RecentChats: React.FC<RecentChatsProps> = ({
   }
 
   return (
-    <div className="space-y-2 recent-chats-container">
-      {items.map(c => (
-        <button
-          key={c.id}
-          onClick={() => onSwitchConversation(c.id)}
-          className={
-            'w-full text-left rounded-md border px-3 py-2 transition-colors ' +
-            (c.id === activeId
-              ? 'bg-brand-primary-50 border-brand-primary'
-              : 'bg-white border-neutral-200 hover:bg-neutral-50')
-          }
-          title={c.title}
-        >
-          <div className="flex items-start gap-2">
-            <div className="w-6 h-6 rounded-md bg-brand-primary text-white flex items-center justify-center text-xs mt-0.5">
-              {c.icon || <Bot className="w-4 h-4" />}
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 mb-0.5">
-                <div className="font-semibold device-text-body truncate">
-                  {c.title}
+    <div className="h-full overflow-y-auto recent-chats-container">
+      <div className="space-y-2 pr-1">
+        {items.map(c => (
+          <button
+            key={c.id}
+            onClick={() => onSwitchConversation(c.id)}
+            className={
+              'w-full text-left rounded-md border px-3 py-2 transition-colors ' +
+              (c.id === activeId
+                ? 'bg-brand-primary-50 border-brand-primary'
+                : 'bg-white border-neutral-200 hover:bg-neutral-50')
+            }
+            title={c.title}
+          >
+            <div className="flex items-start gap-2">
+              <div className="w-6 h-6 rounded-md bg-brand-primary text-white flex items-center justify-center text-xs mt-0.5">
+                {c.icon || <Bot className="w-4 h-4" />}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 mb-0.5">
+                  <div className="font-semibold device-text-body truncate">
+                    {c.title}
+                  </div>
+                  <Badge
+                    variant={getChatStatusBadgeVariant(c.status)}
+                    size="sm"
+                  >
+                    {formatChatStatus(c.status)}
+                  </Badge>
                 </div>
-                <Badge variant={getChatStatusBadgeVariant(c.status)} size="sm">
-                  {formatChatStatus(c.status)}
-                </Badge>
-              </div>
-              <div className="device-text-caption text-neutral-500">
-                {formatShortDate(c.createdAt)} • {formatShortTime(c.createdAt)}
+                <div className="device-text-caption text-neutral-500">
+                  {formatShortDate(c.createdAt)} •{' '}
+                  {formatShortTime(c.createdAt)}
+                </div>
               </div>
             </div>
-          </div>
-        </button>
-      ))}
+          </button>
+        ))}
+      </div>
     </div>
   );
 };

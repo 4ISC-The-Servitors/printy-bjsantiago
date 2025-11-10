@@ -10,6 +10,7 @@ import {
   getFlowDefinition,
   fetchSessionMessagesV2,
 } from '@features/chat/api/jsonbChatFlowApi';
+import { actionHandlers } from '@features/chat/actions';
 import { supabase } from '@lib/supabase';
 import type { ChatMessage } from '@features/chat/types/chat';
 
@@ -110,9 +111,6 @@ export function useConversationSwitcher() {
             if (dynamicActions.includes(actionName)) {
               try {
                 // Re-execute the action to regenerate quick replies
-                const { actionHandlers } = await import(
-                  '@features/chat/actions/customer'
-                );
                 const handler = actionHandlers[actionName];
                 if (handler) {
                   // Get customer ID from session
@@ -267,10 +265,6 @@ export function useConversationSwitcher() {
           setActiveNodeId?.(null);
         }
       } catch (error) {
-        console.warn(
-          'Failed to get v2 flow state, falling back to no replies:',
-          error
-        );
         setQuickReplies([]);
         updatePlaceholder(conv.flowId, []);
         setActiveNodeId?.(null);

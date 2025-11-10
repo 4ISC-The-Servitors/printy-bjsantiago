@@ -1,16 +1,9 @@
 // Customer Components Barrel Export
 
-// Account Settings - Desktop
-export { default as DesktopNotificationPreferences } from './accountSettings/NotificationPreferences';
-export { default as DesktopProfileOverviewCard } from './accountSettings/ProfileOverviewCard';
-export { default as DesktopSecuritySettings } from './accountSettings/SecuritySettings';
-export { default as DesktopPersonalInfoForm } from './accountSettings/PersonalInfoForm';
-
-// Account Settings - Mobile
-// Note: Mobile settings components are placeholders (empty files)
-// export { default as MobileUserManagementSettings } from './accountSettings/mobile/UserManagementSettings';
-// export { default as MobileSecuritySettings } from './accountSettings/mobile/SecuritySettings';
-// export { default as MobileSystemPreferences } from './accountSettings/mobile/SystemPreferences';
+// Account Settings
+export { default as ProfileOverviewCard } from './accountSettings/ProfileOverviewCard';
+export { default as SecuritySettings } from './accountSettings/SecuritySettings';
+export { default as PersonalInfoForm } from './accountSettings/PersonalInfoForm';
 
 // Chat History
 export { default as ConversationList } from './chatHistory/ConversationList';

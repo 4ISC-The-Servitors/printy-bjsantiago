@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@lib/supabase';
 import ResponsivePageLayout from '@customer/components/shared/layouts/ResponsivePageLayout';
 import HistoryItemCard from '@customer/components/shared/cards/HistoryItemCard';
@@ -52,6 +53,7 @@ interface Order {
 }
 
 const OrderHistory: React.FC = () => {
+  const navigate = useNavigate();
   const [orders, setOrders] = useState<Order[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -456,7 +458,7 @@ const OrderHistory: React.FC = () => {
               );
             }}
             onNavigateToAccount={() => {
-              window.location.href = '/customer/account';
+              navigate('/customer/account');
             }}
             bottomActions={<LogoutButton onClick={handleLogout} />}
           />

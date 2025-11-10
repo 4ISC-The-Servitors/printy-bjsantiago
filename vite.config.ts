@@ -69,54 +69,10 @@ export default defineConfig({
         if (id === 'tslib') return false;
         return false;
       },
-      output: {
-        manualChunks: id => {
-          // Vendor chunks
-          if (id.includes('node_modules')) {
-            if (id.includes('react') || id.includes('react-dom')) {
-              return 'react-vendor';
-            }
-            if (id.includes('react-router')) {
-              return 'router-vendor';
-            }
-            if (id.includes('lucide-react')) {
-              return 'ui-vendor';
-            }
-            if (id.includes('@supabase')) {
-              return 'supabase-vendor';
-            }
-            if (id.includes('tslib')) {
-              return 'tslib-vendor';
-            }
-            return 'vendor';
-          }
-
-          // Feature chunks - updated for new architecture
-          if (id.includes('/src/admin/')) {
-            return 'admin';
-          }
-          if (id.includes('/src/customer/')) {
-            return 'customer';
-          }
-          if (id.includes('/src/guest/')) {
-            return 'guest';
-          }
-          if (id.includes('/src/auth/')) {
-            return 'auth';
-          }
-          if (id.includes('/src/shared/')) {
-            return 'shared';
-          }
-          if (id.includes('/src/features/chat/')) {
-            return 'chat';
-          }
-          if (id.includes('/src/features/quotes/')) {
-            return 'quotes';
-          }
-        },
-      },
+      // Let Rollup decide chunk boundaries to avoid evaluation order issues
     },
-    // Increase chunk size warning limit to 1000kb
-    chunkSizeWarningLimit: 1000,
+    // Increase chunk size warning limit to 1500kb
+    // Note: heic-vendor chunk is intentionally large and loads on-demand only
+    chunkSizeWarningLimit: 1500,
   },
 });

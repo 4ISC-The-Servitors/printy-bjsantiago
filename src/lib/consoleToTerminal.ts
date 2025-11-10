@@ -16,6 +16,8 @@ interface LogFilterConfig {
   excludePatterns: string[];
   // Patterns to include even if level is disabled
   includePatterns: string[];
+  // Patterns to completely suppress from browser console
+  suppressPatterns: string[];
 }
 
 class TerminalConsoleForwarder {
@@ -32,7 +34,19 @@ class TerminalConsoleForwarder {
     showWarnings: true,
     showInfo: false,
     showLogs: false,
-    showDebug: false,
+    showDebug: true,
+    suppressPatterns: [
+      // Completely suppress Vite HMR messages from browser console
+      '[vite]',
+      '[vite] hot updated',
+      '[vite] connecting',
+      '[vite] connected',
+      'hot updated',
+      'hot module',
+      'hmr',
+      'vite:',
+      'vite hmr',
+    ],
     excludePatterns: [
       // Exclude verbose success logs
       'File upload triggered',
@@ -201,6 +215,10 @@ class TerminalConsoleForwarder {
   private setupInterceptors() {
     // Override console methods with direct terminal output
     console.log = (...args) => {
+      // Check if message should be completely suppressed
+      if (this.shouldSuppressLog(...args)) {
+        return;
+      }
       this.originalConsole.log(...args);
       if (this.shouldForwardLog('log', ...args)) {
         this.scaffoldToTerminal('log', ...args);
@@ -208,6 +226,10 @@ class TerminalConsoleForwarder {
     };
 
     console.error = (...args) => {
+      // Check if message should be completely suppressed
+      if (this.shouldSuppressLog(...args)) {
+        return;
+      }
       this.originalConsole.error(...args);
       if (this.shouldForwardLog('error', ...args)) {
         this.scaffoldToTerminal('error', ...args);
@@ -215,6 +237,10 @@ class TerminalConsoleForwarder {
     };
 
     console.warn = (...args) => {
+      // Check if message should be completely suppressed
+      if (this.shouldSuppressLog(...args)) {
+        return;
+      }
       this.originalConsole.warn(...args);
       if (this.shouldForwardLog('warn', ...args)) {
         this.scaffoldToTerminal('warn', ...args);
@@ -222,6 +248,10 @@ class TerminalConsoleForwarder {
     };
 
     console.info = (...args) => {
+      // Check if message should be completely suppressed
+      if (this.shouldSuppressLog(...args)) {
+        return;
+      }
       this.originalConsole.info(...args);
       if (this.shouldForwardLog('info', ...args)) {
         this.scaffoldToTerminal('info', ...args);
@@ -229,6 +259,10 @@ class TerminalConsoleForwarder {
     };
 
     console.debug = (...args) => {
+      // Check if message should be completely suppressed
+      if (this.shouldSuppressLog(...args)) {
+        return;
+      }
       this.originalConsole.debug(...args);
       if (this.shouldForwardLog('debug', ...args)) {
         this.scaffoldToTerminal('debug', ...args);
@@ -255,6 +289,29 @@ class TerminalConsoleForwarder {
         }
       );
     });
+  }
+
+  /**
+   * Determines if a log should be completely suppressed from browser console
+   */
+  private shouldSuppressLog(...args: any[]): boolean {
+    if (args.length === 0) return false;
+
+    // Check first argument directly (Vite often logs with [vite] as first arg)
+    const firstArg = args[0];
+    if (typeof firstArg === 'string') {
+      const lowerFirstArg = firstArg.toLowerCase();
+      // Quick check for common Vite patterns in first argument
+      if (lowerFirstArg.includes('[vite]') || lowerFirstArg.includes('vite:')) {
+        return true;
+      }
+    }
+
+    // Also check formatted message for pattern matching
+    const message = this.formatMessage(args);
+
+    // Check if message matches suppress patterns (matchesPatterns handles lowercasing)
+    return this.matchesPatterns(message, this.filterConfig.suppressPatterns);
   }
 
   /**
@@ -295,15 +352,17 @@ class TerminalConsoleForwarder {
    * Check if message matches any of the given patterns
    */
   private matchesPatterns(message: string, patterns: string[]): boolean {
+    const lowerMessage = message.toLowerCase();
     return patterns.some(pattern => {
+      const lowerPattern = pattern.toLowerCase();
       // Convert pattern to regex if it contains wildcards
       if (pattern.includes('*')) {
-        const regexPattern = pattern.replace(/\*/g, '.*');
+        const regexPattern = lowerPattern.replace(/\*/g, '.*');
         const regex = new RegExp(regexPattern, 'i');
-        return regex.test(message);
+        return regex.test(lowerMessage);
       }
-      // Simple substring match
-      return message.includes(pattern.toLowerCase());
+      // Simple substring match (case-insensitive)
+      return lowerMessage.includes(lowerPattern);
     });
   }
 
@@ -347,7 +406,7 @@ class TerminalConsoleForwarder {
     const originalConsole = this.originalConsole;
 
     // Use a distinctive format that's easy to spot
-    originalConsole.error('🚨 TERMINAL ERROR:', message);
+    originalConsole.error('TERMINAL ERROR:', message);
 
     // Also try to make it visible in the page itself for critical errors
     if (
@@ -454,7 +513,7 @@ class TerminalConsoleForwarder {
   }
 
   /**
-   * Enable error-only mode (default)
+   * Enable error-only mode (default: errors, warnings, and debug)
    */
   public enableErrorOnlyMode() {
     this.updateFilterConfig({
@@ -462,7 +521,7 @@ class TerminalConsoleForwarder {
       showWarnings: true,
       showInfo: false,
       showLogs: false,
-      showDebug: false,
+      showDebug: true,
     });
   }
 
@@ -493,13 +552,15 @@ if (import.meta.env.DEV) {
   // Make it globally available for debugging
   (window as any).__consoleForwarder = forwarder;
 
-  console.log('Console to Terminal direct logging enabled (Error-Only Mode).');
+  console.log(
+    'Console to Terminal direct logging enabled (Errors, Warnings, Debug).'
+  );
   console.log('Available commands:');
   console.log(
     '  window.__consoleForwarder.enableVerboseMode() - Show all logs'
   );
   console.log(
-    '  window.__consoleForwarder.enableErrorOnlyMode() - Show only errors/warnings'
+    '  window.__consoleForwarder.enableErrorOnlyMode() - Show errors, warnings, and debug'
   );
   console.log(
     '  window.__consoleForwarder.getFilterConfig() - View current config'

@@ -192,7 +192,9 @@ const Card: React.FC<CardProps> = ({ kpi, value, loading }) => {
           </p>
         </div>
       </div>
-      <p className="mt-3 device-text-body font-semibold text-neutral-700">{kpi.name}</p>
+      <p className="mt-3 device-text-body font-semibold text-neutral-700">
+        {kpi.name}
+      </p>
       <p className="device-text-caption text-neutral-600 mt-1">
         Target Impact:{' '}
         <span className="font-medium text-neutral-700">{kpi.target}</span>
@@ -259,7 +261,7 @@ const saveStoredData = (
 const SuperAdminDashboard: React.FC = () => {
   // Load initial state from localStorage or use defaults
   const storedData = loadStoredData();
-  
+
   const [dateRange, setDateRange] = useState<DateRange>(
     storedData?.dateRange || {
       startDate: getOneMonthAgo(),
@@ -279,8 +281,12 @@ const SuperAdminDashboard: React.FC = () => {
   const fetchKpiData = useCallback(async () => {
     setLoading(true);
     // Dispatch loading started event for header button state
-    window.dispatchEvent(new CustomEvent('superadmin-refresh-loading', { detail: { loading: true } }));
-    
+    window.dispatchEvent(
+      new CustomEvent('superadmin-refresh-loading', {
+        detail: { loading: true },
+      })
+    );
+
     const results: Record<string, number | null | undefined> = {};
 
     const promises = kpiDefinitions.map(async kpi => {
@@ -321,7 +327,11 @@ const SuperAdminDashboard: React.FC = () => {
     // Save to localStorage for persistence
     saveStoredData(results, dateRange, ordersFromOtherChannels);
     // Dispatch loading finished event for header button state
-    window.dispatchEvent(new CustomEvent('superadmin-refresh-loading', { detail: { loading: false } }));
+    window.dispatchEvent(
+      new CustomEvent('superadmin-refresh-loading', {
+        detail: { loading: false },
+      })
+    );
   }, [dateRange, ordersFromOtherChannels]);
 
   // NOTE: KPI processing will only run when:
@@ -438,8 +448,8 @@ const SuperAdminDashboard: React.FC = () => {
         {/* Footer/Instructions */}
         <footer className="card device-spacing-component mt-8 text-center">
           <p className="device-text-caption text-neutral-600">
-            Values are processed on demand. Click "Refresh Data" in the header to pull KPIs
-            from Supabase.
+            Values are processed on demand. Click "Refresh Data" in the header
+            to pull KPIs from Supabase.
           </p>
         </footer>
       </div>

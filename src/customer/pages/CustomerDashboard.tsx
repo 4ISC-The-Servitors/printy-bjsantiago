@@ -1,6 +1,7 @@
 // Supabase client for auth and database queries
 import { supabase } from '@lib/supabase';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 // Customer chat UI and types
 import {
   CustomerChatPanel,
@@ -104,6 +105,7 @@ const topicConfig: Record<
 // ---------------- Component ----------------
 // Inner component that uses the context
 const CustomerDashboardContent: React.FC = () => {
+  const navigate = useNavigate();
   const { logout, toasts, toast } = useLogoutWithToast();
   const { isMobileOrTablet } = useDeviceUtils();
   const [uploadPct, setUploadPct] = useState<number | null>(null);
@@ -248,15 +250,6 @@ const CustomerDashboardContent: React.FC = () => {
   // Enhanced file upload handler that uses payment proof upload for payment flows
   const handleFileUpload = useCallback(
     async (files: FileList) => {
-      console.log('[handleFileUpload] Starting upload:', {
-        filesCount: files.length,
-        isPaymentFlow,
-        isTrackTicketFlow,
-        activeConversation: activeConversation?.title,
-        flowId: activeConversation?.flowId,
-        context: activeConversation?.context,
-      });
-
       if (isPaymentFlow && activeConversation) {
         // Get order ID from payment flow context or fallback to recent order
         let orderId = recentOrder?.id;
@@ -289,30 +282,18 @@ const CustomerDashboardContent: React.FC = () => {
         }
       } else if (isTrackTicketFlow && activeConversation) {
         // Use ticket image upload for track-ticket flows
-        console.log(
-          '[handleFileUpload] Track ticket flow detected, uploading to ticket-uploads bucket'
-        );
-
         // Get inquiry ID from context
         const inquiryId =
           activeConversation.context?.inquiryId ||
           activeConversation.context?.inquiry_id;
 
         if (inquiryId) {
-          console.log(
-            '[handleFileUpload] Uploading with inquiry ID:',
-            inquiryId
-          );
           setUploadPct(0);
           await handleTicketImageUpload(
             files,
             inquiryId,
             urls => {
               if (urls && urls.length > 0) {
-                console.log(
-                  '[handleFileUpload] Upload successful, URLs:',
-                  urls
-                );
                 // Send each URL on its own line for downstream parsing
                 sendViaHook(urls.join('\n'));
               }
@@ -341,18 +322,10 @@ const CustomerDashboardContent: React.FC = () => {
         }
       } else if (isIssueTicketFlow && activeConversation) {
         // Use ticket image upload for issue-ticket flows (new inquiry creation)
-        console.log(
-          '[handleFileUpload] Issue ticket flow detected, uploading to ticket-uploads bucket'
-        );
-
         // For new inquiries, use sessionId since inquiryId doesn't exist yet
         const sessionId = activeConversation.id;
 
         if (sessionId) {
-          console.log(
-            '[handleFileUpload] Uploading with session ID:',
-            sessionId
-          );
           setUploadPct(0);
           await handleTicketImageUpload(
             files,
@@ -360,9 +333,6 @@ const CustomerDashboardContent: React.FC = () => {
             urls => {
               if (urls && urls.length > 0) {
                 // Single send with all URLs joined by newline
-                console.log(
-                  '[handleFileUpload] Upload successful, sending URLs in one message'
-                );
                 sendViaHook(urls.join('\n'));
               }
               setTimeout(() => setUploadPct(null), 400);
@@ -383,10 +353,6 @@ const CustomerDashboardContent: React.FC = () => {
           sendViaHook('Error: No session available. Please try again.');
         }
       } else if (isOrderImageFlow && activeConversation) {
-        console.log(
-          '[handleFileUpload] Quote/order flow detected, uploading to order-uploads bucket'
-        );
-
         // For quotes, there may not be an order yet; use session context or null
         const orderId = (activeConversation.context as any)?.orderId || null;
 
@@ -411,9 +377,6 @@ const CustomerDashboardContent: React.FC = () => {
         );
       } else {
         // Use regular chat attachments for other flows
-        console.log(
-          '[handleFileUpload] Using regular chat attachments (blob URL)'
-        );
         handleAttachFiles(files);
       }
     },
@@ -575,7 +538,7 @@ const CustomerDashboardContent: React.FC = () => {
               );
             }}
             onNavigateToAccount={() => {
-              window.location.href = '/customer/account';
+              navigate('/customer/account');
             }}
             bottomActions={<LogoutButton onClick={handleLogout} />}
           />

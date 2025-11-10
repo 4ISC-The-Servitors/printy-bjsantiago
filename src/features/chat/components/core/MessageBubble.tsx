@@ -826,10 +826,65 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                 showCloseButton={true}
                 onClose={() => setPdfModalOpen(false)}
               >
-                <Container size="full" className="flex items-center">
-                  <Text as="h3" size="lg" className="font-semibold truncate">
+                <Container
+                  size="full"
+                  className="flex items-center justify-between gap-2"
+                >
+                  <Text
+                    as="h3"
+                    size="lg"
+                    className="font-semibold truncate flex-1"
+                  >
                     {processedPdfUrls[pdfModalIndex].filename}
                   </Text>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-1 px-2 py-1 text-sm border border-neutral-200 rounded hover:bg-neutral-50 transition-colors"
+                      aria-label="Download PDF"
+                      onClick={async e => {
+                        e.stopPropagation();
+                        const pdfUrl =
+                          processedPdfUrls[pdfModalIndex].signedUrl;
+                        const filename =
+                          processedPdfUrls[pdfModalIndex].filename;
+
+                        if (!pdfUrl) return;
+
+                        try {
+                          // Fetch the PDF as a blob
+                          const response = await fetch(pdfUrl);
+                          const blob = await response.blob();
+
+                          // Create an object URL from the blob
+                          const blobUrl = URL.createObjectURL(blob);
+
+                          // Create a temporary anchor element
+                          const link = document.createElement('a');
+                          link.href = blobUrl;
+                          link.download = filename;
+                          link.style.display = 'none';
+
+                          // Append to body, click, and remove
+                          document.body.appendChild(link);
+                          link.click();
+                          document.body.removeChild(link);
+
+                          // Clean up the object URL after a delay
+                          setTimeout(() => {
+                            URL.revokeObjectURL(blobUrl);
+                          }, 100);
+                        } catch (error) {
+                          console.error('Error downloading PDF:', error);
+                        }
+                      }}
+                    >
+                      <Download className="w-4 h-4" />
+                      <Text as="span" size="sm">
+                        Download
+                      </Text>
+                    </button>
+                  </div>
                 </Container>
               </Modal.Header>
               <Modal.Body>
