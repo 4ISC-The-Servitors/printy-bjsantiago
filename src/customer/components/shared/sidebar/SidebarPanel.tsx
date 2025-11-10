@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { ChatMessage } from '@features/chat/types/chat';
 import { Bot } from 'lucide-react';
 import AccountButton from './AccountButton';
@@ -31,6 +32,7 @@ const SidebarPanel: React.FC<SidebarPanelProps> = ({
   onNavigateToAccount,
   bottomActions,
 }) => {
+  const navigate = useNavigate();
   const listContainerRef = React.useRef<HTMLDivElement>(null);
   return (
     <div className="h-full flex flex-col">
@@ -57,9 +59,7 @@ const SidebarPanel: React.FC<SidebarPanelProps> = ({
             >
               Recent Chats
             </Text>
-            <ViewAllChat
-              onClick={() => window.location.assign('/customer/chats')}
-            />
+            <ViewAllChat onClick={() => navigate('/customer/chats')} />
           </div>
           <div className="mt-2 border-t border-neutral-200" />
         </div>

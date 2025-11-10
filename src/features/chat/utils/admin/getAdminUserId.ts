@@ -1,24 +1,40 @@
 import { supabase } from '@lib/supabase';
 
 /**
- * Get the admin user ID from the customer table
- * Used by admin actions to track who made changes for notification routing
- * Returns the first admin user found (there may be multiple admins)
+ * Get the CURRENT authenticated admin user ID from the customer table.
+ * This must reflect the actor who triggered the action so DB triggers
+ * can attribute and exclude them correctly for notifications.
  */
 export async function getAdminUserId(): Promise<string> {
-  const { data: adminData, error: adminError } = await supabase
-    .from('customer')
-    .select('customer_id')
-    .eq('customer_type', 'admin')
-    .limit(1)
-    .single();
+  // Get current authenticated user (auth.users.id)
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
 
-  if (adminError || !adminData) {
-    console.error('[getAdminUserId] Error fetching admin user:', adminError);
-    throw new Error('Failed to verify admin credentials');
+  if (authError || !user?.id) {
+    console.error('[getAdminUserId] Error fetching current auth user:', authError);
+    throw new Error('Not authenticated');
   }
 
-  return adminData.customer_id;
+  // Verify this auth user is an admin in public.customer and return the same UUID
+  const { data, error } = await supabase
+    .from('customer')
+    .select('customer_id, customer_type')
+    .eq('customer_id', user.id)
+    .single();
+
+  if (error || !data) {
+    console.error('[getAdminUserId] Error fetching customer record for current user:', error);
+    throw new Error('Failed to resolve current user');
+  }
+
+  if (data.customer_type !== 'admin') {
+    console.error('[getAdminUserId] Current user is not an admin');
+    throw new Error('Forbidden: user is not an admin');
+  }
+
+  return data.customer_id;
 }
 
 /**
