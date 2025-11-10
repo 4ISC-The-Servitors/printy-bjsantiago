@@ -42,6 +42,7 @@ export const QuickReplyGrid: React.FC<QuickReplyGridProps> = ({
     'back to main menu',
     'back to payment options',
     'create a new category',
+    'back to all options',
   ]);
 
   const handleEndChat = async () => {

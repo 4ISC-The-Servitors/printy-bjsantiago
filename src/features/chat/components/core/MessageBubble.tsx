@@ -585,7 +585,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             {/* Image Files - Display as filenames (same as PDFs) */}
             {processedImageUrls.length > 0 && (
               <div
-                className="mt-3 space-y-2"
+                className="mt-3 flex flex-col gap-2"
                 onClick={e => {
                   e.stopPropagation();
                 }}
@@ -603,7 +603,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                       key={idx}
                       role="button"
                       tabIndex={0}
-                      className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-neutral-200 bg-white hover:bg-neutral-50 cursor-pointer transition-colors"
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg border border-neutral-200 bg-white hover:bg-neutral-50 cursor-pointer transition-colors w-full min-w-0"
                       aria-label={`View image ${image.filename}`}
                       onClick={handleImageClick}
                       onKeyDown={e => {
@@ -615,7 +615,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                       }}
                     >
                       <ImageIcon className="w-4 h-4 text-brand-primary shrink-0" />
-                      <span className="text-sm font-medium text-neutral-700 truncate max-w-xs">
+                      <span className="text-sm font-medium text-neutral-700 truncate min-w-0 flex-1">
                         {image.filename}
                       </span>
                     </div>
@@ -627,7 +627,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             {/* PDF Files - Display as filenames */}
             {processedPdfUrls.length > 0 && (
               <div
-                className="mt-3 space-y-2"
+                className="mt-3 flex flex-col gap-2"
                 onClick={e => {
                   e.stopPropagation();
                 }}
@@ -645,7 +645,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                       key={idx}
                       role="button"
                       tabIndex={0}
-                      className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-neutral-200 bg-white hover:bg-neutral-50 cursor-pointer transition-colors"
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg border border-neutral-200 bg-white hover:bg-neutral-50 cursor-pointer transition-colors w-full min-w-0"
                       aria-label={`View PDF ${pdf.filename}`}
                       onClick={handlePdfClick}
                       onKeyDown={e => {
@@ -657,7 +657,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                       }}
                     >
                       <FileText className="w-4 h-4 text-brand-primary shrink-0" />
-                      <span className="text-sm font-medium text-neutral-700 truncate max-w-xs">
+                      <span className="text-sm font-medium text-neutral-700 truncate min-w-0 flex-1">
                         {pdf.filename}
                       </span>
                     </div>
