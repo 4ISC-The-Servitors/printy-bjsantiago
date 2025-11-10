@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import ResponsivePageLayout from '@customer/components/shared/layouts/ResponsivePageLayout';
 import HistoryItemCard from '@customer/components/shared/cards/HistoryItemCard';
 import {
@@ -44,6 +45,7 @@ interface Conversation {
 }
 
 const ChatHistory: React.FC = () => {
+  const navigate = useNavigate();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -306,7 +308,7 @@ const ChatHistory: React.FC = () => {
               );
             }}
             onNavigateToAccount={() => {
-              window.location.href = '/customer/account';
+              navigate('/customer/account');
             }}
             bottomActions={<LogoutButton onClick={handleLogout} />}
           />

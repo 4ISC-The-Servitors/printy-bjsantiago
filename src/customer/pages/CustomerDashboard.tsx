@@ -1,6 +1,7 @@
 // Supabase client for auth and database queries
 import { supabase } from '@lib/supabase';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 // Customer chat UI and types
 import {
   CustomerChatPanel,
@@ -104,6 +105,7 @@ const topicConfig: Record<
 // ---------------- Component ----------------
 // Inner component that uses the context
 const CustomerDashboardContent: React.FC = () => {
+  const navigate = useNavigate();
   const { logout, toasts, toast } = useLogoutWithToast();
   const { isMobileOrTablet } = useDeviceUtils();
   const [uploadPct, setUploadPct] = useState<number | null>(null);
@@ -536,7 +538,7 @@ const CustomerDashboardContent: React.FC = () => {
               );
             }}
             onNavigateToAccount={() => {
-              window.location.href = '/customer/account';
+              navigate('/customer/account');
             }}
             bottomActions={<LogoutButton onClick={handleLogout} />}
           />

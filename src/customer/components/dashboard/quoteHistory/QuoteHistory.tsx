@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@lib/supabase';
 import ResponsivePageLayout from '@customer/components/shared/layouts/ResponsivePageLayout';
 import HistoryItemCard from '@customer/components/shared/cards/HistoryItemCard';
@@ -52,6 +53,7 @@ interface Quote {
 }
 
 const QuoteHistory: React.FC = () => {
+  const navigate = useNavigate();
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -441,7 +443,7 @@ const QuoteHistory: React.FC = () => {
               );
             }}
             onNavigateToAccount={() => {
-              window.location.href = '/customer/account';
+              navigate('/customer/account');
             }}
             bottomActions={<LogoutButton onClick={handleLogout} />}
           />
