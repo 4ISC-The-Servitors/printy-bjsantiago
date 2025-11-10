@@ -176,6 +176,13 @@ export const useSignIn = () => {
                 customer_type:
                   (((user?.user_metadata ?? {}) as Record<string, unknown>)
                     .role as string) || 'regular',
+                // Ensure gender and birthday are captured from user metadata
+                gender: (
+                  (user?.user_metadata ?? {}) as Record<string, unknown>
+                ).gender as string | null,
+                birthday: (
+                  (user?.user_metadata ?? {}) as Record<string, unknown>
+                ).birthday as string | null,
                 location_id: locationId,
               },
               {
