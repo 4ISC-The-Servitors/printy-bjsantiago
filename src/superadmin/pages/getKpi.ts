@@ -2,9 +2,9 @@ import { supabase } from '@lib/supabase';
 
 // --- GLOBAL CONFIGURATION CONSTANTS ---
 const ESCALATION_FLOW_IDS = [
-  'issue-ticket',
-  'place-order',
-  'ask-quote',
+  //'issue-ticket',
+  //'place-order',
+  //'ask-quote',
   'reupload-payment',
   'track-quote',
   'track-ticket',
