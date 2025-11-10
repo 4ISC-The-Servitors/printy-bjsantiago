@@ -25,7 +25,7 @@ const SignUp: React.FC = () => {
     formData,
     setField,
     isStepValid,
-    handleSubmit,
+    handleExplicitSubmit,
     errors, // ✅ get real-time validation errors
   } = useSignUp();
 
@@ -88,12 +88,27 @@ const SignUp: React.FC = () => {
             </Text>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form
+            onSubmit={e => {
+              // Always prevent default form submission
+              // Submission only happens via explicit button click
+              e.preventDefault();
+            }}
+            className="space-y-6"
+            onKeyDown={e => {
+              // Prevent form submission on Enter key in all steps
+              // Submission only happens via explicit button click
+              if (e.key === 'Enter') {
+                e.preventDefault();
+              }
+            }}
+          >
             {currentStep === 1 && (
               <Step1Account
                 email={formData.email}
                 password={formData.password}
                 confirmPassword={formData.confirmPassword}
+                errors={errors}
                 onChange={(f, v) => setField(f, v)}
                 showPassword={showPassword}
                 setShowPassword={setShowPassword}
@@ -122,6 +137,7 @@ const SignUp: React.FC = () => {
                 city={formData.city}
                 zipCode={formData.zipCode}
                 agreeToTerms={formData.agreeToTerms}
+                errors={errors}
                 onChange={(f, v) => setField(f, v)}
                 onToggleTerms={v => setField('agreeToTerms', v)}
               />
@@ -132,6 +148,7 @@ const SignUp: React.FC = () => {
               isStepValid={isStepValid}
               onPrev={prev}
               onNext={next}
+              onSubmit={handleExplicitSubmit}
             />
           </form>
         </div>

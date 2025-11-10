@@ -2,6 +2,12 @@
 
 ## 📄 Changelogs
 
+### 2025-11-11-Andeng
+
+- improved auth page validations on forms
+- inserted municipalities to provinces that dont have cities
+- added UI for confirm email page
+
 ### 2025-11-10-Andeng
 
 - added Admin Settings for personal info, password management

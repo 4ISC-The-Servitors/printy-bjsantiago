@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Button, Input } from '@shared/components';
 import { MapPin } from 'lucide-react';
 import SearchableSelect from '@shared/components/ui/SearchableSelect';
@@ -17,6 +17,12 @@ interface Props {
   city: string;
   zipCode: string;
   agreeToTerms: boolean;
+  errors: {
+    buildingNumber?: string;
+    street?: string;
+    barangay?: string;
+    zipCode?: string;
+  };
   onChange: (
     field:
       | 'buildingNumber'
@@ -35,11 +41,9 @@ const Step3Address: React.FC<Props> = ({
   buildingNumber,
   street,
   barangay,
-  region,
-  province,
-  city,
   zipCode,
   agreeToTerms,
+  errors,
   onChange,
   onToggleTerms,
 }) => {
@@ -64,53 +68,53 @@ const Step3Address: React.FC<Props> = ({
 
   return (
     <div className="space-y-6">
-      <div className="space-y-2">
-        <Input
-          label="Building/House Number (optional)"
-          type="text"
-          placeholder="Enter building or house number"
-          value={buildingNumber}
-          onChange={e => onChange('buildingNumber', e.target.value)}
-          className="pr-12"
-          wrapperClassName="relative"
-        >
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400"></div>
-        </Input>
-      </div>
+      <Input
+        label="Building/House Number (optional)"
+        type="text"
+        placeholder="Enter building or house number"
+        value={buildingNumber}
+        onChange={e => onChange('buildingNumber', e.target.value)}
+        maxLength={100}
+        error={errors.buildingNumber}
+        className="pr-12"
+        wrapperClassName="relative"
+      >
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400"></div>
+      </Input>
 
-      <div className="space-y-2">
-        <Input
-          label="Street"
-          type="text"
-          placeholder="Enter street name"
-          value={street}
-          onChange={e => onChange('street', e.target.value)}
-          required
-          className="pr-12"
-          wrapperClassName="relative"
-        >
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400">
-            <MapPin className="w-5 h-5" />
-          </div>
-        </Input>
-      </div>
+      <Input
+        label="Street"
+        type="text"
+        placeholder="Enter street name"
+        value={street}
+        onChange={e => onChange('street', e.target.value)}
+        maxLength={100}
+        required
+        error={errors.street}
+        className="pr-12"
+        wrapperClassName="relative"
+      >
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400">
+          <MapPin className="w-5 h-5" />
+        </div>
+      </Input>
 
-      <div className="space-y-2">
-        <Input
-          label="Barangay"
-          type="text"
-          placeholder="Enter barangay"
-          value={barangay}
-          onChange={e => onChange('barangay', e.target.value)}
-          required
-          className="pr-12"
-          wrapperClassName="relative"
-        >
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400">
-            <MapPin className="w-5 h-5" />
-          </div>
-        </Input>
-      </div>
+      <Input
+        label="Barangay"
+        type="text"
+        placeholder="Enter barangay"
+        value={barangay}
+        onChange={e => onChange('barangay', e.target.value)}
+        maxLength={100}
+        required
+        error={errors.barangay}
+        className="pr-12"
+        wrapperClassName="relative"
+      >
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400">
+          <MapPin className="w-5 h-5" />
+        </div>
+      </Input>
 
       <SearchableSelect
         label="Region"
@@ -140,7 +144,9 @@ const Step3Address: React.FC<Props> = ({
           setSelectedCityId('');
         }}
         fetchOptions={fetchProvinces}
-        placeholder={provinceDisabled ? 'Select region first' : 'Select province'}
+        placeholder={
+          provinceDisabled ? 'Select region first' : 'Select province'
+        }
         disabled={provinceDisabled}
       />
 
@@ -153,26 +159,28 @@ const Step3Address: React.FC<Props> = ({
           onChange('city', option?.label || '');
         }}
         fetchOptions={fetchCities}
-        placeholder={cityDisabled ? 'Select province first' : 'Select city/municipality'}
+        placeholder={
+          cityDisabled ? 'Select province first' : 'Select city/municipality'
+        }
         disabled={cityDisabled}
       />
 
-      <div className="space-y-2">
-        <Input
-          label="ZIP Code"
-          type="text"
-          placeholder="Enter ZIP code"
-          value={zipCode}
-          onChange={e => onChange('zipCode', e.target.value)}
-          required
-          className="pr-12"
-          wrapperClassName="relative"
-        >
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400">
-            <MapPin className="w-5 h-5" />
-          </div>
-        </Input>
-      </div>
+      <Input
+        label="ZIP Code"
+        type="text"
+        placeholder="Enter ZIP code (4 digits)"
+        value={zipCode}
+        onChange={e => onChange('zipCode', e.target.value)}
+        maxLength={4}
+        required
+        error={errors.zipCode}
+        className="pr-12"
+        wrapperClassName="relative"
+      >
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400">
+          <MapPin className="w-5 h-5" />
+        </div>
+      </Input>
 
       <div className="flex items-start space-x-3">
         <input

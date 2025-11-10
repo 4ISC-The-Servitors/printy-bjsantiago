@@ -1,11 +1,21 @@
 import React from 'react';
 import { Input, Text } from '@shared/components';
 import { Eye, EyeOff, Mail } from 'lucide-react';
+import {
+  getPasswordRequirements,
+  formatPasswordInput,
+  doPasswordsMatch,
+} from '@/shared/utils/formsFormatter';
 
 interface Props {
   email: string;
   password: string;
   confirmPassword: string;
+  errors?: {
+    email?: string;
+    password?: string;
+    confirmPassword?: string;
+  };
   onChange: (
     field: 'email' | 'password' | 'confirmPassword',
     value: string
@@ -20,41 +30,40 @@ const Step1Account: React.FC<Props> = ({
   email,
   password,
   confirmPassword,
+  errors,
   onChange,
   showPassword,
   setShowPassword,
   showConfirmPassword,
   setShowConfirmPassword,
 }) => {
-  // Password requirements validation
-  const passwordRequirements = [
-    {
-      text: 'At least 8 characters',
-      isValid: password.length >= 8,
-    },
-    {
-      text: 'One lowercase letter',
-      isValid: /(?=.*[a-z])/.test(password),
-    },
-    {
-      text: 'One uppercase letter',
-      isValid: /(?=.*[A-Z])/.test(password),
-    },
-    {
-      text: 'One number',
-      isValid: /(?=.*\d)/.test(password),
-    },
-    {
-      text: 'One special character',
-      isValid: /(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?])/.test(password),
-    },
-  ];
+  // Get password requirements from formsFormatter
+  const passwordRequirements = getPasswordRequirements(password);
 
   // Password confirmation validation
   const isPasswordMatch =
-    password && confirmPassword && password === confirmPassword;
+    password && confirmPassword && doPasswordsMatch(password, confirmPassword);
   const isPasswordMismatch =
-    password && confirmPassword && password !== confirmPassword;
+    password && confirmPassword && !doPasswordsMatch(password, confirmPassword);
+
+  // Handle password input with space prevention
+  const handlePasswordChange = (value: string) => {
+    const formatted = formatPasswordInput(value);
+    onChange('password', formatted);
+  };
+
+  // Handle confirm password input with space prevention
+  const handleConfirmPasswordChange = (value: string) => {
+    const formatted = formatPasswordInput(value);
+    onChange('confirmPassword', formatted);
+  };
+
+  // Prevent space key in password fields
+  const handlePasswordKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === ' ') {
+      e.preventDefault();
+    }
+  };
   return (
     <div className="space-y-6">
       <div className="space-y-2">
@@ -63,8 +72,15 @@ const Step1Account: React.FC<Props> = ({
           type="email"
           placeholder="you@company.com"
           value={email}
-          onChange={e => onChange('email', e.target.value)}
+          onChange={e => {
+            onChange('email', e.target.value);
+            // Clear email error when user starts typing (if it was a duplicate error)
+            if (errors?.email && errors.email.includes('already registered')) {
+              // Error will be cleared by setField validation
+            }
+          }}
           required
+          error={errors?.email}
           className="pr-12"
           wrapperClassName="relative"
         >
@@ -80,7 +96,8 @@ const Step1Account: React.FC<Props> = ({
           type={showPassword ? 'text' : 'password'}
           placeholder="At least 8 characters"
           value={password}
-          onChange={e => onChange('password', e.target.value)}
+          onChange={e => handlePasswordChange(e.target.value)}
+          onKeyDown={handlePasswordKeyDown}
           required
           className="pr-24"
           wrapperClassName="relative"
@@ -152,7 +169,8 @@ const Step1Account: React.FC<Props> = ({
           type={showConfirmPassword ? 'text' : 'password'}
           placeholder="Re-enter password"
           value={confirmPassword}
-          onChange={e => onChange('confirmPassword', e.target.value)}
+          onChange={e => handleConfirmPasswordChange(e.target.value)}
+          onKeyDown={handlePasswordKeyDown}
           required
           className={`pr-24 ${
             isPasswordMatch

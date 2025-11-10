@@ -7,6 +7,7 @@ interface Props {
   isStepValid: (step: number) => boolean;
   onPrev: () => void;
   onNext: () => void;
+  onSubmit?: () => void;
 }
 
 const NavigationButtons: React.FC<Props> = ({
@@ -15,6 +16,7 @@ const NavigationButtons: React.FC<Props> = ({
   isStepValid,
   onPrev,
   onNext,
+  onSubmit,
 }) => {
   return (
     <div className="flex space-x-4 mt-8">
@@ -46,10 +48,11 @@ const NavigationButtons: React.FC<Props> = ({
         </Button>
       ) : (
         <Button
-          type="submit"
+          type="button"
           variant="primary"
           size="lg"
           threeD
+          onClick={onSubmit}
           loading={loading}
           disabled={!isStepValid(currentStep) || loading}
           className="flex-1 btn-responsive-primary"

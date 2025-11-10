@@ -10,6 +10,11 @@ import {
 import { useToast } from '@lib/useToast';
 import { ArrowLeft, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '@lib/supabase';
+import {
+  getPasswordValidationMessage,
+  formatPasswordInput,
+  doPasswordsMatch,
+} from '@/shared/utils/formsFormatter';
 
 const ResetPassword: React.FC = () => {
   const navigate = useNavigate();
@@ -42,20 +47,39 @@ const ResetPassword: React.FC = () => {
     };
   }, []);
 
+  // Handle password input with space prevention
+  const handlePasswordChange = (value: string) => {
+    const formatted = formatPasswordInput(value);
+    setPassword(formatted);
+  };
+
+  // Handle confirm password input with space prevention
+  const handleConfirmPasswordChange = (value: string) => {
+    const formatted = formatPasswordInput(value);
+    setConfirmPassword(formatted);
+  };
+
+  // Prevent space key in password fields
+  const handlePasswordKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === ' ') {
+      e.preventDefault();
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      if (!password || password.length < 8) {
-        toastMethods.error(
-          'Weak Password',
-          'Password must be at least 8 characters.'
-        );
+      // Validate password using formsFormatter
+      const passwordError = getPasswordValidationMessage(password);
+      if (passwordError) {
+        toastMethods.error('Invalid Password', passwordError);
         setLoading(false);
         return;
       }
-      if (password !== confirmPassword) {
+
+      if (!doPasswordsMatch(password, confirmPassword)) {
         toastMethods.error(
           'Passwords do not match',
           'Please confirm your new password.'
@@ -128,7 +152,8 @@ const ResetPassword: React.FC = () => {
                     type={showPassword ? 'text' : 'password'}
                     placeholder="At least 8 characters"
                     value={password}
-                    onChange={e => setPassword(e.target.value)}
+                    onChange={e => handlePasswordChange(e.target.value)}
+                    onKeyDown={handlePasswordKeyDown}
                     required
                     wrapperClassName="relative"
                     className="pr-12"
@@ -156,7 +181,8 @@ const ResetPassword: React.FC = () => {
                     type={showConfirm ? 'text' : 'password'}
                     placeholder="Re-enter password"
                     value={confirmPassword}
-                    onChange={e => setConfirmPassword(e.target.value)}
+                    onChange={e => handleConfirmPasswordChange(e.target.value)}
+                    onKeyDown={handlePasswordKeyDown}
                     required
                     wrapperClassName="relative"
                     className="pr-12"

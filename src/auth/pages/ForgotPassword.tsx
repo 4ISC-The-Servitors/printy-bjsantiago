@@ -10,6 +10,10 @@ import {
 import { useToast } from '@lib/useToast';
 import { ArrowLeft, Mail, CheckCircle2 } from 'lucide-react';
 import { supabase, SITE_URL } from '@lib/supabase';
+import {
+  isValidEmail,
+  getEmailValidationMessage,
+} from '@/shared/utils/formsFormatter';
 
 // TODO: Backend Integration
 // - Implement real password reset with Supabase Auth
@@ -52,11 +56,12 @@ const ForgotPassword: React.FC = () => {
     setLoading(true);
 
     try {
-      // Validate email format
-      if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(email)) {
+      // Validate email format using formsFormatter
+      if (!isValidEmail(email)) {
+        const errorMessage = getEmailValidationMessage(email);
         toastMethods.error(
           'Invalid Email',
-          'Please enter a valid email address.'
+          errorMessage || 'Please enter a valid email address.'
         );
         setLoading(false);
         return;
@@ -147,10 +152,7 @@ const ForgotPassword: React.FC = () => {
                   threeD
                   className="w-full btn-responsive-primary"
                   loading={loading}
-                  disabled={
-                    loading ||
-                    !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(email)
-                  }
+                  disabled={loading || !isValidEmail(email)}
                 >
                   {loading ? 'Sending reset link...' : 'Send reset link'}
                 </Button>

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@lib/supabase';
 import { useToast } from '@lib/useToast';
+import { formatPasswordInput } from '@/shared/utils/formsFormatter';
 // import {
 //   assertHumanTurnstile,
 //   primeTurnstile,
@@ -71,6 +72,10 @@ export const useSignIn = () => {
 
   const setField = useCallback(
     (field: keyof SignInFormData, value: string | boolean) => {
+      // Remove spaces from password field
+      if (field === 'password' && typeof value === 'string') {
+        value = formatPasswordInput(value);
+      }
       setFormData(prev => ({ ...prev, [field]: value }));
     },
     []
@@ -177,9 +182,8 @@ export const useSignIn = () => {
                   (((user?.user_metadata ?? {}) as Record<string, unknown>)
                     .role as string) || 'regular',
                 // Ensure gender and birthday are captured from user metadata
-                gender: (
-                  (user?.user_metadata ?? {}) as Record<string, unknown>
-                ).gender as string | null,
+                gender: ((user?.user_metadata ?? {}) as Record<string, unknown>)
+                  .gender as string | null,
                 birthday: (
                   (user?.user_metadata ?? {}) as Record<string, unknown>
                 ).birthday as string | null,

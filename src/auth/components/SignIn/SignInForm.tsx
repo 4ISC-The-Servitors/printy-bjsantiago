@@ -1,6 +1,7 @@
 import React from 'react';
 import { Input, Button, Text } from '@shared/components';
 import { Eye, EyeOff, Mail } from 'lucide-react';
+import { formatPasswordInput } from '@/shared/utils/formsFormatter';
 
 interface Props {
   email: string;
@@ -26,6 +27,19 @@ const SignInForm: React.FC<Props> = ({
   onChange,
   onForgotPassword,
 }) => {
+  // Handle password input with space prevention
+  const handlePasswordChange = (value: string) => {
+    const formatted = formatPasswordInput(value);
+    onChange('password', formatted);
+  };
+
+  // Prevent space key in password field
+  const handlePasswordKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === ' ') {
+      e.preventDefault();
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="space-y-2">
@@ -51,7 +65,8 @@ const SignInForm: React.FC<Props> = ({
           type={showPassword ? 'text' : 'password'}
           placeholder="Enter your password"
           value={password}
-          onChange={e => onChange('password', e.target.value)}
+          onChange={e => handlePasswordChange(e.target.value)}
+          onKeyDown={handlePasswordKeyDown}
           required
           className="pr-24"
           wrapperClassName="relative"

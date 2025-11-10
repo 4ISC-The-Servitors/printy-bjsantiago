@@ -33,81 +33,73 @@ const Step2Personal: React.FC<Props> = ({
   return (
     <div className="space-y-6">
       {/* First Name */}
-      <div className="space-y-1">
-        <Input
-          label="First Name"
-          type="text"
-          placeholder="Enter your first name"
-          value={firstName}
-          onChange={e => onChange('firstName', e.target.value)}
-          required
-          className="pr-12"
-          wrapperClassName="relative"
-        >
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400">
-            <User className="w-5 h-5" />
-          </div>
-        </Input>
-        {errors.firstName && (
-          <p className="text-error text-sm">{errors.firstName}</p>
-        )}
-      </div>
+      <Input
+        label="First Name"
+        type="text"
+        placeholder="Enter your first name"
+        value={firstName}
+        onChange={e => onChange('firstName', e.target.value)}
+        maxLength={50}
+        required
+        error={errors.firstName}
+        className="pr-12"
+        wrapperClassName="relative"
+      >
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400">
+          <User className="w-5 h-5" />
+        </div>
+      </Input>
 
       {/* Last Name */}
-      <div className="space-y-1">
-        <Input
-          label="Last Name"
-          type="text"
-          placeholder="Enter your last name"
-          value={lastName}
-          onChange={e => onChange('lastName', e.target.value)}
-          required
-          className="pr-12"
-          wrapperClassName="relative"
-        >
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400">
-            <User className="w-5 h-5" />
-          </div>
-        </Input>
-        {errors.lastName && (
-          <p className="text-error text-sm">{errors.lastName}</p>
-        )}
-      </div>
+      <Input
+        label="Last Name"
+        type="text"
+        placeholder="Enter your last name"
+        value={lastName}
+        onChange={e => onChange('lastName', e.target.value)}
+        maxLength={50}
+        required
+        error={errors.lastName}
+        className="pr-12"
+        wrapperClassName="relative"
+      >
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400">
+          <User className="w-5 h-5" />
+        </div>
+      </Input>
 
       {/* Phone */}
-      <div className="space-y-1">
-        <Input
-          label="Phone Number"
-          type="tel"
-          placeholder="+63 9XXXXXXXXX"
-          value={
-            phone.startsWith('+63')
-              ? phone
-              : phone
-                ? `+63${phone.replace(/^0+/, '')}`
-                : '+63'
-          }
-          onChange={e => {
-            let value = e.target.value;
-            if (!value.startsWith('+63'))
-              value = '+63' + value.replace(/^0+/, '').replace(/^\+?63/, '');
-            let digits = value.slice(3).replace(/\D/g, '');
-            digits = digits.slice(0, 10);
-            value = '+63' + digits;
-            if (value.length < 3) value = '+63';
-            onChange('phone', value);
-          }}
-          maxLength={13}
-          required
-          className="pr-12"
-          wrapperClassName="relative"
-        >
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400">
-            <Phone className="w-5 h-5" />
-          </div>
-        </Input>
-        {errors.phone && <p className="text-error text-sm">{errors.phone}</p>}
-      </div>
+      <Input
+        label="Phone Number"
+        type="tel"
+        placeholder="+63 9XXXXXXXXX"
+        value={
+          phone.startsWith('+63')
+            ? phone
+            : phone
+              ? `+63${phone.replace(/^0+/, '')}`
+              : '+63'
+        }
+        onChange={e => {
+          let value = e.target.value;
+          if (!value.startsWith('+63'))
+            value = '+63' + value.replace(/^0+/, '').replace(/^\+?63/, '');
+          let digits = value.slice(3).replace(/\D/g, '');
+          digits = digits.slice(0, 10);
+          value = '+63' + digits;
+          if (value.length < 3) value = '+63';
+          onChange('phone', value);
+        }}
+        maxLength={13}
+        required
+        error={errors.phone}
+        className="pr-12"
+        wrapperClassName="relative"
+      >
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400">
+          <Phone className="w-5 h-5" />
+        </div>
+      </Input>
 
       {/* Gender */}
       <div className="space-y-1">
@@ -141,21 +133,17 @@ const Step2Personal: React.FC<Props> = ({
       </div>
 
       {/* Birthday */}
-      <div className="space-y-1">
-        <Input
-          label="Birthday"
-          type="date"
-          placeholder="mm/dd/yyyy"
-          value={birthday}
-          onChange={e => onChange('birthday', e.target.value)}
-          required
-          className=""
-          wrapperClassName=""
-        />
-        {errors.birthday && (
-          <p className="text-error text-sm">{errors.birthday}</p>
-        )}
-      </div>
+      <Input
+        label="Birthday"
+        type="date"
+        placeholder="mm/dd/yyyy"
+        value={birthday}
+        onChange={e => onChange('birthday', e.target.value)}
+        required
+        error={errors.birthday}
+        className=""
+        wrapperClassName=""
+      />
     </div>
   );
 };
