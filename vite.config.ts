@@ -73,10 +73,9 @@ export default defineConfig({
         manualChunks: id => {
           // Vendor chunks - split large dependencies
           if (id.includes('node_modules')) {
-            // React core - MUST be in main bundle to ensure it loads first
-            // Returning undefined keeps React in the main entry chunk
+            // React core - keep in dedicated vendor chunk to avoid cyclic deps
             if (id.includes('react') || id.includes('react-dom')) {
-              return undefined;
+              return 'react-vendor';
             }
             // Router - depends on React
             if (id.includes('react-router')) {
