@@ -354,67 +354,58 @@ export const useSignUp = () => {
         return;
       }
 
-      // Check for existing email in customer table (case-insensitive)
-      // Use ilike for case-insensitive comparison
-      const { data: existingEmail, error: emailCheckError } = await supabase
-        .from('customer')
-        .select('customer_id, email_address')
-        .not('email_address', 'is', null)
-        .neq('email_address', '')
-        .ilike('email_address', normalizedEmail)
-        .maybeSingle();
-
-      if (emailCheckError) {
-        console.error('Error checking email:', emailCheckError);
-        toast.error(
-          'Validation Error',
-          'Unable to verify email. Please try again.'
-        );
-        setLoading(false);
-        return;
-      }
-
-      if (existingEmail && existingEmail.email_address) {
-        console.log('Duplicate email detected:', {
-          existingEmail: existingEmail.email_address,
-          normalizedEmail,
-          emailInput: formData.email,
+      // Check for existing email and phone in auth.users table
+      // This checks all registered users regardless of email confirmation status
+      const { data: duplicateCheck, error: duplicateCheckError } =
+        await supabase.rpc('check_auth_user_duplicates', {
+          p_email: normalizedEmail,
+          p_phone: normalizedPhone,
         });
-        toast.error(
-          'Email Already Registered',
-          'This email address is already registered. Please sign in or use a different email.'
-        );
-        setLoading(false);
-        // Set error in form state for UI feedback
-        setErrors(prev => ({
-          ...prev,
-          email:
-            'This email is already registered. Please use a different email.',
-        }));
-        return;
-      }
 
-      // Check for existing phone number in customer table
-      // Phone numbers are stored in normalized format: +639XXXXXXXXX (13 characters)
-      const { data: existingPhone, error: phoneCheckError } = await supabase
-        .from('customer')
-        .select('customer_id, contact_no')
-        .not('contact_no', 'is', null)
-        .neq('contact_no', '')
-        .eq('contact_no', normalizedPhone)
-        .maybeSingle();
-
-      if (phoneCheckError) {
-        console.error('Error checking phone:', phoneCheckError);
+      if (duplicateCheckError) {
+        console.error('Error checking duplicates:', duplicateCheckError);
         toast.error(
           'Validation Error',
-          'Unable to verify phone number. Please try again.'
+          'Unable to verify email and phone. Please try again.'
         );
         setLoading(false);
         return;
       }
 
-      if (existingPhone && existingPhone.contact_no) {
+      // Check email duplicate
+      if (duplicateCheck?.email_exists) {
+        // Check if email is confirmed or unconfirmed
+        if (duplicateCheck.email_confirmed) {
+          // Email exists and is confirmed
+          toast.error(
+            'Email Already Registered',
+            'This email address is already registered and confirmed. Please sign in or use a different email.'
+          );
+          setLoading(false);
+          setErrors(prev => ({
+            ...prev,
+            email:
+              'This email is already registered. Please use a different email.',
+          }));
+          return;
+        } else {
+          // Email exists but is unconfirmed
+          toast.error(
+            'Email Already Registered',
+            'This email address is already registered but not yet confirmed. Please check your email for the confirmation link or use a different email.'
+          );
+          setLoading(false);
+          setErrors(prev => ({
+            ...prev,
+            email:
+              'This email is already registered but not confirmed. Please check your email or use a different email.',
+          }));
+          return;
+        }
+      }
+
+      // Check phone duplicate
+      if (duplicateCheck?.phone_exists) {
         toast.error(
           'Mobile Number Already Registered',
           'This mobile number is already registered. Please use a different number.'

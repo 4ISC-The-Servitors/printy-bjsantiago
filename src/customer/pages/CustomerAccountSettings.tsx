@@ -27,12 +27,15 @@ export interface UserData {
   city: string;
   zipCode: string;
   province: string;
+  region: string;
   barangay: string;
   building: string;
   avatarUrl?: string;
   firstName: string;
   lastName: string;
   customerType: string;
+  gender?: string;
+  birthday?: string;
 }
 
 const AccountSettings: React.FC = () => {
@@ -93,14 +96,19 @@ const AccountSettings: React.FC = () => {
           phone: profile.contact_no,
           address,
           city: profile.address.city_name || '',
-          zipCode: profile.address.zip_code || '',
+          zipCode: profile.address.zip_code
+            ? String(profile.address.zip_code).padStart(4, '0')
+            : '0000',
           province: profile.address.province_name || '',
+          region: profile.address.region_name || '',
           barangay: profile.address.barangay_name || '',
           building: profile.address.building_name || '',
           avatarUrl: '',
           firstName: profile.first_name,
           lastName: profile.last_name,
           customerType: profile.customer_type,
+          gender: profile.gender,
+          birthday: profile.birthday,
         };
 
         setUserData(userDataToSet);
@@ -114,12 +122,15 @@ const AccountSettings: React.FC = () => {
           city: '',
           zipCode: '',
           province: '',
+          region: '',
           barangay: '',
           building: '',
           avatarUrl: '',
           firstName: '',
           lastName: '',
           customerType: '',
+          gender: undefined,
+          birthday: undefined,
         };
         setUserData(fallbackData);
       }
@@ -139,6 +150,7 @@ const AccountSettings: React.FC = () => {
         city: '',
         zipCode: '',
         province: '',
+        region: '',
         barangay: '',
         building: '',
         avatarUrl: '',
@@ -193,15 +205,16 @@ const AccountSettings: React.FC = () => {
 
     try {
       // Convert UserData to ProfileService format
+      // Note: email_address is not updatable - it's guarded
       const profileUpdates = {
         contact_no: next.phone,
-        email_address: next.email,
         address: {
           street_name: next.address, // Street address field contains only street name
           building_name: next.building,
           barangay_name: next.barangay,
           city_name: next.city,
           province_name: next.province,
+          region_name: next.region,
           zip_code: next.zipCode,
         },
       };
@@ -212,7 +225,7 @@ const AccountSettings: React.FC = () => {
       );
 
       if (success) {
-        // Update local state
+        // Update local state (excluding email as it's not updatable)
         setUserData(prev => ({ ...(prev as UserData), ...next }));
         toast.success('Saved', 'Your personal information has been updated.');
       } else {
@@ -220,7 +233,11 @@ const AccountSettings: React.FC = () => {
       }
     } catch (error) {
       console.error('Error updating profile:', error);
-      toast.error('Error', 'Failed to update profile. Please try again.');
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'Failed to update profile. Please try again.';
+      toast.error('Error', errorMessage);
     }
   };
 

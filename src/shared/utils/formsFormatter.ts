@@ -869,37 +869,56 @@ export function getRequiredFieldMessage(label: string, value: string): string {
 }
 
 /**
- * Formats ZIP code input to only allow numbers and limit to 4 digits.
+ * Formats ZIP code input to only allow numbers, limit to 4 digits, and pad to 4 digits.
  */
-export function formatZipCodeInput(input: string): string {
+export function formatZipCodeInput(
+  input: string | number | null | undefined
+): string {
+  // Convert to string if it's a number
+  const inputStr =
+    typeof input === 'number' ? String(input) : String(input || '');
   // Remove all non-numeric characters
-  const numbersOnly = input.replace(/\D/g, '');
+  const numbersOnly = inputStr.replace(/\D/g, '');
   // Limit to 4 digits
-  return numbersOnly.slice(0, 4);
+  const limited = numbersOnly.slice(0, 4);
+  // Pad to 4 digits with leading zeros
+  return limited.padStart(4, '0');
 }
 
 /**
  * Validates a ZIP code.
- * Philippine ZIP codes are 4 digits, but accepts 1-4 digits for flexibility.
+ * Philippine ZIP codes are 4 digits.
  * Only accepts numeric digits (0-9).
  */
-export function isValidZipCode(zip: string): boolean {
-  const trimmed = zip.trim();
+export function isValidZipCode(
+  zip: string | number | null | undefined
+): boolean {
+  if (zip === null || zip === undefined) return false;
+  const zipStr = typeof zip === 'number' ? String(zip) : String(zip || '');
+  const trimmed = zipStr.trim();
   if (!trimmed) return false;
-  // Accept 1-4 digits only
-  return /^\d{1,4}$/.test(trimmed);
+  // Must be exactly 4 digits
+  return /^\d{4}$/.test(trimmed);
 }
 
 /**
  * Returns a validation message for a ZIP code.
  * Empty string means valid.
  */
-export function getZipValidationMessage(zip: string): string {
-  const trimmed = zip.trim();
+export function getZipValidationMessage(
+  zip: string | number | null | undefined
+): string {
+  // Handle null, undefined, or empty values
+  if (zip === null || zip === undefined) return 'ZIP Code cannot be empty.';
+
+  // Convert to string if it's a number
+  const zipStr = typeof zip === 'number' ? String(zip) : String(zip || '');
+  const trimmed = zipStr.trim();
+
   if (!trimmed) return 'ZIP Code cannot be empty.';
   if (!/^\d+$/.test(trimmed)) return 'ZIP Code must contain only numbers.';
-  if (trimmed.length > 4) return 'ZIP Code cannot exceed 4 digits.';
-  if (!isValidZipCode(trimmed)) return 'ZIP Code must be 1-4 digits.';
+  if (trimmed.length !== 4) return 'ZIP Code must be exactly 4 digits.';
+  if (!isValidZipCode(trimmed)) return 'ZIP Code must be 4 digits.';
   return '';
 }
 

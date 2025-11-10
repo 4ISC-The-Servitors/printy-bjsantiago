@@ -245,6 +245,54 @@ const CustomerInfoModal: React.FC<CustomerInfoModalProps> = ({
                       </div>
                     </div>
                   )}
+
+                  {currentCustomer.gender && (
+                    <div className="flex items-start gap-2">
+                      <User className="h-4 w-4 sm:h-5 sm:w-5 text-neutral-500 flex-shrink-0 mt-0.5" />
+                      <div className="flex-1 min-w-0">
+                        <Text
+                          variant="p"
+                          size="xs"
+                          weight="medium"
+                          color="muted"
+                        >
+                          Gender:
+                        </Text>
+                        <Text
+                          variant="p"
+                          size="base"
+                          className="break-words capitalize"
+                        >
+                          {currentCustomer.gender}
+                        </Text>
+                      </div>
+                    </div>
+                  )}
+
+                  {currentCustomer.birthday && (
+                    <div className="flex items-start gap-2">
+                      <User className="h-4 w-4 sm:h-5 sm:w-5 text-neutral-500 flex-shrink-0 mt-0.5" />
+                      <div className="flex-1 min-w-0">
+                        <Text
+                          variant="p"
+                          size="xs"
+                          weight="medium"
+                          color="muted"
+                        >
+                          Birthday:
+                        </Text>
+                        <Text variant="p" size="base" className="break-words">
+                          {new Date(
+                            currentCustomer.birthday
+                          ).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                          })}
+                        </Text>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 

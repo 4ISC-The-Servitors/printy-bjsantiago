@@ -10,6 +10,7 @@ import type {
   ServiceCategoryWithCount,
   ServiceFilters,
 } from '@shared/types/service';
+import type { SelectOption } from '@shared/components/ui/SearchableSelect';
 
 let serviceOrderStatsCache: Promise<Record<string, number>> | null = null;
 
@@ -407,6 +408,71 @@ export async function getCategoryById(
     return null;
   }
   return (data as any) || null;
+}
+
+/**
+ * Helper functions for SearchableSelect components
+ * Returns SelectOption[] format for category and service dropdowns
+ */
+
+/**
+ * Search categories and return SelectOption format
+ */
+export async function categoryOptions(
+  q = '',
+  limit = 50
+): Promise<SelectOption[]> {
+  const like = q?.trim() ? `%${q.trim()}%` : undefined;
+  const base = supabase
+    .from('service_categories')
+    .select('category_id, category_name')
+    .eq('is_active', true);
+  const query = like ? base.ilike('category_name', like) : base;
+  const { data, error } = await query
+    .order('display_order', { ascending: true })
+    .order('category_name', { ascending: true })
+    .limit(limit);
+  if (error) {
+    console.error('Error fetching categories:', error);
+    return [];
+  }
+  return (data || []).map((c: any) => ({
+    value: c.category_id,
+    label: c.category_name,
+  }));
+}
+
+/**
+ * Search services by category and return SelectOption format
+ */
+export async function serviceOptions(
+  categoryId: string,
+  q = '',
+  limit = 100
+): Promise<SelectOption[]> {
+  if (!categoryId) return [];
+  const searchTerm = q?.trim() || '';
+  const base = supabase
+    .from('printing_services')
+    .select('display_id, service_name')
+    .eq('status', 'active')
+    .eq('category_id', categoryId);
+  const query = searchTerm
+    ? base.or(
+        `service_name.ilike.%${searchTerm}%,display_id.ilike.%${searchTerm}%`
+      )
+    : base;
+  const { data, error } = await query
+    .order('display_id', { ascending: true })
+    .limit(limit);
+  if (error) {
+    console.error('Error fetching services:', error);
+    return [];
+  }
+  return (data || []).map((s: any) => ({
+    value: s.display_id,
+    label: `${s.display_id} (${s.service_name})`,
+  }));
 }
 
 /**

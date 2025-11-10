@@ -1,4 +1,5 @@
 import { supabase } from '@lib/supabase';
+import { normalizePhone } from '@/shared/utils/formsFormatter';
 
 export interface CustomerProfile {
   customer_id: string;
@@ -175,16 +176,46 @@ export class ProfileService {
     updates: UpdateProfileData
   ): Promise<boolean> {
     try {
+      // Check for duplicate phone number if phone is being updated
+      if (updates.contact_no !== undefined) {
+        // Normalize phone number before checking for duplicates
+        const normalizedPhone = normalizePhone(updates.contact_no);
+        if (normalizedPhone) {
+          const { data: existingPhone, error: phoneCheckError } = await supabase
+            .from('customer')
+            .select('customer_id, contact_no')
+            .not('contact_no', 'is', null)
+            .neq('contact_no', '')
+            .eq('contact_no', normalizedPhone)
+            .neq('customer_id', customerId) // Exclude current user
+            .maybeSingle();
+
+          if (phoneCheckError) {
+            console.error('Error checking phone:', phoneCheckError);
+            return false;
+          }
+
+          if (existingPhone && existingPhone.contact_no) {
+            console.error('Duplicate phone number detected');
+            throw new Error(
+              'This phone number is already registered. Please use a different phone number.'
+            );
+          }
+        }
+      }
+
       // Update basic customer information
+      // Note: email_address is not updatable - it's guarded
       const customerUpdates: any = {};
       if (updates.first_name !== undefined)
         customerUpdates.first_name = updates.first_name;
       if (updates.last_name !== undefined)
         customerUpdates.last_name = updates.last_name;
-      if (updates.contact_no !== undefined)
-        customerUpdates.contact_no = updates.contact_no;
-      if (updates.email_address !== undefined)
-        customerUpdates.email_address = updates.email_address;
+      if (updates.contact_no !== undefined) {
+        // Normalize phone number before saving
+        customerUpdates.contact_no = normalizePhone(updates.contact_no);
+      }
+      // Email is not updatable - removed from updates
       if (updates.gender !== undefined) customerUpdates.gender = updates.gender;
       if (updates.birthday !== undefined)
         customerUpdates.birthday = updates.birthday;
@@ -205,103 +236,176 @@ export class ProfileService {
       if (updates.address) {
         const addressUpdates = updates.address;
 
-        const { data: locationDetails, error: locationDetailsError } =
-          await supabase
-            .from('customer')
-            .select(
-              `
-              location:location_id (
-                location_id,
-                bldg_id,
-                building:building (
+        // Check if region, province, or city are being updated
+        // If so, we need to use upsert_full_address to create/update the full address hierarchy
+        const hasLocationHierarchyUpdate =
+          addressUpdates.region_name !== undefined ||
+          addressUpdates.province_name !== undefined ||
+          addressUpdates.city_name !== undefined;
+
+        if (hasLocationHierarchyUpdate) {
+          // Use upsert_full_address function to handle region/province/city updates
+          // This ensures proper relationships are maintained
+          // First, get current address values to fill in any missing fields
+          const currentProfile = await ProfileService.getProfile(customerId);
+          const currentAddress = currentProfile?.address || {};
+
+          try {
+            const { data: locationId, error: rpcError } = await supabase.rpc(
+              'upsert_full_address',
+              {
+                p_region:
+                  addressUpdates.region_name ??
+                  currentAddress.region_name ??
+                  '',
+                p_province:
+                  addressUpdates.province_name ??
+                  currentAddress.province_name ??
+                  '',
+                p_city:
+                  addressUpdates.city_name ?? currentAddress.city_name ?? '',
+                p_zip_code:
+                  addressUpdates.zip_code ?? currentAddress.zip_code ?? '',
+                p_barangay:
+                  addressUpdates.barangay_name ??
+                  currentAddress.barangay_name ??
+                  '',
+                p_street:
+                  addressUpdates.street_name ??
+                  currentAddress.street_name ??
+                  '',
+                p_building_number: null,
+                p_building_name:
+                  addressUpdates.building_name ??
+                  currentAddress.building_name ??
+                  null,
+              }
+            );
+
+            if (rpcError) {
+              console.error('Error calling upsert_full_address:', rpcError);
+              return false;
+            }
+
+            // Update customer's location_id to the new location
+            if (locationId) {
+              const { error: customerLocationError } = await supabase
+                .from('customer')
+                .update({ location_id: locationId })
+                .eq('customer_id', customerId);
+
+              if (customerLocationError) {
+                console.error(
+                  'Error updating customer location_id:',
+                  customerLocationError
+                );
+                return false;
+              }
+            }
+          } catch (error) {
+            console.error('Error in upsert_full_address:', error);
+            return false;
+          }
+        } else {
+          // Only update existing records if no hierarchy changes
+          const { data: locationDetails, error: locationDetailsError } =
+            await supabase
+              .from('customer')
+              .select(
+                `
+                location:location_id (
+                  location_id,
                   bldg_id,
-                  street_id,
-                  street:street (
+                  building:building (
+                    bldg_id,
                     street_id,
-                    brgy_id,
-                    barangay:barangay (
-                      brgy_id
+                    street:street (
+                      street_id,
+                      brgy_id,
+                      barangay:barangay (
+                        brgy_id
+                      )
                     )
                   )
                 )
+              `
               )
-            `
-            )
-            .eq('customer_id', customerId)
-            .maybeSingle();
+              .eq('customer_id', customerId)
+              .maybeSingle();
 
-        if (locationDetailsError) {
-          console.error(
-            'Error fetching customer location details:',
-            locationDetailsError
-          );
-          return false;
-        }
-
-        const location = Array.isArray(locationDetails?.location)
-          ? locationDetails.location[0]
-          : locationDetails?.location;
-
-        if (!location) {
-          console.error('No location record found for customer:', customerId);
-          return false;
-        }
-
-        const locationId: string | undefined = (location as any).location_id;
-        const buildingId: string | undefined =
-          (location as any).bldg_id || (location as any).building?.bldg_id;
-        const streetId: string | undefined =
-          (location as any).building?.street_id ||
-          (location as any).building?.street?.street_id;
-        const barangayId: string | undefined =
-          (location as any).building?.street?.brgy_id ||
-          (location as any).building?.street?.barangay?.brgy_id;
-
-        if (addressUpdates.zip_code !== undefined && locationId) {
-          const { error: locationError } = await supabase
-            .from('location')
-            .update({ zip_code: addressUpdates.zip_code })
-            .eq('location_id', locationId);
-
-          if (locationError) {
-            console.error('Error updating location:', locationError);
+          if (locationDetailsError) {
+            console.error(
+              'Error fetching customer location details:',
+              locationDetailsError
+            );
             return false;
           }
-        }
 
-        if (addressUpdates.building_name !== undefined && buildingId) {
-          const { error: buildingError } = await supabase
-            .from('building')
-            .update({ bldg_name: addressUpdates.building_name })
-            .eq('bldg_id', buildingId);
+          const location = Array.isArray(locationDetails?.location)
+            ? locationDetails.location[0]
+            : locationDetails?.location;
 
-          if (buildingError) {
-            console.error('Error updating building:', buildingError);
+          if (!location) {
+            console.error('No location record found for customer:', customerId);
             return false;
           }
-        }
 
-        if (addressUpdates.street_name !== undefined && streetId) {
-          const { error: streetError } = await supabase
-            .from('street')
-            .update({ street_name: addressUpdates.street_name })
-            .eq('street_id', streetId);
+          const locationId: string | undefined = (location as any).location_id;
+          const buildingId: string | undefined =
+            (location as any).bldg_id || (location as any).building?.bldg_id;
+          const streetId: string | undefined =
+            (location as any).building?.street_id ||
+            (location as any).building?.street?.street_id;
+          const barangayId: string | undefined =
+            (location as any).building?.street?.brgy_id ||
+            (location as any).building?.street?.barangay?.brgy_id;
 
-          if (streetError) {
-            console.error('Error updating street:', streetError);
-            return false;
+          if (addressUpdates.zip_code !== undefined && locationId) {
+            const { error: locationError } = await supabase
+              .from('location')
+              .update({ zip_code: addressUpdates.zip_code })
+              .eq('location_id', locationId);
+
+            if (locationError) {
+              console.error('Error updating location:', locationError);
+              return false;
+            }
           }
-        }
 
-        if (addressUpdates.barangay_name !== undefined && barangayId) {
-          const { error: barangayError } = await supabase
-            .from('barangay')
-            .update({ brgy_name: addressUpdates.barangay_name })
-            .eq('brgy_id', barangayId);
+          if (addressUpdates.building_name !== undefined && buildingId) {
+            const { error: buildingError } = await supabase
+              .from('building')
+              .update({ bldg_name: addressUpdates.building_name })
+              .eq('bldg_id', buildingId);
 
-          if (barangayError) {
-            console.error('Error updating barangay:', barangayError);
-            return false;
+            if (buildingError) {
+              console.error('Error updating building:', buildingError);
+              return false;
+            }
+          }
+
+          if (addressUpdates.street_name !== undefined && streetId) {
+            const { error: streetError } = await supabase
+              .from('street')
+              .update({ street_name: addressUpdates.street_name })
+              .eq('street_id', streetId);
+
+            if (streetError) {
+              console.error('Error updating street:', streetError);
+              return false;
+            }
+          }
+
+          if (addressUpdates.barangay_name !== undefined && barangayId) {
+            const { error: barangayError } = await supabase
+              .from('barangay')
+              .update({ brgy_name: addressUpdates.barangay_name })
+              .eq('brgy_id', barangayId);
+
+            if (barangayError) {
+              console.error('Error updating barangay:', barangayError);
+              return false;
+            }
           }
         }
       }

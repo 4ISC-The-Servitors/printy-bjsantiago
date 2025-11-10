@@ -14,6 +14,7 @@ export interface SearchableSelectProps {
   disabled?: boolean;
   className?: string;
   emptyText?: string;
+  initialLabel?: string; // Optional label to display when value is set but items haven't loaded yet
 }
 
 const SearchableSelect: React.FC<SearchableSelectProps> = ({
@@ -26,18 +27,55 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
   disabled = false,
   className,
   emptyText = 'No results',
+  initialLabel: propInitialLabel,
 }) => {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [items, setItems] = useState<SelectOption[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [initialLabel, setInitialLabel] = useState<string | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
   const selected = useMemo(
     () => items.find(i => i.value === value),
     [items, value]
   );
+
+  // Use prop initialLabel if provided, otherwise try to load it
+  useEffect(() => {
+    if (propInitialLabel) {
+      setInitialLabel(propInitialLabel);
+    } else if (value && !selected && !open && !loading) {
+      // Try to load the initial option to display the selected value
+      const loadInitial = async () => {
+        try {
+          const options = await fetchOptions('');
+          const found = options.find(o => o.value === value);
+          if (found) {
+            // Add to items if not already there
+            setItems(prev => {
+              if (prev.find(i => i.value === value)) return prev;
+              return [...prev, found];
+            });
+            setInitialLabel(found.label);
+          } else {
+            setInitialLabel(null);
+          }
+        } catch (e) {
+          // Silently fail - will load when dropdown opens
+          setInitialLabel(null);
+        }
+      };
+      loadInitial();
+    } else if (selected) {
+      // Clear initial label when we have the selected option in items
+      setInitialLabel(null);
+    } else if (!value) {
+      // Clear initial label when value is cleared
+      setInitialLabel(null);
+    }
+  }, [value, selected, open, loading, fetchOptions, propInitialLabel]);
 
   // Load items on open and when search changes (debounced)
   useEffect(() => {
@@ -92,8 +130,12 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
             : 'hover:border-neutral-400 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary'
         }`}
       >
-        <span className={selected ? 'text-neutral-900' : 'text-neutral-500'}>
-          {selected?.label || placeholder}
+        <span
+          className={
+            selected || initialLabel ? 'text-neutral-900' : 'text-neutral-500'
+          }
+        >
+          {selected?.label || initialLabel || placeholder}
         </span>
         <ChevronDown
           className={`w-5 h-5 text-neutral-400 transition-transform ${
@@ -131,7 +173,9 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
                       setOpen(false);
                     }}
                     className={`w-full text-left px-3 py-2 rounded-md hover:bg-neutral-50 ${
-                      value === opt.value ? 'bg-primary-50 text-primary-700' : ''
+                      value === opt.value
+                        ? 'bg-primary-50 text-primary-700'
+                        : ''
                     }`}
                   >
                     {opt.label}
@@ -147,5 +191,3 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
 };
 
 export default SearchableSelect;
-
-
