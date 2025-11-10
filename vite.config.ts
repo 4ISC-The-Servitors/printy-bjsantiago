@@ -69,70 +69,7 @@ export default defineConfig({
         if (id === 'tslib') return false;
         return false;
       },
-      output: {
-        manualChunks: id => {
-          // Vendor chunks - split large dependencies
-          if (id.includes('node_modules')) {
-            // React core - MUST be in main bundle to ensure it loads first
-            // Returning undefined keeps React in the main entry chunk
-            if (id.includes('react') || id.includes('react-dom')) {
-              return undefined;
-            }
-            // Router - depends on React
-            if (id.includes('react-router')) {
-              return 'router-vendor';
-            }
-            // UI libraries
-            if (id.includes('lucide-react')) {
-              return 'ui-vendor';
-            }
-            // Supabase core
-            if (id.includes('@supabase/supabase-js')) {
-              return 'supabase-vendor';
-            }
-            // Supabase Auth UI (can be large, split separately)
-            if (
-              id.includes('@supabase/auth-ui') ||
-              id.includes('@radix-ui/react-progress')
-            ) {
-              return 'auth-ui-vendor';
-            }
-            // HEIC converter (large library, split separately)
-            if (id.includes('heic2any')) {
-              return 'heic-vendor';
-            }
-            // Utility libraries
-            if (id.includes('tslib')) {
-              return 'tslib-vendor';
-            }
-            // Other vendor code
-            return 'vendor';
-          }
-
-          // Feature chunks - updated for new architecture
-          if (id.includes('/src/admin/')) {
-            return 'admin';
-          }
-          if (id.includes('/src/customer/')) {
-            return 'customer';
-          }
-          if (id.includes('/src/guest/')) {
-            return 'guest';
-          }
-          if (id.includes('/src/auth/')) {
-            return 'auth';
-          }
-          if (id.includes('/src/shared/')) {
-            return 'shared';
-          }
-          if (id.includes('/src/features/chat/')) {
-            return 'chat';
-          }
-          if (id.includes('/src/features/quotes/')) {
-            return 'quotes';
-          }
-        },
-      },
+      // Let Rollup decide chunk boundaries to avoid evaluation order issues
     },
     // Increase chunk size warning limit to 1500kb
     // Note: heic-vendor chunk is intentionally large and loads on-demand only
