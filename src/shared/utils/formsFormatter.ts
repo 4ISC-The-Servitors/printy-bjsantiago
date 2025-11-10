@@ -130,6 +130,36 @@ export function isAddressProperNounFormat(text: string): boolean {
 }
 
 /**
+ * Checks if building number/name follows proper format.
+ * - Allows pure numbers (e.g., "123")
+ * - Allows numbers with special characters (e.g., "123-A", "5-B")
+ * - If words contain letters, they must start with a capital letter
+ * - Does NOT require at least one letter word (unlike isAddressProperNounFormat)
+ * Examples: "123" ✓, "123-A" ✓, "Building 5-A" ✓, "building 5-A" ✗
+ */
+export function isBuildingNumberFormat(text: string): boolean {
+  const trimmed = text.trim();
+  if (!trimmed) return false;
+
+  // Split by spaces and check each word
+  const words = trimmed.split(/\s+/).filter(w => w.length > 0);
+
+  // Check each word - if it starts with a letter, it must be uppercase
+  for (const word of words) {
+    const firstChar = word.charAt(0);
+    if (/[A-Za-zÀ-ÿ\u00C0-\u017F]/.test(firstChar)) {
+      // If it starts with a letter, it must be uppercase
+      if (!/[A-ZÀ-ÖØ-Þ]/.test(firstChar)) {
+        return false;
+      }
+    }
+  }
+
+  // Pure numbers, numbers with special chars, or properly capitalized letter words are all valid
+  return true;
+}
+
+/**
  * Formats text to proper noun format (capitalizes first letter of each word).
  * Useful for formatting names and addresses on blur or submit.
  *
@@ -972,14 +1002,16 @@ export function getBarangayValidationMessage(barangay: string): string {
  * Validates building number/name field (optional).
  * - Optional field (empty is valid)
  * - Max 100 characters if provided
- * - Must follow proper noun format if provided (words that start with letters must be capitalized)
+ * - Allows pure numbers (e.g., "123")
+ * - Allows numbers with special characters (e.g., "123-A")
+ * - If words contain letters, they must start with a capital letter
  */
 export function isValidBuildingNumber(buildingNumber: string): boolean {
   const trimmed = buildingNumber.trim();
   if (!trimmed) return true; // Optional field
   if (trimmed.length > MAX_ADDRESS_FIELD_LENGTH) return false;
-  // Check proper noun format for addresses (allows numbers, but letter words must be capitalized)
-  if (!isAddressProperNounFormat(trimmed)) return false;
+  // Check building number format (allows pure numbers, but letter words must be capitalized)
+  if (!isBuildingNumberFormat(trimmed)) return false;
   return true;
 }
 
@@ -994,9 +1026,9 @@ export function getBuildingNumberValidationMessage(
   if (!trimmed) return ''; // Optional field, empty is valid
   if (trimmed.length > MAX_ADDRESS_FIELD_LENGTH)
     return `Building number cannot exceed ${MAX_ADDRESS_FIELD_LENGTH} characters.`;
-  // Check proper noun format for addresses
-  if (!isAddressProperNounFormat(trimmed)) {
-    return 'Building name must start with a capital letter (e.g., "Tower A" or "Building 5-A").';
+  // Check building number format (allows pure numbers, but letter words must be capitalized)
+  if (!isBuildingNumberFormat(trimmed)) {
+    return 'If building name contains letters, they must start with a capital letter (e.g., "Tower A" or "Building 5-A").';
   }
   return '';
 }
