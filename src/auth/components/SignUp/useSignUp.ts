@@ -62,7 +62,7 @@ export const useSignUp = () => {
     barangay: '',
     province: '',
     city: '',
-    region: 'NCR',
+    region: '',
     zipCode: '',
     agreeToTerms: false,
   });

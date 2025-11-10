@@ -1,6 +1,12 @@
-import React from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Button, Input } from '@shared/components';
 import { MapPin } from 'lucide-react';
+import SearchableSelect from '@shared/components/ui/SearchableSelect';
+import {
+  cityOptions,
+  provinceOptions,
+  regionOptions,
+} from '@shared/services/locationService';
 
 interface Props {
   buildingNumber: string;
@@ -37,6 +43,25 @@ const Step3Address: React.FC<Props> = ({
   onChange,
   onToggleTerms,
 }) => {
+  const [selectedRegionId, setSelectedRegionId] = useState<string>('');
+  const [selectedProvinceId, setSelectedProvinceId] = useState<string>('');
+  const [selectedCityId, setSelectedCityId] = useState<string>('');
+
+  // Fetchers bound to current selection
+  const fetchRegions = useCallback((q: string) => regionOptions(q), []);
+  const fetchProvinces = useCallback(
+    (q: string) => provinceOptions(selectedRegionId, q),
+    [selectedRegionId]
+  );
+  const fetchCities = useCallback(
+    (q: string) => cityOptions(selectedProvinceId, q),
+    [selectedProvinceId]
+  );
+
+  // Derive placeholders
+  const provinceDisabled = !selectedRegionId;
+  const cityDisabled = !selectedProvinceId;
+
   return (
     <div className="space-y-6">
       <div className="space-y-2">
@@ -87,87 +112,50 @@ const Step3Address: React.FC<Props> = ({
         </Input>
       </div>
 
-      <div className="space-y-2">
-        <label className="block text-sm font-medium text-neutral-700">
-          Region <span className="text-error">*</span>
-        </label>
-        <div className="relative">
-          <select
-            value={region}
-            onChange={e => onChange('region', e.target.value)}
-            required
-            className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary transition-colors appearance-none bg-white"
-          >
-            <option value="NCR">NCR</option>
-          </select>
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none">
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-              <path
-                fillRule="evenodd"
-                d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </div>
-        </div>
-      </div>
+      <SearchableSelect
+        label="Region"
+        required
+        value={selectedRegionId}
+        onChange={(_value, option) => {
+          // set selected ids for cascading and propagate human-readable name
+          setSelectedRegionId(_value);
+          setSelectedProvinceId('');
+          onChange('region', option?.label || '');
+          onChange('province', '');
+          onChange('city', '');
+          setSelectedCityId('');
+        }}
+        fetchOptions={fetchRegions}
+        placeholder="Select region"
+      />
 
-      <div className="space-y-2">
-        <label className="block text-sm font-medium text-neutral-700">
-          Province <span className="text-error">*</span>
-        </label>
-        <div className="relative">
-          <select
-            value={province}
-            onChange={e => onChange('province', e.target.value)}
-            required
-            className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary transition-colors appearance-none bg-white"
-          >
-            <option value="">Select province</option>
-            <option value="metro-manila">Metro Manila</option>
-          </select>
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none">
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-              <path
-                fillRule="evenodd"
-                d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </div>
-        </div>
-      </div>
+      <SearchableSelect
+        label="Province"
+        required
+        value={selectedProvinceId}
+        onChange={(_value, option) => {
+          setSelectedProvinceId(_value);
+          onChange('province', option?.label || '');
+          onChange('city', '');
+          setSelectedCityId('');
+        }}
+        fetchOptions={fetchProvinces}
+        placeholder={provinceDisabled ? 'Select region first' : 'Select province'}
+        disabled={provinceDisabled}
+      />
 
-      <div className="space-y-2">
-        <label className="block text-sm font-medium text-neutral-700">
-          City/Municipality <span className="text-error">*</span>
-        </label>
-        <div className="relative">
-          <select
-            value={city}
-            onChange={e => onChange('city', e.target.value)}
-            required
-            disabled={!province}
-            className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary transition-colors appearance-none bg-white disabled:bg-neutral-50 disabled:cursor-not-allowed"
-          >
-            <option value="">
-              {province ? 'Select city/municipality' : 'Select province first'}
-            </option>
-            {province === 'metro-manila' && (
-              <option value="manila">Manila</option>
-            )}
-          </select>
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none">
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-              <path
-                fillRule="evenodd"
-                d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </div>
-        </div>
-      </div>
+      <SearchableSelect
+        label="City/Municipality"
+        required
+        value={selectedCityId}
+        onChange={(_value, option) => {
+          setSelectedCityId(_value);
+          onChange('city', option?.label || '');
+        }}
+        fetchOptions={fetchCities}
+        placeholder={cityDisabled ? 'Select province first' : 'Select city/municipality'}
+        disabled={cityDisabled}
+      />
 
       <div className="space-y-2">
         <Input
