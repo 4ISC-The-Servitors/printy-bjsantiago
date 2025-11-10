@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Card, Pagination } from '@admin/components/shared';
 import { AdminListSkeleton } from '@shared/components/feedback';
 import { useTicketsCard } from '@admin/hooks/useTicketsCard';
@@ -32,9 +32,10 @@ const TicketsCard: React.FC<TicketsCardProps> = ({
 }) => {
   // All hooks must be called unconditionally before any early returns
   useResponsiveLayout();
-  const { hasViewed, markAsViewed } = usePersistentUnread({
-    storageKey: 'admin:viewed-tickets',
-  });
+  const { isHydrated, hasViewed, markAsViewed, markManyAsViewed } =
+    usePersistentUnread({
+      storageKey: 'admin:viewed-tickets',
+    });
   const { isLoading, page, setPage, pageSize, viewInChat } = useTicketsCard({
     allTickets,
     filteredTickets,
@@ -47,6 +48,7 @@ const TicketsCard: React.FC<TicketsCardProps> = ({
   });
 
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const seededRef = useRef(false);
 
   useEffect(() => {
     let active = true;
@@ -58,6 +60,34 @@ const TicketsCard: React.FC<TicketsCardProps> = ({
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (
+      seededRef.current ||
+      !isHydrated ||
+      loading ||
+      loadingMore ||
+      loadingAll ||
+      allTickets.length === 0
+    ) {
+      return;
+    }
+
+    markManyAsViewed(
+      allTickets.map(ticket => ({
+        id: ticket.inquiry_id,
+        version: ticket.updated_at ?? ticket.received_at ?? null,
+      }))
+    );
+    seededRef.current = true;
+  }, [
+    allTickets,
+    isHydrated,
+    loading,
+    loadingAll,
+    loadingMore,
+    markManyAsViewed,
+  ]);
 
   // Calculate paginated display tickets from filtered tickets
   const start = (page - 1) * pageSize;

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Card, Pagination } from '@admin/components/shared';
 import { AdminListSkeleton } from '@shared/components/feedback';
 import { useOrdersCard } from '@admin/hooks/useOrdersCard';
@@ -31,9 +31,10 @@ const OrdersCard: React.FC<OrdersCardProps> = ({
 }) => {
   // All hooks must be called unconditionally before any early returns
   useResponsiveLayout();
-  const { hasViewed, markAsViewed } = usePersistentUnread({
-    storageKey: 'admin:viewed-orders',
-  });
+  const { isHydrated, hasViewed, markAsViewed, markManyAsViewed } =
+    usePersistentUnread({
+      storageKey: 'admin:viewed-orders',
+    });
   const { isLoading, page, setPage, pageSize, setHoveredOrderId, viewInChat } =
     useOrdersCard({
       allOrders,
@@ -46,6 +47,7 @@ const OrdersCard: React.FC<OrdersCardProps> = ({
     });
 
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const seededRef = useRef(false);
 
   useEffect(() => {
     let active = true;
@@ -57,6 +59,26 @@ const OrdersCard: React.FC<OrdersCardProps> = ({
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (
+      seededRef.current ||
+      !isHydrated ||
+      loading ||
+      loadingMore ||
+      allOrders.length === 0
+    ) {
+      return;
+    }
+
+    markManyAsViewed(
+      allOrders.map(order => ({
+        id: order.id,
+        version: order.updated_at ?? order.created_at ?? null,
+      }))
+    );
+    seededRef.current = true;
+  }, [allOrders, isHydrated, loading, loadingMore, markManyAsViewed]);
 
   // Calculate paginated display orders from filtered orders
   const start = (page - 1) * pageSize;
