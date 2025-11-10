@@ -91,21 +91,35 @@ export async function fetchTicketForAdmin(
       let issueDetails =
         md?.context?.issue_details || md?.issue_details || customerDescription;
 
-      // Filter out quick reply options like "No, continue without image" and "No, let's continue" from JSONB flow
+      // Filter out quick reply options from JSONB flow
       if (issueDetails && typeof issueDetails === 'string') {
-        const lines = issueDetails.split('\n').filter(line => {
-          const trimmed = line.trim();
-          if (!trimmed) return true; // Keep empty lines
-          // Filter out "No, continue without image" and "No, let's continue" quick reply options
-          if (/^no,?\s*continue\s+without\s+image$/i.test(trimmed)) {
-            return false;
-          }
-          if (/^no,?\s*lets?\s*continue/i.test(trimmed)) {
-            return false;
-          }
-          return true;
+        let text = issueDetails.trim();
+
+        // Quick reply phrases to filter out (case-insensitive)
+        const quickReplyPhrases = [
+          "No, let's continue",
+          'No, lets continue',
+          "No let's continue",
+          'No lets continue',
+          'Yes, upload files',
+          'Yes upload files',
+          'Yes, upload file',
+          'Yes upload file',
+          'No, continue without image',
+          'No continue without image',
+        ];
+
+        // Remove quick reply phrases directly from text
+        quickReplyPhrases.forEach(phrase => {
+          // Remove the phrase (case-insensitive) with surrounding whitespace/newlines
+          const regex = new RegExp(
+            `\\s*${phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*`,
+            'gi'
+          );
+          text = text.replace(regex, ' ').trim();
         });
-        customerDescription = lines.join('\n').trim() || customerDescription;
+
+        customerDescription = text || customerDescription;
       } else {
         customerDescription = issueDetails || customerDescription;
       }
