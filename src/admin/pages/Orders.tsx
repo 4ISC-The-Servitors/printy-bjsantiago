@@ -3,7 +3,7 @@
 import React from 'react';
 import { OrdersCard } from '@admin/components';
 import { Search, Filter, Card, Text } from '@shared/components';
-import { OrdersProvider, useOrders } from '@admin/hooks/OrdersContext';
+import { useAdminOrders } from '@admin/hooks/useAdminOrders';
 import { useGenericSearchFilter } from '@shared/hooks/ui/useGenericSearchFilter';
 import {
   useResponsiveClasses,
@@ -12,7 +12,17 @@ import {
 import { FILTER_CONFIGS } from '@shared/types/filters';
 
 const OrdersContent: React.FC = () => {
-  const { orders: ordersAll } = useOrders();
+  const {
+    orders: ordersAll,
+    hasMore,
+    loadMore,
+    loadAll,
+    loading,
+    loadingMore,
+    loadingAll,
+    refresh,
+    totalCount,
+  } = useAdminOrders();
 
   // Responsive hooks
   const { spacingClasses } = useResponsiveClasses();
@@ -39,11 +49,34 @@ const OrdersContent: React.FC = () => {
       'updated_at',
       'completed_at',
     ],
-    dateField: 'created_at',
+    dateField: 'updated_at',
     filterConfig: FILTER_CONFIGS.orders,
     statusField: 'status',
     roleField: 'customer_type',
   });
+
+  const hasStatusFilter = Boolean(filter.statuses?.length);
+  const hasRoleFilter = Boolean(filter.roles?.length);
+  const hasDateFilter = Boolean(filter.dateFrom || filter.dateTo);
+  const hasSearch = Boolean(search.trim());
+
+  // When searching/filtering, load all pages so client-side search can find old IDs
+  React.useEffect(() => {
+    if (!hasMore || loading || loadingMore || loadingAll) return;
+    if (hasStatusFilter || hasRoleFilter || hasDateFilter || hasSearch) {
+      void loadAll();
+    }
+  }, [
+    hasMore,
+    loading,
+    loadingMore,
+    loadingAll,
+    hasStatusFilter,
+    hasRoleFilter,
+    hasDateFilter,
+    hasSearch,
+    loadAll,
+  ]);
 
   return (
     <div className="px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-5 md:py-6">
@@ -100,18 +133,23 @@ const OrdersContent: React.FC = () => {
           </Text>
         </Card>
       ) : (
-        <OrdersCard filteredOrders={filteredOrders} />
+        <OrdersCard
+          filteredOrders={filteredOrders}
+          allOrders={ordersAll}
+          hasMore={hasMore}
+          loadMore={loadMore}
+          loading={loading}
+          loadingMore={loadingMore}
+          refreshOrders={refresh}
+          totalCount={totalCount}
+        />
       )}
     </div>
   );
 };
 
 const AdminOrders: React.FC = () => {
-  return (
-    <OrdersProvider>
-      <OrdersContent />
-    </OrdersProvider>
-  );
+  return <OrdersContent />;
 };
 
 export default AdminOrders;

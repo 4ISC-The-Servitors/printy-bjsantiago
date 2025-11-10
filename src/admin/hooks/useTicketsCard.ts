@@ -1,22 +1,42 @@
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useAdmin } from './AdminContext';
-import { useTickets } from './TicketsContext';
 import useResponsivePageSize from '@shared/hooks/ui/useResponsivePageSize';
 
-export const useTicketsCard = (overridePageSize?: number) => {
-  const { openChat, openChatWithTopic } = useAdmin();
+interface UseTicketsCardOptions {
+  allTickets: any[];
+  filteredTickets: any[];
+  hasMore: boolean;
+  loadMore: () => Promise<void>;
+  loading: boolean;
+  loadingMore: boolean;
+  loadingAll: boolean;
+  refreshTickets: () => void;
+}
+
+export const useTicketsCard = (
+  {
+    allTickets,
+    filteredTickets,
+    hasMore,
+    loadMore,
+    loading,
+    loadingMore,
+    loadingAll,
+    refreshTickets,
+  }: UseTicketsCardOptions,
+  overridePageSize?: number
+) => {
+  const { openChatWithTopic, openChat } = useAdmin();
   const [hoveredTicketId, setHoveredTicketId] = useState<string | null>(null);
 
-  // Get loading state from TicketsContext instead of making a wasteful DB call
-  const { loading: isLoading, error } = useTickets();
+  const isLoading = loading || loadingAll;
 
-  // Pagination with dynamic viewport-based calculation
   const dynamicPageSize = useResponsivePageSize({
     useDynamicCalculation: true,
-    itemHeight: 140, // Approximate height of TicketItem card
-    itemSpacing: 24, // space-y-6 = 24px between items
-    headerOffset: 200, // Admin navbar + search/filter section + card header
-    footerOffset: 100, // Pagination + bottom padding
+    itemHeight: 140,
+    itemSpacing: 24,
+    headerOffset: 200,
+    footerOffset: 100,
     minItems: 2,
     maxItems: 20,
     breakpoints: {
@@ -33,10 +53,37 @@ export const useTicketsCard = (overridePageSize?: number) => {
     return dynamicPageSize;
   }, [dynamicPageSize, overridePageSize]);
 
-  const viewInChat = (ticketId: string, allTickets?: any[]) => {
+  React.useEffect(() => {
+    const endIndex = page * pageSize;
+    if (
+      hasMore &&
+      !loading &&
+      !loadingMore &&
+      !loadingAll &&
+      filteredTickets.length < endIndex
+    ) {
+      void loadMore();
+    }
+  }, [
+    page,
+    pageSize,
+    filteredTickets.length,
+    hasMore,
+    loadMore,
+    loading,
+    loadingMore,
+    loadingAll,
+  ]);
+
+  const viewInChat = (ticketId: string) => {
     if (openChatWithTopic) {
-      // Pass the actual inquiry records to ensure the chat flow has access to the full inquiry data
-      openChatWithTopic('tickets', ticketId, undefined, allTickets);
+      openChatWithTopic(
+        'tickets',
+        ticketId,
+        undefined,
+        allTickets,
+        refreshTickets
+      );
     } else {
       openChat();
     }
@@ -44,7 +91,6 @@ export const useTicketsCard = (overridePageSize?: number) => {
 
   return {
     isLoading,
-    error,
     page,
     setPage,
     pageSize,

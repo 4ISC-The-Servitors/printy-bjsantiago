@@ -50,13 +50,21 @@ export async function fetchOriginalCustomerRequest(
       return 'No original request found.';
     }
 
-    // Filter out upload-related content: image URLs and upload prompts
+    // Filter out upload-related content: image URLs and quick reply options
     const orderUploadRegex = /supabase:\/\/order-uploads\/[^\s,"')\]]+/gi;
-    const uploadPromptPatterns = [
-      /yes,?\s*upload\s+(image|file|files)/i,
-      /upload\s+(image|file|files)/i,
-      /attach\s+(image|file|files)/i,
-      /yes,?\s*upload/i,
+
+    // Quick reply phrases to filter out (case-insensitive)
+    const quickReplyPhrases = [
+      "No, let's continue",
+      'No, lets continue',
+      "No let's continue",
+      'No lets continue',
+      'Yes, upload files',
+      'Yes upload files',
+      'Yes, upload file',
+      'Yes upload file',
+      'No, continue without image',
+      'No continue without image',
     ];
 
     const cleanedMessages = customerOnlyMessages
@@ -66,21 +74,17 @@ export async function fetchOriginalCustomerRequest(
         // Remove image URLs
         text = text.replace(orderUploadRegex, '').trim();
 
-        // Remove upload prompt lines and quick reply options from JSONB flow
-        const lines = text.split('\n').filter(line => {
-          const trimmed = line.trim();
-          if (!trimmed) return true; // Keep empty lines
-          // Filter out quick reply options like "No, continue without image" and "No, let's continue"
-          if (/^no,?\s*continue\s+without\s+image$/i.test(trimmed)) {
-            return false;
-          }
-          if (/^no,?\s*lets?\s*continue/i.test(trimmed)) {
-            return false;
-          }
-          return !uploadPromptPatterns.some(pattern => pattern.test(trimmed));
+        // Remove quick reply phrases directly from text
+        quickReplyPhrases.forEach(phrase => {
+          // Remove the phrase (case-insensitive) with surrounding whitespace/newlines
+          const regex = new RegExp(
+            `\\s*${phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*`,
+            'gi'
+          );
+          text = text.replace(regex, ' ').trim();
         });
 
-        return lines.join('\n').trim();
+        return text.trim();
       })
       .filter(text => text.length > 0); // Remove empty messages after cleaning
 
@@ -160,17 +164,23 @@ export async function fetchCompleteQuoteDetails(
 /**
  * Format proposal specifications into a readable text format
  */
+type ProposalSpecOptions = {
+  includeCategory?: boolean;
+};
+
 export function formatProposalSpecs(
   specData: any,
-  adminNotes?: string
+  adminNotes?: string,
+  options: ProposalSpecOptions = {}
 ): string[] {
   const lines: string[] = [];
+  const { includeCategory = true } = options;
 
   if (specData.product_name) {
     lines.push(`• Product: ${specData.product_name}`);
   }
 
-  if (specData.category) {
+  if (includeCategory && specData.category) {
     lines.push(`• Category: ${specData.category}`);
   }
 
@@ -228,7 +238,8 @@ export function formatQuoteDetailsForCustomer(
   if (quoteDetails.hasProposal && quoteDetails.proposal) {
     const proposalLines = formatProposalSpecs(
       quoteDetails.proposal.specFinal,
-      quoteDetails.proposal.notes
+      quoteDetails.proposal.notes,
+      { includeCategory: false }
     );
 
     text += '\n\nAdmin Proposal:\n';

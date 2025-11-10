@@ -10,6 +10,7 @@ interface QuickReplyGridProps {
   userRole?: 'admin' | 'customer';
   sessionId?: string;
   conversationId?: string;
+  readOnly?: boolean;
 }
 
 /**
@@ -23,6 +24,7 @@ export const QuickReplyGrid: React.FC<QuickReplyGridProps> = ({
   userRole,
   sessionId,
   conversationId,
+  readOnly = false,
 }) => {
   const endLabels = new Set([
     'end',
@@ -43,6 +45,12 @@ export const QuickReplyGrid: React.FC<QuickReplyGridProps> = ({
   ]);
 
   const handleEndChat = async () => {
+    // Don't allow ending chat if already read-only (ended)
+    if (readOnly) {
+      console.warn('Chat is already ended, cannot end again');
+      return;
+    }
+
     if (!sessionId || !userRole) {
       // Fallback to legacy behavior if no session info provided
       onEndChat?.();
@@ -50,6 +58,13 @@ export const QuickReplyGrid: React.FC<QuickReplyGridProps> = ({
     }
 
     try {
+      // Check if session is already ended before attempting to end it
+      const isEnded = await ChatEndService.isSessionEnded(sessionId);
+      if (isEnded) {
+        console.warn('Session is already ended, cannot end again');
+        return;
+      }
+
       // Get current user
       const { data: userData } = await auth.getUser();
       const userId = userData?.user?.id;

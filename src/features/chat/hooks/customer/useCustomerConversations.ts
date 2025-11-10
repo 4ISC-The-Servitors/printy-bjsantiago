@@ -5,6 +5,7 @@
  */
 import { useCallback, useState, useRef } from 'react';
 import { useConversationState } from '@features/chat/hooks/shared/useConversationState';
+import { useSessionCache } from '@customer/components/shared/cache/SessionCacheProvider';
 import { auth, supabase } from '@lib/supabase';
 import { JsonbFlowProcessor } from '@features/chat/services/JsonbFlowProcessor';
 import { ChatEndService } from '@features/chat/services/ChatEndService';
@@ -44,6 +45,7 @@ export function useCustomerConversations() {
     inputPlaceholder,
     setInputPlaceholder,
   } = useConversationState();
+  const { addSession, updateSession } = useSessionCache();
 
   // JSONB flow state
   const [sessionId, setSessionIdState] = useState<string | null>(null);
@@ -153,6 +155,7 @@ export function useCustomerConversations() {
           id: result.sessionId,
           title,
           createdAt: Date.now(),
+          updatedAt: Date.now(),
           messages: mappedMessages,
           flowId: resolvedFlowId,
           status: 'active' as const,
@@ -161,6 +164,7 @@ export function useCustomerConversations() {
         };
 
         setConversations(prev => [conv, ...prev]);
+        addSession(conv);
         setSessionIdState(result.sessionId);
         setCurrentNodeIdState(result.currentNodeId);
         setActiveId(result.sessionId);
@@ -176,6 +180,7 @@ export function useCustomerConversations() {
     [
       setIsTyping,
       setConversations,
+      addSession,
       setActiveId,
       setMessages,
       setQuickReplies,
@@ -248,6 +253,7 @@ export function useCustomerConversations() {
               c.id === activeId ? { ...c, status: 'ended' as const } : c
             )
           );
+          updateSession(activeId, { status: 'ended' as const });
         }
 
         updateInputPlaceholder();
@@ -264,6 +270,7 @@ export function useCustomerConversations() {
       conversations,
       setMessages,
       setConversations,
+      updateSession,
       setIsTyping,
       setQuickReplies,
       updateInputPlaceholder,
@@ -290,6 +297,7 @@ export function useCustomerConversations() {
         conv.id === activeId ? { ...conv, status: 'ended' as const } : conv
       )
     );
+    updateSession(activeId, { status: 'ended' as const });
 
     // Step 3: Clear quick replies
     setQuickReplies([]);
@@ -321,11 +329,19 @@ export function useCustomerConversations() {
               : c
           )
         );
+        updateSession(activeId, { status: 'ended' as const });
       } catch (error) {
         console.error('Failed to refresh messages after ending chat:', error);
       }
     }, 3000); // 3 second delay
-  }, [activeId, sessionId, setMessages, setConversations, setQuickReplies]);
+  }, [
+    activeId,
+    sessionId,
+    setMessages,
+    setConversations,
+    setQuickReplies,
+    updateSession,
+  ]);
 
   const handleQuickReply = useCallback(
     async (value: string | { value: string; label: string }) => {
@@ -402,6 +418,7 @@ export function useCustomerConversations() {
               c.id === activeId ? { ...c, status: 'ended' as const } : c
             )
           );
+          updateSession(activeId, { status: 'ended' as const });
         }
 
         updateInputPlaceholder();
@@ -419,6 +436,7 @@ export function useCustomerConversations() {
       conversations,
       setMessages,
       setConversations,
+      updateSession,
       setIsTyping,
       setQuickReplies,
       updateInputPlaceholder,
@@ -463,6 +481,7 @@ export function useCustomerConversations() {
                 : conv
             )
           );
+          updateSession(currentSessionId, { status: 'ended' as const });
 
           // Keep chat open so user can see the end message
           // Don't setActiveId(null) here - let user see the message first
@@ -490,6 +509,7 @@ export function useCustomerConversations() {
       activeId,
       sessionId,
       setConversations,
+      updateSession,
       setMessages,
       setQuickReplies,
       setActiveId,

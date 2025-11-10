@@ -167,18 +167,6 @@ const HistoryItemCard: React.FC<HistoryItemCardProps> = ({
               {formatShortDate(createdAt)} • {formatShortTime(createdAt)}
             </span>
           </div>
-          <div
-            className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
-          >
-            <span className="font-medium">
-              {type === 'chat' ? 'Ended:' : 'Updated:'}
-            </span>
-            <span className="truncate">
-              {type === 'chat'
-                ? `${formatShortDate(updatedAt)} • ${formatShortTime(updatedAt)}`
-                : formatRelativeTimeLabel(updatedAt)}
-            </span>
-          </div>
           {metadata?.['payment verified'] && (
             <div
               className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
@@ -211,6 +199,18 @@ const HistoryItemCard: React.FC<HistoryItemCardProps> = ({
               <span className="truncate">{metadata.rejected}</span>
             </div>
           )}
+          <div
+            className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
+          >
+            <span className="font-medium">
+              {type === 'chat' ? 'Ended:' : 'Updated:'}
+            </span>
+            <span className="truncate">
+              {type === 'chat'
+                ? `${formatShortDate(updatedAt)} • ${formatShortTime(updatedAt)}`
+                : formatRelativeTimeLabel(updatedAt)}
+            </span>
+          </div>
         </div>
 
         {actions && (

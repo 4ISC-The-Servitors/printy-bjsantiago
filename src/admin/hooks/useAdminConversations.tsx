@@ -4,6 +4,8 @@ import React, {
   useMemo,
   useState,
   useEffect,
+  useRef,
+  useCallback,
 } from 'react';
 import { supabase } from '@lib/supabase';
 import { fetchSessionMessagesV2 } from '@features/chat/api/jsonbChatFlowApi';
@@ -41,7 +43,13 @@ interface AdminConversationsContextValue {
   clear: () => void;
   setConversations: React.Dispatch<React.SetStateAction<AdminConversation[]>>;
   loadAdminChatSessions: () => Promise<void>;
+  loadMoreAdminChatSessions: () => Promise<void>;
+  loadAllAdminChatSessions: () => Promise<void>;
   loadHistoricalMessages: (sessionId: string) => Promise<ChatMessage[]>;
+  loading: boolean;
+  loadingMore: boolean;
+  hasMore: boolean;
+  totalCount: number;
 }
 
 const AdminConversationsContext = createContext<
@@ -53,112 +61,194 @@ export const AdminConversationsProvider: React.FC<{
 }> = ({ children }) => {
   const [conversations, setConversations] = useState<AdminConversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [totalCount, setTotalCount] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const loadedPagesRef = useRef<Set<number>>(new Set());
+  const loadedDbIdsRef = useRef<Set<string>>(new Set());
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 50;
 
-  // Load admin chat sessions from database
-  const loadAdminChatSessions = async () => {
-    try {
-      // Get the current admin's customer_id
-      const { data: userData, error: userError } =
-        await supabase.auth.getUser();
+  const adminIdRef = useRef<string | null>(null);
 
-      if (userError || !userData?.user?.id) {
-        console.error('Error getting current admin user:', userError);
-        return;
+  const fetchSessions = useCallback(
+    async (page: number, replace: boolean = page === 1) => {
+      if (replace) {
+        setLoading(true);
+        loadedPagesRef.current.clear();
+        loadedDbIdsRef.current.clear();
+      } else {
+        if (loadingMore) return;
+        setLoadingMore(true);
       }
 
-      const currentAdminId = userData.user.id;
+      try {
+        if (!adminIdRef.current) {
+          const { data: userData, error: userError } =
+            await supabase.auth.getUser();
 
-      // Fetch admin chat sessions for the current admin only
-      // Filter by customer_id to ensure each admin only sees their own sessions
-      const { data: sessions, error } = await supabase
-        .from('chat_sessions_v2')
-        .select(
-          `
-          session_id,
-          flow_id,
-          status,
-          created_at,
-          ended_at,
-          display_title,
-          metadata->context->display_id,
-          inquiry:inquiries_v2!inquiry_id(
-            inquiry_id,
-            display_id,
-            inquiry_type,
-            inquiry_status
-          ),
-          quote:quotes!quote_id(
-            quote_id,
-            display_id,
-            status
-          ),
-          order:orders!order_id(
-            order_id,
-            display_id,
-            status
-          )
-        `
-        )
-        .eq('customer_id', currentAdminId)
-        .or('metadata->admin_chat.eq.true,flow_id.eq.admin-quote-propose')
-        .is('metadata->ticket_conversation', null)
-        .order('created_at', { ascending: false });
+          if (userError || !userData?.user?.id) {
+            console.error('Error getting current admin user:', userError);
+            return;
+          }
 
-      if (error) {
-        console.error('Error loading admin chat sessions:', error);
-        return;
-      }
-
-      // Convert database sessions to conversations
-      const sessionConversations: AdminConversation[] = (sessions || []).map(
-        (session: any) => {
-          const icon = undefined;
-
-          // Use centralized title logic with optimized data
-          const title = getSessionTitle({
-            flowId: session.flow_id,
-            metadata: {
-              title: session.display_title,
-              context: {
-                display_id: session.display_id,
-              },
-            },
-            inquiry: session.inquiry,
-            quote: session.quote,
-            order: session.order,
-          });
-
-          return {
-            id: session.session_id,
-            title,
-            createdAt: new Date(session.created_at).getTime(),
-            endedAt: session.ended_at
-              ? new Date(session.ended_at).getTime()
-              : undefined,
-            messages: [], // Messages will be loaded when switching to conversation
-            status: session.status === 'ended' ? 'ended' : 'active',
-            icon,
-            flowId: session.flow_id,
-            sessionId: session.session_id,
-          };
+          adminIdRef.current = userData.user.id;
         }
-      );
 
-      // Merge with existing conversations, avoiding duplicates
-      // This preserves any UI-only conversations that haven't been saved to DB yet
-      setConversations(prev => {
-        const dbSessionIds = new Set(sessionConversations.map(c => c.id));
-        // Keep UI-only conversations (those not in the database result)
-        const uiOnlyConversations = prev.filter(c => !dbSessionIds.has(c.id));
-        // Combine UI-only conversations with all DB conversations
-        return [...sessionConversations, ...uiOnlyConversations].sort(
-          (a, b) => b.createdAt - a.createdAt
+        const currentAdminId = adminIdRef.current;
+        if (!currentAdminId) return;
+
+        const from = (page - 1) * PAGE_SIZE;
+        const to = from + PAGE_SIZE - 1;
+
+        const {
+          data: sessions,
+          error,
+          count,
+        } = await supabase
+          .from('chat_sessions_v2')
+          .select(
+            `
+            session_id,
+            flow_id,
+            status,
+            created_at,
+            ended_at,
+            display_title,
+            metadata->context->display_id,
+            inquiry:inquiries_v2!inquiry_id(
+              inquiry_id,
+              display_id,
+              inquiry_type,
+              inquiry_status
+            ),
+            quote:quotes!quote_id(
+              quote_id,
+              display_id,
+              status
+            ),
+            order:orders!order_id(
+              order_id,
+              display_id,
+              status
+            )
+          `,
+            { count: 'exact' }
+          )
+          .eq('customer_id', currentAdminId)
+          .or('metadata->admin_chat.eq.true,flow_id.eq.admin-quote-propose')
+          .is('metadata->ticket_conversation', null)
+          .order('created_at', { ascending: false })
+          .range(from, to);
+
+        if (error) {
+          console.error('Error loading admin chat sessions:', error);
+          return;
+        }
+
+        const sessionConversations: AdminConversation[] = (sessions || []).map(
+          (session: any) => {
+            const icon = undefined;
+            const title = getSessionTitle({
+              flowId: session.flow_id,
+              metadata: {
+                title: session.display_title,
+                context: {
+                  display_id: session.display_id,
+                },
+              },
+              inquiry: session.inquiry,
+              quote: session.quote,
+              order: session.order,
+            });
+
+            return {
+              id: session.session_id,
+              title,
+              createdAt: new Date(session.created_at).getTime(),
+              endedAt: session.ended_at
+                ? new Date(session.ended_at).getTime()
+                : undefined,
+              messages: [],
+              status: session.status === 'ended' ? 'ended' : 'active',
+              icon,
+              flowId: session.flow_id,
+              sessionId: session.session_id,
+            };
+          }
         );
-      });
-    } catch (e) {
-      console.error('loadAdminChatSessions error', e);
+
+        let merged: AdminConversation[] = [];
+        setConversations(prev => {
+          const sessionIds = new Set(sessionConversations.map(c => c.id));
+          const preserved = replace
+            ? prev.filter(c => !sessionIds.has(c.id))
+            : prev;
+
+          const map = new Map<string, AdminConversation>();
+          for (const conv of preserved) {
+            map.set(conv.id, conv);
+          }
+          for (const conv of sessionConversations) {
+            map.set(conv.id, conv);
+          }
+
+          merged = Array.from(map.values()).sort(
+            (a, b) => b.createdAt - a.createdAt
+          );
+          return merged;
+        });
+
+        if (replace) {
+          loadedDbIdsRef.current.clear();
+          loadedPagesRef.current.clear();
+          setCurrentPage(1);
+        } else {
+          setCurrentPage(prev => Math.max(prev, page));
+        }
+
+        sessionConversations.forEach(conv => {
+          const key = conv.sessionId || conv.id;
+          loadedDbIdsRef.current.add(key);
+        });
+        loadedPagesRef.current.add(page);
+
+        const total = count ?? loadedDbIdsRef.current.size;
+        setTotalCount(total);
+        setHasMore(loadedDbIdsRef.current.size < total);
+      } catch (e) {
+        console.error('loadAdminChatSessions error', e);
+      } finally {
+        if (replace) {
+          setLoading(false);
+        } else {
+          setLoadingMore(false);
+        }
+      }
+    },
+    [PAGE_SIZE, loadingMore]
+  );
+
+  const loadAdminChatSessions = useCallback(async () => {
+    await fetchSessions(1, true);
+  }, [fetchSessions]);
+
+  const loadMoreAdminChatSessions = useCallback(async () => {
+    if (loading || loadingMore || !hasMore) return;
+    const nextPage = currentPage + 1;
+    if (loadedPagesRef.current.has(nextPage)) return;
+    await fetchSessions(nextPage, false);
+  }, [currentPage, fetchSessions, hasMore, loading, loadingMore]);
+
+  const loadAllAdminChatSessions = useCallback(async () => {
+    if (loading || loadingMore || !hasMore) return;
+    const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+    for (let page = currentPage + 1; page <= totalPages; page += 1) {
+      if (loadedPagesRef.current.has(page)) continue;
+      await fetchSessions(page, false);
     }
-  };
+  }, [currentPage, fetchSessions, hasMore, loading, loadingMore, totalCount]);
 
   // Load historical messages from database
   const loadHistoricalMessages = async (
@@ -182,8 +272,8 @@ export const AdminConversationsProvider: React.FC<{
 
   // Load sessions on mount
   useEffect(() => {
-    loadAdminChatSessions();
-  }, []);
+    void loadAdminChatSessions();
+  }, [loadAdminChatSessions]);
 
   const startConversation = (title: string) => {
     const id = crypto.randomUUID();
@@ -236,9 +326,26 @@ export const AdminConversationsProvider: React.FC<{
       clear,
       setConversations,
       loadAdminChatSessions,
+      loadMoreAdminChatSessions,
+      loadAllAdminChatSessions,
       loadHistoricalMessages,
+      loading,
+      loadingMore,
+      hasMore,
+      totalCount,
     }),
-    [conversations, activeId]
+    [
+      conversations,
+      activeId,
+      loadAdminChatSessions,
+      loadMoreAdminChatSessions,
+      loadAllAdminChatSessions,
+      loading,
+      loadingMore,
+      hasMore,
+      loadHistoricalMessages,
+      totalCount,
+    ]
   );
 
   return (

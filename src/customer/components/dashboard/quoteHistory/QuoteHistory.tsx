@@ -1,4 +1,10 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, {
+  useEffect,
+  useState,
+  useMemo,
+  useRef,
+  useCallback,
+} from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@lib/supabase';
 import ResponsivePageLayout from '@customer/components/shared/layouts/ResponsivePageLayout';
@@ -58,6 +64,58 @@ const QuoteHistory: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [customerId, setCustomerId] = useState<string | null>(null);
+  const quotesRef = useRef<Quote[]>([]);
+
+  const PAGE_SIZE = 50;
+
+  const sortQuotes = useCallback((list: Quote[]) => {
+    return [...list].sort((a, b) => b.updatedAt - a.updatedAt);
+  }, []);
+
+  const replaceQuotes = useCallback(
+    (next: Quote[]) => {
+      const sorted = sortQuotes(next);
+      quotesRef.current = sorted;
+      setQuotes(sorted);
+    },
+    [sortQuotes]
+  );
+
+  const appendQuotes = useCallback(
+    (incoming: Quote[]) => {
+      setQuotes(prev => {
+        const existingIds = new Set(prev.map(quote => quote.id));
+        const merged = [...prev];
+        incoming.forEach(quote => {
+          if (!existingIds.has(quote.id)) {
+            merged.push(quote);
+          }
+        });
+        const sorted = sortQuotes(merged);
+        quotesRef.current = sorted;
+        return sorted;
+      });
+    },
+    [sortQuotes]
+  );
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchCustomerId = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!isMounted) return;
+      setCustomerId(user?.id ?? null);
+    };
+    fetchCustomerId();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Chat state management
   const { logout, toasts, toast } = useLogoutWithToast();
@@ -116,7 +174,7 @@ const QuoteHistory: React.FC = () => {
       'createdAt',
       'updatedAt',
     ],
-    dateField: 'createdAt',
+    dateField: 'updatedAt',
     filterConfig: FILTER_CONFIGS.quotes,
     statusField: 'status',
   });
@@ -156,20 +214,24 @@ const QuoteHistory: React.FC = () => {
     await logout('/auth/signin');
   };
 
-  // Load quotes from database
-  useEffect(() => {
-    const loadQuotes = async () => {
-      setIsLoading(true);
-      try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (!user) {
-          setIsLoading(false);
-          return;
-        }
+  const loadQuotes = useCallback(
+    async ({ reset }: { reset: boolean }) => {
+      if (!customerId) {
+        return;
+      }
 
-        // Optimized single query with JOINs to fetch all data at once
+      if (reset) {
+        setIsLoading(true);
+        setIsLoadingMore(false);
+        setHasMore(true);
+      } else {
+        setIsLoadingMore(true);
+      }
+
+      try {
+        const rangeFrom = reset ? 0 : quotesRef.current.length;
+        const rangeTo = rangeFrom + PAGE_SIZE - 1;
+
         const { data, error } = await supabase
           .from('quotes')
           .select(
@@ -182,45 +244,46 @@ const QuoteHistory: React.FC = () => {
             updated_at,
             ended_at,
             proposal_id,
-            quote_proposals!inner(
+            quote_proposals!left(
               quoted_price,
               spec_id,
               created_at
             )
           `
           )
-          .eq('customer_id', user.id)
-          .order('updated_at', { ascending: false });
+          .eq('customer_id', customerId)
+          .order('updated_at', { ascending: false })
+          .range(rangeFrom, rangeTo);
 
         if (error) {
           console.error('Error loading quotes:', error);
           return;
         }
 
-        // Process the joined data - no more N+1 queries!
         const quoteList: Quote[] = (data || []).map(quote => {
           const proposalsRaw = quote.quote_proposals as any;
-
-          // Handle Supabase JOIN data structure - can be array or single object
           const proposals = Array.isArray(proposalsRaw)
             ? proposalsRaw
             : [proposalsRaw].filter(Boolean);
-
-          // Get quoted price from first proposal if exists
           const quotedPrice =
             proposals && proposals.length > 0
               ? proposals[0]?.quoted_price
               : undefined;
 
-          // For subject and description, we'll use fallbacks since spec data requires additional queries
-          // This maintains performance while providing basic information
           const subject = 'Quote Request';
           const description = undefined;
 
-          // Set acceptedAt or rejectedAt based on status
           const updatedAt = new Date(quote.updated_at).getTime();
+          const endedAtTs = quote.ended_at
+            ? new Date(quote.ended_at).getTime()
+            : undefined;
+
           const acceptedAt =
-            quote.status === 'accepted' ? updatedAt : undefined;
+            quote.status === 'accepted'
+              ? updatedAt
+              : quote.status === 'ended' && quote.proposal_id
+                ? (endedAtTs ?? updatedAt)
+                : undefined;
           const rejectedAt =
             quote.status === 'rejected' ? updatedAt : undefined;
 
@@ -228,33 +291,204 @@ const QuoteHistory: React.FC = () => {
             id: quote.quote_id,
             title: subject,
             createdAt: new Date(quote.created_at).getTime(),
-            updatedAt: updatedAt,
+            updatedAt,
             status: quote.status,
             displayId: quote.display_id || quote.quote_id,
-            subject: subject,
-            description: description,
+            subject,
+            description,
             quoted_price: quotedPrice,
-            endedAt: quote.ended_at
-              ? new Date(quote.ended_at).getTime()
-              : undefined,
-            acceptedAt: acceptedAt,
-            rejectedAt: rejectedAt,
+            endedAt: endedAtTs,
+            acceptedAt,
+            rejectedAt,
           };
         });
 
-        // Sort by updatedAt descending (most recent first)
-        quoteList.sort((a, b) => b.updatedAt - a.updatedAt);
+        if (reset) {
+          replaceQuotes(quoteList);
+        } else if (quoteList.length > 0) {
+          appendQuotes(quoteList);
+        }
 
-        setQuotes(quoteList);
+        setHasMore((data?.length ?? 0) === PAGE_SIZE);
       } catch (error) {
         console.error('Error loading quotes:', error);
       } finally {
-        setIsLoading(false);
+        if (reset) {
+          setIsLoading(false);
+        } else {
+          setIsLoadingMore(false);
+        }
+      }
+    },
+    [customerId, appendQuotes, replaceQuotes]
+  );
+
+  useEffect(() => {
+    if (!customerId) {
+      return;
+    }
+    setCurrentPage(1);
+    void loadQuotes({ reset: true });
+  }, [customerId, loadQuotes]);
+
+  const loadMore = useCallback(() => {
+    if (!customerId || isLoading || isLoadingMore || !hasMore) {
+      return;
+    }
+    void loadQuotes({ reset: false });
+  }, [customerId, isLoading, isLoadingMore, hasMore, loadQuotes]);
+
+  useEffect(() => {
+    if (!customerId || !hasMore) {
+      return;
+    }
+    const needsMore =
+      endIndex >= allFilteredQuotes.length &&
+      quotes.length > 0 &&
+      !isLoading &&
+      !isLoadingMore;
+    if (needsMore) {
+      loadMore();
+    }
+  }, [
+    customerId,
+    endIndex,
+    allFilteredQuotes.length,
+    quotes.length,
+    hasMore,
+    isLoading,
+    isLoadingMore,
+    loadMore,
+  ]);
+
+  // Real-time subscription for quotes changes
+  useEffect(() => {
+    if (!customerId) return;
+
+    const upsertFromPayload = async (quoteId: string) => {
+      try {
+        const { data, error } = await supabase
+          .from('quotes')
+          .select(
+            `
+            quote_id,
+            session_id,
+            display_id,
+            status,
+            created_at,
+            updated_at,
+            ended_at,
+            proposal_id,
+            quote_proposals!left(
+              quoted_price,
+              spec_id,
+              created_at
+            )
+          `
+          )
+          .eq('quote_id', quoteId)
+          .single();
+
+        if (error || !data) {
+          console.error('[QuoteHistory] Error fetching updated quote:', error);
+          return;
+        }
+
+        const proposalsRaw = data.quote_proposals as any;
+        const proposals = Array.isArray(proposalsRaw)
+          ? proposalsRaw
+          : [proposalsRaw].filter(Boolean);
+        const quotedPrice =
+          proposals && proposals.length > 0
+            ? proposals[0]?.quoted_price
+            : undefined;
+
+        const subject = 'Quote Request';
+        const updatedAt = new Date(data.updated_at).getTime();
+        const endedAtTs = data.ended_at
+          ? new Date(data.ended_at).getTime()
+          : undefined;
+
+        const acceptedAt =
+          data.status === 'accepted'
+            ? updatedAt
+            : data.status === 'ended' && data.proposal_id
+              ? (endedAtTs ?? updatedAt)
+              : undefined;
+        const rejectedAt = data.status === 'rejected' ? updatedAt : undefined;
+
+        const quote: Quote = {
+          id: data.quote_id,
+          title: subject,
+          createdAt: new Date(data.created_at).getTime(),
+          updatedAt,
+          status: data.status,
+          displayId: data.display_id || data.quote_id,
+          subject,
+          description: undefined,
+          quoted_price: quotedPrice,
+          endedAt: endedAtTs,
+          acceptedAt,
+          rejectedAt,
+        };
+
+        setQuotes(prev => {
+          const existingIndex = prev.findIndex(q => q.id === quoteId);
+          if (existingIndex >= 0) {
+            // Update existing quote
+            const updated = [...prev];
+            updated[existingIndex] = quote;
+            const sorted = sortQuotes(updated);
+            quotesRef.current = sorted;
+            return sorted;
+          } else {
+            // Insert new quote
+            const merged = [quote, ...prev];
+            const sorted = sortQuotes(merged);
+            quotesRef.current = sorted;
+            return sorted;
+          }
+        });
+      } catch (e) {
+        console.error('[QuoteHistory] Error processing realtime update:', e);
       }
     };
 
-    loadQuotes();
-  }, []);
+    const channel = supabase
+      .channel(`quotes-customer:${customerId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'quotes',
+          filter: `customer_id=eq.${customerId}`,
+        },
+        async payload => {
+          const quoteId =
+            (payload.new as any)?.quote_id || (payload.old as any)?.quote_id;
+          if (!quoteId) return;
+
+          // Handle DELETE: remove from local state
+          if (payload.eventType === 'DELETE') {
+            setQuotes(prev => {
+              const filtered = prev.filter(q => q.id !== quoteId);
+              quotesRef.current = sortQuotes(filtered);
+              return sortQuotes(filtered);
+            });
+            return;
+          }
+
+          // Handle INSERT/UPDATE: fetch single row and merge into state
+          await upsertFromPayload(quoteId);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [customerId, sortQuotes]);
 
   const handleItemClick = (_quote: Quote) => {
     // TODO: Navigate to quote details or open chat

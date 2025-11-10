@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Text, Card, Pagination, ToastContainer } from '@shared/components';
 import {
   MarkAllReadButton,
@@ -20,12 +20,13 @@ import {
   fetchUserNotifications,
   markNotificationAsRead,
   markAllNotificationsAsRead,
-  deleteAllNotifications, // ✅ new backend util
+  deleteAllNotifications,
 } from '@shared/utils/notificationUtils';
 
 const AdminDashboard: React.FC = () => {
   const [notifications, setNotifications] = useState<UINotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -64,26 +65,40 @@ const AdminDashboard: React.FC = () => {
     getUser();
   }, []);
 
+  const loadNotifications = useCallback(async () => {
+    if (!user) {
+      setNotifications([]);
+      setUnreadCount(0);
+      setTotalCount(0);
+      return;
+    }
+
+    setIsLoading(true);
+    const startIndex = (page - 1) * pageSize;
+    const result = await fetchUserNotifications(user.id, {
+      offset: startIndex,
+      limit: pageSize,
+    });
+
+    setNotifications(result.items);
+    setUnreadCount(result.unreadCount);
+    setTotalCount(result.totalCount);
+    setIsLoading(false);
+  }, [user, page, pageSize]);
+
+  useEffect(() => {
+    void loadNotifications();
+  }, [loadNotifications]);
+
   useEffect(() => {
     if (!user) return;
 
-    const loadNotifications = async () => {
-      setIsLoading(true);
-      const items = await fetchUserNotifications(user.id);
-      setNotifications(items);
-      setUnreadCount(items.filter(item => !item.isRead).length);
-      setIsLoading(false);
-    };
-
-    loadNotifications();
-
-    const cleanup = startNotificationListener(user.id, toast, item => {
-      setNotifications(prev => [item, ...prev]);
-      if (!item.isRead) setUnreadCount(prev => prev + 1);
+    const cleanup = startNotificationListener(user.id, toast, _item => {
+      void loadNotifications();
     });
 
     return cleanup;
-  }, [user]);
+  }, [user, toast, loadNotifications]);
 
   const handleMarkAsRead = async (id: string) => {
     await markNotificationAsRead(id);
@@ -109,9 +124,10 @@ const AdminDashboard: React.FC = () => {
     setIsDeleting(true);
 
     try {
-      await deleteAllNotifications(user.id); // ✅ now uses Supabase mutation
+      await deleteAllNotifications(user.id);
       setNotifications([]);
       setUnreadCount(0);
+      setTotalCount(0);
       setPage(1);
       setIsDeleteModalOpen(false);
       toast.success('Notifications cleared', 'All notifications deleted.');
@@ -127,13 +143,17 @@ const AdminDashboard: React.FC = () => {
   };
 
   // Pagination logic
-  const start = (page - 1) * pageSize;
-  const paginatedNotifications = notifications.slice(start, start + pageSize);
+  const paginatedNotifications = notifications;
 
   useEffect(() => {
-    const maxPage = Math.max(1, Math.ceil(notifications.length / pageSize));
+    if (totalCount === 0) {
+      if (page !== 1) setPage(1);
+      return;
+    }
+
+    const maxPage = Math.max(1, Math.ceil(totalCount / pageSize));
     if (page > maxPage) setPage(maxPage);
-  }, [notifications.length, pageSize, page]);
+  }, [totalCount, pageSize, page]);
 
   if (!user) return null;
 
@@ -171,7 +191,7 @@ const AdminDashboard: React.FC = () => {
 
         {isLoading ? (
           <NotificationListSkeleton itemCount={pageSize} />
-        ) : notifications.length === 0 ? (
+        ) : totalCount === 0 ? (
           <Card className="p-8 text-center">
             <Text variant="p" className="text-neutral-500">
               No notifications
@@ -179,12 +199,12 @@ const AdminDashboard: React.FC = () => {
           </Card>
         ) : (
           <>
-            {notifications.length > pageSize && (
+            {totalCount > pageSize && (
               <div className="flex items-center justify-center px-1 py-1 mb-4">
                 <Pagination
                   page={page}
                   pageSize={pageSize}
-                  total={notifications.length}
+                  total={totalCount}
                   onPageChange={setPage}
                 />
               </div>

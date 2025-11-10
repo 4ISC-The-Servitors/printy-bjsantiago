@@ -1,5 +1,8 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { useAdminConversations } from '@admin/hooks/useAdminConversations';
+import {
+  useAdminConversations,
+  AdminConversationsProvider,
+} from '@admin/hooks/useAdminConversations';
 import { Card, Text, Pagination, Search, Filter } from '@shared/components';
 import { useResponsivePageSize } from '@shared/hooks/ui/useResponsivePageSize';
 import { useGenericSearchFilter } from '@shared/hooks/ui/useGenericSearchFilter';
@@ -10,8 +13,17 @@ import {
 import HistoryItemCard from '@customer/components/shared/cards/HistoryItemCard';
 import type { FilterConfig } from '@shared/types/filters';
 
-const AdminChatsPage: React.FC = () => {
-  const { conversations, setActive } = useAdminConversations();
+const ChatsContent: React.FC = () => {
+  const {
+    conversations,
+    setActive,
+    hasMore,
+    loadAllAdminChatSessions,
+    loadMoreAdminChatSessions,
+    loading,
+    loadingMore,
+    totalCount,
+  } = useAdminConversations();
   const { spacingClasses } = useResponsiveClasses();
   const { isMobileOrTablet } = useDeviceUtils();
 
@@ -58,14 +70,56 @@ const AdminChatsPage: React.FC = () => {
 
   const [page, setPage] = useState(1);
 
+  const hasStatusFilter = Boolean(filter.statuses?.length);
+  const hasDateFilter = Boolean(filter.dateFrom || filter.dateTo);
+  const hasSearch = Boolean(search.trim());
+
+  useEffect(() => {
+    if (!hasMore || loading || loadingMore) return;
+    if (hasStatusFilter || hasDateFilter || hasSearch) {
+      void loadAllAdminChatSessions();
+    }
+  }, [
+    hasMore,
+    loading,
+    loadingMore,
+    hasStatusFilter,
+    hasDateFilter,
+    hasSearch,
+    loadAllAdminChatSessions,
+  ]);
+
   // Reset to first page when filters change
   useEffect(() => {
     setPage(1);
   }, [search, filter]);
 
-  const total = allFilteredConversations.length;
+  const total =
+    hasMore && !search.trim() && !filter.dateFrom && !filter.dateTo
+      ? totalCount
+      : allFilteredConversations.length;
   const start = (page - 1) * pageSize;
   const pageItems = allFilteredConversations.slice(start, start + pageSize);
+
+  useEffect(() => {
+    const endIndex = page * pageSize;
+    if (
+      endIndex > conversations.length &&
+      hasMore &&
+      !loading &&
+      !loadingMore
+    ) {
+      void loadMoreAdminChatSessions();
+    }
+  }, [
+    page,
+    pageSize,
+    conversations.length,
+    hasMore,
+    loading,
+    loadingMore,
+    loadMoreAdminChatSessions,
+  ]);
 
   const handleOpen = (id: string) => {
     setActive(id);
@@ -177,6 +231,16 @@ const AdminChatsPage: React.FC = () => {
         </Card>
       )}
     </div>
+  );
+};
+
+// Defensive wrapper to ensure provider presence even if this page
+// is ever rendered outside AdminRoot.
+const AdminChatsPage: React.FC = () => {
+  return (
+    <AdminConversationsProvider>
+      <ChatsContent />
+    </AdminConversationsProvider>
   );
 };
 

@@ -1,4 +1,10 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, {
+  useEffect,
+  useState,
+  useMemo,
+  useRef,
+  useCallback,
+} from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@lib/supabase';
 import ResponsivePageLayout from '@customer/components/shared/layouts/ResponsivePageLayout';
@@ -56,6 +62,58 @@ const TicketHistory: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [customerId, setCustomerId] = useState<string | null>(null);
+  const ticketsRef = useRef<Ticket[]>([]);
+
+  const PAGE_SIZE = 50;
+
+  const sortTickets = useCallback((list: Ticket[]) => {
+    return [...list].sort((a, b) => b.updatedAt - a.updatedAt);
+  }, []);
+
+  const replaceTickets = useCallback(
+    (next: Ticket[]) => {
+      const sorted = sortTickets(next);
+      ticketsRef.current = sorted;
+      setTickets(sorted);
+    },
+    [sortTickets]
+  );
+
+  const appendTickets = useCallback(
+    (incoming: Ticket[]) => {
+      setTickets(prev => {
+        const existingIds = new Set(prev.map(ticket => ticket.id));
+        const merged = [...prev];
+        incoming.forEach(ticket => {
+          if (!existingIds.has(ticket.id)) {
+            merged.push(ticket);
+          }
+        });
+        const sorted = sortTickets(merged);
+        ticketsRef.current = sorted;
+        return sorted;
+      });
+    },
+    [sortTickets]
+  );
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchCustomerId = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!isMounted) return;
+      setCustomerId(user?.id ?? null);
+    };
+    fetchCustomerId();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Chat state management
   const { logout, toasts, toast } = useLogoutWithToast();
@@ -114,7 +172,7 @@ const TicketHistory: React.FC = () => {
       'createdAt',
       'updatedAt',
     ],
-    dateField: 'createdAt',
+    dateField: 'updatedAt',
     filterConfig: FILTER_CONFIGS.tickets,
     statusField: 'status',
   });
@@ -233,18 +291,23 @@ const TicketHistory: React.FC = () => {
     await logout('/auth/signin');
   };
 
-  // Load tickets from database (inquiries_v2)
-  useEffect(() => {
-    const loadTickets = async () => {
-      setIsLoading(true);
+  const loadTickets = useCallback(
+    async ({ reset }: { reset: boolean }) => {
+      if (!customerId) {
+        return;
+      }
+
+      if (reset) {
+        setIsLoading(true);
+        setIsLoadingMore(false);
+        setHasMore(true);
+      } else {
+        setIsLoadingMore(true);
+      }
+
       try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (!user) {
-          setIsLoading(false);
-          return;
-        }
+        const rangeFrom = reset ? 0 : ticketsRef.current.length;
+        const rangeTo = rangeFrom + PAGE_SIZE - 1;
 
         const { data, error } = await supabase
           .from('inquiries_v2')
@@ -255,51 +318,178 @@ const TicketHistory: React.FC = () => {
             inquiry_status,
             received_at,
             updated_at,
+            resolved_at,
             inquiry_type,
             customer_id,
             order_id,
             session_id
           `
           )
-          .eq('customer_id', user.id)
-          .order('received_at', { ascending: false });
+          .eq('customer_id', customerId)
+          .order('updated_at', { ascending: false })
+          .range(rangeFrom, rangeTo);
 
         if (error) {
           console.error('Error loading tickets:', error);
-          setIsLoading(false);
           return;
         }
 
-        const ticketList: Ticket[] = (data || []).map(ticket => ({
-          id: ticket.inquiry_id,
-          title: formatInquiryType(ticket.inquiry_type || 'other'),
-          createdAt: new Date(ticket.received_at).getTime(),
-          updatedAt: ticket.updated_at
+        const ticketList: Ticket[] = (data || []).map(ticket => {
+          const receivedAt = new Date(ticket.received_at).getTime();
+          const updatedAt = ticket.updated_at
             ? new Date(ticket.updated_at).getTime()
-            : new Date(ticket.received_at).getTime(),
-          status: ticket.inquiry_status,
-          displayId:
-            ticket.display_id ||
-            ticket.inquiry_id.substring(0, 8).toUpperCase(),
-          subject: formatInquiryType(ticket.inquiry_type || 'other'),
-          description: undefined,
-          resolvedAt: undefined,
-          assignedTo: undefined,
-        }));
+            : receivedAt;
+          const resolvedAt = ticket.resolved_at
+            ? new Date(ticket.resolved_at).getTime()
+            : undefined;
 
-        // Sort by updatedAt descending (most recent first)
-        ticketList.sort((a, b) => b.updatedAt - a.updatedAt);
+          return {
+            id: ticket.inquiry_id,
+            title: formatInquiryType(ticket.inquiry_type || 'other'),
+            createdAt: receivedAt,
+            updatedAt,
+            status: ticket.inquiry_status,
+            displayId:
+              ticket.display_id ||
+              ticket.inquiry_id.substring(0, 8).toUpperCase(),
+            subject: formatInquiryType(ticket.inquiry_type || 'other'),
+            description: undefined,
+            resolvedAt,
+            assignedTo: undefined,
+          };
+        });
 
-        setTickets(ticketList);
+        if (reset) {
+          replaceTickets(ticketList);
+        } else if (ticketList.length > 0) {
+          appendTickets(ticketList);
+        }
+
+        setHasMore((data?.length ?? 0) === PAGE_SIZE);
       } catch (error) {
         console.error('Error loading tickets:', error);
       } finally {
-        setIsLoading(false);
+        if (reset) {
+          setIsLoading(false);
+        } else {
+          setIsLoadingMore(false);
+        }
       }
+    },
+    [customerId, appendTickets, replaceTickets]
+  );
+
+  useEffect(() => {
+    if (!customerId) {
+      return;
+    }
+    setCurrentPage(1);
+    void loadTickets({ reset: true });
+  }, [customerId, loadTickets]);
+
+  // Realtime subscription for user's tickets
+  useEffect(() => {
+    if (!customerId) {
+      return;
+    }
+
+    const upsertFromPayload = (row: any) => {
+      if (!row) return;
+      const receivedAt = row.received_at
+        ? new Date(row.received_at).getTime()
+        : Date.now();
+      const updatedAt = row.updated_at
+        ? new Date(row.updated_at).getTime()
+        : receivedAt;
+      const resolvedAt = row.resolved_at
+        ? new Date(row.resolved_at).getTime()
+        : undefined;
+      const next: Ticket = {
+        id: row.inquiry_id,
+        title: formatInquiryType(row.inquiry_type || 'other'),
+        subject: formatInquiryType(row.inquiry_type || 'other'),
+        status: row.inquiry_status || 'unknown',
+        displayId:
+          row.display_id ||
+          String(row.inquiry_id).substring(0, 8).toUpperCase(),
+        createdAt: receivedAt,
+        updatedAt,
+        resolvedAt,
+        assignedTo: undefined,
+        description: undefined,
+      };
+      setTickets(prev => {
+        const i = prev.findIndex(t => t.id === next.id);
+        const merged =
+          i >= 0
+            ? (() => {
+                const m = [...prev];
+                m[i] = { ...m[i], ...next };
+                return m;
+              })()
+            : [next, ...prev];
+        const sorted = sortTickets(merged);
+        ticketsRef.current = sorted;
+        return sorted;
+      });
     };
 
-    loadTickets();
-  }, []);
+    const channel = supabase
+      .channel(`inquiries_v2-customer-${customerId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'inquiries_v2',
+          filter: `customer_id=eq.${customerId}`,
+        },
+        payload => {
+          if (payload.eventType === 'DELETE') {
+            const oldRow: any = payload.old;
+            if (!oldRow?.inquiry_id) return;
+            setTickets(prev => prev.filter(t => t.id !== oldRow.inquiry_id));
+            return;
+          }
+          upsertFromPayload(payload.new);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [customerId, sortTickets]);
+
+  const loadMore = useCallback(() => {
+    if (!customerId || isLoading || isLoadingMore || !hasMore) {
+      return;
+    }
+    void loadTickets({ reset: false });
+  }, [customerId, isLoading, isLoadingMore, hasMore, loadTickets]);
+
+  useEffect(() => {
+    if (!customerId || !hasMore) {
+      return;
+    }
+    const needsMore =
+      endIndex >= allFilteredTickets.length &&
+      tickets.length > 0 &&
+      !isLoading &&
+      !isLoadingMore;
+    if (needsMore) {
+      loadMore();
+    }
+  }, [
+    customerId,
+    endIndex,
+    allFilteredTickets.length,
+    tickets.length,
+    hasMore,
+    isLoading,
+    isLoadingMore,
+    loadMore,
+  ]);
 
   const handleItemClick = (_ticket: Ticket) => {
     // TODO: Navigate to ticket details page or open chat

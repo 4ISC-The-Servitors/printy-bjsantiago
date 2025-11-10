@@ -105,10 +105,13 @@ export async function displayQuoteDetails(
       // Add proposal bubble (separate)
       if (quoteDetails.hasProposal && quoteDetails.proposal) {
         const proposalSpec = (quoteDetails.proposal?.specFinal || {}) as any;
-        const headerLines = await buildSpecHeaderLines({
-          service_id: proposalSpec?.service_id,
-          category: proposalSpec?.category,
-        });
+        const headerLines = await buildSpecHeaderLines(
+          {
+            service_id: proposalSpec?.service_id,
+            category: proposalSpec?.category,
+          },
+          { includeService: false, includeCategory: false }
+        );
         const detailLines = buildSpecDetailLines(
           proposalSpec,
           quoteDetails.proposal?.notes

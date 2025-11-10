@@ -22,7 +22,6 @@ import { displayQRCodeDetails } from './displayQRCodeDetails';
 import { processPaymentProofUpload } from './processPaymentProofUpload';
 import { fetchDenialReason } from './fetchDenialReason';
 import { reuploadPaymentProof } from './reuploadPaymentProof';
-import { cancelOrder } from './cancelOrder';
 import {
   fetchTicketDetails,
   sendCustomerReply,
@@ -55,7 +54,6 @@ export const actionHandlers: Record<string, ActionHandler> = {
   process_payment_proof_upload: processPaymentProofUpload,
   fetch_denial_reason: fetchDenialReason,
   reupload_payment_proof: reuploadPaymentProof,
-  cancel_order: cancelOrder,
   fetch_ticket_details: fetchTicketDetails,
   send_customer_reply: sendCustomerReply,
   resolve_ticket: resolveTicket,
@@ -87,7 +85,6 @@ export {
   processPaymentProofUpload,
   fetchDenialReason,
   reuploadPaymentProof,
-  cancelOrder,
   fetchTicketDetails,
   sendCustomerReply,
   resolveTicket,

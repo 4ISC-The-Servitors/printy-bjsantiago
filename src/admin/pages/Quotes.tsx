@@ -12,7 +12,17 @@ import { FILTER_CONFIGS } from '@shared/types/filters';
 import { useAdminQuotes } from '@admin/hooks/useAdminQuotes';
 
 const QuotesContent: React.FC = () => {
-  const { quotes: quotesAll } = useAdminQuotes();
+  const {
+    quotes: quotesAll,
+    hasMore,
+    loadAll,
+    loadingAll,
+    loadMore,
+    loading,
+    loadingMore,
+    refresh,
+    totalCount,
+  } = useAdminQuotes();
 
   // Responsive hooks
   const { spacingClasses } = useResponsiveClasses();
@@ -39,10 +49,30 @@ const QuotesContent: React.FC = () => {
       'updated_at',
       'ended_at',
     ],
-    dateField: 'created_at',
+    dateField: 'updated_at',
     filterConfig: FILTER_CONFIGS.quotes,
     statusField: 'status',
   });
+
+  const hasStatusFilter = Boolean(filter.statuses?.length);
+  const hasRoleFilter = Boolean(filter.roles?.length);
+  const hasDateFilter = Boolean(filter.dateFrom || filter.dateTo);
+  const hasSearch = Boolean(search.trim());
+
+  React.useEffect(() => {
+    if (!hasMore || loadingAll) return;
+    if (hasStatusFilter || hasRoleFilter || hasDateFilter || hasSearch) {
+      void loadAll();
+    }
+  }, [
+    hasMore,
+    loadAll,
+    loadingAll,
+    hasStatusFilter,
+    hasRoleFilter,
+    hasDateFilter,
+    hasSearch,
+  ]);
 
   return (
     <div className="px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-5 md:py-6">
@@ -99,7 +129,16 @@ const QuotesContent: React.FC = () => {
           </Text>
         </Card>
       ) : (
-        <QuotesCard filteredQuotes={filteredQuotes} />
+        <QuotesCard
+          filteredQuotes={filteredQuotes}
+          allQuotes={quotesAll}
+          hasMore={hasMore}
+          loadMore={loadMore}
+          loading={loading}
+          loadingMore={loadingMore}
+          refreshQuotes={refresh}
+          totalCount={totalCount}
+        />
       )}
     </div>
   );

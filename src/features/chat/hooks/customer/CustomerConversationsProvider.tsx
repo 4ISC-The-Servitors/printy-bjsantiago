@@ -13,6 +13,7 @@ interface ConversationItem {
   id: string;
   title: string;
   createdAt: number;
+  updatedAt?: number;
   messages: ChatMessage[];
   flowId: string;
   status: 'active' | 'ended';
@@ -42,6 +43,37 @@ interface CustomerConversationsContextValue {
 const CustomerConversationsContext =
   createContext<CustomerConversationsContextValue | null>(null);
 
+const noopAsync = async () => {
+  // no-op
+};
+const noopSetActiveId: (id: string | null) => void = () => {
+  // no-op
+};
+const noopSetConversations: React.Dispatch<
+  React.SetStateAction<ConversationItem[]>
+> = () => {
+  // no-op
+};
+
+const defaultContextValue: CustomerConversationsContextValue = {
+  messages: [],
+  isTyping: false,
+  conversations: [],
+  activeId: null,
+  quickReplies: [],
+  inputPlaceholder: '',
+  sessionId: null,
+  initializeFlow: noopAsync,
+  handleSend: noopAsync,
+  handleQuickReply: noopAsync,
+  switchConversation: noopAsync,
+  endChat: noopAsync,
+  setActiveId: noopSetActiveId,
+  setConversations: noopSetConversations,
+};
+
+let hasLoggedMissingProvider = false;
+
 export function CustomerConversationsProvider({
   children,
 }: {
@@ -50,32 +82,60 @@ export function CustomerConversationsProvider({
   const conversationState = useCustomerConversations();
   const { sessions } = useSessionCache();
 
-  // Initialize conversations from SessionCache on mount and when sessions change
+  // Sync conversations from SessionCache when sessions change
   useEffect(() => {
-    if (sessions && sessions.length > 0) {
-      // Map SessionCache format to ConversationItem format
-      const mappedConversations: ConversationItem[] = sessions.map(session => ({
+    // Map SessionCache format to ConversationItem format
+    const mappedConversations: ConversationItem[] = (sessions || []).map(
+      session => ({
         id: session.id,
         title: session.title,
         createdAt: session.createdAt,
+        updatedAt: session.updatedAt,
         messages: session.messages || [],
         flowId: session.flowId || 'about',
         status: session.status,
         icon: session.icon,
         context: session.context,
-      }));
+      })
+    );
 
-      // Initialize conversations state
-      conversationState.setConversations(prev => {
-        // Merge with existing conversations to preserve any that were added during runtime
-        const existingIds = new Set(prev.map(c => c.id));
-        const newConversations = mappedConversations.filter(
-          c => !existingIds.has(c.id)
-        );
-        return [...newConversations, ...prev];
+    // Update conversations state to sync with cache
+    conversationState.setConversations(prev => {
+      // Create a map of existing conversations by ID for quick lookup
+      const existingMap = new Map(prev.map(c => [c.id, c]));
+
+      // Update or add conversations from cache
+      const updatedConversations = mappedConversations.map(cachedConv => {
+        const existing = existingMap.get(cachedConv.id);
+        // If conversation exists and is currently active, preserve its messages
+        // Otherwise, use the cached version (which may have updated status)
+        if (
+          existing &&
+          existing.id === conversationState.activeId &&
+          existing.messages.length > 0
+        ) {
+          // Preserve messages for active conversation, but update other fields
+          return {
+            ...cachedConv,
+            messages: existing.messages,
+          };
+        }
+        return cachedConv;
       });
-    }
-  }, [sessions]); // Re-run when sessions from cache change
+
+      // Keep any conversations that were added during runtime but aren't in cache yet
+      // (e.g., newly created conversations that haven't been saved to cache)
+      const cacheIds = new Set(mappedConversations.map(c => c.id));
+      const runtimeConversations = prev.filter(c => !cacheIds.has(c.id));
+
+      // Return updated conversations from cache + runtime conversations
+      return [...updatedConversations, ...runtimeConversations];
+    });
+  }, [
+    sessions,
+    conversationState.setConversations,
+    conversationState.activeId,
+  ]); // Re-run when sessions from cache change
 
   // ✅ Memoize the context value to prevent unnecessary re-renders
   // This ensures child components don't re-render when parent re-renders
@@ -103,9 +163,13 @@ export function CustomerConversationsProvider({
 export function useCustomerConversationsContext() {
   const context = useContext(CustomerConversationsContext);
   if (!context) {
-    throw new Error(
-      'useCustomerConversationsContext must be used within CustomerConversationsProvider'
-    );
+    if (import.meta.env.DEV && !hasLoggedMissingProvider) {
+      console.warn(
+        'useCustomerConversationsContext called outside of provider. Returning default no-op context. This typically happens during HMR — ensure the provider wraps your component tree.'
+      );
+      hasLoggedMissingProvider = true;
+    }
+    return defaultContextValue;
   }
   return context;
 }

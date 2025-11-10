@@ -75,34 +75,43 @@ export async function displayOriginalRequest(
       );
 
       if (customerOnlyMessages.length > 0) {
-        // Filter out order-uploads URLs and upload prompts so images render in a separate bubble
+        // Filter out order-uploads URLs and quick reply options so images render in a separate bubble
         const orderUploadRegex = /supabase:\/\/order-uploads\/[^\s,"')\]]+/gi;
-        const uploadPromptPatterns = [
-          /yes,?\s*upload\s+(image|file|files)/i,
-          /upload\s+(image|file|files)/i,
-          /attach\s+(image|file|files)/i,
-          /yes,?\s*upload/i,
+
+        // Quick reply phrases to filter out (case-insensitive)
+        const quickReplyPhrases = [
+          "No, let's continue",
+          'No, lets continue',
+          "No let's continue",
+          'No lets continue',
+          'Yes, upload files',
+          'Yes upload files',
+          'Yes, upload file',
+          'Yes upload file',
+          'No, continue without image',
+          'No continue without image',
         ];
 
         const cleaned = customerOnlyMessages
           .map((m: any) => {
             let text = String(m.message_text || '').trim();
+
+            // Remove image URLs
             text = text.replace(orderUploadRegex, '').trim();
-            const lines = text.split('\n').filter(line => {
-              const trimmed = line.trim();
-              if (!trimmed) return true; // Keep empty lines
-              // Filter out quick reply options like "No, continue without image" and "No, let's continue" from JSONB flow
-              if (/^no,?\s*continue\s+without\s+image$/i.test(trimmed)) {
-                return false;
-              }
-              if (/^no,?\s*lets?\s*continue/i.test(trimmed)) {
-                return false;
-              }
-              return !uploadPromptPatterns.some(p => p.test(trimmed));
+
+            // Remove quick reply phrases directly from text
+            quickReplyPhrases.forEach(phrase => {
+              // Remove the phrase (case-insensitive) with surrounding whitespace/newlines
+              const regex = new RegExp(
+                `\\s*${phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*`,
+                'gi'
+              );
+              text = text.replace(regex, ' ').trim();
             });
-            return lines.join('\n').trim();
+
+            return text.trim();
           })
-          .filter(Boolean);
+          .filter(text => text.length > 0);
 
         const requestText = cleaned.join('\n');
         originalRequestText += requestText || 'No original request found.';
@@ -121,32 +130,35 @@ export async function displayOriginalRequest(
           | string
           | undefined;
 
-        // Filter out quick reply options and upload prompts from JSONB flow
+        // Filter out quick reply options from JSONB flow
         if (contextQuoteDetails && typeof contextQuoteDetails === 'string') {
-          const uploadPromptPatterns = [
-            /yes,?\s*upload\s+(image|file|files)/i,
-            /upload\s+(image|file|files)/i,
-            /attach\s+(image|file|files)/i,
-            /yes,?\s*upload/i,
+          let text = contextQuoteDetails.trim();
+
+          // Quick reply phrases to filter out (case-insensitive)
+          const quickReplyPhrases = [
+            "No, let's continue",
+            'No, lets continue',
+            "No let's continue",
+            'No lets continue',
+            'Yes, upload files',
+            'Yes upload files',
+            'Yes, upload file',
+            'Yes upload file',
+            'No, continue without image',
+            'No continue without image',
           ];
 
-          const lines = contextQuoteDetails.split('\n').filter(line => {
-            const trimmed = line.trim();
-            if (!trimmed) return true; // Keep empty lines
-            // Filter out "No, continue without image" and "No, let's continue" quick reply options
-            if (/^no,?\s*continue\s+without\s+image$/i.test(trimmed)) {
-              return false;
-            }
-            if (/^no,?\s*lets?\s*continue/i.test(trimmed)) {
-              return false;
-            }
-            // Filter out upload prompts
-            if (uploadPromptPatterns.some(p => p.test(trimmed))) {
-              return false;
-            }
-            return true;
+          // Remove quick reply phrases directly from text
+          quickReplyPhrases.forEach(phrase => {
+            // Remove the phrase (case-insensitive) with surrounding whitespace/newlines
+            const regex = new RegExp(
+              `\\s*${phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*`,
+              'gi'
+            );
+            text = text.replace(regex, ' ').trim();
           });
-          contextQuoteDetails = lines.join('\n').trim();
+
+          contextQuoteDetails = text;
         }
 
         originalRequestText +=

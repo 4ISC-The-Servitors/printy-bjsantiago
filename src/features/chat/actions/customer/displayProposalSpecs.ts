@@ -90,10 +90,13 @@ export async function displayProposalSpecs(
         (specData as any)?.admin_notes || proposal.notes || undefined;
 
       // Build proposal details using helper functions
-      const header = await buildSpecHeaderLines({
-        service_id: (specData as any)?.service_id,
-        category: (specData as any)?.category,
-      });
+      const header = await buildSpecHeaderLines(
+        {
+          service_id: (specData as any)?.service_id,
+          category: (specData as any)?.category,
+        },
+        { includeService: false, includeCategory: false }
+      );
       const detailLines = buildSpecDetailLines(specData, adminNotes);
 
       const proposalText = [

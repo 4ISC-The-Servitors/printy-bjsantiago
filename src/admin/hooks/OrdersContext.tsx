@@ -19,10 +19,7 @@ export const OrdersProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   // Use the useAdminOrders hook to fetch real data
-  const { orders, loading, error, refresh } = useAdminOrders({
-    page: 1,
-    pageSize: 100, // Load more orders for the context
-  });
+  const { orders, loading, error, refresh } = useAdminOrders(100); // Load more orders for the context
 
   const updateOrder = (_orderId: string, _updates: Partial<AdminOrderRow>) => {
     // Optimistic update - update local state immediately

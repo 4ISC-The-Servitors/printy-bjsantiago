@@ -8,6 +8,11 @@
 - added Customer Role Management functionality in admin settings (regular to valued role change)
 - added audit trail for multiple admins replying to same ticket
 - improved build chunks with dynamic importing
+- removed Cancel Order under pay-now flow. customer will solely confirm upon accepting/rejecting a quote proposal
+- hidden service name/category fetch in display for customer to not confuse them if their custom product name might not be exact with actual services and categories but kept for admin display
+- optimized a lot of query related codes for scaling, added more indexes for faster queries
+- added REAL TIME changes for orders/quotes/tickets for admin and customer
+- added unread-like UI for new orders/tickets/quotes for admin UI
 
 ### 2025-11-09-Andeng
 

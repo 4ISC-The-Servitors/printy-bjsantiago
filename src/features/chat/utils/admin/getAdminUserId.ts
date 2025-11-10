@@ -13,7 +13,10 @@ export async function getAdminUserId(): Promise<string> {
   } = await supabase.auth.getUser();
 
   if (authError || !user?.id) {
-    console.error('[getAdminUserId] Error fetching current auth user:', authError);
+    console.error(
+      '[getAdminUserId] Error fetching current auth user:',
+      authError
+    );
     throw new Error('Not authenticated');
   }
 
@@ -25,7 +28,10 @@ export async function getAdminUserId(): Promise<string> {
     .single();
 
   if (error || !data) {
-    console.error('[getAdminUserId] Error fetching customer record for current user:', error);
+    console.error(
+      '[getAdminUserId] Error fetching customer record for current user:',
+      error
+    );
     throw new Error('Failed to resolve current user');
   }
 
@@ -75,7 +81,10 @@ export async function getAdminUserInfo(
     );
 
     if (adminError || !adminData) {
-      console.error('[getAdminUserInfo] Error fetching admin user:', adminError);
+      console.error(
+        '[getAdminUserInfo] Error fetching admin user:',
+        adminError
+      );
       return null;
     }
 
@@ -97,7 +106,9 @@ export async function getAdminUserInfo(
  */
 export async function getAdminUserInfoBatch(
   adminIds: string[]
-): Promise<Map<string, { first_name: string; last_name: string; fullName: string }>> {
+): Promise<
+  Map<string, { first_name: string; last_name: string; fullName: string }>
+> {
   const adminInfoMap = new Map<
     string,
     { first_name: string; last_name: string; fullName: string }
@@ -120,10 +131,13 @@ export async function getAdminUserInfoBatch(
       if (adminError.code === 'PGRST202') {
         console.warn(
           '[getAdminUserInfoBatch] Function not found in schema cache. PostgREST needs to refresh. ' +
-          'Run migration 033_reload_postgrest_cache_admin_functions.sql and wait 2-5 minutes.'
+            'Run migration 033_reload_postgrest_cache_admin_functions.sql and wait 2-5 minutes.'
         );
       } else {
-        console.error('[getAdminUserInfoBatch] Error fetching admin users:', adminError);
+        console.error(
+          '[getAdminUserInfoBatch] Error fetching admin users:',
+          adminError
+        );
       }
       return adminInfoMap;
     }

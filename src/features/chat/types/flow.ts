@@ -35,7 +35,6 @@ export type ActionType =
   | 'display_payment_methods'
   | 'process_payment_proof_upload'
   | 'reupload_payment_proof'
-  | 'cancel_order'
   | 'fetch_denial_reason'
   | 'show_customer_orders'
   | 'display_service_categories'
@@ -140,11 +139,6 @@ export interface ReuploadPaymentProofConfig {
   file_key?: string;
 }
 
-export interface CancelOrderConfig {
-  order_id_key: string;
-  reason_key: string;
-}
-
 export interface FetchDenialReasonConfig {
   order_id_key: string;
 }
@@ -173,7 +167,6 @@ export type ActionConfig =
   | DisplayPaymentMethodsConfig
   | ProcessPaymentProofUploadConfig
   | ReuploadPaymentProofConfig
-  | CancelOrderConfig
   | FetchDenialReasonConfig;
 
 export interface FlowOption {

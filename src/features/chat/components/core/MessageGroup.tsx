@@ -215,9 +215,11 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({
       {isBot && shouldAnimate && showTyping && <TypingIndicator />}
 
       {/* Quick Replies for bot messages - show when all messages are visible or animation is done */}
+      {/* Hide quick replies when chat is read-only (ended) to prevent duplicate End Chat actions */}
       {isBot &&
         quickReplies &&
         quickReplies.length > 0 &&
+        !readOnly &&
         (hasAnimated || visibleCount >= messages.length) && (
           <QuickReplyGrid
             replies={quickReplies}
@@ -226,6 +228,7 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({
             userRole={userRole}
             sessionId={sessionId}
             conversationId={conversationId}
+            readOnly={readOnly}
           />
         )}
     </div>
