@@ -1,20 +1,34 @@
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useAdmin } from './AdminContext';
-import { useOrders } from './OrdersContext';
 import useResponsivePageSize from '@shared/hooks/ui/useResponsivePageSize';
+import type { AdminOrderRow } from './useAdminOrders';
 
-export const useOrdersCard = (overridePageSize?: number) => {
-  const { openChatWithTopic, openChat } = useAdmin();
-  const {
-    orders,
-    updateOrder,
+interface UseOrdersCardOptions {
+  allOrders: AdminOrderRow[];
+  filteredOrders: AdminOrderRow[];
+  hasMore: boolean;
+  loadMore: () => Promise<void>;
+  loading: boolean;
+  loadingMore: boolean;
+  refreshOrders: () => void;
+}
+
+export const useOrdersCard = (
+  {
+    allOrders,
+    filteredOrders,
+    hasMore,
+    loadMore,
+    loading,
+    loadingMore,
     refreshOrders,
-    loading: ordersLoading,
-  } = useOrders();
+  }: UseOrdersCardOptions,
+  overridePageSize?: number
+) => {
+  const { openChatWithTopic, openChat } = useAdmin();
   const [hoveredOrderId, setHoveredOrderId] = useState<string | null>(null);
 
-  // Use the loading state from the orders context
-  const isLoading = ordersLoading;
+  const isLoading = loading || loadingMore;
 
   // Pagination with dynamic viewport-based calculation
   const dynamicPageSize = useResponsivePageSize({
@@ -39,9 +53,39 @@ export const useOrdersCard = (overridePageSize?: number) => {
     return dynamicPageSize;
   }, [dynamicPageSize, overridePageSize]);
 
+  // Auto-load when user navigates past loaded slice
+  React.useEffect(() => {
+    const endIndex = page * pageSize;
+    if (
+      hasMore &&
+      !loading &&
+      !loadingMore &&
+      filteredOrders.length < endIndex
+    ) {
+      void loadMore();
+    }
+  }, [
+    page,
+    pageSize,
+    filteredOrders.length,
+    hasMore,
+    loadMore,
+    loading,
+    loadingMore,
+  ]);
+
   const viewInChat = (orderId: string) => {
     if (openChatWithTopic) {
-      openChatWithTopic('orders', orderId, updateOrder, orders, refreshOrders);
+      const updateOrder = (_id: string, _updates: Partial<AdminOrderRow>) => {
+        refreshOrders();
+      };
+      openChatWithTopic(
+        'orders',
+        orderId,
+        updateOrder,
+        allOrders,
+        refreshOrders
+      );
     } else {
       openChat();
     }

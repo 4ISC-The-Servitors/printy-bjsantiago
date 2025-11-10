@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Badge, Button } from '@admin/components/shared';
 import { CustomerInfoModal } from '@shared/components';
 import { getTicketStatusBadgeVariant } from '@shared/utils/statusColors';
@@ -18,11 +18,17 @@ type Ticket = AdminTicketRow;
 interface TicketItemProps {
   ticket: Ticket;
   onViewInChat: (ticketId: string) => void;
+  isUnread: boolean;
+  onMarkViewed: (ticketId: string, version?: string | null) => void;
+  currentUserId?: string | null;
 }
 
 export const TicketItem: React.FC<TicketItemProps> = ({
   ticket,
   onViewInChat,
+  isUnread,
+  onMarkViewed,
+  currentUserId,
 }) => {
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
 
@@ -62,12 +68,46 @@ export const TicketItem: React.FC<TicketItemProps> = ({
     ? formatDateWithTimeDesktop(ticket.resolved_at)
     : '—';
 
+  const version = ticket.updated_at ?? ticket.received_at ?? null;
+
+  useEffect(() => {
+    if (!currentUserId || !ticket.updated_by || !version) return;
+    if (ticket.updated_by !== currentUserId) return;
+    onMarkViewed(ticket.inquiry_id, version);
+  }, [
+    currentUserId,
+    onMarkViewed,
+    ticket.inquiry_id,
+    ticket.updated_by,
+    version,
+  ]);
+
+  const handleMouseEnter = () => {
+    // hover maintains legacy highlight state via container styles only
+  };
+
+  const handleViewInChat = () => {
+    onMarkViewed(ticket.inquiry_id, version);
+    onViewInChat(ticket.inquiry_id);
+  };
+
   return (
-    <div className={`group ${layout.container}`}>
+    <div
+      className={`group ${layout.container} ${
+        isUnread ? 'border-blue-200 bg-blue-50/40' : ''
+      }`}
+      onMouseEnter={handleMouseEnter}
+    >
       {/* Row 1: Ticket ID + Type | Status Badges */}
       <div className={layout.structure.row1}>
         <div className={layout.leftSection}>
           <div className={`flex items-center ${layout.elementGap} min-w-0`}>
+            {isUnread && (
+              <span
+                className="w-2 h-2 bg-blue-500 rounded-full shrink-0"
+                aria-hidden="true"
+              />
+            )}
             <span className={layout.orderId}>{displayId}</span>
             <span className="text-neutral-400">•</span>
             <span className={layout.productName}>{inquiryType}</span>
@@ -114,7 +154,7 @@ export const TicketItem: React.FC<TicketItemProps> = ({
             size="sm"
             threeD
             aria-label={`Ask about ${displayId}`}
-            onClick={() => onViewInChat(ticket.inquiry_id)}
+            onClick={handleViewInChat}
             className="shrink-0"
           >
             <MessageSquare className="w-4 h-4" />
@@ -130,20 +170,20 @@ export const TicketItem: React.FC<TicketItemProps> = ({
           <span className="font-medium">Received:</span>
           <span className="truncate">{receivedDate}</span>
         </div>
-        {ticket.updated_at && ticket.updated_at !== ticket.received_at && (
-          <div
-            className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
-          >
-            <span className="font-medium">Updated:</span>
-            <span className="truncate">{updatedDate}</span>
-          </div>
-        )}
         {ticket.resolved_at && (
           <div
             className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
           >
             <span className="font-medium">Resolved:</span>
             <span className="truncate">{resolvedDate}</span>
+          </div>
+        )}
+        {ticket.updated_at && ticket.updated_at !== ticket.received_at && (
+          <div
+            className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
+          >
+            <span className="font-medium">Updated:</span>
+            <span className="truncate">{updatedDate}</span>
           </div>
         )}
       </div>
@@ -154,7 +194,7 @@ export const TicketItem: React.FC<TicketItemProps> = ({
           variant="secondary"
           size="sm"
           threeD
-          onClick={() => onViewInChat(ticket.inquiry_id)}
+          onClick={handleViewInChat}
           className="w-full"
         >
           Chat with Printy

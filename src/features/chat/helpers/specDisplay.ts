@@ -28,15 +28,26 @@ export async function resolveCategoryName(
   }
 }
 
-export async function buildSpecHeaderLines(spec: {
-  service_id?: string;
-  category?: string;
-}): Promise<string[]> {
+type HeaderLineOptions = {
+  includeService?: boolean;
+  includeCategory?: boolean;
+};
+
+export async function buildSpecHeaderLines(
+  spec: {
+    service_id?: string;
+    category?: string;
+  },
+  options: HeaderLineOptions = {}
+): Promise<string[]> {
   const lines: string[] = [];
   const serviceLabel = await formatServiceLabel(spec.service_id);
-  if (serviceLabel) lines.push(`• Service: ${serviceLabel}`);
+  const { includeService = true, includeCategory = true } = options;
+
+  if (includeService && serviceLabel) lines.push(`• Service: ${serviceLabel}`);
   const categoryName = await resolveCategoryName(spec.category);
-  if (categoryName) lines.push(`• Category: ${categoryName}`);
+  if (includeCategory && categoryName)
+    lines.push(`• Category: ${categoryName}`);
   return lines;
 }
 

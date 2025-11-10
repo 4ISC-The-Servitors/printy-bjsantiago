@@ -6,6 +6,7 @@ export { useOrdersCard } from './useOrdersCard';
 export { useQuotesCard } from './useQuotesCard';
 export { usePortfolioCard } from './usePortfolioCard';
 export { useTicketsCard } from './useTicketsCard';
+export { usePersistentUnread } from './usePersistentUnread';
 
 // Admin contexts
 export { AdminContext, useAdmin } from './AdminContext';

@@ -11,6 +11,12 @@ import type {
   ServiceFilters,
 } from '@shared/types/service';
 
+let serviceOrderStatsCache: Promise<Record<string, number>> | null = null;
+
+export function invalidateServiceOrderStatsCache(): void {
+  serviceOrderStatsCache = null;
+}
+
 /**
  * Fetch all services with their categories
  */
@@ -578,9 +584,7 @@ export async function searchServices(
 /**
  * Fetch per-service completed order counts from the view
  */
-export async function fetchServiceOrderStats(): Promise<
-  Record<string, number>
-> {
+async function fetchServiceOrderStatsFromDb(): Promise<Record<string, number>> {
   const { data, error } = await supabase
     .from('service_order_stats')
     .select('service_id,total_order_count');
@@ -594,4 +598,27 @@ export async function fetchServiceOrderStats(): Promise<
       result[row.service_id] = Number(row.total_order_count) || 0;
   });
   return result;
+}
+
+export async function fetchServiceOrderStats(
+  options: {
+    forceRefresh?: boolean;
+    useCache?: boolean;
+  } = {}
+): Promise<Record<string, number>> {
+  const { forceRefresh = false, useCache = true } = options;
+
+  if (!useCache) {
+    if (forceRefresh) invalidateServiceOrderStatsCache();
+    return fetchServiceOrderStatsFromDb();
+  }
+
+  if (!serviceOrderStatsCache || forceRefresh) {
+    serviceOrderStatsCache = fetchServiceOrderStatsFromDb().catch(error => {
+      serviceOrderStatsCache = null;
+      throw error;
+    });
+  }
+
+  return serviceOrderStatsCache;
 }

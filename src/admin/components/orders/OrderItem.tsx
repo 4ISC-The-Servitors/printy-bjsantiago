@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Badge, Button } from '@admin/components/shared';
 import { CustomerInfoModal } from '@shared/components';
 import { getOrderStatusBadgeVariant } from '@shared/utils/statusColors';
@@ -16,12 +16,18 @@ interface OrderItemProps {
   order: Order;
   onHover: (orderId: string | null) => void;
   onViewInChat: (orderId: string) => void;
+  isUnread: boolean;
+  onMarkViewed: (orderId: string, version?: string | null) => void;
+  currentUserId?: string | null;
 }
 
 export const OrderItem: React.FC<OrderItemProps> = ({
   order,
   onHover,
   onViewInChat,
+  isUnread,
+  onMarkViewed,
+  currentUserId,
 }) => {
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
 
@@ -50,16 +56,41 @@ export const OrderItem: React.FC<OrderItemProps> = ({
     ? formatRelativeTimeLabel(lastActionDateSource)
     : formatDateWithTimeDesktop(lastActionDateSource);
 
+  const version = order.updated_at ?? order.created_at ?? null;
+
+  useEffect(() => {
+    if (!currentUserId || !order.updated_by || !version) return;
+    if (order.updated_by !== currentUserId) return;
+    onMarkViewed(order.id, version);
+  }, [currentUserId, onMarkViewed, order.id, order.updated_by, version]);
+
+  const handleMouseEnter = () => {
+    onHover(order.order_id);
+  };
+
+  const handleViewInChat = () => {
+    onMarkViewed(order.id, version);
+    onViewInChat(order.order_id);
+  };
+
   return (
     <div
-      className="group device-spacing-component rounded-lg border bg-white/60 hover:bg-white transition-colors"
-      onMouseEnter={() => onHover(order.order_id)}
+      className={`group device-spacing-component rounded-lg border bg-white/60 hover:bg-white transition-colors ${
+        isUnread ? 'border-blue-200 bg-blue-50/40' : ''
+      }`}
+      onMouseEnter={handleMouseEnter}
       onMouseLeave={() => onHover(null)}
     >
       {/* Row 1: Order ID + Product Name | Status Badges */}
       <div className="flex items-center justify-between gap-2 sm:gap-3 md:gap-4 lg:gap-6 mb-2 sm:mb-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1 sm:gap-2 md:gap-3 min-w-0">
+            {isUnread && (
+              <span
+                className="w-2 h-2 bg-blue-500 rounded-full shrink-0"
+                aria-hidden="true"
+              />
+            )}
             <span
               className={`${textClasses.caption} font-semibold text-neutral-900 whitespace-nowrap`}
             >
@@ -146,7 +177,7 @@ export const OrderItem: React.FC<OrderItemProps> = ({
             size="sm"
             threeD
             aria-label={`Ask about ${displayId}`}
-            onClick={() => onViewInChat(order.order_id)}
+            onClick={handleViewInChat}
             className="shrink-0"
           >
             <MessageSquare className="w-4 h-4" />
@@ -160,7 +191,7 @@ export const OrderItem: React.FC<OrderItemProps> = ({
           variant="secondary"
           size="sm"
           threeD
-          onClick={() => onViewInChat(order.order_id)}
+          onClick={handleViewInChat}
           className="w-full"
         >
           Chat with Printy

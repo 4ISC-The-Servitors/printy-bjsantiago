@@ -160,17 +160,23 @@ export async function fetchCompleteQuoteDetails(
 /**
  * Format proposal specifications into a readable text format
  */
+type ProposalSpecOptions = {
+  includeCategory?: boolean;
+};
+
 export function formatProposalSpecs(
   specData: any,
-  adminNotes?: string
+  adminNotes?: string,
+  options: ProposalSpecOptions = {}
 ): string[] {
   const lines: string[] = [];
+  const { includeCategory = true } = options;
 
   if (specData.product_name) {
     lines.push(`• Product: ${specData.product_name}`);
   }
 
-  if (specData.category) {
+  if (includeCategory && specData.category) {
     lines.push(`• Category: ${specData.category}`);
   }
 
@@ -228,7 +234,8 @@ export function formatQuoteDetailsForCustomer(
   if (quoteDetails.hasProposal && quoteDetails.proposal) {
     const proposalLines = formatProposalSpecs(
       quoteDetails.proposal.specFinal,
-      quoteDetails.proposal.notes
+      quoteDetails.proposal.notes,
+      { includeCategory: false }
     );
 
     text += '\n\nAdmin Proposal:\n';

@@ -1,28 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Outlet } from 'react-router-dom';
 import { CustomerLayout } from '@customer/components/shared/layouts/CustomerLayout';
-import { SessionCacheProvider } from '@customer/components/shared/cache/SessionCacheProvider';
-import { supabase } from '@lib/supabase';
+import { CustomerConversationsProvider } from '@features/chat/hooks/customer/CustomerConversationsProvider';
 
 const CustomerRoot: React.FC = () => {
-  const [customerId, setCustomerId] = useState<string | undefined>();
-
-  useEffect(() => {
-    const getCustomerId = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      setCustomerId(user?.id);
-    };
-    getCustomerId();
-  }, []);
-
   return (
-    <SessionCacheProvider customerId={customerId}>
+    <CustomerConversationsProvider>
       <CustomerLayout>
         <Outlet />
       </CustomerLayout>
-    </SessionCacheProvider>
+    </CustomerConversationsProvider>
   );
 };
 

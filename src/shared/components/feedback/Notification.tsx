@@ -54,25 +54,26 @@ const Notification: React.FC = () => {
 
     // Fetch initial notifications
     const loadNotifications = async () => {
-      const items = await fetchUserNotifications(user.id);
+      const { items, unreadCount: unreadTotal } = await fetchUserNotifications(
+        user.id,
+        { limit: 50 }
+      );
       setNotifications(items);
-      setUnreadCount(items.filter(item => !item.isRead).length);
+      setUnreadCount(unreadTotal);
     };
 
     loadNotifications();
 
     // Set up real-time listener
-    const cleanup = startNotificationListener(
-      user.id,
-      toast,
-      item => {
-        setNotifications(prev => [item, ...prev]);
-        if (!item.isRead) {
-          setUnreadCount(prev => prev + 1);
-        }
+    const cleanup = startNotificationListener(user.id, toast, item => {
+      setNotifications(prev => {
+        const next = [item, ...prev];
+        return next.slice(0, 50);
+      });
+      if (!item.isRead) {
+        setUnreadCount(prev => prev + 1);
       }
-      // playSound parameter commented out
-    );
+    });
 
     return cleanup;
   }, [user]);

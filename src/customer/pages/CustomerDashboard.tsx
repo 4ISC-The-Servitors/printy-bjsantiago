@@ -32,10 +32,7 @@ import { useTicketImageUpload } from '@/features/chat/hooks/customer/useTicketIm
 import { useOrderImageUpload } from '@/features/chat/hooks/customer/useOrderImageUpload';
 import { useDeviceUtils } from '@shared/hooks/ui';
 // Chat feature hooks
-import {
-  CustomerConversationsProvider,
-  useCustomerConversationsContext,
-} from '@features/chat/hooks/customer/CustomerConversationsProvider';
+import { useCustomerConversationsContext } from '@features/chat/hooks/customer/CustomerConversationsProvider';
 import { getSessionTitle } from '@features/chat/config/sessionTitleConfig';
 
 // ---------------- Types / Config ----------------
@@ -655,13 +652,9 @@ const CustomerDashboardContent: React.FC = () => {
   );
 };
 
-// Main component wrapped with provider
+// Main component - provider is now at CustomerRoot level
 const CustomerDashboard: React.FC = () => {
-  return (
-    <CustomerConversationsProvider>
-      <CustomerDashboardContent />
-    </CustomerConversationsProvider>
-  );
+  return <CustomerDashboardContent />;
 };
 
 export default CustomerDashboard;

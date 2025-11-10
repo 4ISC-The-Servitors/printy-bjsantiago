@@ -1,20 +1,62 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, Pagination } from '@admin/components/shared';
 import { AdminListSkeleton } from '@shared/components/feedback';
 import { useOrdersCard } from '@admin/hooks/useOrdersCard';
+import { usePersistentUnread } from '@admin/hooks/usePersistentUnread';
 import { OrderItem } from './OrderItem';
 import { useResponsiveLayout } from '@shared/hooks';
 import type { AdminOrderRow } from '@admin/hooks/useAdminOrders';
+import { supabase } from '@lib/supabase';
 
 export interface OrdersCardProps {
   filteredOrders: AdminOrderRow[];
+  allOrders: AdminOrderRow[];
+  hasMore: boolean;
+  loadMore: () => Promise<void>;
+  loading: boolean;
+  loadingMore: boolean;
+  refreshOrders: () => void;
+  totalCount?: number;
 }
 
-const OrdersCard: React.FC<OrdersCardProps> = ({ filteredOrders }) => {
+const OrdersCard: React.FC<OrdersCardProps> = ({
+  filteredOrders,
+  allOrders,
+  hasMore,
+  loadMore,
+  loading,
+  loadingMore,
+  refreshOrders,
+  totalCount,
+}) => {
   // All hooks must be called unconditionally before any early returns
   useResponsiveLayout();
+  const { hasViewed, markAsViewed } = usePersistentUnread({
+    storageKey: 'admin:viewed-orders',
+  });
   const { isLoading, page, setPage, pageSize, setHoveredOrderId, viewInChat } =
-    useOrdersCard();
+    useOrdersCard({
+      allOrders,
+      filteredOrders,
+      hasMore,
+      loadMore,
+      loading,
+      loadingMore,
+      refreshOrders,
+    });
+
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    void supabase.auth.getUser().then(({ data }) => {
+      if (!active) return;
+      setCurrentUserId(data.user?.id ?? null);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // Calculate paginated display orders from filtered orders
   const start = (page - 1) * pageSize;
@@ -43,7 +85,11 @@ const OrdersCard: React.FC<OrdersCardProps> = ({ filteredOrders }) => {
           <Pagination
             page={page}
             pageSize={pageSize}
-            total={filteredOrders.length}
+            total={
+              typeof totalCount === 'number' && totalCount > 0
+                ? totalCount
+                : filteredOrders.length
+            }
             onPageChange={setPage}
           />
         </div>
@@ -51,14 +97,27 @@ const OrdersCard: React.FC<OrdersCardProps> = ({ filteredOrders }) => {
         {/* Orders List */}
         <div className="space-y-4 sm:space-y-6 px-3 sm:px-4 py-4">
           {displayOrders.length > 0 ? (
-            displayOrders.map(order => (
-              <OrderItem
-                key={order.id}
-                order={order}
-                onHover={setHoveredOrderId}
-                onViewInChat={viewInChat}
-              />
-            ))
+            displayOrders.map(order => {
+              const version = order.updated_at ?? order.created_at ?? null;
+              const isSelfUpdate = Boolean(
+                currentUserId &&
+                  order.updated_by &&
+                  order.updated_by === currentUserId
+              );
+              const isUnread = !isSelfUpdate && !hasViewed(order.id, version);
+
+              return (
+                <OrderItem
+                  key={order.id}
+                  order={order}
+                  onHover={setHoveredOrderId}
+                  onViewInChat={viewInChat}
+                  isUnread={isUnread}
+                  onMarkViewed={markAsViewed}
+                  currentUserId={currentUserId}
+                />
+              );
+            })
           ) : (
             <div className="text-center py-12 text-neutral-500">
               <p className="text-lg font-medium">No orders found</p>

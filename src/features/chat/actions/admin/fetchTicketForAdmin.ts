@@ -251,7 +251,7 @@ export async function fetchTicketForAdmin(
         const time = formatShortTime(msg.sent_at);
         const dateTime = `${date} • ${time}`;
         let sender: string;
-        
+
         if (msg.sender_role === 'customer') {
           sender = 'Customer';
         } else {
@@ -264,7 +264,7 @@ export async function fetchTicketForAdmin(
             sender = 'Admin';
           }
         }
-        
+
         const lines = String(msg.decryptedText || '')
           .split('\n')
           .map(s => s.trim())

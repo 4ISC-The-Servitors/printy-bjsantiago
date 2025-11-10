@@ -122,10 +122,13 @@ export const displayAcceptedSpecs: ActionHandler = async ({
         normalizedSpecs.admin_notes || proposal.notes || undefined;
 
       try {
-        const headerLines = await buildSpecHeaderLines({
-          service_id: normalizedSpecs?.service_id,
-          category: normalizedSpecs?.category,
-        });
+        const headerLines = await buildSpecHeaderLines(
+          {
+            service_id: normalizedSpecs?.service_id,
+            category: normalizedSpecs?.category,
+          },
+          { includeService: false, includeCategory: false }
+        );
         const detailLines = buildSpecDetailLines(normalizedSpecs, adminNotes);
 
         if (headerLines.length > 0) {

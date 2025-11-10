@@ -49,11 +49,51 @@ export class ProfileService {
         return null;
       }
 
-      // Simple query to get basic customer data first
+      // Fetch customer profile with nested address in a single query
       const { data: customerData, error: customerError } = await supabase
         .from('customer')
         .select(
-          'customer_id, first_name, last_name, contact_no, email_address, customer_type, gender, birthday, location_id'
+          `
+          customer_id,
+          first_name,
+          last_name,
+          contact_no,
+          email_address,
+          customer_type,
+          gender,
+          birthday,
+          location:location_id (
+            location_id,
+            zip_code,
+            bldg_id,
+            building:building (
+              bldg_id,
+              bldg_name,
+              street_id,
+              street:street (
+                street_id,
+                street_name,
+                brgy_id,
+                barangay:barangay (
+                  brgy_id,
+                  brgy_name,
+                  city:city (
+                    city_id,
+                    city_name,
+                    province:province (
+                      province_id,
+                      province_name,
+                      region:region (
+                        region_id,
+                        region_name
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        `
         )
         .eq('customer_id', customerId)
         .maybeSingle();
@@ -79,76 +119,23 @@ export class ProfileService {
         return null;
       }
 
-      // Fetch address parts by joining related tables from location
-      let address: CustomerProfile['address'] = {
-        building_name: '',
-        street_name: '',
-        barangay_name: '',
-        city_name: '',
-        province_name: '',
-        region_name: '',
-        zip_code: '',
+      const location = (customerData as any).location || null;
+      const building = location?.building || null;
+      const street = building?.street || null;
+      const barangay = street?.barangay || null;
+      const city = barangay?.city || null;
+      const province = city?.province || null;
+      const region = province?.region || null;
+
+      const address: CustomerProfile['address'] = {
+        building_name: building?.bldg_name ?? '',
+        street_name: street?.street_name ?? '',
+        barangay_name: barangay?.brgy_name ?? '',
+        city_name: city?.city_name ?? '',
+        province_name: province?.province_name ?? '',
+        region_name: region?.region_name ?? '',
+        zip_code: location?.zip_code ?? '',
       };
-
-      if (customerData.location_id) {
-        try {
-          // Use Supabase nested selects to traverse relations from location
-          const { data: joined, error: joinedError } = await supabase
-            .from('location')
-            .select(
-              `
-              zip_code,
-              building!inner (
-                bldg_name,
-                street_id,
-                street!inner (
-                  street_name,
-                  brgy_id,
-                  barangay!inner (
-                    brgy_name,
-                    city_id,
-                    city!inner (
-                      city_name,
-                      province_id,
-                      province!inner (
-                        province_name,
-                        region_id,
-                        region!inner (region_name)
-                      )
-                    )
-                  )
-                )
-              )
-            `
-            )
-            .eq('location_id', customerData.location_id)
-            .maybeSingle();
-
-          if (!joinedError && joined) {
-            const j: any = joined as any;
-
-            // Get building, street and nested data
-            const building = j?.building ?? null;
-            const street = building?.street ?? null;
-            const barangay = street?.barangay ?? null;
-            const city = barangay?.city ?? null;
-            const province = city?.province ?? null;
-            const region = province?.region ?? null;
-
-            address = {
-              building_name: building?.bldg_name ?? '',
-              street_name: street?.street_name ?? '',
-              barangay_name: barangay?.brgy_name ?? '',
-              city_name: city?.city_name ?? '',
-              province_name: province?.province_name ?? '',
-              region_name: region?.region_name ?? '',
-              zip_code: j?.zip_code ?? '',
-            };
-          }
-        } catch (e) {
-          // Failed to fetch joined address data, continue with empty address
-        }
-      }
 
       const profile = {
         customer_id: customerData.customer_id,
@@ -216,134 +203,105 @@ export class ProfileService {
 
       // Update address information if provided
       if (updates.address) {
-        // Get current location_id
-        const { data: customerData, error: customerError } = await supabase
-          .from('customer')
-          .select('location_id')
-          .eq('customer_id', customerId)
-          .single();
+        const addressUpdates = updates.address;
 
-        if (customerError) {
-          console.error('Error fetching customer location:', customerError);
+        const { data: locationDetails, error: locationDetailsError } =
+          await supabase
+            .from('customer')
+            .select(
+              `
+              location:location_id (
+                location_id,
+                bldg_id,
+                building:building (
+                  bldg_id,
+                  street_id,
+                  street:street (
+                    street_id,
+                    brgy_id,
+                    barangay:barangay (
+                      brgy_id
+                    )
+                  )
+                )
+              )
+            `
+            )
+            .eq('customer_id', customerId)
+            .maybeSingle();
+
+        if (locationDetailsError) {
+          console.error(
+            'Error fetching customer location details:',
+            locationDetailsError
+          );
           return false;
         }
 
-        if (customerData?.location_id) {
-          // Update location table with zip_code only (building details are in building table)
-          const locationUpdates: any = {};
-          if (updates.address.zip_code !== undefined)
-            locationUpdates.zip_code = updates.address.zip_code;
+        const location = Array.isArray(locationDetails?.location)
+          ? locationDetails.location[0]
+          : locationDetails?.location;
 
-          if (Object.keys(locationUpdates).length > 0) {
-            const { error: locationError } = await supabase
-              .from('location')
-              .update(locationUpdates)
-              .eq('location_id', customerData.location_id);
+        if (!location) {
+          console.error('No location record found for customer:', customerId);
+          return false;
+        }
 
-            if (locationError) {
-              console.error('Error updating location:', locationError);
-              return false;
-            }
+        const locationId: string | undefined = (location as any).location_id;
+        const buildingId: string | undefined =
+          (location as any).bldg_id || (location as any).building?.bldg_id;
+        const streetId: string | undefined =
+          (location as any).building?.street_id ||
+          (location as any).building?.street?.street_id;
+        const barangayId: string | undefined =
+          (location as any).building?.street?.brgy_id ||
+          (location as any).building?.street?.barangay?.brgy_id;
+
+        if (addressUpdates.zip_code !== undefined && locationId) {
+          const { error: locationError } = await supabase
+            .from('location')
+            .update({ zip_code: addressUpdates.zip_code })
+            .eq('location_id', locationId);
+
+          if (locationError) {
+            console.error('Error updating location:', locationError);
+            return false;
           }
+        }
 
-          // Update building information if provided
-          if (updates.address.building_name !== undefined) {
-            // Get the bldg_id from location
-            const { data: locationData, error: locationError } = await supabase
-              .from('location')
-              .select('bldg_id')
-              .eq('location_id', customerData.location_id)
-              .single();
+        if (addressUpdates.building_name !== undefined && buildingId) {
+          const { error: buildingError } = await supabase
+            .from('building')
+            .update({ bldg_name: addressUpdates.building_name })
+            .eq('bldg_id', buildingId);
 
-            if (!locationError && locationData?.bldg_id) {
-              const buildingUpdates: any = {};
-              if (updates.address.building_name !== undefined)
-                buildingUpdates.bldg_name = updates.address.building_name;
-
-              if (Object.keys(buildingUpdates).length > 0) {
-                const { error: buildingError } = await supabase
-                  .from('building')
-                  .update(buildingUpdates)
-                  .eq('bldg_id', locationData.bldg_id);
-
-                if (buildingError) {
-                  console.error('Error updating building:', buildingError);
-                  return false;
-                }
-              }
-            }
+          if (buildingError) {
+            console.error('Error updating building:', buildingError);
+            return false;
           }
+        }
 
-          // Update street information if street_name is provided
-          if (updates.address.street_name !== undefined) {
-            // Get the bldg_id from location, then street_id from building
-            const { data: locationData, error: locationError } = await supabase
-              .from('location')
-              .select('bldg_id')
-              .eq('location_id', customerData.location_id)
-              .single();
+        if (addressUpdates.street_name !== undefined && streetId) {
+          const { error: streetError } = await supabase
+            .from('street')
+            .update({ street_name: addressUpdates.street_name })
+            .eq('street_id', streetId);
 
-            if (!locationError && locationData?.bldg_id) {
-              const { data: buildingData, error: buildingError } =
-                await supabase
-                  .from('building')
-                  .select('street_id')
-                  .eq('bldg_id', locationData.bldg_id)
-                  .single();
-
-              if (!buildingError && buildingData?.street_id) {
-                // Update street name
-                const { error: streetError } = await supabase
-                  .from('street')
-                  .update({ street_name: updates.address.street_name })
-                  .eq('street_id', buildingData.street_id);
-
-                if (streetError) {
-                  console.error('Error updating street:', streetError);
-                  return false;
-                }
-              }
-            }
+          if (streetError) {
+            console.error('Error updating street:', streetError);
+            return false;
           }
+        }
 
-          // Update barangay information if barangay_name is provided
-          if (updates.address.barangay_name !== undefined) {
-            // Get the bldg_id from location, then street_id from building, then barangay_id from street
-            const { data: locationData, error: locationError } = await supabase
-              .from('location')
-              .select('bldg_id')
-              .eq('location_id', customerData.location_id)
-              .single();
+        if (addressUpdates.barangay_name !== undefined && barangayId) {
+          const { error: barangayError } = await supabase
+            .from('barangay')
+            .update({ brgy_name: addressUpdates.barangay_name })
+            .eq('brgy_id', barangayId);
 
-            if (!locationError && locationData?.bldg_id) {
-              const { data: buildingData, error: buildingError } =
-                await supabase
-                  .from('building')
-                  .select('street_id')
-                  .eq('bldg_id', locationData.bldg_id)
-                  .single();
-
-              if (!buildingError && buildingData?.street_id) {
-                const { data: streetData, error: streetError } = await supabase
-                  .from('street')
-                  .select('brgy_id')
-                  .eq('street_id', buildingData.street_id)
-                  .single();
-
-                if (!streetError && streetData?.brgy_id) {
-                  // Update barangay name
-                  const { error: barangayError } = await supabase
-                    .from('barangay')
-                    .update({ brgy_name: updates.address.barangay_name })
-                    .eq('brgy_id', streetData.brgy_id);
-
-                  if (barangayError) {
-                    console.error('Error updating barangay:', barangayError);
-                    return false;
-                  }
-                }
-              }
-            }
+          if (barangayError) {
+            console.error('Error updating barangay:', barangayError);
+            return false;
           }
         }
       }
