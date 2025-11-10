@@ -177,7 +177,19 @@ const AdminSettingsPage: React.FC = () => {
         error instanceof Error
           ? error.message
           : 'Failed to update profile. Please try again.';
-      toast.error('Error', errorMessage);
+
+      // Check if it's a duplicate phone error
+      if (
+        errorMessage.includes('DUPLICATE_PHONE') ||
+        errorMessage.includes('already registered')
+      ) {
+        toast.error(
+          'Mobile Number Already Registered',
+          'This mobile number is already registered. Please use a different number.'
+        );
+      } else {
+        toast.error('Error', errorMessage);
+      }
     }
   };
 

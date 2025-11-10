@@ -13,7 +13,6 @@ import {
 import {
   normalizePhone,
   getPhoneValidationMessage,
-  formatToProperNoun,
   formatZipCodeInput,
   getStreetValidationMessage,
   getBarangayValidationMessage,
@@ -358,12 +357,6 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = ({
                   onChange={e =>
                     setForm(p => ({ ...p, address: e.target.value }))
                   }
-                  onBlur={e => {
-                    setForm(prev => ({
-                      ...prev,
-                      address: formatToProperNoun(e.target.value),
-                    }));
-                  }}
                   aria-invalid={Boolean(errors.address)}
                   aria-describedby={
                     errors.address ? 'address-error' : undefined
@@ -400,12 +393,6 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = ({
                   onChange={e =>
                     setForm(p => ({ ...p, building: e.target.value }))
                   }
-                  onBlur={e => {
-                    setForm(prev => ({
-                      ...prev,
-                      building: formatToProperNoun(e.target.value),
-                    }));
-                  }}
                   aria-invalid={Boolean(errors.building)}
                   aria-describedby={
                     errors.building ? 'building-error' : undefined
@@ -441,12 +428,6 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = ({
                   onChange={e =>
                     setForm(p => ({ ...p, barangay: e.target.value }))
                   }
-                  onBlur={e => {
-                    setForm(prev => ({
-                      ...prev,
-                      barangay: formatToProperNoun(e.target.value),
-                    }));
-                  }}
                   aria-invalid={Boolean(errors.barangay)}
                   aria-describedby={
                     errors.barangay ? 'barangay-error' : undefined

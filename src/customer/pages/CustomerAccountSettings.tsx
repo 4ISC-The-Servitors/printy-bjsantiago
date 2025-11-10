@@ -6,10 +6,8 @@ import React, {
   useRef,
 } from 'react';
 import { useNavigate } from 'react-router-dom';
-import LogoutModal from '@customer/components/shared/sidebar/LogoutModal';
-import MobileSidebarMenu from '@customer/components/shared/sidebar/MobileSidebarMenu';
-import MobileSidebarTrigger from '@customer/components/shared/sidebar/MobileSidebarTrigger';
-import { Container, Text, ToastContainer, Button } from '@shared/components';
+import ResponsivePageLayout from '@customer/components/shared/layouts/ResponsivePageLayout';
+import { Text, ToastContainer, Button } from '@shared/components';
 import { useToast } from '@lib/useToast';
 import { ArrowLeft } from 'lucide-react';
 import ProfileOverviewCard from '@/customer/components/accountSettings/ProfileOverviewCard';
@@ -48,13 +46,6 @@ const AccountSettings: React.FC = () => {
   const fetchingRef = useRef(false);
 
   const [isDesktop, setIsDesktop] = useState(false);
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const [showMobileMenu, setShowMobileMenu] = useState(false);
-
-  // Auto-close mobile menu on route change
-  useEffect(() => {
-    setShowMobileMenu(false);
-  }, [navigate]);
 
   const fetchProfileData = useCallback(async () => {
     // Prevent multiple simultaneous calls
@@ -237,124 +228,93 @@ const AccountSettings: React.FC = () => {
         error instanceof Error
           ? error.message
           : 'Failed to update profile. Please try again.';
-      toast.error('Error', errorMessage);
+
+      // Check if it's a duplicate phone error
+      if (
+        errorMessage.includes('DUPLICATE_PHONE') ||
+        errorMessage.includes('already registered')
+      ) {
+        toast.error(
+          'Mobile Number Already Registered',
+          'This mobile number is already registered. Please use a different number.'
+        );
+      } else {
+        toast.error('Error', errorMessage);
+      }
     }
   };
 
   return (
-    <div className="h-screen bg-gradient-to-br from-neutral-50 to-brand-primary-50 flex flex-col">
-      {/* Mobile header with burger */}
-      <div className="lg:hidden flex flex-col">
-        <header className="bg-white/80 backdrop-blur border-b border-neutral-200 px-4 py-3 flex items-center justify-between shrink-0">
-          <MobileSidebarTrigger onOpen={() => setShowMobileMenu(true)} />
-          <div className="w-10" />
-        </header>
-        {showMobileMenu && (
-          <div
-            className="fixed inset-0 z-50 bg-black/20"
-            onClick={() => setShowMobileMenu(false)}
+    <>
+      <ResponsivePageLayout showSidebar={true} maxWidth="xl">
+        <div className="mb-6 flex items-center gap-3">
+          <Button
+            onClick={() => navigate('/customer')}
+            variant="secondary"
+            size="sm"
+            threeD
+            className="device-btn-secondary flex items-center justify-center"
+            aria-label="Back to dashboard"
           >
-            <div
-              className="absolute left-0 top-0 bottom-0 w-80 max-w-[85%] bg-white"
-              onClick={e => e.stopPropagation()}
-            >
-              <MobileSidebarMenu
-                conversations={[]}
-                activeId={null}
-                onClose={() => setShowMobileMenu(false)}
-                onSwitchConversation={() => {}}
-                onAccount={() => setShowMobileMenu(false)}
-                onLogout={() => {
-                  setShowMobileMenu(false);
-                  navigate('/auth/signin');
-                }}
-              />
-            </div>
-          </div>
-        )}
-      </div>
+            <ArrowLeft className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Back</span>
+          </Button>
+          <Text
+            variant="h1"
+            size="xl"
+            weight="bold"
+            className="device-text-heading"
+          >
+            Account Settings
+          </Text>
+        </div>
 
-      {/* Main content - full screen */}
-      <main className="flex-1 flex flex-col overflow-hidden">
-        <Container
-          size="xl"
-          className="device-spacing-section flex-1 overflow-y-auto"
-        >
-          <div className="mb-6 flex items-center gap-3">
-            <Button
-              onClick={() => navigate('/customer')}
-              variant="secondary"
-              size="sm"
-              threeD
-              className="device-btn-secondary flex items-center justify-center"
-              aria-label="Back to dashboard"
-            >
-              <ArrowLeft className="h-4 w-4 sm:mr-2" />
-              <span className="hidden sm:inline">Back</span>
-            </Button>
-            <Text
-              variant="h1"
-              size="xl"
-              weight="bold"
-              className="device-text-heading"
-            >
-              Account Settings
-            </Text>
-          </div>
-
-          <div className="space-y-6 sm:space-y-8">
-            {loading ? (
-              <CustomerAccountSettingsLoading />
-            ) : (
-              <>
-                {userData && (
-                  <ProfileOverviewCard
-                    initials={initials}
-                    displayName={userData.displayName}
-                    email={userData.email}
-                    membership={
-                      userData.customerType === 'valued'
-                        ? 'Valued'
-                        : userData.customerType === 'regular'
-                          ? 'Regular'
-                          : 'Valued'
-                    }
-                  />
-                )}
-
-                {userData && (
-                  <PersonalInfoForm
-                    value={userData}
-                    onSave={handleSavePersonalInfo}
-                  />
-                )}
-
-                <SecuritySettings
-                  onPasswordUpdated={() =>
-                    toast.success(
-                      'Password updated',
-                      'Your password has been changed successfully.'
-                    )
+        <div className="space-y-6 sm:space-y-8">
+          {loading ? (
+            <CustomerAccountSettingsLoading />
+          ) : (
+            <>
+              {userData && (
+                <ProfileOverviewCard
+                  initials={initials}
+                  displayName={userData.displayName}
+                  email={userData.email}
+                  membership={
+                    userData.customerType === 'valued'
+                      ? 'Valued'
+                      : userData.customerType === 'regular'
+                        ? 'Regular'
+                        : 'Valued'
                   }
                 />
-              </>
-            )}
-          </div>
-        </Container>
+              )}
 
-        <ToastContainer
-          toasts={toasts}
-          onRemoveToast={toast.remove}
-          position={isDesktop ? 'bottom-right' : 'top-center'}
-        />
-      </main>
+              {userData && (
+                <PersonalInfoForm
+                  value={userData}
+                  onSave={handleSavePersonalInfo}
+                />
+              )}
 
-      <LogoutModal
-        isOpen={showLogoutModal}
-        onClose={() => setShowLogoutModal(false)}
-        onConfirm={() => navigate('/auth/signin')}
+              <SecuritySettings
+                onPasswordUpdated={() =>
+                  toast.success(
+                    'Password updated',
+                    'Your password has been changed successfully.'
+                  )
+                }
+              />
+            </>
+          )}
+        </div>
+      </ResponsivePageLayout>
+
+      <ToastContainer
+        toasts={toasts}
+        onRemoveToast={toast.remove}
+        position={isDesktop ? 'bottom-right' : 'top-center'}
       />
-    </div>
+    </>
   );
 };
 

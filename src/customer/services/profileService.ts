@@ -177,28 +177,29 @@ export class ProfileService {
   ): Promise<boolean> {
     try {
       // Check for duplicate phone number if phone is being updated
+      // Check auth.users table instead of customer table
       if (updates.contact_no !== undefined) {
         // Normalize phone number before checking for duplicates
         const normalizedPhone = normalizePhone(updates.contact_no);
         if (normalizedPhone) {
-          const { data: existingPhone, error: phoneCheckError } = await supabase
-            .from('customer')
-            .select('customer_id, contact_no')
-            .not('contact_no', 'is', null)
-            .neq('contact_no', '')
-            .eq('contact_no', normalizedPhone)
-            .neq('customer_id', customerId) // Exclude current user
-            .maybeSingle();
+          // Check for duplicate phone in auth.users (exclude current user)
+          // Pass all parameters explicitly to ensure PostgREST matches correctly
+          const { data: duplicateCheck, error: phoneCheckError } =
+            await supabase.rpc('check_auth_user_duplicates', {
+              p_email: null, // Not checking email for profile updates
+              p_phone: normalizedPhone,
+              p_exclude_user_id: customerId, // Exclude current user
+            });
 
           if (phoneCheckError) {
             console.error('Error checking phone:', phoneCheckError);
             return false;
           }
 
-          if (existingPhone && existingPhone.contact_no) {
+          if (duplicateCheck?.phone_exists) {
             console.error('Duplicate phone number detected');
             throw new Error(
-              'This phone number is already registered. Please use a different phone number.'
+              'DUPLICATE_PHONE: This mobile number is already registered. Please use a different number.'
             );
           }
         }
@@ -413,6 +414,12 @@ export class ProfileService {
       return true;
     } catch (error) {
       console.error('Error in ProfileService.updateProfile:', error);
+
+      // Re-throw duplicate phone errors so they can be handled with specific toast messages
+      if (error instanceof Error && error.message.includes('DUPLICATE_PHONE')) {
+        throw error;
+      }
+
       return false;
     }
   }

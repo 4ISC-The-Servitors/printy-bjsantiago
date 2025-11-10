@@ -143,6 +143,10 @@ export async function findProvinceIdByName(
 
 /**
  * Find city_id by city_name and province_id
+ *
+ * Note: This function expects unique (city_name, province_id) combinations.
+ * If duplicate cities exist with the same name and province, this will fail.
+ * Run migration 039_fix_duplicate_manila_city.sql to fix duplicates.
  */
 export async function findCityIdByName(
   cityName: string,
@@ -156,7 +160,17 @@ export async function findCityIdByName(
     .ilike('city_name', cityName.trim())
     .maybeSingle();
   if (error) {
-    console.error('Error finding city ID:', error);
+    // PGRST116 error indicates multiple rows returned when expecting one
+    // This happens when duplicate cities exist with same (city_name, province_id)
+    if (error.code === 'PGRST116') {
+      console.error(
+        `Error finding city ID: Duplicate cities found for "${cityName}" in province ${provinceId}. ` +
+          `Run migration 039_fix_duplicate_manila_city.sql to resolve duplicates.`,
+        error
+      );
+    } else {
+      console.error('Error finding city ID:', error);
+    }
     return null;
   }
   return data?.city_id || null;
