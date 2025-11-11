@@ -21,7 +21,7 @@ export const useSignIn = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
-  const [turnstileReady, setTurnstileReady] = useState(false);
+  const [, setTurnstileReady] = useState(false);
   const [formData, setFormData] = useState<SignInFormData>({
     email: '',
     password: '',
