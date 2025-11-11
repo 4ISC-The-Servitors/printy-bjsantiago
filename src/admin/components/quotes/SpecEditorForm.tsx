@@ -19,9 +19,9 @@ export interface SpecFormData {
   category?: string;
   description?: string;
   size?: string;
-  materials: string[];
+  materials: string;
   color?: string;
-  finishing: string[];
+  finishing: string;
   quantity?: number;
   deadline?: string;
   delivery_method?: string;
@@ -50,9 +50,9 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
     category: '',
     description: '',
     size: '',
-    materials: [],
+    materials: '',
     color: '',
-    finishing: [],
+    finishing: '',
     quantity: 1,
     deadline: '',
     delivery_method: '',
@@ -87,7 +87,7 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
   // Derive disabled state
   const serviceDisabled = !selectedCategoryId;
 
-  // Removed array add/remove helpers in favor of free-text inputs (comma-separated)
+  // Materials and finishing are free-text string inputs
 
   const [quotedPriceInput, setQuotedPriceInput] = useState<string>(
     formData.quoted_price ? formatPriceInput(String(formData.quoted_price)) : ''
@@ -223,27 +223,20 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
         </div>
       </div>
 
-      {/* Materials (free-text, comma-separated) */}
+      {/* Materials */}
       <div>
         <label
           className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}
         >
           Materials
         </label>
-        <div className="w-full">
-          <Input
-            value={(formData.materials || []).join(', ')}
-            onChange={e => {
-              const parts = e.target.value
-                .split(',')
-                .map(v => v.trim())
-                .filter(Boolean);
-              setFormData(prev => ({ ...prev, materials: parts }));
-            }}
-            placeholder="Comma-separated (e.g., Cardstock, Vinyl)"
-            className="w-full"
-          />
-        </div>
+        <Input
+          value={formData.materials || ''}
+          onChange={e =>
+            setFormData(prev => ({ ...prev, materials: e.target.value }))
+          }
+          placeholder="e.g., Cardstock, Vinyl, Glossy Paper"
+        />
       </div>
 
       {/* Color */}
@@ -262,27 +255,20 @@ const SpecEditorForm: React.FC<SpecEditorFormProps> = ({
         />
       </div>
 
-      {/* Finishing (free-text, comma-separated) */}
+      {/* Finishing */}
       <div>
         <label
           className={`block ${textClasses.caption} font-medium text-gray-700 mb-1`}
         >
           Finishing
         </label>
-        <div className="w-full">
-          <Input
-            value={(formData.finishing || []).join(', ')}
-            onChange={e => {
-              const parts = e.target.value
-                .split(',')
-                .map(v => v.trim())
-                .filter(Boolean);
-              setFormData(prev => ({ ...prev, finishing: parts }));
-            }}
-            placeholder="Comma-separated (e.g., Glossy, Matte, UV Coating)"
-            className="w-full"
-          />
-        </div>
+        <Input
+          value={formData.finishing || ''}
+          onChange={e =>
+            setFormData(prev => ({ ...prev, finishing: e.target.value }))
+          }
+          placeholder="e.g., Glossy, Matte, UV Coating, Lamination"
+        />
       </div>
 
       {/* Deadline */}

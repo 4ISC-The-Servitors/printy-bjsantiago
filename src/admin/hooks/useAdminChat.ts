@@ -22,6 +22,7 @@ import {
 } from '@features/chat/actions/admin';
 import { actionHandlers } from '@features/chat/actions';
 import { supabase } from '@lib/supabase';
+import { ChatUnexpectedInputService } from '@features/chat/services/ChatUnexpectedInputService';
 
 // Helper to extract display label from value (e.g., "uuid|Category Name" -> "Category Name")
 function extractDisplayText(text: string): string {
@@ -883,8 +884,9 @@ export const useAdminChat = (): UseAdminChatReturn => {
 
   const handleSendMessage = (text: string) => {
     if (readOnly) return; // prevent sending in read-only view
+    const userMsgId = crypto.randomUUID();
     const userMsg = {
-      id: crypto.randomUUID(),
+      id: userMsgId,
       role: 'user' as const,
       text,
       ts: Date.now(),
@@ -935,6 +937,22 @@ export const useAdminChat = (): UseAdminChatReturn => {
             senderRole: 'admin',
           });
 
+          // ✅ FIX: Check if server blocked the message (returned warning)
+          // If so, remove the optimistic user message from UI
+          const adminWarningText =
+            ChatUnexpectedInputService.ADMIN_WARNING_TEXT_CLIENT;
+          const wasBlocked = resp.messages.some(
+            m => m.text === adminWarningText
+          );
+
+          if (wasBlocked) {
+            // Remove the optimistic user message that was blocked
+            setMessages(prev => prev.filter(msg => msg.id !== userMsgId));
+            // Also remove from conversation if it was added
+            // Note: addConvMessage doesn't have a remove function, but since the message
+            // wasn't saved to DB, it won't appear in backreading anyway
+          }
+
           // Use FlowTriggerService to determine typing delay behavior
           const skipDelay = FlowTriggerService.shouldSkipTypingDelay(
             flowId as any
@@ -949,11 +967,16 @@ export const useAdminChat = (): UseAdminChatReturn => {
           );
 
           setQuickReplies(
-            (resp.quickReplies || []).map((qr, i) => ({
-              id: qr.id || `qr-${i}`,
-              label: qr.label,
-              value: qr.value,
-            }))
+            (resp.quickReplies || []).map(
+              (
+                qr: { id?: string; label: string; value: string },
+                i: number
+              ) => ({
+                id: qr.id || `qr-${i}`,
+                label: qr.label,
+                value: qr.value,
+              })
+            )
           );
 
           if (currentConversationId) {
@@ -1146,11 +1169,13 @@ export const useAdminChat = (): UseAdminChatReturn => {
         // The typing animation will be handled by the MessageGroup component based on isHistorical flag
         setMessages(mappedMessages);
         setQuickReplies(
-          (resp.quickReplies || []).map((qr, i) => ({
-            id: qr.id || `qr-${i}`,
-            label: qr.label,
-            value: qr.value,
-          }))
+          (resp.quickReplies || []).map(
+            (qr: { id?: string; label: string; value: string }, i: number) => ({
+              id: qr.id || `qr-${i}`,
+              label: qr.label,
+              value: qr.value,
+            })
+          )
         );
         // Note: Messages are already in the database from JsonbFlowProcessor.processInput
         // No need to add them again via addConvMessage

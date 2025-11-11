@@ -23,6 +23,7 @@ import {
   fetchSessionMessages,
 } from '@features/chat/helpers/flowHelpers';
 import { SessionStateManager } from '@features/chat/services/SessionStateManager';
+import { ChatUnexpectedInputService } from '@features/chat/services/ChatUnexpectedInputService';
 
 // Re-export types and fetchSessionMessages for backward compatibility
 export type { FlowExecutionResult } from '@features/chat/types';
@@ -545,7 +546,7 @@ export class JsonbFlowProcessor {
     // ✅ PHASE 3 OPTIMIZATION: Load session with SessionStateManager for batched updates
     const { data: session, error: sessionError } = await supabase
       .from('chat_sessions_v2')
-      .select('metadata, customer_id')
+      .select('metadata, customer_id, flow_id')
       .eq('session_id', sessionId)
       .single();
 
@@ -555,6 +556,7 @@ export class JsonbFlowProcessor {
 
     const metadata = session.metadata as SessionMetadata;
     const customerId = session.customer_id;
+    const flowId: string | null = (session as any).flow_id || null;
 
     // Create state manager for batched metadata updates
     const stateManager = new SessionStateManager(sessionId, metadata);
@@ -575,12 +577,46 @@ export class JsonbFlowProcessor {
       user_input: userInput,
     });
 
+    // Detect if the current step expects a file upload; in that case do not store user text
+    const contextBefore = stateManager.getContext();
+    const expectsFileUpload =
+      (currentNode.type === 'action' &&
+        'action' in (currentNode as any) &&
+        /upload|file/i.test((currentNode as ActionNode).action)) ||
+      (currentNode.type === 'message' &&
+        (currentNode as any).expects_input === true &&
+        (currentNode as any).input_config &&
+        ((currentNode as any).input_config.type === 'file' ||
+          (currentNode as any).input_config.input_type === 'file' ||
+          (typeof (currentNode as any).input_config.store_as === 'string' &&
+            /(uploaded_|upload|file|_url)$/i.test(
+              (currentNode as any).input_config.store_as
+            )))) ||
+      (currentNode.type === 'message' &&
+        typeof (currentNode as any).message === 'string' &&
+        (currentNode as any).message
+          .toLowerCase()
+          .startsWith('please click the attachment button')) ||
+      // Specific safeguard for known node id in place-order flow
+      originalNodeId === 'upload_image_instructions' ||
+      // Specific safeguard for reupload-payment flow
+      originalNodeId === 'request_upload' ||
+      // Specific safeguard for pay-order flow
+      originalNodeId === 'upload_payment_instructions' ||
+      Boolean((contextBefore as any).awaiting_file_upload) ||
+      Boolean((contextBefore as any).expects_file_upload);
+
     const responses: Array<{
       id: string;
       role: 'printy';
       text: string;
       ts: number;
     }> = [];
+
+    // Shared flag to prevent saving certain inputs as user messages in the transcript
+    // Example: when an admin clicks a quick reply like "Reply", we don't want to show
+    // a separate admin message bubble that later disappears after navigation.
+    let skipUserInsertForThisMessage = false;
 
     // Handle input collection if node expects it
     if (
@@ -602,7 +638,8 @@ export class JsonbFlowProcessor {
 
     // Only process quick reply matching if:
     // 1. There are pending quick replies from a previous action, OR
-    // 2. The current node has options defined (indicating it expects option selection)
+    // 2. The current node has options defined (indicating it expects option selection), OR
+    // 3. The current node is an action that typically generates dynamic quick replies
     const shouldProcessQuickReplies =
       (pendingQuickReplies &&
         Array.isArray(pendingQuickReplies) &&
@@ -610,23 +647,56 @@ export class JsonbFlowProcessor {
       ((currentNode.type === 'message' || currentNode.type === 'action') &&
         'options' in currentNode &&
         currentNode.options &&
-        currentNode.options.length > 0);
+        currentNode.options.length > 0) ||
+      (currentNode.type === 'action' &&
+        [
+          'display_service_categories',
+          'display_products',
+          'display_locations',
+        ].includes(currentNode.action));
 
     if (shouldProcessQuickReplies) {
       // First check pending quick replies from previous action
       if (pendingQuickReplies && Array.isArray(pendingQuickReplies)) {
+        // Normalize input for matching dynamic quick replies that may be sent as "id|label"
+        const rawInput = userInput || '';
+        const inputLower = rawInput.toLowerCase();
+        const pipeIndex = rawInput.indexOf('|');
+        const inputValuePart =
+          pipeIndex > -1 ? rawInput.substring(0, pipeIndex).trim() : rawInput;
+        const inputLabelPart =
+          pipeIndex > -1 ? rawInput.substring(pipeIndex + 1).trim() : rawInput;
+        const inputValueLower = inputValuePart.toLowerCase();
+        const inputLabelLower = inputLabelPart.toLowerCase();
+
         const selectedQuickReply = pendingQuickReplies.find((qr: any) => {
-          const labelMatch =
-            qr.label?.toLowerCase() === userInput.toLowerCase();
-          const valueMatch =
-            qr.value?.toLowerCase() === userInput.toLowerCase();
-          return labelMatch || valueMatch;
+          const labelLower = (qr.label || '').toLowerCase();
+          const valueLower = (qr.value || '').toLowerCase();
+          // Match any of: exact full input, value part, or label part
+          return (
+            labelLower === inputLower ||
+            valueLower === inputLower ||
+            labelLower === inputLabelLower ||
+            valueLower === inputValueLower
+          );
         });
 
-        if (selectedQuickReply && selectedQuickReply.next) {
+        if (selectedQuickReply) {
           // Remember label to display in the transcript
           selectedQuickReplyLabel = selectedQuickReply.label || null;
-          stateManager.setCurrentNode(selectedQuickReply.next);
+          // Allow admin quick-reply selections to render as message bubbles
+
+          // ✅ FIX: If pending quick reply has next, navigate immediately and mark as fully matched
+          // If no next, still prevent insertion but allow node options check to find next
+          if (selectedQuickReply.next) {
+            stateManager.setCurrentNode(selectedQuickReply.next);
+            optionMatched = true; // Fully handled, no need to check node options
+          } else {
+            // No next in pending quick reply, but we found a match
+            // Don't set optionMatched yet - allow node options check to provide next
+            // But we've already set skipUserInsertForThisMessage, so message won't be inserted
+            // Note: optionMatched remains false so node options check can run
+          }
 
           // ✅ FIX: Store value using store_as property if provided
           if (selectedQuickReply.store_as && selectedQuickReply.value) {
@@ -649,32 +719,91 @@ export class JsonbFlowProcessor {
               category_id: categoryId, // Also store as category_id for consistency
             });
           }
-
-          optionMatched = true;
         }
       }
 
       // Handle option selection from node definition (fallback if no quick reply matched)
+      // This section also handles dynamically generated quick replies like service categories
       if (
         !optionMatched &&
-        (currentNode.type === 'message' || currentNode.type === 'action') &&
-        currentNode.options
+        (currentNode.type === 'message' || currentNode.type === 'action')
       ) {
-        const selectedOption = currentNode.options.find(opt => {
-          const labelMatch =
-            opt.label.toLowerCase() === userInput.toLowerCase();
-          const valueMatch =
-            opt.value?.toLowerCase() === userInput.toLowerCase();
-          return labelMatch || valueMatch;
-        });
+        // Support "id|label" input format for node-defined options as well
+        const rawInput = userInput || '';
+        const inputLower = rawInput.toLowerCase();
+        const pipeIndex = rawInput.indexOf('|');
+        const inputValuePart =
+          pipeIndex > -1 ? rawInput.substring(0, pipeIndex).trim() : rawInput;
+        const inputLabelPart =
+          pipeIndex > -1 ? rawInput.substring(pipeIndex + 1).trim() : rawInput;
+        const inputValueLower = inputValuePart.toLowerCase();
+        const inputLabelLower = inputLabelPart.toLowerCase();
+
+        // First try to match with current node options if they exist
+        let selectedOption = null;
+        if (currentNode.options) {
+          selectedOption = currentNode.options.find(opt => {
+            const labelLower = (opt.label || '').toLowerCase();
+            const valueLower = (opt.value || '').toLowerCase();
+            return (
+              labelLower === inputLower ||
+              valueLower === inputLower ||
+              labelLower === inputLabelLower ||
+              valueLower === inputValueLower
+            );
+          });
+        }
+
+        // If no match found in node options, treat this as a dynamic quick reply match
+        // This handles cases like service categories where options are fetched from DB
+        if (!selectedOption && userInput.includes('|')) {
+          // For any valid "id|label" input, consider it a valid quick reply
+          // This prevents the unexpected input warning for legitimate dynamic selections
+          const parts = userInput.split('|');
+          if (parts.length === 2 && parts[0].trim() && parts[1].trim()) {
+            selectedOption = {
+              label: parts[1].trim(),
+              value: parts[0].trim(),
+              next: undefined, // Will be determined by the action handler
+              store_as: undefined,
+            };
+
+            // ✅ FIX: Handle dynamic service categories properly
+            // For service categories, store the selection and advance to next node
+            if (
+              (currentNode as any).id === 'services-offered' ||
+              (currentNode as any).action === 'display_service_categories'
+            ) {
+              (selectedOption as any).store_as = 'selected_category';
+              (selectedOption as any).next = 'category_dynamic';
+            }
+
+            // ✅ FIX: Set optionMatched to true to prevent unexpected input warning
+            optionMatched = true;
+          }
+        }
 
         if (selectedOption) {
           // Remember label to display in the transcript
           selectedQuickReplyLabel = selectedOption.label || null;
+          // Allow admin option selections to render as message bubbles
           // Store option value if specified
           if (selectedOption.value && selectedOption.store_as) {
             stateManager.updateContext({
               [selectedOption.store_as]: selectedOption.value,
+            });
+          }
+
+          // ✅ FIX: Handle dynamic service category storage
+          // For service categories, store both selected_category and category_id
+          if (
+            userInput.includes('|') &&
+            (currentNode as any).id === 'services-offered'
+          ) {
+            const categoryId = userInput.split('|')[0];
+            stateManager.updateContext({
+              selected_category: categoryId,
+              category_id: categoryId, // Also store as category_id for consistency
             });
           }
 
@@ -688,6 +817,440 @@ export class JsonbFlowProcessor {
       }
     }
 
+    // Note: For non-upload steps, we will insert the user's message first (see below),
+    // then handle unexpected input after insertion so the message is preserved.
+
+    // Global guard for informational flows: block free-text unless a quick reply option was clicked
+    const isInformationalFlow =
+      flowId === 'faqs' ||
+      flowId === 'guest-faqs' ||
+      flowId === 'about-us' ||
+      flowId === 'guest-about-us';
+    if (
+      (senderRole === 'customer' || senderRole === 'admin') &&
+      isInformationalFlow &&
+      !optionMatched &&
+      !expectsFileUpload
+    ) {
+      const warningText =
+        senderRole === 'admin'
+          ? ChatUnexpectedInputService.getAdminWarningText()
+          : ChatUnexpectedInputService.getCustomerWarningText();
+      await (senderRole === 'admin'
+        ? ChatUnexpectedInputService.sendAdminWarning(sessionId)
+        : ChatUnexpectedInputService.sendCustomerWarning(sessionId));
+      responses.push({
+        id: crypto.randomUUID(),
+        role: 'printy',
+        text: warningText,
+        ts: Date.now(),
+      });
+
+      // Avoid duplicating the long prompt repeatedly when user keeps typing text.
+      const infoCtx = stateManager.getContext() || {};
+      const lastWarnNode = (infoCtx as any)._last_info_warn_node;
+      const lastWarnTs = Number((infoCtx as any)._last_info_warn_ts || 0);
+      const nowTs = Date.now();
+      const isSameNode = lastWarnNode === stateManager.getCurrentNodeId();
+      const withinCooldown = nowTs - lastWarnTs < 12000; // 12s cooldown to reduce spam
+
+      // Re-show current prompt/message if present and not within cooldown
+      if (
+        !(isSameNode && withinCooldown) &&
+        currentNode.type === 'message' &&
+        typeof (currentNode as any).message === 'string' &&
+        (currentNode as any).message.trim().length > 0
+      ) {
+        responses.push({
+          id: crypto.randomUUID(),
+          role: 'printy',
+          text: (currentNode as any).message,
+          ts: Date.now(),
+        });
+        await insertMessage({
+          sessionId,
+          text: (currentNode as any).message,
+          role: 'printy',
+          nodeId: stateManager.getCurrentNodeId(),
+        });
+      }
+
+      // Re-surface choices
+      const quickReplies = buildQuickReplies(currentNode);
+      if (quickReplies.length > 0) {
+        stateManager.updateContext({ _pending_quick_replies: quickReplies });
+        // Track last warning to avoid immediate duplicate re-prompting
+        stateManager.updateContext({
+          _last_info_warn_node: stateManager.getCurrentNodeId(),
+          _last_info_warn_ts: nowTs,
+        });
+        await stateManager.flush();
+      }
+
+      return {
+        messages: responses,
+        quickReplies: buildQuickReplies(currentNode),
+        sessionId,
+        currentNodeId: stateManager.getCurrentNodeId(),
+      };
+    }
+
+    // Special handling for steps expecting a file upload
+    // If user actually sent a file (often represented as a URL or storage path string),
+    // accept it and do NOT warn. Otherwise, warn and do not store the text.
+    if (expectsFileUpload && senderRole === 'customer') {
+      const looksLikeFileUpload =
+        /^https?:\/\/\S+\.(png|jpe?g|gif|webp|pdf|heic|heif|bmp|tiff)(\?\S*)?$/i.test(
+          userInput
+        ) ||
+        /storage|object\/public|signed|\.pdf|\.png|\.jpg|\.jpeg|\.gif|\.webp|\.heic|\.bmp|\.tiff/i.test(
+          userInput
+        ) ||
+        userInput.startsWith('file:') ||
+        userInput.startsWith('attachment:');
+
+      if (looksLikeFileUpload) {
+        // If node captures the uploaded file URL/path, store it in context
+        if (
+          currentNode.type === 'message' &&
+          (currentNode as any).input_config &&
+          (currentNode as any).input_config.store_as
+        ) {
+          stateManager.updateContext({
+            [(currentNode as any).input_config.store_as]: userInput,
+          });
+        }
+        // Allow normal progression below (no warning, do insert so it appears in transcript)
+        skipUserInsertForThisMessage = false;
+      } else {
+        // User typed text on a file-required step; first record the message to preserve transcript,
+        // then warn and re-execute without advancing
+        await insertMessage({
+          sessionId,
+          text: userInput,
+          role: senderRole,
+          nodeId: originalNodeId,
+        });
+        const uploadWarnText =
+          ChatUnexpectedInputService.getUploadExpectedWarningText();
+        await ChatUnexpectedInputService.sendUploadExpectedWarning(sessionId);
+        responses.push({
+          id: crypto.randomUUID(),
+          role: 'printy',
+          text: uploadWarnText,
+          ts: Date.now(),
+        });
+
+        // Re-execute current action (if applicable) to re-surface instructions/quick replies
+        let quickReplies: Array<{ id: string; label: string; value: string }> =
+          [];
+        if (currentNode.type === 'action') {
+          const reexecResult = await this.executeAction({
+            actionNode: currentNode as ActionNode,
+            sessionId,
+            customerId,
+            context: stateManager.getContext(),
+          });
+
+          responses.push(...reexecResult.messages);
+          for (const message of reexecResult.messages) {
+            await insertMessage({
+              sessionId,
+              text: message.text,
+              role: message.role,
+              nodeId: stateManager.getCurrentNodeId(),
+            });
+          }
+
+          if (reexecResult.quickReplies) {
+            quickReplies = reexecResult.quickReplies;
+            stateManager.updateContext({
+              _pending_quick_replies: reexecResult.quickReplies,
+            });
+            await stateManager.flush();
+          }
+        } else {
+          // If not an action node, fall back to node-defined quick replies
+          quickReplies = buildQuickReplies(currentNode);
+          if (quickReplies.length > 0) {
+            stateManager.updateContext({
+              _pending_quick_replies: quickReplies,
+            });
+            await stateManager.flush();
+          }
+        }
+
+        return {
+          messages: responses,
+          quickReplies,
+          sessionId,
+          currentNodeId: stateManager.getCurrentNodeId(),
+        };
+      }
+    }
+
+    // If this step does NOT expect a file but the input looks like an upload, block it:
+    // do not insert the user message, warn, re-execute, and return without advancing.
+    if (
+      !expectsFileUpload &&
+      (senderRole === 'customer' || senderRole === 'admin')
+    ) {
+      const looksLikeUnexpectedFileUpload =
+        /^https?:\/\/\S+\.(png|jpe?g|gif|webp|pdf|heic|heif|bmp|tiff)(\?\S*)?$/i.test(
+          userInput
+        ) ||
+        /storage|object\/public|signed|\.pdf|\.png|\.jpg|\.jpeg|\.gif|\.webp|\.heic|\.bmp|\.tiff/i.test(
+          userInput
+        ) ||
+        userInput.startsWith('file:') ||
+        userInput.startsWith('attachment:');
+
+      if (looksLikeUnexpectedFileUpload) {
+        // Attempt to clean up any uploaded file that slipped through client-side checks
+        await tryDeleteFromStorageByUrl(userInput);
+        const warningText =
+          senderRole === 'admin'
+            ? ChatUnexpectedInputService.getAdminWarningText()
+            : ChatUnexpectedInputService.getCustomerWarningText();
+        await (senderRole === 'admin'
+          ? ChatUnexpectedInputService.sendAdminWarning(sessionId)
+          : ChatUnexpectedInputService.sendCustomerWarning(sessionId));
+        responses.push({
+          id: crypto.randomUUID(),
+          role: 'printy',
+          text: warningText,
+          ts: Date.now(),
+        });
+
+        // Set flag to prevent user message insertion later in the function
+        skipUserInsertForThisMessage = true;
+
+        let quickReplies: Array<{ id: string; label: string; value: string }> =
+          [];
+        if (currentNode.type === 'action') {
+          const reexecResult = await this.executeAction({
+            actionNode: currentNode as ActionNode,
+            sessionId,
+            customerId,
+            context: stateManager.getContext(),
+          });
+
+          responses.push(...reexecResult.messages);
+          for (const message of reexecResult.messages) {
+            await insertMessage({
+              sessionId,
+              text: message.text,
+              role: message.role,
+              nodeId: stateManager.getCurrentNodeId(),
+            });
+          }
+
+          if (reexecResult.quickReplies) {
+            quickReplies = reexecResult.quickReplies;
+            stateManager.updateContext({
+              _pending_quick_replies: reexecResult.quickReplies,
+            });
+            await stateManager.flush();
+          }
+        }
+
+        if (quickReplies.length === 0) {
+          quickReplies = buildQuickReplies(currentNode);
+          if (quickReplies.length > 0) {
+            stateManager.updateContext({
+              _pending_quick_replies: quickReplies,
+            });
+            await stateManager.flush();
+          }
+        }
+
+        return {
+          messages: responses,
+          quickReplies,
+          sessionId,
+          currentNodeId: stateManager.getCurrentNodeId(),
+        };
+      }
+    }
+
+    // Block free-text on action nodes that don't expect a message (no options to select)
+    if (
+      currentNode.type === 'action' &&
+      (senderRole === 'customer' || senderRole === 'admin') &&
+      !optionMatched &&
+      (!('options' in currentNode) ||
+        !currentNode.options ||
+        currentNode.options.length === 0)
+    ) {
+      // Prevent user message from being saved for unexpected input
+      skipUserInsertForThisMessage = true;
+      const warningText =
+        senderRole === 'admin'
+          ? ChatUnexpectedInputService.getAdminWarningText()
+          : ChatUnexpectedInputService.getCustomerWarningText();
+      await (senderRole === 'admin'
+        ? ChatUnexpectedInputService.sendAdminWarning(sessionId)
+        : ChatUnexpectedInputService.sendCustomerWarning(sessionId));
+      responses.push({
+        id: crypto.randomUUID(),
+        role: 'printy',
+        text: warningText,
+        ts: Date.now(),
+      });
+
+      // Re-execute the current action to re-surface proper guidance/quick replies
+      const reexecResult = await this.executeAction({
+        actionNode: currentNode as ActionNode,
+        sessionId,
+        customerId,
+        context: stateManager.getContext(),
+      });
+
+      responses.push(...reexecResult.messages);
+      for (const message of reexecResult.messages) {
+        await insertMessage({
+          sessionId,
+          text: message.text,
+          role: message.role,
+          nodeId: stateManager.getCurrentNodeId(),
+        });
+      }
+
+      if (reexecResult.quickReplies) {
+        stateManager.updateContext({
+          _pending_quick_replies: reexecResult.quickReplies,
+        });
+        await stateManager.flush();
+      }
+
+      return {
+        messages: responses,
+        quickReplies:
+          (reexecResult as any).quickReplies || buildQuickReplies(currentNode),
+        sessionId,
+        currentNodeId: stateManager.getCurrentNodeId(),
+      };
+    }
+
+    // Decision nodes (message with options):
+    // if user types free-text that doesn't match an option, DO NOT save the text.
+    const currentNodeOptions = (currentNode as any).options;
+    if (
+      (senderRole === 'customer' || senderRole === 'admin') &&
+      !expectsFileUpload &&
+      !optionMatched &&
+      currentNode.type === 'message' &&
+      Array.isArray(currentNodeOptions) &&
+      currentNodeOptions.length > 0
+    ) {
+      // Prevent user message from being saved for unexpected input
+      skipUserInsertForThisMessage = true;
+      const warningText =
+        senderRole === 'admin'
+          ? ChatUnexpectedInputService.getAdminWarningText()
+          : ChatUnexpectedInputService.getCustomerWarningText();
+      await (senderRole === 'admin'
+        ? ChatUnexpectedInputService.sendAdminWarning(sessionId)
+        : ChatUnexpectedInputService.sendCustomerWarning(sessionId));
+      responses.push({
+        id: crypto.randomUUID(),
+        role: 'printy',
+        text: warningText,
+        ts: Date.now(),
+      });
+
+      // Re-show the node's prompt/message so the user sees the instruction again
+      if (
+        typeof (currentNode as any).message === 'string' &&
+        (currentNode as any).message.trim().length > 0
+      ) {
+        responses.push({
+          id: crypto.randomUUID(),
+          role: 'printy',
+          text: (currentNode as any).message,
+          ts: Date.now(),
+        });
+        await insertMessage({
+          sessionId,
+          text: (currentNode as any).message,
+          role: 'printy',
+          nodeId: stateManager.getCurrentNodeId(),
+        });
+      }
+
+      const quickReplies = buildQuickReplies(currentNode);
+      if (quickReplies.length > 0) {
+        stateManager.updateContext({ _pending_quick_replies: quickReplies });
+        await stateManager.flush();
+      }
+
+      return {
+        messages: responses,
+        quickReplies,
+        sessionId,
+        currentNodeId: stateManager.getCurrentNodeId(),
+      };
+    }
+
+    // Action nodes that present options (choices):
+    // if user types free-text that doesn't match any option, DO NOT save the text.
+    if (
+      (senderRole === 'customer' || senderRole === 'admin') &&
+      !expectsFileUpload &&
+      !optionMatched &&
+      currentNode.type === 'action' &&
+      Array.isArray((currentNode as any).options) &&
+      (currentNode as any).options.length > 0
+    ) {
+      // Prevent user message from being saved for unexpected input
+      skipUserInsertForThisMessage = true;
+      const warningText =
+        senderRole === 'admin'
+          ? ChatUnexpectedInputService.getAdminWarningText()
+          : ChatUnexpectedInputService.getCustomerWarningText();
+      await (senderRole === 'admin'
+        ? ChatUnexpectedInputService.sendAdminWarning(sessionId)
+        : ChatUnexpectedInputService.sendCustomerWarning(sessionId));
+      responses.push({
+        id: crypto.randomUUID(),
+        role: 'printy',
+        text: warningText,
+        ts: Date.now(),
+      });
+
+      // Re-execute the current action to re-surface its choices/instructions
+      const reexecResult = await this.executeAction({
+        actionNode: currentNode as ActionNode,
+        sessionId,
+        customerId,
+        context: stateManager.getContext(),
+      });
+
+      responses.push(...reexecResult.messages);
+      for (const message of reexecResult.messages) {
+        await insertMessage({
+          sessionId,
+          text: message.text,
+          role: message.role,
+          nodeId: stateManager.getCurrentNodeId(),
+        });
+      }
+
+      let quickReplies =
+        (reexecResult as any).quickReplies || buildQuickReplies(currentNode);
+      if (quickReplies.length > 0) {
+        stateManager.updateContext({ _pending_quick_replies: quickReplies });
+        await stateManager.flush();
+      }
+
+      return {
+        messages: responses,
+        quickReplies,
+        sessionId,
+        currentNodeId: stateManager.getCurrentNodeId(),
+      };
+    }
+
     // Now insert the user message with a friendly label if available
     // Priority: displayLabel (from handler) > selectedQuickReplyLabel (from matching) > extract from userInput > userInput
     let displayText = displayLabel || selectedQuickReplyLabel || userInput;
@@ -696,12 +1259,97 @@ export class JsonbFlowProcessor {
       displayText = userInput.split('|')[1] || userInput;
     }
 
-    await insertMessage({
-      sessionId,
-      text: displayText,
-      role: senderRole,
-      nodeId: originalNodeId,
-    });
+    if (!skipUserInsertForThisMessage) {
+      await insertMessage({
+        sessionId,
+        text: displayText,
+        role: senderRole,
+        nodeId: originalNodeId,
+      });
+    }
+
+    // Handle unexpected input for customers and admins on non-upload steps:
+    // warn, then re-execute current action (if any), without advancing.
+    // NOTE: Skip this check if the current node explicitly expects input (like collect_admin_reply, collect_reply)
+    // Those nodes are designed to accept free text input.
+    // Check if node explicitly expects input (like collect_admin_reply, collect_reply)
+    const nodeExpectsInput =
+      currentNode.type === 'message' &&
+      (currentNode as any).expects_input === true &&
+      (currentNode as any).input_config &&
+      (!(currentNode as any).options ||
+        !Array.isArray((currentNode as any).options) ||
+        (currentNode as any).options.length === 0);
+
+    if (
+      shouldProcessQuickReplies &&
+      !optionMatched &&
+      (senderRole === 'customer' || senderRole === 'admin') &&
+      !expectsFileUpload &&
+      !nodeExpectsInput // ✅ FIX: Don't block input if node explicitly expects it
+    ) {
+      // Prevent user message from being saved for unexpected input
+      skipUserInsertForThisMessage = true;
+      const warningText =
+        senderRole === 'admin'
+          ? ChatUnexpectedInputService.getAdminWarningText()
+          : ChatUnexpectedInputService.getCustomerWarningText();
+      await (senderRole === 'admin'
+        ? ChatUnexpectedInputService.sendAdminWarning(sessionId)
+        : ChatUnexpectedInputService.sendCustomerWarning(sessionId));
+      responses.push({
+        id: crypto.randomUUID(),
+        role: 'printy',
+        text: warningText,
+        ts: Date.now(),
+      });
+
+      let quickReplies: Array<{ id: string; label: string; value: string }> =
+        [];
+      if (currentNode.type === 'action') {
+        const reexecResult = await this.executeAction({
+          actionNode: currentNode as ActionNode,
+          sessionId,
+          customerId,
+          context: stateManager.getContext(),
+        });
+
+        responses.push(...reexecResult.messages);
+        for (const message of reexecResult.messages) {
+          await insertMessage({
+            sessionId,
+            text: message.text,
+            role: message.role,
+            nodeId: stateManager.getCurrentNodeId(),
+          });
+        }
+
+        if (reexecResult.quickReplies) {
+          quickReplies = reexecResult.quickReplies;
+          stateManager.updateContext({
+            _pending_quick_replies: reexecResult.quickReplies,
+          });
+          await stateManager.flush();
+        }
+      }
+
+      if (quickReplies.length === 0) {
+        quickReplies = buildQuickReplies(currentNode);
+        if (quickReplies.length > 0) {
+          stateManager.updateContext({
+            _pending_quick_replies: quickReplies,
+          });
+          await stateManager.flush();
+        }
+      }
+
+      return {
+        messages: responses,
+        quickReplies,
+        sessionId,
+        currentNodeId: stateManager.getCurrentNodeId(),
+      };
+    }
 
     // ✅ FIX: Handle quick reply selections from action results
     // This handles cases where actions return dynamic quick replies (like show_customer_orders, display_service_categories)
@@ -1164,3 +1812,26 @@ export class JsonbFlowProcessor {
     return { messages };
   }
 }
+
+// Helper: best-effort deletion of an uploaded Storage object given its public/signed URL
+async function tryDeleteFromStorageByUrl(url: string): Promise<void> {
+  try {
+    // Match /object/public/<bucket>/<path> OR /object/sign/<bucket>/<path> or /object/signed/
+    const match = url.match(
+      /\/object\/(?:public|sign|signed)\/([^/]+)\/([^?]+)/i
+    );
+    if (!match) return;
+    const bucket = match[1];
+    const rawPath = match[2];
+    const path = decodeURIComponent(rawPath);
+    await supabase.storage.from(bucket).remove([path]);
+  } catch (err) {
+    console.error(
+      '[JsonbFlowProcessor] Failed to delete unexpected upload:',
+      err
+    );
+  }
+}
+
+// Attach as a static to keep callsites consistent with class context
+(JsonbFlowProcessor as any).tryDeleteStorageObject = tryDeleteFromStorageByUrl;

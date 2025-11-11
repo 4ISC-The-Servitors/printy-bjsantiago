@@ -43,6 +43,7 @@ export const QuickReplyGrid: React.FC<QuickReplyGridProps> = ({
     'back to payment options',
     'create a new category',
     'back to all options',
+    'back to all questions',
   ]);
 
   const handleEndChat = async () => {
@@ -104,15 +105,16 @@ export const QuickReplyGrid: React.FC<QuickReplyGridProps> = ({
           if (isEnd) {
             void handleEndChat();
           } else {
-            // Extract the label from the value if it contains a pipe (category_id|category_name)
-            // Otherwise, just use the value as-is
-            const displayLabel = reply.value.includes('|')
-              ? reply.value.split('|')[1]
-              : reply.label;
+            // Compose a robust value that includes both id and label for server-side routing.
+            // If value already contains a pipe (id|label), keep as-is; otherwise append label.
+            const valueWithLabel = reply.value.includes('|')
+              ? reply.value
+              : `${reply.value}|${reply.label}`;
+            const displayLabel = valueWithLabel.split('|')[1] || reply.label;
 
             // Pass both value (for routing) and label (for display) as an object
             // The handler will extract what it needs
-            onQuickReply?.({ value: reply.value, label: displayLabel });
+            onQuickReply?.({ value: valueWithLabel, label: displayLabel });
           }
         };
 

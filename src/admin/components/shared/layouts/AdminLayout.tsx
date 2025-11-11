@@ -56,9 +56,80 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const { handleAttachFiles } = useChatAttachments(handleSendMessage);
   const { handleTicketImageUpload } = useTicketImageUpload();
 
+  // Guarded send to block text on upload-required nodes (shows toast; does not save)
+  const handleSendGuarded = useCallback(
+    async (text: string) => {
+      try {
+        if (dbSessionId) {
+          const { data: sessionRow } = await supabase
+            .from('chat_sessions_v2')
+            .select('metadata')
+            .eq('session_id', dbSessionId)
+            .single();
+          const currentNodeId =
+            (sessionRow?.metadata as any)?.current_node_id || null;
+          const ctx = (sessionRow?.metadata as any)?.context || {};
+          const expectsUploadExplicit =
+            currentNodeId === 'upload_image_instructions' ||
+            currentNodeId === 'request_upload' ||
+            currentNodeId === 'upload_payment_instructions' ||
+            ctx?.awaiting_file_upload === true ||
+            ctx?.expects_file_upload === true;
+          if (expectsUploadExplicit) {
+            toast.error(
+              'Upload required',
+              'This step needs a file upload. Please use the attachment button to add files. Text messages will not work for this step.'
+            );
+            return;
+          }
+        }
+      } catch (e) {
+        console.error('[Admin handleSendGuarded] Verify node state failed:', e);
+      }
+      handleSendMessage(text);
+    },
+    [dbSessionId, toast, handleSendMessage]
+  );
+
   // Enhanced file upload handler that uses ticket image upload for ticket review flows
   const handleFileUpload = useCallback(
     async (files: FileList) => {
+      // Guard: block uploads when current node does not expect a file
+      try {
+        if (dbSessionId) {
+          const { data: sessionRow } = await supabase
+            .from('chat_sessions_v2')
+            .select('metadata')
+            .eq('session_id', dbSessionId)
+            .single();
+          const currentNodeId =
+            (sessionRow?.metadata as any)?.current_node_id || null;
+          const ctx = (sessionRow?.metadata as any)?.context || {};
+          // Block explicitly when node expects text-only admin reply
+          if (currentNodeId === 'collect_admin_reply') {
+            toast.error(
+              'Upload blocked',
+              'This step expects a text reply only. File uploads are not allowed here.'
+            );
+            return;
+          }
+          const expectsUploadExplicit =
+            currentNodeId === 'upload_image_instructions' ||
+            currentNodeId === 'request_upload' ||
+            currentNodeId === 'upload_payment_instructions' ||
+            ctx?.awaiting_file_upload === true ||
+            ctx?.expects_file_upload === true;
+          if (!expectsUploadExplicit) {
+            toast.error(
+              'Upload blocked',
+              'This step does not accept file uploads. Please use the provided options or continue.'
+            );
+            return;
+          }
+        }
+      } catch (e) {
+        console.error('[Admin handleFileUpload] Verify node state failed:', e);
+      }
       // Check if we're in admin-review-ticket flow
       if (dbSessionId) {
         // Fetch session metadata to check flow_id and get inquiry_id
@@ -244,7 +315,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
               messages={messages}
               isTyping={isTyping}
               quickReplies={quickReplies}
-              onSend={handleSendMessage}
+              onSend={handleSendGuarded}
               onQuickReply={handleQuickReply}
               onEndChat={endChatWithDelay}
               onAttachFiles={handleFileUpload}
@@ -273,7 +344,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
               messages={messages}
               isTyping={isTyping}
               quickReplies={quickReplies}
-              onSend={handleSendMessage}
+              onSend={handleSendGuarded}
               onQuickReply={handleQuickReply}
               onEndChat={endChatWithDelay}
               onAttachFiles={handleFileUpload}

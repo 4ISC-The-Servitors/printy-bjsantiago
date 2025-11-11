@@ -286,18 +286,7 @@ export const CustomerChatOverlay: React.FC<CustomerChatOverlayProps> = ({
             />
           ))}
           {/* Global typing indicator removed to avoid duplication; MessageGroup handles typing */}
-          {/* Inline feedback for historical conversations */}
-          {readOnly &&
-            showFeedback &&
-            sessionId &&
-            isHistoricalConversation && (
-              <SessionFeedback
-                sessionId={sessionId}
-                userRole="customer"
-                isModal={false}
-                onSubmitted={() => setShowFeedback(false)}
-              />
-            )}
+          {/* Inline feedback removed for historical conversations - users should not see feedback when backreading */}
         </div>
 
         {/* Footer */}

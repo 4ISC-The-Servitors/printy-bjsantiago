@@ -881,8 +881,7 @@ export function formatZipCodeInput(
   const numbersOnly = inputStr.replace(/\D/g, '');
   // Limit to 4 digits
   const limited = numbersOnly.slice(0, 4);
-  // Pad to 4 digits with leading zeros
-  return limited.padStart(4, '0');
+  return limited;
 }
 
 /**

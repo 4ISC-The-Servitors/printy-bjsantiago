@@ -121,14 +121,6 @@ const RecentOrder: React.FC<RecentOrderProps> = ({ recentOrder }) => {
                 {formatShortTime(recentOrder.createdAt)}
               </span>
             </div>
-            <div
-              className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
-            >
-              <span className="font-medium">Updated:</span>
-              <span className="truncate">
-                {formatRelativeTimeLabel(recentOrder.updatedAt)}
-              </span>
-            </div>
             {recentOrder.paymentVerifiedAt && (
               <div
                 className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
@@ -151,6 +143,14 @@ const RecentOrder: React.FC<RecentOrderProps> = ({ recentOrder }) => {
                 </span>
               </div>
             )}
+            <div
+              className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
+            >
+              <span className="font-medium">Updated:</span>
+              <span className="truncate">
+                {formatRelativeTimeLabel(recentOrder.updatedAt)}
+              </span>
+            </div>
           </div>
 
           <div className="shrink-0 mt-3 sm:mt-0">

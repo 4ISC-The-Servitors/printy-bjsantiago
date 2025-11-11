@@ -106,14 +106,6 @@ const RecentQuotes: React.FC<RecentQuotesProps> = ({ recentQuote }) => {
                 {formatShortTime(recentQuote.createdAt)}
               </span>
             </div>
-            <div
-              className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
-            >
-              <span className="font-medium">Updated:</span>
-              <span className="truncate">
-                {formatRelativeTimeLabel(recentQuote.updatedAt)}
-              </span>
-            </div>
             {recentQuote.endedAt && (
               <div
                 className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
@@ -147,6 +139,14 @@ const RecentQuotes: React.FC<RecentQuotesProps> = ({ recentQuote }) => {
                 </span>
               </div>
             )}
+            <div
+              className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
+            >
+              <span className="font-medium">Updated:</span>
+              <span className="truncate">
+                {formatRelativeTimeLabel(recentQuote.updatedAt)}
+              </span>
+            </div>
           </div>
 
           <div className="shrink-0 mt-3 sm:mt-0">

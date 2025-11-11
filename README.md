@@ -7,6 +7,7 @@
 - improved auth page validations on forms
 - inserted municipalities to provinces that dont have cities
 - added UI for confirm email page
+- added warning messages if user tries to send test/uploads not being accepted in chat flow
 
 ### 2025-11-10-Andeng
 

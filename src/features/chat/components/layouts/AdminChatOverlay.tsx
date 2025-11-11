@@ -323,18 +323,7 @@ export const AdminChatOverlay: React.FC<AdminChatOverlayProps> = ({
           ))}
           {/* Global typing indicator removed to avoid duplication; MessageGroup handles typing */}
 
-          {/* Inline feedback for historical conversations */}
-          {readOnly &&
-            showFeedback &&
-            sessionId &&
-            isHistoricalConversation && (
-              <SessionFeedback
-                sessionId={sessionId}
-                userRole="admin"
-                isModal={false}
-                onSubmitted={() => setShowFeedback(false)}
-              />
-            )}
+          {/* Inline feedback removed for historical conversations - users should not see feedback when backreading */}
         </div>
 
         {/* Footer */}

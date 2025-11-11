@@ -56,9 +56,13 @@ export function SpecEditorModal() {
             return extras ? (desc ? `${desc}\n${extras}` : extras) : desc;
           })(),
           size: customEvent.detail.specData.size || '',
-          materials: customEvent.detail.specData.materials || [],
+          materials: Array.isArray(customEvent.detail.specData.materials)
+            ? customEvent.detail.specData.materials.join(', ')
+            : customEvent.detail.specData.materials || '',
           color: customEvent.detail.specData.color || '',
-          finishing: customEvent.detail.specData.finishing || [],
+          finishing: Array.isArray(customEvent.detail.specData.finishing)
+            ? customEvent.detail.specData.finishing.join(', ')
+            : customEvent.detail.specData.finishing || '',
           quantity: customEvent.detail.specData.quantity || 1,
           deadline: customEvent.detail.specData.deadline || '',
           delivery_method:
@@ -111,9 +115,13 @@ export function SpecEditorModal() {
       return extras ? (desc ? `${desc}\n${extras}` : extras) : desc;
     })(),
     size: modalData.specData.size || '',
-    materials: modalData.specData.materials || [],
+    materials: Array.isArray(modalData.specData.materials)
+      ? modalData.specData.materials.join(', ')
+      : modalData.specData.materials || '',
     color: modalData.specData.color || '',
-    finishing: modalData.specData.finishing || [],
+    finishing: Array.isArray(modalData.specData.finishing)
+      ? modalData.specData.finishing.join(', ')
+      : modalData.specData.finishing || '',
     quantity: modalData.specData.quantity || 1,
     deadline: modalData.specData.deadline || '',
     delivery_method: (modalData.specData as any).delivery_method || '',

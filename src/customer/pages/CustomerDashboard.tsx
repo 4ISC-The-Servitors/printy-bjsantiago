@@ -244,9 +244,87 @@ const CustomerDashboardContent: React.FC = () => {
     (activeConversation.flowId === 'ask-quote' ||
       activeConversation.flowId === 'place-order');
 
+  // Guarded send to block text on upload-required nodes (shows toast; does not save)
+  const handleSendGuarded = useCallback(
+    async (text: string) => {
+      try {
+        if (activeConversation?.id) {
+          const { data: sessionRow } = await supabase
+            .from('chat_sessions_v2')
+            .select('metadata')
+            .eq('session_id', activeConversation.id)
+            .single();
+
+          const currentNodeId =
+            (sessionRow?.metadata as any)?.current_node_id || null;
+          const ctx = (sessionRow?.metadata as any)?.context || {};
+          const expectsUploadExplicit =
+            currentNodeId === 'upload_image_instructions' ||
+            currentNodeId === 'request_upload' ||
+            currentNodeId === 'upload_payment_instructions' ||
+            ctx?.awaiting_file_upload === true ||
+            ctx?.expects_file_upload === true;
+
+          if (expectsUploadExplicit) {
+            toast.error(
+              'Upload required',
+              'This step needs a file upload. Please use the attachment button to add files. Text messages will not work for this step.'
+            );
+            return;
+          }
+        }
+      } catch (e) {
+        console.error('[handleSendGuarded] Failed to verify node state:', e);
+      }
+
+      await sendViaHook(text);
+    },
+    [activeConversation, sendViaHook, toast]
+  );
+
   // Enhanced file upload handler that uses payment proof upload for payment flows
   const handleFileUpload = useCallback(
     async (files: FileList) => {
+      // Guard: allow uploads only when the current node expects a file upload
+      try {
+        if (activeConversation?.id) {
+          const { data: sessionRow } = await supabase
+            .from('chat_sessions_v2')
+            .select('metadata')
+            .eq('session_id', activeConversation.id)
+            .single();
+
+          const currentNodeId =
+            (sessionRow?.metadata as any)?.current_node_id || null;
+          const ctx = (sessionRow?.metadata as any)?.context || {};
+          // Block explicitly when node expects text-only customer reply
+          if (currentNodeId === 'collect_reply') {
+            toast.error(
+              'Upload blocked',
+              'This step expects a text reply only. File uploads are not allowed here.'
+            );
+            return;
+          }
+          const expectsUploadExplicit =
+            currentNodeId === 'upload_image_instructions' ||
+            currentNodeId === 'request_upload' ||
+            currentNodeId === 'upload_payment_instructions' ||
+            ctx?.awaiting_file_upload === true ||
+            ctx?.expects_file_upload === true;
+
+          if (!expectsUploadExplicit) {
+            // Block upload on non-upload steps
+            toast.error(
+              'Upload blocked',
+              'This step does not accept file uploads. Please use the provided options or continue with text.'
+            );
+            return;
+          }
+        }
+      } catch (e) {
+        // If guard check fails, fall through to existing behavior (conservative)
+        console.error('[handleFileUpload] Failed to verify node state:', e);
+      }
       if (isPaymentFlow && activeConversation) {
         // Get order ID from payment flow context or fallback to recent order
         let orderId = recentOrder?.id;
@@ -428,7 +506,7 @@ const CustomerDashboardContent: React.FC = () => {
                 conversations.find(c => c.id === activeId)?.title || 'Chat'
               }
               messages={messages}
-              onSend={sendViaHook}
+              onSend={handleSendGuarded}
               isTyping={isTyping}
               onBack={() => {
                 setActiveId(null);
@@ -466,7 +544,7 @@ const CustomerDashboardContent: React.FC = () => {
               messages={messages}
               isTyping={isTyping}
               quickReplies={quickReplies}
-              onSend={sendViaHook}
+              onSend={handleSendGuarded}
               onQuickReply={quickReplyViaHook}
               onEndChat={endChatViaHook}
               readOnly={
@@ -553,7 +631,7 @@ const CustomerDashboardContent: React.FC = () => {
               messages={messages}
               isTyping={isTyping}
               quickReplies={quickReplies}
-              onSend={sendViaHook}
+              onSend={handleSendGuarded}
               onQuickReply={quickReplyViaHook}
               onEndChat={endChatViaHook}
               onAttachFiles={handleFileUpload}
@@ -571,7 +649,7 @@ const CustomerDashboardContent: React.FC = () => {
                 conversations.find(c => c.id === activeId)?.title || 'Chat'
               }
               messages={messages}
-              onSend={sendViaHook}
+              onSend={handleSendGuarded}
               isTyping={isTyping}
               onBack={() => {
                 setActiveId(null);

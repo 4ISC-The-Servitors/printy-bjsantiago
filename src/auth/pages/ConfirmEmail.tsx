@@ -16,16 +16,19 @@ const ConfirmEmail: React.FC = () => {
       // This is the primary indicator that they came from an email confirmation link
       const hash = window.location.hash;
       const hasAccessToken = hash.includes('access_token=');
-      const hasType = hash.includes('type=signup') || hash.includes('type=email');
-      
+      const hasType =
+        hash.includes('type=signup') || hash.includes('type=email');
+
       // Also check URL search params (some email clients might use query params)
       const urlParams = new URLSearchParams(window.location.search);
-      const hasTokenParam = urlParams.has('token') || urlParams.has('access_token');
-      
+      const hasTokenParam =
+        urlParams.has('token') || urlParams.has('access_token');
+
       // Valid ONLY if there's an access token in hash or token in query params
       // We don't check for existing sessions because that could be from a previous login
-      const isValidAccess = hasAccessToken || (hasType && hash) || hasTokenParam;
-      
+      const isValidAccess =
+        hasAccessToken || (hasType && hash) || hasTokenParam;
+
       if (!isValidAccess) {
         // No valid confirmation token found - user is manually accessing the page
         // Redirect to sign in immediately
@@ -33,7 +36,7 @@ const ConfirmEmail: React.FC = () => {
         setIsValid(false);
         return false;
       }
-      
+
       setIsValid(true);
       return true;
     };
@@ -52,25 +55,27 @@ const ConfirmEmail: React.FC = () => {
     const run = async () => {
       // Ensure Supabase has had a chance to process the URL and create a session, if any
       await supabase.auth.getSession();
-      
+
       // Immediately sign out so the Sign In page doesn't auto-redirect to /customer
       // Clear all session data and storage
       try {
         // Sign out from Supabase
         await supabase.auth.signOut();
-        
+
         // Clear any stored user data in localStorage
         localStorage.removeItem('user');
-        
+
         // Clear any session storage items
         sessionStorage.removeItem('signin-success');
         sessionStorage.removeItem('logout-success');
-        
+
         // Wait a bit to ensure sign-out completes and AuthContext updates
         await new Promise(resolve => setTimeout(resolve, 200));
-        
+
         // Verify session is cleared
-        const { data: { session } } = await supabase.auth.getSession();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
         if (session) {
           // If session still exists, try signing out again
           await supabase.auth.signOut();
@@ -83,17 +88,17 @@ const ConfirmEmail: React.FC = () => {
         sessionStorage.removeItem('signin-success');
         sessionStorage.removeItem('logout-success');
       }
-      
+
       if (!cancelled) {
         setDone(true);
       }
     };
-    
+
     // Only run if access is valid
     if (isValid === true) {
       run();
     }
-    
+
     return () => {
       cancelled = true;
     };
@@ -153,12 +158,16 @@ const ConfirmEmail: React.FC = () => {
                         localStorage.removeItem('user');
                         sessionStorage.removeItem('signin-success');
                         sessionStorage.removeItem('logout-success');
-                        
+
                         // Wait for auth state to update and verify session is cleared
                         let attempts = 0;
                         while (attempts < 10) {
-                          await new Promise(resolve => setTimeout(resolve, 100));
-                          const { data: { session: currentSession } } = await supabase.auth.getSession();
+                          await new Promise(resolve =>
+                            setTimeout(resolve, 100)
+                          );
+                          const {
+                            data: { session: currentSession },
+                          } = await supabase.auth.getSession();
                           if (!currentSession) {
                             break;
                           }
@@ -169,7 +178,10 @@ const ConfirmEmail: React.FC = () => {
                           }
                         }
                       } catch (error) {
-                        console.error('Error signing out before navigation:', error);
+                        console.error(
+                          'Error signing out before navigation:',
+                          error
+                        );
                       }
                       navigate('/auth/signin');
                     }}

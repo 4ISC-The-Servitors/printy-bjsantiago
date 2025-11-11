@@ -104,14 +104,6 @@ const RecentTickets: React.FC<RecentTicketsProps> = ({ recentTicket }) => {
                 {formatShortTime(recentTicket.createdAt)}
               </span>
             </div>
-            <div
-              className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
-            >
-              <span className="font-medium">Updated:</span>
-              <span className="truncate">
-                {formatRelativeTimeLabel(recentTicket.updatedAt)}
-              </span>
-            </div>
             {recentTicket.resolvedAt && (
               <div
                 className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
@@ -123,6 +115,14 @@ const RecentTickets: React.FC<RecentTicketsProps> = ({ recentTicket }) => {
                 </span>
               </div>
             )}
+            <div
+              className={`flex items-center gap-2 text-neutral-500 ${textClasses.caption}`}
+            >
+              <span className="font-medium">Updated:</span>
+              <span className="truncate">
+                {formatRelativeTimeLabel(recentTicket.updatedAt)}
+              </span>
+            </div>
           </div>
 
           <div className="shrink-0 mt-3 sm:mt-0">
