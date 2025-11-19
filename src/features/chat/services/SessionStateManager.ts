@@ -29,10 +29,12 @@ export class SessionStateManager {
   private sessionId: string;
   private metadata: SessionMetadata;
   private isDirty: boolean = false;
+  private isGuestMode: boolean = false;
 
-  constructor(sessionId: string, initialMetadata: SessionMetadata) {
+  constructor(sessionId: string, initialMetadata: SessionMetadata, isGuestMode: boolean = false) {
     this.sessionId = sessionId;
     this.metadata = { ...initialMetadata };
+    this.isGuestMode = isGuestMode;
   }
 
   /**
@@ -100,6 +102,12 @@ export class SessionStateManager {
   async flush(): Promise<boolean> {
     if (!this.isDirty) {
       return true; // No updates to write
+    }
+
+    if (this.isGuestMode) {
+      console.log('[DEBUG] Guest session - skipping database flush');
+      this.isDirty = false;
+      return true;
     }
 
     try {

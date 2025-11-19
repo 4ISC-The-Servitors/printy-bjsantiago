@@ -23,7 +23,9 @@ export type AdminFlowId =
   | 'admin-verify-payment-valued'
   | 'admin-change-order-status'
   | 'admin-add-service'
-  | 'admin-update-service';
+  | 'admin-update-service'
+  | 'admin-modify-about-us'
+  | 'admin-modify-faqs';
 
 export type CustomerFlowId =
   | 'track-quote'
@@ -70,6 +72,10 @@ export class FlowTriggerService {
     switch (flowId) {
       case 'admin-add-service':
         return this.getAddServiceFlow();
+      case 'admin-modify-about-us':
+        return this.getModifyAboutFlow();
+      case 'admin-modify-faqs':
+        return this.getModifyFaqsFlow();
       default:
         console.error(`Unknown admin flow: ${flowId}`);
         return null;
@@ -104,6 +110,40 @@ export class FlowTriggerService {
         flowId: 'admin-add-service',
         metadata: {
           context: {},
+        },
+      }),
+    };
+  }
+
+  /**
+   * Admin modify-about-us flow - no entity ID required
+   */
+  private static async getModifyAboutFlow(): Promise<FlowContext | null> {
+    const context = {};
+    return {
+      flowId: 'admin-modify-about-us',
+      context,
+      sessionTitle: getSessionTitle({
+        flowId: 'admin-modify-about-us',
+        metadata: {
+          context,
+        },
+      }),
+    };
+  }
+
+  /**
+   * Admin modify-faqs flow - no entity ID required
+   */
+  private static async getModifyFaqsFlow(): Promise<FlowContext | null> {
+    const context = {};
+    return {
+      flowId: 'admin-modify-faqs',
+      context,
+      sessionTitle: getSessionTitle({
+        flowId: 'admin-modify-faqs',
+        metadata: {
+          context,
         },
       }),
     };

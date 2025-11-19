@@ -34,6 +34,14 @@ import { validateAndUpdateService } from './validateAndUpdateService';
 import { validateAndUpdateCategory } from './validateAndUpdateCategory';
 import { validateAndChangeServiceCategory } from './validateAndChangeServiceCategory';
 import { displayCategoriesForChangeCategory } from './displayCategoriesForChangeCategory';
+import { displayAboutSectionsAdmin } from './displayAboutSectionsAdmin';
+import { createAboutSectionAdmin } from './createAboutSectionAdmin';
+import { updateAboutSectionAdmin } from './updateAboutSectionAdmin';
+import { deleteAboutSectionAdmin } from './deleteAboutSectionAdmin';
+import { displayFaqsAdmin } from './displayFaqsAdmin';
+import { createFaqAdmin } from './createFaqAdmin';
+import { updateFaqAdmin } from './updateFaqAdmin';
+import { deleteFaqAdmin } from './deleteFaqAdmin';
 
 /**
  * Registry of all available action handlers
@@ -69,6 +77,14 @@ export const actionHandlers: Record<string, ActionHandler> = {
   validate_and_update_category: validateAndUpdateCategory,
   validate_and_change_service_category: validateAndChangeServiceCategory,
   display_categories_for_change_category: displayCategoriesForChangeCategory,
+  display_about_sections_admin: displayAboutSectionsAdmin,
+  create_about_section_admin: createAboutSectionAdmin,
+  update_about_section_admin: updateAboutSectionAdmin,
+  delete_about_section_admin: deleteAboutSectionAdmin,
+  display_faqs_admin: displayFaqsAdmin,
+  create_faq_admin: createFaqAdmin,
+  update_faq_admin: updateFaqAdmin,
+  delete_faq_admin: deleteFaqAdmin,
 };
 
 /**
@@ -104,4 +120,12 @@ export {
   validateAndUpdateCategory,
   validateAndChangeServiceCategory,
   displayCategoriesForChangeCategory,
+  displayAboutSectionsAdmin,
+  createAboutSectionAdmin,
+  updateAboutSectionAdmin,
+  deleteAboutSectionAdmin,
+  displayFaqsAdmin,
+  createFaqAdmin,
+  updateFaqAdmin,
+  deleteFaqAdmin,
 };

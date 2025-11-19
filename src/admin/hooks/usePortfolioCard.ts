@@ -108,9 +108,22 @@ export const usePortfolioCard = () => {
   };
 
   const viewInChat = (serviceId: string) => {
-    if (openChatWithTopic)
-      openChatWithTopic('portfolio', serviceId, undefined, allServices);
-    else openChat();
+    if (!openChatWithTopic) {
+      openChat();
+      return;
+    }
+
+    if (serviceId === 'about-bj-santiago') {
+      openChatWithTopic('about-bj-santiago');
+      return;
+    }
+
+    if (serviceId === 'faqs-bj-santiago') {
+      openChatWithTopic('faqs-bj-santiago');
+      return;
+    }
+
+    openChatWithTopic('portfolio', serviceId, undefined, allServices);
   };
 
   const handleAddService = () => {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { X, Minus } from 'lucide-react';
+import { X, Minus, ChevronsLeftRight } from 'lucide-react';
 import SpecEditorReopenBubble from '@shared/components/forms/SpecEditorReopenBubble';
 import { Button, Text } from '@shared/components';
 import Progress from '@shared/components/ui/Progress';
@@ -8,6 +8,7 @@ import { SessionFeedback } from '../feedback';
 import { getSessionFeedback } from '@features/chat/api';
 import { ChatEndService } from '@features/chat/services/ChatEndService';
 import { useChatLoadingToast } from '@features/chat/hooks/shared/useChatLoadingToast';
+import { useAdminChatDockWidth } from '@admin/hooks/useAdminChatDockWidth';
 import type { ChatMessage, QuickReply, ChatRole } from '@features/chat/types';
 
 export interface AdminChatDockProps {
@@ -32,6 +33,8 @@ export interface AdminChatDockProps {
  * Admin chat dock - Side panel for desktop admin chat
  * Fixed right side, 420px width
  */
+const RESIZE_HANDLE_WIDTH = 40; // px, keep in sync with handle container width
+
 export const AdminChatDock: React.FC<AdminChatDockProps> = ({
   open,
   onToggle,
@@ -56,6 +59,31 @@ export const AdminChatDock: React.FC<AdminChatDockProps> = ({
   const { showChatLoadingToast, clearLoadingToasts } =
     useChatLoadingToast(toast);
   const loadingToastIdRef = useRef<string | null>(null);
+  const {
+    width: dockWidth,
+    minWidth,
+    maxWidth,
+    isResizing: isAdjustingWidth,
+    handleMouseDown: handleResizeMouseDown,
+    handleTouchStart: handleResizeTouchStart,
+    handleKeyboardResize: handleResizeKeydown,
+    resetWidth: resetDockWidth,
+  } = useAdminChatDockWidth();
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (!root) return;
+
+    if (open) {
+      root.style.setProperty('--admin-chat-dock-width', `${dockWidth}px`);
+    } else {
+      root.style.setProperty('--admin-chat-dock-width', '0px');
+    }
+
+    return () => {
+      root.style.removeProperty('--admin-chat-dock-width');
+    };
+  }, [dockWidth, open]);
 
   // Group messages by role
   const messageGroups = useMemo(() => {
@@ -176,6 +204,26 @@ export const AdminChatDock: React.FC<AdminChatDockProps> = ({
     }
   }, [readOnly]);
 
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const root = document.documentElement;
+    if (!root) return;
+
+    const widthValue =
+      open && showContent
+        ? `${dockWidth + RESIZE_HANDLE_WIDTH}px`
+        : '0px';
+    root.style.setProperty('--admin-chat-dock-width', widthValue);
+  }, [dockWidth, open, showContent]);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return undefined;
+    const root = document.documentElement;
+    return () => {
+      root?.style.removeProperty('--admin-chat-dock-width');
+    };
+  }, []);
+
   const handleClose = async () => {
     try {
       window.dispatchEvent(new Event('spec-editor-hidden'));
@@ -215,10 +263,45 @@ export const AdminChatDock: React.FC<AdminChatDockProps> = ({
   if (!open || !showContent) return null;
 
   return (
-    <aside
-      className="hidden lg:flex fixed right-0 top-0 bottom-0 w-[420px] bg-white border-l border-neutral-200 flex-col z-30 animate-in slide-in-from-right duration-300"
-      data-admin-chat-open="true"
-    >
+    <div className="hidden lg:flex fixed right-0 top-0 bottom-0 z-30 animate-in slide-in-from-right duration-300">
+      <div className="h-full w-10 border-l border-neutral-200 bg-white flex items-center justify-center shadow-sm">
+        <button
+          type="button"
+          role="slider"
+          aria-label="Resize admin chat panel"
+          aria-orientation="horizontal"
+          aria-valuemin={minWidth}
+          aria-valuemax={maxWidth}
+          aria-valuenow={dockWidth}
+          title="Drag to resize chat panel"
+          tabIndex={0}
+          className={`w-7 h-20 rounded-full flex flex-col items-center justify-center gap-1 text-neutral-400 cursor-col-resize focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary-500 transition-colors ${
+            isAdjustingWidth ? 'bg-neutral-100' : 'bg-white'
+          }`}
+          onMouseDown={handleResizeMouseDown}
+          onTouchStart={handleResizeTouchStart}
+          onKeyDown={handleResizeKeydown}
+          onDoubleClick={resetDockWidth}
+          data-testid="admin-chat-resize-handle"
+        >
+          <span className="flex flex-col items-center justify-center gap-1">
+            <span
+              className="w-[1px] h-6 rounded-full bg-neutral-300"
+              aria-hidden="true"
+            />
+            <ChevronsLeftRight className="w-4 h-4" aria-hidden="true" />
+            <span
+              className="w-[1px] h-6 rounded-full bg-neutral-300"
+              aria-hidden="true"
+            />
+          </span>
+        </button>
+      </div>
+      <aside
+        className="flex flex-col h-full bg-white border-l border-neutral-200 overflow-hidden"
+        style={{ width: dockWidth }}
+        data-admin-chat-open="true"
+      >
       {/* Header */}
       <div className="p-4 border-b border-neutral-200 flex items-center justify-between shrink-0">
         <Text variant="h3" size="lg" weight="semibold">
@@ -249,29 +332,29 @@ export const AdminChatDock: React.FC<AdminChatDockProps> = ({
         </div>
       </div>
 
-      {/* Messages */}
-      <div
-        ref={scrollRef}
-        className={`flex-1 overflow-y-auto p-4 space-y-4 relative`}
-      >
-        {messageGroups.map((group, idx) => (
-          <MessageGroup
-            key={idx}
-            messages={group.messages}
-            quickReplies={group.quickReplies}
-            onQuickReply={onQuickReply}
-            onEndChat={onEndChat}
-            readOnly={readOnly}
-            isHistorical={group.messages.every(m => m.isHistorical === true)}
-            userRole={'admin'}
-            sessionId={sessionId}
-            conversationId={conversationId}
-          />
-        ))}
-        {/* Global typing indicator removed to avoid duplication; MessageGroup handles typing */}
+        {/* Messages */}
+        <div
+          ref={scrollRef}
+          className="flex-1 overflow-y-auto p-4 space-y-4 relative"
+        >
+          {messageGroups.map((group, idx) => (
+            <MessageGroup
+              key={idx}
+              messages={group.messages}
+              quickReplies={group.quickReplies}
+              onQuickReply={onQuickReply}
+              onEndChat={onEndChat}
+              readOnly={readOnly}
+              isHistorical={group.messages.every(m => m.isHistorical === true)}
+              userRole={'admin'}
+              sessionId={sessionId}
+              conversationId={conversationId}
+            />
+          ))}
+          {/* Global typing indicator removed to avoid duplication; MessageGroup handles typing */}
 
-        {/* Inline feedback removed for historical conversations - users should not see feedback when backreading */}
-      </div>
+          {/* Inline feedback removed for historical conversations - users should not see feedback when backreading */}
+        </div>
 
       {/* Footer */}
       <div className="border-t border-neutral-200 shrink-0">
@@ -325,9 +408,10 @@ export const AdminChatDock: React.FC<AdminChatDockProps> = ({
           isModal={true}
         />
       )}
-      {/* Floating Spec Editor reopen bubble */}
-      <SpecEditorReopenBubble />
-    </aside>
+        {/* Floating Spec Editor reopen bubble */}
+        <SpecEditorReopenBubble />
+      </aside>
+    </div>
   );
 };
 

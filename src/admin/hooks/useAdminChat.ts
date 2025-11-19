@@ -378,6 +378,216 @@ export const useAdminChat = (): UseAdminChatReturn => {
       return;
     }
 
+    if (topic === 'about-bj-santiago') {
+      void (async () => {
+        let start: any = null;
+        let flowId: any;
+        let context: any;
+        let sessionTitle: string;
+
+        try {
+          const flowContext =
+            await FlowTriggerService.getAdminFlowContext(
+              'admin-modify-about-us'
+            );
+
+          if (!flowContext) {
+            console.error(
+              '❌ Failed to determine flow for admin-modify-about-us'
+            );
+            return;
+          }
+
+          ({ flowId, context, sessionTitle } = flowContext);
+
+          const flowDef = await getFlowDefinition(flowId);
+          if (!flowDef) {
+            console.error(`Failed to load flow definition for ${flowId}`);
+            return;
+          }
+
+          start = await JsonbFlowProcessor.startFlow({
+            flowId,
+            customerId:
+              (await supabase.auth.getUser()).data?.user?.id ||
+              '00000000-0000-0000-0000-000000000000',
+            flowDefinition: flowDef,
+            initialContext: context,
+          });
+          setDbSessionId(start.sessionId);
+        } catch (error) {
+          console.error(`❌ Error starting flow:`, error);
+          return;
+        }
+
+        if (!start) {
+          console.error('❌ Flow start failed - no result');
+          return;
+        }
+
+        try {
+          const { data: existingSession } = await supabase
+            .from('chat_sessions_v2')
+            .select('metadata')
+            .eq('session_id', start.sessionId)
+            .single();
+
+          const titleMetadata = {
+            ...(existingSession?.metadata || {}),
+            admin_chat: true,
+            context: {
+              ...(existingSession?.metadata?.context || {}),
+              ...context,
+            },
+          };
+
+          await supabase
+            .from('chat_sessions_v2')
+            .update({
+              metadata: {
+                ...titleMetadata,
+                title: sessionTitle,
+              },
+            })
+            .eq('session_id', start.sessionId);
+
+          await loadAdminChatSessions();
+        } catch (e) {
+          console.error('Failed to update admin chat metadata:', e);
+        }
+
+        setMessages([]);
+        setQuickReplies([]);
+        setCurrentPage(null);
+        setCurrentEntityId(null);
+
+        const tempTitle = sessionTitle;
+        const convId = startConversation ? startConversation(tempTitle) : 'conv';
+        setCurrentConversationId(convId);
+
+        const skipDelay = FlowTriggerService.shouldSkipTypingDelay(flowId);
+        await appendMessagesWithTyping(
+          start.messages.map((m: any) => ({
+            role: m.role as ChatRole,
+            text: m.text,
+          })),
+          skipDelay
+        );
+
+        setQuickReplies(start.quickReplies || []);
+
+        start.messages.forEach((m: any) =>
+          addConvMessage('printy', m.text, convId)
+        );
+      })();
+      return;
+    }
+
+    if (topic === 'faqs-bj-santiago') {
+      void (async () => {
+        let start: any = null;
+        let flowId: any;
+        let context: any;
+        let sessionTitle: string;
+
+        try {
+          const flowContext =
+            await FlowTriggerService.getAdminFlowContext(
+              'admin-modify-faqs'
+            );
+
+          if (!flowContext) {
+            console.error(
+              '❌ Failed to determine flow for admin-modify-faqs'
+            );
+            return;
+          }
+
+          ({ flowId, context, sessionTitle } = flowContext);
+
+          const flowDef = await getFlowDefinition(flowId);
+          if (!flowDef) {
+            console.error(`Failed to load flow definition for ${flowId}`);
+            return;
+          }
+
+          start = await JsonbFlowProcessor.startFlow({
+            flowId,
+            customerId:
+              (await supabase.auth.getUser()).data?.user?.id ||
+              '00000000-0000-0000-0000-000000000000',
+            flowDefinition: flowDef,
+            initialContext: context,
+          });
+          setDbSessionId(start.sessionId);
+        } catch (error) {
+          console.error(`❌ Error starting flow:`, error);
+          return;
+        }
+
+        if (!start) {
+          console.error('❌ Flow start failed - no result');
+          return;
+        }
+
+        try {
+          const { data: existingSession } = await supabase
+            .from('chat_sessions_v2')
+            .select('metadata')
+            .eq('session_id', start.sessionId)
+            .single();
+
+          const titleMetadata = {
+            ...(existingSession?.metadata || {}),
+            admin_chat: true,
+            context: {
+              ...(existingSession?.metadata?.context || {}),
+              ...context,
+            },
+          };
+
+          await supabase
+            .from('chat_sessions_v2')
+            .update({
+              metadata: {
+                ...titleMetadata,
+                title: sessionTitle,
+              },
+            })
+            .eq('session_id', start.sessionId);
+
+          await loadAdminChatSessions();
+        } catch (e) {
+          console.error('Failed to update admin chat metadata:', e);
+        }
+
+        setMessages([]);
+        setQuickReplies([]);
+        setCurrentPage(null);
+        setCurrentEntityId(null);
+
+        const tempTitle = sessionTitle;
+        const convId = startConversation ? startConversation(tempTitle) : 'conv';
+        setCurrentConversationId(convId);
+
+        const skipDelay = FlowTriggerService.shouldSkipTypingDelay(flowId);
+        await appendMessagesWithTyping(
+          start.messages.map((m: any) => ({
+            role: m.role as ChatRole,
+            text: m.text,
+          })),
+          skipDelay
+        );
+
+        setQuickReplies(start.quickReplies || []);
+
+        start.messages.forEach((m: any) =>
+          addConvMessage('printy', m.text, convId)
+        );
+      })();
+      return;
+    }
+
     // Handle portfolio/update-service flow that requires service_id
     if (topic === 'portfolio' && orderId) {
       void (async () => {

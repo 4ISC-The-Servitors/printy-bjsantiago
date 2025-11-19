@@ -72,7 +72,7 @@ const LandingPage: React.FC = () => {
       setCurrentNodeId(flowDefinition.initial_node);
 
       // Process initial node
-      const initialNode = flowDefinition.nodes[flowDefinition.initial_node];
+      const initialNode = flowDefinition.nodes[flowDefinition.initial_node] as any;
       if (initialNode) {
         if (initialNode.type === 'message') {
           const botMessage: ChatMessage = {
@@ -85,7 +85,7 @@ const LandingPage: React.FC = () => {
 
           // Set quick replies from initial node options
           if (initialNode.options) {
-            const replies = initialNode.options.map((option, index) => ({
+            const replies = initialNode.options.map((option: any, index: number) => ({
               id: `qr-${index}`,
               label: option.label,
               value: option.label,
@@ -150,6 +150,122 @@ const LandingPage: React.FC = () => {
             setMessages([botMessage]);
           }
         }
+      } else if (
+        initialNode &&
+        initialNode.type === 'action' &&
+        (initialNode as any).action === 'display_about_sections_guest'
+      ) {
+        // Handle display_about_sections_guest action for guest users
+        try {
+          // Fetch all active about sections
+          const { data: sections, error } = await supabase
+            .from('about_bj_santiago')
+            .select('about_id, about_name, description')
+            .eq('is_active', true)
+            .order('display_order', { ascending: true });
+
+          if (error || !sections || sections.length === 0) {
+            const botMessage: ChatMessage = {
+              id: crypto.randomUUID(),
+              role: 'printy',
+              text: 'No About Us information is available at the moment.',
+              ts: Date.now(),
+            };
+            setMessages([botMessage]);
+          } else {
+            // Add welcome message
+            const welcomeMessage: ChatMessage = {
+              id: crypto.randomUUID(),
+              role: 'printy',
+              text: "Hi! I'm Printy, B.J. Santiago's bot assistant. What would you like to know about our company?",
+              ts: Date.now(),
+            };
+            setMessages([welcomeMessage]);
+
+            // Generate quick replies for sections
+            const replies = sections.map((section, index) => ({
+              id: `about-${index}`,
+              label: section.about_name,
+              value: `${section.about_id}|${section.about_name}`,
+            }));
+
+            // Add End Chat option
+            replies.push({
+              id: 'end-chat',
+              label: 'End Chat',
+              value: 'end',
+            });
+
+            setQuickReplies(replies);
+          }
+        } catch (error) {
+          console.error('Error fetching about sections:', error);
+          const botMessage: ChatMessage = {
+            id: crypto.randomUUID(),
+            role: 'printy',
+            text: 'Something went wrong while loading our About Us information. Please try again.',
+            ts: Date.now(),
+          };
+          setMessages([botMessage]);
+        }
+      } else if (
+        initialNode &&
+        initialNode.type === 'action' &&
+        (initialNode as any).action === 'display_faqs_guest'
+      ) {
+        // Handle display_faqs_guest action for guest users
+        try {
+          // Fetch all active FAQs
+          const { data: faqs, error } = await supabase
+            .from('company_faqs')
+            .select('faq_id, question, answer')
+            .eq('is_active', true)
+            .order('display_order', { ascending: true });
+
+          if (error || !faqs || faqs.length === 0) {
+            const botMessage: ChatMessage = {
+              id: crypto.randomUUID(),
+              role: 'printy',
+              text: 'No FAQs are available at the moment.',
+              ts: Date.now(),
+            };
+            setMessages([botMessage]);
+          } else {
+            // Add welcome message
+            const welcomeMessage: ChatMessage = {
+              id: crypto.randomUUID(),
+              role: 'printy',
+              text: "Hi! I'm Printy, B.J. Santiago's bot assistant. Here are some frequently asked questions. What would you like to know?",
+              ts: Date.now(),
+            };
+            setMessages([welcomeMessage]);
+
+            // Generate quick replies for FAQs
+            const replies = faqs.map((faq, index) => ({
+              id: `faq-${index}`,
+              label: faq.question,
+              value: `${faq.faq_id}|${faq.question}`,
+            }));
+
+            // Add End Chat option
+            replies.push({
+              id: 'end-chat',
+              label: 'End Chat',
+              value: 'end',
+            });
+
+            setQuickReplies(replies);
+          }
+        } catch (error) {
+          console.error('Error fetching FAQs:', error);
+          const botMessage: ChatMessage = {
+            id: crypto.randomUUID(),
+            role: 'printy',
+            text: 'Something went wrong while loading FAQs. Please try again.',
+            ts: Date.now(),
+          };
+          setMessages([botMessage]);
+        }
       }
 
       setIsChatOpen(true);
@@ -184,12 +300,19 @@ const LandingPage: React.FC = () => {
     try {
       const currentNode = currentFlow.nodes[currentNodeId];
 
-      // Handle services flow - check if we're in category selection mode
-      // ONLY detect services flow if we have 'cat-' prefixed replies (category buttons)
+      // Detect which flow we're in based on quick reply IDs
       const isServicesFlow =
         previousQuickReplies.length > 0 &&
         previousQuickReplies.some(qr => qr.id?.startsWith('cat-')) &&
         !previousQuickReplies.some(qr => qr.id?.startsWith('qr-'));
+
+      const isAboutFlow =
+        previousQuickReplies.length > 0 &&
+        previousQuickReplies.some(qr => qr.id?.startsWith('about-'));
+
+      const isFaqFlow =
+        previousQuickReplies.length > 0 &&
+        previousQuickReplies.some(qr => qr.id?.startsWith('faq-'));
 
       if (isServicesFlow) {
         // Handle End Chat option
@@ -309,6 +432,249 @@ const LandingPage: React.FC = () => {
           } catch (error) {
             console.error('Error fetching services:', error);
           }
+      }
+      // Handle About flow
+      else if (isAboutFlow) {
+        // Handle End Chat option
+        if (text.trim().toLowerCase() === 'end chat') {
+          const endMessage: ChatMessage = {
+            id: crypto.randomUUID(),
+            role: 'printy',
+            text: 'Thank you for learning about B.J. Santiago Inc.! We look forward to serving your printing needs. Have a great day!',
+            ts: Date.now(),
+          };
+          setMessages(prev => [...prev, endMessage]);
+          setQuickReplies([]);
+          return;
+        }
+
+        // Find the matching About section by label
+        const normalizedText = text.trim().toLowerCase();
+        let selectedAbout = previousQuickReplies.find(
+          qr => qr.label.toLowerCase() === normalizedText
+        );
+
+        // If no exact match, try to find by checking if any section label contains the input
+        if (!selectedAbout) {
+          selectedAbout = previousQuickReplies.find(
+            qr =>
+              qr.label.toLowerCase().includes(normalizedText) &&
+              qr.value !== 'end'
+          );
+        }
+
+        if (selectedAbout && selectedAbout.value !== 'end' && selectedAbout.value.includes('|')) {
+          // Extract about_id from value
+          const aboutId = selectedAbout.value.split('|')[0];
+
+          try {
+            // Fetch about section details
+            const { data: section, error } = await supabase
+              .from('about_bj_santiago')
+              .select('about_name, description')
+              .eq('about_id', aboutId)
+              .single();
+
+            if (error || !section) {
+              const botMessage: ChatMessage = {
+                id: crypto.randomUUID(),
+                role: 'printy',
+                text: 'Section not found. Please try again.',
+                ts: Date.now(),
+              };
+              setMessages(prev => [...prev, botMessage]);
+            } else {
+              // Display section content (without repeating section name)
+              const botMessage: ChatMessage = {
+                id: crypto.randomUUID(),
+                role: 'printy',
+                text: section.description,
+                ts: Date.now(),
+              };
+              setMessages(prev => [...prev, botMessage]);
+
+              // Fetch all sections for navigation
+              const { data: allSections } = await supabase
+                .from('about_bj_santiago')
+                .select('about_id, about_name')
+                .eq('is_active', true)
+                .order('display_order', { ascending: true });
+
+              if (allSections) {
+                // Generate navigation quick replies (exclude current section)
+                const replies = allSections
+                  .filter(section => section.about_id !== aboutId)
+                  .map((section, index) => ({
+                    id: `about-${index}`,
+                    label: section.about_name,
+                    value: `${section.about_id}|${section.about_name}`,
+                  }));
+
+                // Add End Chat option
+                replies.push({
+                  id: 'end-chat',
+                  label: 'End Chat',
+                  value: 'end',
+                });
+
+                setQuickReplies(replies);
+              }
+            }
+          } catch (error) {
+            console.error('Error fetching about section:', error);
+            const botMessage: ChatMessage = {
+              id: crypto.randomUUID(),
+              role: 'printy',
+              text: 'Something went wrong while loading the section content. Please try again.',
+              ts: Date.now(),
+            };
+            setMessages(prev => [...prev, botMessage]);
+          }
+        } else {
+          // Invalid selection, show options again
+          const { data: allSections } = await supabase
+            .from('about_bj_santiago')
+            .select('about_id, about_name')
+            .eq('is_active', true)
+            .order('display_order', { ascending: true });
+
+          if (allSections) {
+            const replies = allSections.map((section, index) => ({
+              id: `about-${index}`,
+              label: section.about_name,
+              value: `${section.about_id}|${section.about_name}`,
+            }));
+
+            replies.push({
+              id: 'end-chat',
+              label: 'End Chat',
+              value: 'end',
+            });
+
+            setQuickReplies(replies);
+          }
+        }
+      }
+      // Handle FAQ flow
+      else if (isFaqFlow) {
+        // Handle End Chat option
+        if (text.trim().toLowerCase() === 'end chat') {
+          const endMessage: ChatMessage = {
+            id: crypto.randomUUID(),
+            role: 'printy',
+            text: 'Thank you for your questions! We hope we have been helpful. Feel free to reach out anytime for more information about B.J. Santiago Inc. Have a great day!',
+            ts: Date.now(),
+          };
+          setMessages(prev => [...prev, endMessage]);
+          setQuickReplies([]);
+          return;
+        }
+
+        // Find the matching FAQ by label
+        const normalizedText = text.trim().toLowerCase();
+        let selectedFaq = previousQuickReplies.find(
+          qr => qr.label.toLowerCase() === normalizedText
+        );
+
+        // If no exact match, try to find by checking if any FAQ label contains the input
+        if (!selectedFaq) {
+          selectedFaq = previousQuickReplies.find(
+            qr =>
+              qr.label.toLowerCase().includes(normalizedText) &&
+              qr.value !== 'end'
+          );
+        }
+
+        if (selectedFaq && selectedFaq.value !== 'end' && selectedFaq.value.includes('|')) {
+          // Extract faq_id from value
+          const faqId = selectedFaq.value.split('|')[0];
+
+          try {
+            // Fetch FAQ details
+            const { data: faq, error } = await supabase
+              .from('company_faqs')
+              .select('question, answer')
+              .eq('faq_id', faqId)
+              .single();
+
+            if (error || !faq) {
+              const botMessage: ChatMessage = {
+                id: crypto.randomUUID(),
+                role: 'printy',
+                text: 'FAQ not found. Please try again.',
+                ts: Date.now(),
+              };
+              setMessages(prev => [...prev, botMessage]);
+            } else {
+              // Display FAQ answer
+              const botMessage: ChatMessage = {
+                id: crypto.randomUUID(),
+                role: 'printy',
+                text: faq.answer,
+                ts: Date.now(),
+              };
+              setMessages(prev => [...prev, botMessage]);
+
+              // Fetch all FAQs for navigation
+              const { data: allFaqs } = await supabase
+                .from('company_faqs')
+                .select('faq_id, question')
+                .eq('is_active', true)
+                .order('display_order', { ascending: true });
+
+              if (allFaqs) {
+                // Generate navigation quick replies (exclude current FAQ)
+                const replies = allFaqs
+                  .filter(faq => faq.faq_id !== faqId)
+                  .map((faq, index) => ({
+                    id: `faq-${index}`,
+                    label: faq.question,
+                    value: `${faq.faq_id}|${faq.question}`,
+                  }));
+
+                // Add End Chat option
+                replies.push({
+                  id: 'end-chat',
+                  label: 'End Chat',
+                  value: 'end',
+                });
+
+                setQuickReplies(replies);
+              }
+            }
+          } catch (error) {
+            console.error('Error fetching FAQ:', error);
+            const botMessage: ChatMessage = {
+              id: crypto.randomUUID(),
+              role: 'printy',
+              text: 'Something went wrong while loading the FAQ. Please try again.',
+              ts: Date.now(),
+            };
+            setMessages(prev => [...prev, botMessage]);
+          }
+        } else {
+          // Invalid selection, show options again
+          const { data: allFaqs } = await supabase
+            .from('company_faqs')
+            .select('faq_id, question')
+            .eq('is_active', true)
+            .order('display_order', { ascending: true });
+
+          if (allFaqs) {
+            const replies = allFaqs.map((faq, index) => ({
+              id: `faq-${index}`,
+              label: faq.question,
+              value: `${faq.faq_id}|${faq.question}`,
+            }));
+
+            replies.push({
+              id: 'end-chat',
+              label: 'End Chat',
+              value: 'end',
+            });
+
+            setQuickReplies(replies);
+          }
         }
       }
       // Handle regular message node flow
@@ -376,12 +742,13 @@ const LandingPage: React.FC = () => {
           }
         }
       }
-
-      setIsTyping(false);
-    } catch (error) {
-      console.error('Error processing message:', error);
-      setIsTyping(false);
     }
+
+    setIsTyping(false);
+  } catch (error) {
+    console.error('Error processing message:', error);
+    setIsTyping(false);
+  }
   };
 
   const handleQuickReply = (

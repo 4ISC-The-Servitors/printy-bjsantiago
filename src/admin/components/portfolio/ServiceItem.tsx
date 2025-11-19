@@ -18,12 +18,18 @@ interface ServiceItemProps {
   service: Service;
   onHover: (serviceId: string | null) => void;
   onViewInChat: (serviceId: string) => void;
+  showDisplayMeta?: boolean;
+  showStatusBadge?: boolean;
+  actionsLayout?: 'column' | 'row';
 }
 
 export const ServiceItem: React.FC<ServiceItemProps> = ({
   service,
   onHover,
   onViewInChat,
+  showDisplayMeta = true,
+  showStatusBadge = true,
+  actionsLayout = 'column',
 }) => {
   const [isAuditModalOpen, setIsAuditModalOpen] = useState(false);
 
@@ -56,29 +62,33 @@ export const ServiceItem: React.FC<ServiceItemProps> = ({
       <div className="flex items-start justify-between gap-3 sm:gap-4 mb-2 sm:mb-3">
         <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
           <div className="min-w-0 flex-1">
-            {/* Desktop/Tablet: inline label with bullet */}
-            <Text
-              variant="p"
-              size="sm"
-              color="muted"
-              className="truncate hidden sm:block"
-            >
-              {service.display_id}
-              {typeof service.total_order_count === 'number' && (
-                <>{` \u2022 Lifetime Completed: ${service.total_order_count}`}</>
-              )}
-            </Text>
-            {/* Mobile: two-line, no bullet */}
-            <div className="sm:hidden space-y-0.5">
-              <Text variant="p" size="sm" color="muted" className="truncate">
-                {service.display_id}
-              </Text>
-              {typeof service.total_order_count === 'number' && (
-                <Text variant="p" size="sm" color="muted">
-                  {`Lifetime Completed: ${service.total_order_count}`}
+            {showDisplayMeta && (
+              <>
+                {/* Desktop/Tablet: inline label with bullet */}
+                <Text
+                  variant="p"
+                  size="sm"
+                  color="muted"
+                  className="truncate hidden sm:block"
+                >
+                  {service.display_id}
+                  {typeof service.total_order_count === 'number' && (
+                    <>{` \u2022 Lifetime Completed: ${service.total_order_count}`}</>
+                  )}
                 </Text>
-              )}
-            </div>
+                {/* Mobile: two-line, no bullet */}
+                <div className="sm:hidden space-y-0.5">
+                  <Text variant="p" size="sm" color="muted" className="truncate">
+                    {service.display_id}
+                  </Text>
+                  {typeof service.total_order_count === 'number' && (
+                    <Text variant="p" size="sm" color="muted">
+                      {`Lifetime Completed: ${service.total_order_count}`}
+                    </Text>
+                  )}
+                </div>
+              </>
+            )}
             <Text
               variant="p"
               size="lg"
@@ -87,19 +97,25 @@ export const ServiceItem: React.FC<ServiceItemProps> = ({
             >
               {service.service_name}
             </Text>
-            <div className="flex items-center gap-2 mt-2">
-              <Badge
-                variant={getServiceStatusBadgeVariant(service.status)}
-                className="device-badge-sm"
-              >
-                {formatStatus(service.status)}
-              </Badge>
-            </div>
+            {showStatusBadge && (
+              <div className="flex items-center gap-2 mt-2">
+                <Badge
+                  variant={getServiceStatusBadgeVariant(service.status)}
+                  className="device-badge-sm"
+                >
+                  {formatStatus(service.status)}
+                </Badge>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Action Buttons */}
-        <div className="text-right flex-shrink-0 flex flex-col gap-1.5 sm:gap-2">
+        <div
+          className={`text-right flex-shrink-0 flex ${
+            actionsLayout === 'row' ? 'flex-row items-center gap-2' : 'flex-col gap-1.5 sm:gap-2'
+          }`}
+        >
           <Button
             variant="ghost"
             size="sm"

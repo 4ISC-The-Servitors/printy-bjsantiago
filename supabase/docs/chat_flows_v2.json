@@ -1,0 +1,557 @@
+{
+  "about-us": {
+    "nodes": {
+      "end": {
+        "type": "end",
+        "message": "Thank you for learning about B.J. Santiago Inc.! We look forward to serving your printing needs. Have a great day!"
+      },
+      "welcome": {
+        "type": "message",
+        "message": "Hi! I'm Printy, B.J. Santiago's bot assistant. What would you like to know about our company?",
+        "options": [
+          {
+            "next": "company_history",
+            "label": "Company History"
+          },
+          {
+            "next": "mission_vision",
+            "label": "Our Mission & Vision"
+          },
+          {
+            "next": "why_choose_us",
+            "label": "Why Choose Us"
+          },
+          {
+            "next": "technology",
+            "label": "Our Technology"
+          },
+          {
+            "next": "contact_info",
+            "label": "Contact Information"
+          },
+          {
+            "next": "end",
+            "label": "End Chat"
+          }
+        ]
+      },
+      "technology": {
+        "type": "message",
+        "message": "We utilize cutting-edge technology to deliver superior printing solutions:\n\n• Computer-to-plate technology for precise printing\n• State-of-the-art printing equipment that's always dependable and efficient\n• Marketing and creative brainstorming capabilities\n• International connections for global reach\n\nOur other half of strength is our quest for the best machines available - always dependable and efficient, thus time and cost-saving. We believe that quality prints don't need to be very costly, and our company prides itself with efficient logistics and close cooperation with every supplier of various print materials.",
+        "options": [
+          {
+            "next": "company_history",
+            "label": "Company History"
+          },
+          {
+            "next": "mission_vision",
+            "label": "Our Mission & Vision"
+          },
+          {
+            "next": "why_choose_us",
+            "label": "Why Choose Us"
+          },
+          {
+            "next": "contact_info",
+            "label": "Contact Information"
+          },
+          {
+            "next": "welcome",
+            "label": "Back to Main Menu"
+          },
+          {
+            "next": "end",
+            "label": "End Chat"
+          }
+        ]
+      },
+      "contact_info": {
+        "type": "message",
+        "message": "Get in touch with B.J. Santiago Inc.:\n\nAddress: 657 A. H. Lacson Street, Sampaloc, Manila, Philippines 1008\n\nPhone: +632 8781 3457 / +632 8736 9121\n\nTelefax: +632 8743 6851\n\nEmail: bjsantiagoinc@gmail.com / bjsantiagoinc@yahoo.com\n\nWe're here to help with all your printing needs! Feel free to reach out for quick, honest, and expert advice in all stages of production - from design to delivery.",
+        "options": [
+          {
+            "next": "company_history",
+            "label": "Company History"
+          },
+          {
+            "next": "mission_vision",
+            "label": "Our Mission & Vision"
+          },
+          {
+            "next": "why_choose_us",
+            "label": "Why Choose Us"
+          },
+          {
+            "next": "technology",
+            "label": "Our Technology"
+          },
+          {
+            "next": "welcome",
+            "label": "Back to Main Menu"
+          },
+          {
+            "next": "end",
+            "label": "End Chat"
+          }
+        ]
+      },
+      "why_choose_us": {
+        "type": "message",
+        "message": "Being small has BIG advantages! Here's why you should choose B.J. Santiago Inc.:\n\n• Experience & Knowledge: We are BIG on experience and new ideas. Our people are half of our strength, and we greatly value the expertise, skills, and knowledge of every employee.\n\n• Technology: We are BIG on knowledge and technology. We utilize the power of technology to increase customer satisfaction and profitability.\n\n• Competitive Pricing: We are BIG on competitive pricing. Running a tight ship with smaller overhead makes it possible for us to pass on more savings to our clients.\n\n• Customer Service: We are BIG on good customer interactions. The secret to our success is sustaining long-term relationships with our clients.",
+        "options": [
+          {
+            "next": "company_history",
+            "label": "Company History"
+          },
+          {
+            "next": "mission_vision",
+            "label": "Our Mission & Vision"
+          },
+          {
+            "next": "technology",
+            "label": "Our Technology"
+          },
+          {
+            "next": "contact_info",
+            "label": "Contact Information"
+          },
+          {
+            "next": "welcome",
+            "label": "Back to Main Menu"
+          },
+          {
+            "next": "end",
+            "label": "End Chat"
+          }
+        ]
+      },
+      "mission_vision": {
+        "type": "message",
+        "message": "Our mission is to provide innovative printing solutions to local and global markets, aimed at building lasting relationships through customer satisfaction.\n\nWe believe in translating your brilliant ideas into innovative designs and quality prints. Our top objective is to move towards global printing ventures by providing superior services and quality printing materials to foreign markets.\n\nWe place high regard to creativity and quality, and our commitment to excellence extends beyond the quality of the finished product.",
+        "options": [
+          {
+            "next": "company_history",
+            "label": "Company History"
+          },
+          {
+            "next": "why_choose_us",
+            "label": "Why Choose Us"
+          },
+          {
+            "next": "technology",
+            "label": "Our Technology"
+          },
+          {
+            "next": "contact_info",
+            "label": "Contact Information"
+          },
+          {
+            "next": "welcome",
+            "label": "Back to Main Menu"
+          },
+          {
+            "next": "end",
+            "label": "End Chat"
+          }
+        ]
+      },
+      "company_history": {
+        "type": "message",
+        "message": "B.J. Santiago Inc. was founded in 1992 and has been serving clients for over 30 years. We may be considered a small player in an industry occupied by giant printing corporations, but as our President Benedict S. Santiago Jr. says, we're like 'David in a field filled with Goliaths.'\n\nWe provide the highest-quality products and services based on the latest trends in printing at very competitive prices. Since 1992, we have maintained a strict commitment to customers, investing in the latest printing technology, software, and talented employees.",
+        "options": [
+          {
+            "next": "mission_vision",
+            "label": "Our Mission & Vision"
+          },
+          {
+            "next": "why_choose_us",
+            "label": "Why Choose Us"
+          },
+          {
+            "next": "technology",
+            "label": "Our Technology"
+          },
+          {
+            "next": "contact_info",
+            "label": "Contact Information"
+          },
+          {
+            "next": "welcome",
+            "label": "Back to Main Menu"
+          },
+          {
+            "next": "end",
+            "label": "End Chat"
+          }
+        ]
+      }
+    },
+    "title": "About Us",
+    "flow_id": "about-us",
+    "description": "Learn about B.J. Santiago Inc. company history, mission, and values",
+    "initial_node": "welcome"
+  },
+  "faqs": {
+    "nodes": {
+      "q1": {
+        "type": "message",
+        "message": "B.J. Santiago Inc. has been in business since 1992 - that's over 30 years of experience in the printing industry! We've maintained a strict commitment to customers throughout the years, investing in the latest printing technology, software, and talented employees to continue flourishing through innovation, flexibility, and sheer competitiveness.",
+        "options": [
+          {
+            "next": "q2",
+            "label": "What makes B.J. Santiago different from larger companies?"
+          },
+          {
+            "next": "q3",
+            "label": "What types of materials can you print?"
+          },
+          {
+            "next": "q4",
+            "label": "Do you offer design services?"
+          },
+          {
+            "next": "q5",
+            "label": "What is your approach to pricing?"
+          },
+          {
+            "next": "faq_start",
+            "label": "Back to All Questions"
+          },
+          {
+            "next": "end",
+            "label": "End Chat"
+          }
+        ]
+      },
+      "q2": {
+        "type": "message",
+        "message": "Being small has BIG advantages! We may be considered a small player in an industry occupied by giant printing corporations, but as our President says, we're like 'David in a field filled with Goliaths.'\n\nOur advantages include:\n• More personalized service and quick, honest, expert advice\n• Competitive pricing due to smaller overhead\n• Flexibility and innovation\n• Direct access to company leadership\n• Strong focus on customer relationships",
+        "options": [
+          {
+            "next": "q1",
+            "label": "How long has B.J. Santiago been in business?"
+          },
+          {
+            "next": "q3",
+            "label": "What types of materials can you print?"
+          },
+          {
+            "next": "q4",
+            "label": "Do you offer design services?"
+          },
+          {
+            "next": "q5",
+            "label": "What is your approach to pricing?"
+          },
+          {
+            "next": "faq_start",
+            "label": "Back to All Questions"
+          },
+          {
+            "next": "end",
+            "label": "End Chat"
+          }
+        ]
+      },
+      "q3": {
+        "type": "message",
+        "message": "We can print on a wide variety of materials including:\n\n• Paper and Paper Board Materials - Various weights and finishes\n• Labels and Stickers - Custom designs for any application\n• Vinyl and Mesh - For banners and outdoor signage\n• Fabric Materials - For specialized printing needs\n• Cardstock and Specialty Papers - For premium projects\n\nWe work with suppliers of various print materials to ensure we can meet your specific material requirements. For detailed material specifications, we recommend discussing your project with our team.",
+        "options": [
+          {
+            "next": "q1",
+            "label": "How long has B.J. Santiago been in business?"
+          },
+          {
+            "next": "q2",
+            "label": "What makes B.J. Santiago different from larger companies?"
+          },
+          {
+            "next": "q4",
+            "label": "Do you offer design services?"
+          },
+          {
+            "next": "q5",
+            "label": "What is your approach to pricing?"
+          },
+          {
+            "next": "faq_start",
+            "label": "Back to All Questions"
+          },
+          {
+            "next": "end",
+            "label": "End Chat"
+          }
+        ]
+      },
+      "q4": {
+        "type": "message",
+        "message": "Yes! We offer comprehensive creative services including:\n\n• Concept Development - Brainstorming and ideation\n• Design and Layout - Professional graphic design\n• Writing and Editing - Content creation and refinement\n• Photography - Custom photography for your projects\n• Production Management - End-to-end project coordination\n\nOur creative team is composed of experts from the fields of advertising, promotions, and publishing. We can handle everything from basic collaterals to packaging, catalogs, and books. We excel in translating your brilliant ideas into innovative designs and quality prints.",
+        "options": [
+          {
+            "next": "q1",
+            "label": "How long has B.J. Santiago been in business?"
+          },
+          {
+            "next": "q2",
+            "label": "What makes B.J. Santiago different from larger companies?"
+          },
+          {
+            "next": "q3",
+            "label": "What types of materials can you print?"
+          },
+          {
+            "next": "q5",
+            "label": "What is your approach to pricing?"
+          },
+          {
+            "next": "faq_start",
+            "label": "Back to All Questions"
+          },
+          {
+            "next": "end",
+            "label": "End Chat"
+          }
+        ]
+      },
+      "q5": {
+        "type": "message",
+        "message": "We believe that quality prints don't need to be very costly! Our approach to pricing includes:\n\n• Competitive Pricing - We're BIG on competitive pricing\n• Cost-Saving Operations - Running a tight ship with smaller overhead allows us to pass on more savings to our clients\n• Budget-Friendly Solutions - We work with your budget and timeline\n• Efficient Logistics - Our company prides itself with efficient logistics and close cooperation with suppliers\n• No Hidden Costs - Transparent pricing with quick cost estimating\n\nWe can provide quick cost estimates and work within your budget constraints while maintaining quality standards.",
+        "options": [
+          {
+            "next": "q1",
+            "label": "How long has B.J. Santiago been in business?"
+          },
+          {
+            "next": "q2",
+            "label": "What makes B.J. Santiago different from larger companies?"
+          },
+          {
+            "next": "q3",
+            "label": "What types of materials can you print?"
+          },
+          {
+            "next": "q4",
+            "label": "Do you offer design services?"
+          },
+          {
+            "next": "faq_start",
+            "label": "Back to All Questions"
+          },
+          {
+            "next": "end",
+            "label": "End Chat"
+          }
+        ]
+      },
+      "q6": {
+        "type": "message",
+        "message": "Quality is our top priority! We ensure quality through:\n\n• State-of-the-art Equipment - We invest in the best machines available, always dependable and efficient\n• Skilled Team - Our people are half of our strength, with expertise, skills, and knowledge in all aspects of our business\n• Quality Materials - Close cooperation with suppliers of various print materials\n• Attention to Detail - Our commitment to excellence extends beyond the quality of the finished product\n• Customer Approval Process - We work with client approval at every stage\n\nOur best collective efforts guarantee satisfaction among our customers.",
+        "options": [
+          {
+            "next": "q1",
+            "label": "How long has B.J. Santiago been in business?"
+          },
+          {
+            "next": "q2",
+            "label": "What makes B.J. Santiago different from larger companies?"
+          },
+          {
+            "next": "q3",
+            "label": "What types of materials can you print?"
+          },
+          {
+            "next": "q4",
+            "label": "Do you offer design services?"
+          },
+          {
+            "next": "faq_start",
+            "label": "Back to All Questions"
+          },
+          {
+            "next": "end",
+            "label": "End Chat"
+          }
+        ]
+      },
+      "q7": {
+        "type": "message",
+        "message": "We utilize cutting-edge technology including:\n\n• Computer-to-plate Technology - For precise and efficient printing\n• State-of-the-art Printing Equipment - Always dependable and efficient\n• Latest Software - We invest in the latest printing technology and software\n• Marketing and Creative Brainstorming Tools - For innovative solutions\n• International Connections - Technology that supports our global reach\n\nWe are BIG on knowledge and technology, utilizing the power of technology to increase customer satisfaction and profitability. Our quest for the best machines available ensures time and cost-saving operations.",
+        "options": [
+          {
+            "next": "q1",
+            "label": "How long has B.J. Santiago been in business?"
+          },
+          {
+            "next": "q2",
+            "label": "What makes B.J. Santiago different from larger companies?"
+          },
+          {
+            "next": "q3",
+            "label": "What types of materials can you print?"
+          },
+          {
+            "next": "q4",
+            "label": "Do you offer design services?"
+          },
+          {
+            "next": "faq_start",
+            "label": "Back to All Questions"
+          },
+          {
+            "next": "end",
+            "label": "End Chat"
+          }
+        ]
+      },
+      "q8": {
+        "type": "message",
+        "message": "Absolutely! We specialize in working within your constraints:\n\n• Budget Flexibility - We can work with your budget and provide quick cost estimating\n• Timeline Management - We understand your timeline requirements and work efficiently to meet them\n• Cost-Saving Solutions - Our efficient operations and smaller overhead allow us to offer competitive pricing\n• Quick Turnaround - We're designed for efficiency and time-saving operations\n• Custom Solutions - We can tailor our services to fit your specific budget and timeline needs\n\nOur goal is to not only meet but exceed your expectations while working within your constraints.",
+        "options": [
+          {
+            "next": "q1",
+            "label": "How long has B.J. Santiago been in business?"
+          },
+          {
+            "next": "q2",
+            "label": "What makes B.J. Santiago different from larger companies?"
+          },
+          {
+            "next": "q3",
+            "label": "What types of materials can you print?"
+          },
+          {
+            "next": "q4",
+            "label": "Do you offer design services?"
+          },
+          {
+            "next": "faq_start",
+            "label": "Back to All Questions"
+          },
+          {
+            "next": "end",
+            "label": "End Chat"
+          }
+        ]
+      },
+      "q9": {
+        "type": "message",
+        "message": "We are located in Manila, Philippines:\n\nAddress: 657 A. H. Lacson Street, Sampaloc, Manila, Philippines 1008\n\nOur central Manila location allows us to serve clients throughout the Philippines and internationally. We're easily accessible and well-positioned to handle both local and global printing ventures.",
+        "options": [
+          {
+            "next": "q1",
+            "label": "How long has B.J. Santiago been in business?"
+          },
+          {
+            "next": "q2",
+            "label": "What makes B.J. Santiago different from larger companies?"
+          },
+          {
+            "next": "q3",
+            "label": "What types of materials can you print?"
+          },
+          {
+            "next": "q10",
+            "label": "How can I contact you?"
+          },
+          {
+            "next": "faq_start",
+            "label": "Back to All Questions"
+          },
+          {
+            "next": "end",
+            "label": "End Chat"
+          }
+        ]
+      },
+      "end": {
+        "type": "end",
+        "message": "Thank you for your questions! We hope we've been helpful. Feel free to reach out anytime for more information about B.J. Santiago Inc. Have a great day!"
+      },
+      "q10": {
+        "type": "message",
+        "message": "You can contact us through multiple channels:\n\nPhone: +632 8781 3457 / +632 8736 9121\nTelefax: +632 8743 6851\nEmail: bjsantiagoinc@gmail.com / bjsantiagoinc@yahoo.com\nAddress: 657 A. H. Lacson Street, Sampaloc, Manila, Philippines 1008\n\nWe're here to help with all your printing needs! Feel free to reach out for quick, honest, and expert advice in all stages of production - from design to delivery.",
+        "options": [
+          {
+            "next": "q1",
+            "label": "How long has B.J. Santiago been in business?"
+          },
+          {
+            "next": "q2",
+            "label": "What makes B.J. Santiago different from larger companies?"
+          },
+          {
+            "next": "q3",
+            "label": "What types of materials can you print?"
+          },
+          {
+            "next": "q9",
+            "label": "Where are you located?"
+          },
+          {
+            "next": "faq_start",
+            "label": "Back to All Questions"
+          },
+          {
+            "next": "end",
+            "label": "End Chat"
+          }
+        ]
+      },
+      "faq_start": {
+        "type": "message",
+        "message": "Hi! I'm Printy, B.J. Santiago's bot assistant. Here are some frequently asked questions. What would you like to know?",
+        "options": [
+          {
+            "next": "q1",
+            "label": "How long has B.J. Santiago been in business?"
+          },
+          {
+            "next": "q2",
+            "label": "What makes B.J. Santiago different from larger companies?"
+          },
+          {
+            "next": "q3",
+            "label": "What types of materials can you print?"
+          },
+          {
+            "next": "q4",
+            "label": "Do you offer design services?"
+          },
+          {
+            "next": "q5",
+            "label": "What is your approach to pricing?"
+          },
+          {
+            "next": "q6",
+            "label": "How do you ensure quality?"
+          },
+          {
+            "next": "q7",
+            "label": "What technology do you use?"
+          },
+          {
+            "next": "q8",
+            "label": "Can you work within my budget and timeline?"
+          },
+          {
+            "next": "q9",
+            "label": "Where are you located?"
+          },
+          {
+            "next": "q10",
+            "label": "How can I contact you?"
+          },
+          {
+            "next": "end",
+            "label": "End Chat"
+          }
+        ]
+      }
+    },
+    "title": "FAQs",
+    "flow_id": "faqs",
+    "description": "Quick answers to common questions about B.J. Santiago Inc.",
+    "initial_node": "faq_start"
+  }
+}
+

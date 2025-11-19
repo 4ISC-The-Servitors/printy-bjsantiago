@@ -1,3 +1,4 @@
+/* Turnstile integration temporarily disabled
 declare global {
   interface Window {
     turnstile?: {
@@ -428,4 +429,26 @@ export async function primeTurnstile(action: string) {
   } catch {
     // Ignore prefetch errors; real call will try again
   }
+}
+*/
+
+export async function getTurnstileToken(action: string) {
+  return Promise.resolve(`turnstile-disabled-${action}`);
+}
+
+export async function renderInlineTurnstile(
+  _containerId: string,
+  _action: string,
+  _appearance: 'always' | 'interaction-only' = 'always',
+  _onSuccess?: (token: string) => void
+) {
+  return Promise.resolve();
+}
+
+export async function assertHumanTurnstile(action: string) {
+  return Promise.resolve({ token: `turnstile-disabled-${action}` });
+}
+
+export async function primeTurnstile(_action: string) {
+  return Promise.resolve();
 }

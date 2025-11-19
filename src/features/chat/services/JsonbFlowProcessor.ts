@@ -653,11 +653,36 @@ export class JsonbFlowProcessor {
           'display_service_categories',
           'display_products',
           'display_locations',
+          'display_about_sections',
+          'display_about_sections_admin',
+          'display_faqs',
+          'display_faqs_admin',
+          'display_services_by_category',
         ].includes(currentNode.action));
+
+    console.log('[JsonbFlowProcessor] Quick reply matching check:', {
+      shouldProcessQuickReplies,
+      hasPendingQuickReplies: !!pendingQuickReplies,
+      pendingQuickRepliesCount: Array.isArray(pendingQuickReplies) ? pendingQuickReplies.length : 0,
+      currentNodeType: currentNode.type,
+      currentNodeId: originalNodeId,
+      currentNodeAction: (currentNode as any).action,
+      userInput,
+      flowId,
+    });
 
     if (shouldProcessQuickReplies) {
       // First check pending quick replies from previous action
       if (pendingQuickReplies && Array.isArray(pendingQuickReplies)) {
+        console.log('[JsonbFlowProcessor] Path 1: Checking pending quick replies:', {
+          pendingQuickReplies: pendingQuickReplies.map((qr: any) => ({
+            label: qr.label,
+            value: qr.value,
+            next: qr.next,
+            store_as: qr.store_as,
+          })),
+          userInput,
+        });
         // Normalize input for matching dynamic quick replies that may be sent as "id|label"
         const rawInput = userInput || '';
         const inputLower = rawInput.toLowerCase();
@@ -673,15 +698,38 @@ export class JsonbFlowProcessor {
           const labelLower = (qr.label || '').toLowerCase();
           const valueLower = (qr.value || '').toLowerCase();
           // Match any of: exact full input, value part, or label part
-          return (
+          const matches =
             labelLower === inputLower ||
             valueLower === inputLower ||
             labelLower === inputLabelLower ||
-            valueLower === inputValueLower
-          );
+            valueLower === inputValueLower;
+          if (matches) {
+            console.log('[JsonbFlowProcessor] Path 1: Found matching quick reply:', {
+              qrLabel: qr.label,
+              qrValue: qr.value,
+              qrNext: qr.next,
+              inputLower,
+              inputValueLower,
+              inputLabelLower,
+            });
+          }
+          return matches;
+        });
+
+        console.log('[JsonbFlowProcessor] Path 1: Quick reply match result:', {
+          foundMatch: !!selectedQuickReply,
+          selectedQuickReply: selectedQuickReply
+            ? {
+                label: selectedQuickReply.label,
+                value: selectedQuickReply.value,
+                next: selectedQuickReply.next,
+                store_as: selectedQuickReply.store_as,
+              }
+            : null,
         });
 
         if (selectedQuickReply) {
+          console.log('[JsonbFlowProcessor] Path 1: Processing matched quick reply');
           // Remember label to display in the transcript
           selectedQuickReplyLabel = selectedQuickReply.label || null;
           // Allow admin quick-reply selections to render as message bubbles
@@ -689,9 +737,12 @@ export class JsonbFlowProcessor {
           // ✅ FIX: If pending quick reply has next, navigate immediately and mark as fully matched
           // If no next, still prevent insertion but allow node options check to find next
           if (selectedQuickReply.next) {
+            console.log('[JsonbFlowProcessor] Path 1: Navigating to next node:', selectedQuickReply.next);
             stateManager.setCurrentNode(selectedQuickReply.next);
             optionMatched = true; // Fully handled, no need to check node options
+            console.log('[JsonbFlowProcessor] Path 1: optionMatched set to true');
           } else {
+            console.log('[JsonbFlowProcessor] Path 1: No next node in quick reply, allowing node options check');
             // No next in pending quick reply, but we found a match
             // Don't set optionMatched yet - allow node options check to provide next
             // But we've already set skipUserInsertForThisMessage, so message won't be inserted
@@ -719,11 +770,72 @@ export class JsonbFlowProcessor {
               category_id: categoryId, // Also store as category_id for consistency
             });
           }
+
+          // ✅ FIX: Store About section context when next === 'about_dynamic'
+          // display_about_sections returns quick replies without store_as property
+          // but with next === 'about_dynamic' and value in format "about_id|about_name"
+          console.log('[JsonbFlowProcessor] Path 1: Checking for About section context:', {
+            next: selectedQuickReply.next,
+            value: selectedQuickReply.value,
+            hasPipe: typeof selectedQuickReply.value === 'string' && selectedQuickReply.value.includes('|'),
+          });
+          if (
+            selectedQuickReply.next === 'about_dynamic' &&
+            selectedQuickReply.value &&
+            typeof selectedQuickReply.value === 'string' &&
+            selectedQuickReply.value.includes('|')
+          ) {
+            const aboutId = selectedQuickReply.value.split('|')[0].trim();
+            stateManager.updateContext({
+              selected_about_id: aboutId,
+              about_id: aboutId, // Also store as about_id for consistency
+            });
+            console.log(
+              '[JsonbFlowProcessor] Path 1: Stored About section context:',
+              { selected_about_id: aboutId, about_id: aboutId }
+            );
+          }
+
+          // ✅ FIX: Store FAQ context when next === 'faq_dynamic'
+          // display_faqs returns quick replies without store_as property
+          // but with next === 'faq_dynamic' and value in format "faq_id|faq_question"
+          console.log('[JsonbFlowProcessor] Path 1: Checking for FAQ context:', {
+            next: selectedQuickReply.next,
+            value: selectedQuickReply.value,
+            hasPipe: typeof selectedQuickReply.value === 'string' && selectedQuickReply.value.includes('|'),
+          });
+          if (
+            selectedQuickReply.next === 'faq_dynamic' &&
+            selectedQuickReply.value &&
+            typeof selectedQuickReply.value === 'string' &&
+            selectedQuickReply.value.includes('|')
+          ) {
+            const faqId = selectedQuickReply.value.split('|')[0].trim();
+            stateManager.updateContext({
+              selected_faq_id: faqId,
+              faq_id: faqId, // Also store as faq_id for consistency
+            });
+            console.log(
+              '[JsonbFlowProcessor] Path 1: Stored FAQ context:',
+              { selected_faq_id: faqId, faq_id: faqId }
+            );
+          }
+        } else {
+          console.log('[JsonbFlowProcessor] Path 1: No matching quick reply found in pending quick replies');
         }
+      } else {
+        console.log('[JsonbFlowProcessor] Path 1: No pending quick replies to check');
       }
 
       // Handle option selection from node definition (fallback if no quick reply matched)
       // This section also handles dynamically generated quick replies like service categories
+      const nodeOptions = 'options' in currentNode && currentNode.options ? currentNode.options : null;
+      console.log('[JsonbFlowProcessor] Path 2: Checking node options:', {
+        optionMatched,
+        currentNodeType: currentNode.type,
+        hasNodeOptions: !!nodeOptions,
+        nodeOptionsCount: Array.isArray(nodeOptions) ? nodeOptions.length : 0,
+      });
       if (
         !optionMatched &&
         (currentNode.type === 'message' || currentNode.type === 'action')
@@ -741,8 +853,8 @@ export class JsonbFlowProcessor {
 
         // First try to match with current node options if they exist
         let selectedOption = null;
-        if (currentNode.options) {
-          selectedOption = currentNode.options.find(opt => {
+        if (nodeOptions) {
+          selectedOption = nodeOptions.find(opt => {
             const labelLower = (opt.label || '').toLowerCase();
             const valueLower = (opt.value || '').toLowerCase();
             return (
@@ -756,11 +868,19 @@ export class JsonbFlowProcessor {
 
         // If no match found in node options, treat this as a dynamic quick reply match
         // This handles cases like service categories where options are fetched from DB
+        console.log('[JsonbFlowProcessor] Path 2: Checking for dynamic quick reply match:', {
+          foundInNodeOptions: !!selectedOption,
+          userInputHasPipe: userInput.includes('|'),
+        });
         if (!selectedOption && userInput.includes('|')) {
           // For any valid "id|label" input, consider it a valid quick reply
           // This prevents the unexpected input warning for legitimate dynamic selections
           const parts = userInput.split('|');
           if (parts.length === 2 && parts[0].trim() && parts[1].trim()) {
+            console.log('[JsonbFlowProcessor] Path 2: Creating dynamic quick reply option from userInput:', {
+              id: parts[0].trim(),
+              label: parts[1].trim(),
+            });
             selectedOption = {
               label: parts[1].trim(),
               value: parts[0].trim(),
@@ -770,20 +890,72 @@ export class JsonbFlowProcessor {
 
             // ✅ FIX: Handle dynamic service categories properly
             // For service categories, store the selection and advance to next node
+            const actionName = (currentNode as any).action;
+            console.log('[JsonbFlowProcessor] Path 2: Checking action for dynamic routing:', {
+              actionName,
+              currentNodeId: originalNodeId,
+            });
             if (
               (currentNode as any).id === 'services-offered' ||
-              (currentNode as any).action === 'display_service_categories'
+              actionName === 'display_service_categories'
             ) {
               (selectedOption as any).store_as = 'selected_category';
               (selectedOption as any).next = 'category_dynamic';
             }
+            if (actionName === 'display_about_sections_admin') {
+              const aboutNextNode =
+                originalNodeId === 'load_sections_for_delete'
+                  ? 'confirm_delete'
+                  : 'choose_edit_action';
+              (selectedOption as any).store_as = 'selected_about_id';
+              (selectedOption as any).next = aboutNextNode;
+            }
+            // ✅ FIX: Handle customer About sections (display_about_sections)
+            if (actionName === 'display_about_sections') {
+              console.log('[JsonbFlowProcessor] Path 2: Setting up About section dynamic route from display_about_sections action');
+              (selectedOption as any).store_as = 'selected_about_id';
+              (selectedOption as any).next = 'about_dynamic';
+              console.log('[JsonbFlowProcessor] Path 2: About section selectedOption:', {
+                label: selectedOption.label,
+                value: selectedOption.value,
+                next: (selectedOption as any).next,
+                store_as: (selectedOption as any).store_as,
+              });
+            }
+            if (actionName === 'display_faqs_admin') {
+              const faqNextNode =
+                originalNodeId === 'load_faqs_for_delete'
+                  ? 'confirm_faq_delete'
+                  : 'choose_faq_edit_action';
+              (selectedOption as any).store_as = 'selected_faq_id';
+              (selectedOption as any).next = faqNextNode;
+            }
+            // ✅ FIX: Handle customer FAQs (display_faqs)
+            if (actionName === 'display_faqs') {
+              (selectedOption as any).store_as = 'selected_faq_id';
+              (selectedOption as any).next = 'faq_dynamic';
+            }
 
             // ✅ FIX: Set optionMatched to true to prevent unexpected input warning
+            console.log('[JsonbFlowProcessor] Path 2: Setting optionMatched to true for dynamic quick reply');
             optionMatched = true;
           }
         }
 
+        console.log('[JsonbFlowProcessor] Path 2: Final selectedOption:', {
+          found: !!selectedOption,
+          option: selectedOption
+            ? {
+                label: selectedOption.label,
+                value: selectedOption.value,
+                next: selectedOption.next,
+                store_as: selectedOption.store_as,
+              }
+            : null,
+        });
+
         if (selectedOption) {
+          console.log('[JsonbFlowProcessor] Path 2: Processing selected option');
           // Remember label to display in the transcript
           selectedQuickReplyLabel = selectedOption.label || null;
           // Allow admin option selections to render as message bubbles
@@ -807,14 +979,52 @@ export class JsonbFlowProcessor {
             });
           }
 
+          // ✅ FIX: Store About section context in Path 2 (for consistency with Path 1)
+          // When selectedOption has next === 'about_dynamic' and value contains pipe
+          if (
+            selectedOption.next === 'about_dynamic' &&
+            selectedOption.value &&
+            typeof selectedOption.value === 'string' &&
+            selectedOption.value.includes('|')
+          ) {
+            const aboutId = selectedOption.value.split('|')[0].trim();
+            stateManager.updateContext({
+              selected_about_id: aboutId,
+              about_id: aboutId, // Also store as about_id for consistency
+            });
+          }
+
+          // ✅ FIX: Store FAQ context in Path 2 (for consistency with Path 1)
+          // When selectedOption has next === 'faq_dynamic' and value contains pipe
+          if (
+            selectedOption.next === 'faq_dynamic' &&
+            selectedOption.value &&
+            typeof selectedOption.value === 'string' &&
+            selectedOption.value.includes('|')
+          ) {
+            const faqId = selectedOption.value.split('|')[0].trim();
+            stateManager.updateContext({
+              selected_faq_id: faqId,
+              faq_id: faqId, // Also store as faq_id for consistency
+            });
+          }
+
           // Move to next node
           if (selectedOption.next) {
+            console.log('[JsonbFlowProcessor] Path 2: Navigating to next node:', selectedOption.next);
             stateManager.setCurrentNode(selectedOption.next);
           }
 
+          console.log('[JsonbFlowProcessor] Path 2: Setting optionMatched to true');
           optionMatched = true;
+        } else {
+          console.log('[JsonbFlowProcessor] Path 2: No selectedOption found');
         }
+      } else {
+        console.log('[JsonbFlowProcessor] Path 2: Skipped (optionMatched already true or wrong node type)');
       }
+    } else {
+      console.log('[JsonbFlowProcessor] Quick reply matching skipped (shouldProcessQuickReplies is false)');
     }
 
     // Note: For non-upload steps, we will insert the user's message first (see below),
@@ -826,12 +1036,24 @@ export class JsonbFlowProcessor {
       flowId === 'guest-faqs' ||
       flowId === 'about-us' ||
       flowId === 'guest-about-us';
+    console.log('[JsonbFlowProcessor] Informational flow check:', {
+      isInformationalFlow,
+      optionMatched,
+      expectsFileUpload,
+      senderRole,
+      willShowWarning:
+        (senderRole === 'customer' || senderRole === 'admin') &&
+        isInformationalFlow &&
+        !optionMatched &&
+        !expectsFileUpload,
+    });
     if (
       (senderRole === 'customer' || senderRole === 'admin') &&
       isInformationalFlow &&
       !optionMatched &&
       !expectsFileUpload
     ) {
+      console.log('[JsonbFlowProcessor] WARNING: Showing unexpected input warning for informational flow!');
       const warningText =
         senderRole === 'admin'
           ? ChatUnexpectedInputService.getAdminWarningText()
@@ -846,50 +1068,24 @@ export class JsonbFlowProcessor {
         ts: Date.now(),
       });
 
-      // Avoid duplicating the long prompt repeatedly when user keeps typing text.
-      const infoCtx = stateManager.getContext() || {};
-      const lastWarnNode = (infoCtx as any)._last_info_warn_node;
-      const lastWarnTs = Number((infoCtx as any)._last_info_warn_ts || 0);
-      const nowTs = Date.now();
-      const isSameNode = lastWarnNode === stateManager.getCurrentNodeId();
-      const withinCooldown = nowTs - lastWarnTs < 12000; // 12s cooldown to reduce spam
+      // ✅ FIX: Reset flow to initial node and re-execute initial actions
+      console.log('[JsonbFlowProcessor] Resetting flow to initial node:', flowDefinition.initial_node);
+      const resetResult = await this.resetToInitialNode({
+        sessionId,
+        customerId,
+        flowDefinition,
+        stateManager,
+      });
 
-      // Re-show current prompt/message if present and not within cooldown
-      if (
-        !(isSameNode && withinCooldown) &&
-        currentNode.type === 'message' &&
-        typeof (currentNode as any).message === 'string' &&
-        (currentNode as any).message.trim().length > 0
-      ) {
-        responses.push({
-          id: crypto.randomUUID(),
-          role: 'printy',
-          text: (currentNode as any).message,
-          ts: Date.now(),
-        });
-        await insertMessage({
-          sessionId,
-          text: (currentNode as any).message,
-          role: 'printy',
-          nodeId: stateManager.getCurrentNodeId(),
-        });
-      }
+      // Add reset messages to responses
+      responses.push(...resetResult.messages);
 
-      // Re-surface choices
-      const quickReplies = buildQuickReplies(currentNode);
-      if (quickReplies.length > 0) {
-        stateManager.updateContext({ _pending_quick_replies: quickReplies });
-        // Track last warning to avoid immediate duplicate re-prompting
-        stateManager.updateContext({
-          _last_info_warn_node: stateManager.getCurrentNodeId(),
-          _last_info_warn_ts: nowTs,
-        });
-        await stateManager.flush();
-      }
+      // Flush state manager to save reset state
+      await stateManager.flush();
 
       return {
         messages: responses,
-        quickReplies: buildQuickReplies(currentNode),
+        quickReplies: resetResult.quickReplies,
         sessionId,
         currentNodeId: stateManager.getCurrentNodeId(),
       };
@@ -1390,6 +1586,38 @@ export class JsonbFlowProcessor {
         // For admin-add-service flow, quick replies handle routing via next property
         stateManager.setCurrentNode('category_dynamic');
         optionMatched = true;
+      } else if (
+        userInput.includes('|') &&
+        currentNode.type === 'action' &&
+        (currentNode as any).action === 'display_about_sections_admin'
+      ) {
+        const aboutId = userInput.split('|')[0];
+        stateManager.updateContext({
+          selected_about_id: aboutId,
+          about_id: aboutId,
+        });
+        const nextNodeForAbout =
+          originalNodeId === 'load_sections_for_delete'
+            ? 'confirm_delete'
+            : 'choose_edit_action';
+        stateManager.setCurrentNode(nextNodeForAbout);
+        optionMatched = true;
+      } else if (
+        userInput.includes('|') &&
+        currentNode.type === 'action' &&
+        (currentNode as any).action === 'display_faqs_admin'
+      ) {
+        const faqId = userInput.split('|')[0];
+        stateManager.updateContext({
+          selected_faq_id: faqId,
+          faq_id: faqId,
+        });
+        const nextNodeForFaq =
+          originalNodeId === 'load_faqs_for_delete'
+            ? 'confirm_faq_delete'
+            : 'choose_faq_edit_action';
+        stateManager.setCurrentNode(nextNodeForFaq);
+        optionMatched = true;
       } else if (isCreateNewCategory) {
         // Store the create_new_category selection in context
         stateManager.updateContext({
@@ -1721,6 +1949,365 @@ export class JsonbFlowProcessor {
       quickReplies,
       sessionId,
       currentNodeId: finalNodeId,
+    };
+  }
+
+  /**
+   * Reset flow to initial node and re-execute initial actions
+   * Used when unexpected input is detected in informational flows
+   */
+  private static async resetToInitialNode(params: {
+    sessionId: string;
+    customerId: string;
+    flowDefinition: FlowDefinition;
+    stateManager: SessionStateManager;
+  }) {
+    const { sessionId, customerId, flowDefinition, stateManager } = params;
+
+    // Reset current node to initial node
+    const initialNodeId = flowDefinition.initial_node;
+    stateManager.setCurrentNode(initialNodeId);
+    
+    // Clear any pending quick replies from previous state
+    stateManager.updateContext({
+      _pending_quick_replies: null,
+      _last_info_warn_node: null,
+      _last_info_warn_ts: null,
+    });
+
+    let currentNodeId = initialNodeId;
+    let currentNode = flowDefinition.nodes[currentNodeId];
+
+    if (!currentNode) {
+      throw new Error(`Initial node ${initialNodeId} not found`);
+    }
+
+    const messages: Array<{
+      id: string;
+      role: 'printy';
+      text: string;
+      ts: number;
+    }> = [];
+
+    let lastActionResult: any = null;
+
+    // If initial node is an action, execute it
+    if (currentNode.type === 'action') {
+      const actionResult = await this.executeAction({
+        actionNode: currentNode as ActionNode,
+        sessionId,
+        customerId,
+        context: stateManager.getContext(),
+      });
+      messages.push(...actionResult.messages);
+
+      // Save action messages to database
+      for (const message of actionResult.messages) {
+        await insertMessage({
+          sessionId,
+          text: message.text,
+          role: message.role,
+          nodeId: currentNodeId,
+        });
+      }
+
+      // Update context if action provided context updates
+      if ('context' in actionResult && actionResult.context) {
+        stateManager.updateContext(actionResult.context);
+      }
+
+      // Track last action result for quick replies
+      lastActionResult = {
+        result: actionResult,
+        node: currentNode,
+      };
+
+      // Advance after action if next exists
+      if ((currentNode as ActionNode).next) {
+        currentNodeId = (currentNode as ActionNode).next as string;
+        const updatedContext = actionResult.context
+          ? { ...stateManager.getContext(), ...actionResult.context }
+          : stateManager.getContext();
+
+        stateManager.setCurrentNode(currentNodeId);
+        if (actionResult.context) {
+          stateManager.updateContext(actionResult.context);
+        }
+        currentNode = flowDefinition.nodes[currentNodeId];
+
+        // If the next node is a conditional, process it immediately
+        if (currentNode && currentNode.type === 'conditional') {
+          const conditionalNode = currentNode as ConditionalNode;
+          let conditionValue = updatedContext[conditionalNode.condition];
+
+          if (conditionValue !== null && conditionValue !== undefined) {
+            conditionValue = String(conditionValue).toLowerCase().trim();
+          } else {
+            conditionValue = null;
+          }
+
+          let nextNodeId =
+            (conditionValue && conditionalNode.cases[conditionValue]) || null;
+
+          if (!nextNodeId && conditionValue) {
+            const caseKeys = Object.keys(conditionalNode.cases);
+            const matchedKey = caseKeys.find(
+              key => key.toLowerCase() === conditionValue
+            );
+            if (matchedKey) {
+              nextNodeId = conditionalNode.cases[matchedKey];
+            }
+          }
+
+          if (!nextNodeId && conditionalNode.default) {
+            nextNodeId = conditionalNode.default;
+          }
+
+          if (nextNodeId) {
+            currentNodeId = nextNodeId;
+            stateManager.setCurrentNode(currentNodeId);
+            currentNode = flowDefinition.nodes[currentNodeId];
+
+            // If the conditional leads to an action node, execute it immediately
+            if (currentNode && currentNode.type === 'action') {
+              const actionResult = await this.executeAction({
+                actionNode: currentNode as ActionNode,
+                sessionId,
+                customerId,
+                context: updatedContext,
+              });
+              messages.push(...actionResult.messages);
+
+              for (const message of actionResult.messages) {
+                await insertMessage({
+                  sessionId,
+                  text: message.text,
+                  role: message.role,
+                  nodeId: currentNodeId,
+                });
+              }
+
+              if ('context' in actionResult && actionResult.context) {
+                stateManager.updateContext(actionResult.context);
+              }
+
+              lastActionResult = {
+                result: actionResult,
+                node: currentNode,
+              };
+
+              if ((currentNode as ActionNode).next) {
+                currentNodeId = (currentNode as ActionNode).next as string;
+                stateManager.setCurrentNode(currentNodeId);
+                currentNode = flowDefinition.nodes[currentNodeId];
+              }
+            }
+          }
+        }
+        // If the next node is an action, execute it immediately
+        else if (currentNode && currentNode.type === 'action') {
+          const actionResult = await this.executeAction({
+            actionNode: currentNode as ActionNode,
+            sessionId,
+            customerId,
+            context: updatedContext,
+          });
+          messages.push(...actionResult.messages);
+
+          for (const message of actionResult.messages) {
+            await insertMessage({
+              sessionId,
+              text: message.text,
+              role: message.role,
+              nodeId: currentNodeId,
+            });
+          }
+
+          if ('context' in actionResult && actionResult.context) {
+            stateManager.updateContext(actionResult.context);
+          }
+
+          lastActionResult = {
+            result: actionResult,
+            node: currentNode,
+          };
+
+          if ((currentNode as ActionNode).next) {
+            currentNodeId = (currentNode as ActionNode).next as string;
+            stateManager.setCurrentNode(currentNodeId);
+            currentNode = flowDefinition.nodes[currentNodeId];
+          }
+        }
+      }
+    }
+
+    // Show the node's message (if any)
+    if (
+      currentNode &&
+      currentNode.type === 'message' &&
+      typeof currentNode.message === 'string' &&
+      currentNode.message.trim().length > 0
+    ) {
+      messages.push({
+        id: crypto.randomUUID(),
+        role: 'printy',
+        text: currentNode.message,
+        ts: Date.now(),
+      });
+      await insertMessage({
+        sessionId,
+        text: currentNode.message,
+        role: 'printy',
+        nodeId: currentNodeId,
+      });
+    }
+
+    // Auto-advance if initial node has a next and does NOT require input
+    if (
+      currentNode &&
+      currentNode.type === 'message' &&
+      currentNode.next &&
+      !currentNode.expects_input
+    ) {
+      currentNodeId = currentNode.next;
+      stateManager.setCurrentNode(currentNodeId);
+      let nextNode = flowDefinition.nodes[currentNodeId];
+      
+      // Loop through consecutive action nodes and conditional nodes
+      while (
+        nextNode &&
+        (nextNode.type === 'action' || nextNode.type === 'conditional')
+      ) {
+        if (nextNode.type === 'action') {
+          const actionResult = await this.executeAction({
+            actionNode: nextNode as ActionNode,
+            sessionId,
+            customerId,
+            context: stateManager.getContext(),
+          });
+          messages.push(...actionResult.messages);
+
+          lastActionResult = {
+            result: actionResult,
+            node: nextNode,
+          };
+
+          for (const message of actionResult.messages) {
+            await insertMessage({
+              sessionId,
+              text: message.text,
+              role: message.role,
+              nodeId: currentNodeId,
+            });
+          }
+
+          if ('context' in actionResult && actionResult.context) {
+            stateManager.updateContext(actionResult.context);
+          }
+
+          if ((nextNode as ActionNode).next) {
+            currentNodeId = (nextNode as ActionNode).next as string;
+            stateManager.setCurrentNode(currentNodeId);
+            nextNode = flowDefinition.nodes[currentNodeId];
+          } else {
+            break;
+          }
+        } else if (nextNode.type === 'conditional') {
+          const conditionalNode = nextNode as ConditionalNode;
+          const freshContext = stateManager.getContext();
+          let conditionValue = freshContext[conditionalNode.condition];
+
+          if (conditionValue !== null && conditionValue !== undefined) {
+            conditionValue = String(conditionValue).toLowerCase().trim();
+          } else {
+            conditionValue = null;
+          }
+
+          let nextNodeId =
+            (conditionValue && conditionalNode.cases[conditionValue]) || null;
+
+          if (!nextNodeId && conditionValue) {
+            const caseKeys = Object.keys(conditionalNode.cases);
+            const matchedKey = caseKeys.find(
+              key => key.toLowerCase() === conditionValue
+            );
+            if (matchedKey) {
+              nextNodeId = conditionalNode.cases[matchedKey];
+            }
+          }
+
+          if (!nextNodeId && conditionalNode.default) {
+            nextNodeId = conditionalNode.default;
+          }
+
+          if (nextNodeId) {
+            currentNodeId = nextNodeId;
+            stateManager.setCurrentNode(currentNodeId);
+            nextNode = flowDefinition.nodes[currentNodeId];
+          } else {
+            break;
+          }
+        }
+      }
+
+      // After action chain, show message if current node is a message node
+      if (nextNode) {
+        if (
+          nextNode.type === 'message' &&
+          typeof nextNode.message === 'string' &&
+          nextNode.message.trim().length > 0
+        ) {
+          messages.push({
+            id: crypto.randomUUID(),
+            role: 'printy',
+            text: nextNode.message,
+            ts: Date.now(),
+          });
+          await insertMessage({
+            sessionId,
+            text: nextNode.message,
+            role: 'printy',
+            nodeId: currentNodeId,
+          });
+        }
+      }
+    }
+
+    // Get quick replies from last action result or node
+    let quickReplies: Array<{ id: string; label: string; value: string }> = [];
+
+    if (lastActionResult && lastActionResult.result?.quickReplies) {
+      const actionNode = lastActionResult.node as ActionNode;
+      const actionResult = lastActionResult.result;
+
+      const shouldUseActionQuickReplies =
+        !actionNode.next ||
+        actionNode.action === 'display_quoted_price' ||
+        actionNode.action === 'show_quote_decision_prompt' ||
+        actionNode.action === 'show_customer_orders' ||
+        actionNode.action === 'display_service_categories' ||
+        (actionNode.action as string) === 'display_about_sections' ||
+        (actionNode.action as string) === 'display_faqs';
+
+      if (shouldUseActionQuickReplies) {
+        quickReplies = actionResult.quickReplies;
+        stateManager.updateContext({
+          _pending_quick_replies: actionResult.quickReplies,
+        });
+      }
+    }
+
+    // Fallback to node quick replies if no action quick replies were used
+    if (quickReplies.length === 0) {
+      const finalNode = flowDefinition.nodes[currentNodeId];
+      if (finalNode) {
+        quickReplies = buildQuickReplies(finalNode);
+      }
+    }
+
+    return {
+      messages,
+      quickReplies,
     };
   }
 

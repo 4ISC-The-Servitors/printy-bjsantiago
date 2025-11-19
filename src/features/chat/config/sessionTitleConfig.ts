@@ -28,6 +28,8 @@ export const FLOW_TITLES: Record<string, string> = {
   'admin-change-order-status': 'Order Status Update',
   'admin-add-service': 'Add Service',
   'admin-update-service': 'Update Service',
+  'admin-modify-about-us': 'About B.J. Santiago Editor',
+  'admin-modify-faqs': 'FAQs Editor',
 
   // Flows not in database - commented out
   //'cancel-order': 'Cancel Order', // Not in chat_flows_v2

@@ -7,6 +7,7 @@ import { usePortfolioCard } from '@admin/hooks/usePortfolioCard';
 import { formatDateWithTimeDesktop } from '@shared/utils/dateFormatter';
 import { formatUserName } from '@shared/utils/userFormatter';
 import type { ServiceCategoryWithCount } from '@shared/types/service';
+import { StaticInfoSectionsCard } from './AboutFAQsCard';
 
 const PortfolioCard: React.FC = () => {
   const {
@@ -23,6 +24,8 @@ const PortfolioCard: React.FC = () => {
     toggleAllCategory,
     toggleOfferedCategory,
   } = usePortfolioCard();
+  const [isPortfolioOpen, setIsPortfolioOpen] = useState(false);
+  const [isOfferedOpen, setIsOfferedOpen] = useState(false);
 
   if (isLoading) return <PortfolioSkeleton />;
 
@@ -30,68 +33,108 @@ const PortfolioCard: React.FC = () => {
     <div className="relative space-y-6">
       {/* Service Portfolio (All) */}
       <Card className="p-0">
-        <div className="flex items-center justify-between px-3 py-2 sm:px-4">
-          <div className="flex items-center gap-3">
-            <Text variant="h3" size="lg" weight="semibold">
+        <div className="flex items-center justify-between px-3 py-2 sm:px-4 gap-2">
+          <button
+            type="button"
+            onClick={() => setIsPortfolioOpen(prev => !prev)}
+            aria-expanded={isPortfolioOpen}
+            className="flex items-center gap-3 text-left focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 rounded-md flex-1"
+          >
+            <Text variant="h3" size="lg" weight="semibold" className="flex items-center gap-3">
               Service Portfolio
+              <Badge size="sm" variant="secondary">
+                {allServices.length}
+              </Badge>
             </Text>
-            <Badge size="sm" variant="secondary">
-              {allServices.length}
-            </Badge>
-          </div>
+          </button>
           <div className="flex items-center gap-2">
-            <Button
-              variant="primary"
-              size="sm"
-              threeD
-              onClick={handleAddService}
-              aria-label="Add Service"
-              className="inline-flex items-center gap-2"
+            {isPortfolioOpen && (
+              <Button
+                variant="primary"
+                size="sm"
+                threeD
+                onClick={handleAddService}
+                aria-label="Add Service"
+                className="inline-flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                Add Service
+              </Button>
+            )}
+            <button
+              type="button"
+              onClick={() => setIsPortfolioOpen(prev => !prev)}
+              aria-label={isPortfolioOpen ? 'Collapse Service Portfolio' : 'Expand Service Portfolio'}
+              className="min-h-[44px] min-w-[44px] touch-target rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 flex items-center justify-center"
             >
-              <Plus className="w-4 h-4" />
-              Add Service
-            </Button>
+              <ChevronDown
+                className={`w-4 h-4 sm:w-5 sm:h-5 text-gray-400 transition-transform ${isPortfolioOpen ? 'rotate-180' : ''}`}
+                aria-hidden="true"
+              />
+            </button>
           </div>
         </div>
-        <div className="p-8 space-y-6">
-          {categoriesAll.map(cat => (
-            <CategoryItem
-              key={cat.category_id}
-              category={cat}
-              isOpen={openAllCategoryId === cat.category_id}
-              onToggle={() => toggleAllCategory(cat.category_id)}
-              onHover={setHoveredServiceId}
-              onViewInChat={viewInChat}
-            />
-          ))}
-        </div>
+        {isPortfolioOpen && (
+          <div className="p-8 space-y-6">
+            {categoriesAll.map(cat => (
+              <CategoryItem
+                key={cat.category_id}
+                category={cat}
+                isOpen={openAllCategoryId === cat.category_id}
+                onToggle={() => toggleAllCategory(cat.category_id)}
+                onHover={setHoveredServiceId}
+                onViewInChat={viewInChat}
+              />
+            ))}
+          </div>
+        )}
       </Card>
 
       {/* Services Offered (Active only) */}
       <Card className="p-0">
-        <div className="flex items-center justify-between px-3 py-2 sm:px-4">
-          <div className="flex items-center gap-3">
-            <Text variant="h3" size="lg" weight="semibold">
+        <div className="flex items-center justify-between px-3 py-2 sm:px-4 gap-2">
+          <button
+            type="button"
+            onClick={() => setIsOfferedOpen(prev => !prev)}
+            aria-expanded={isOfferedOpen}
+            className="flex items-center gap-3 text-left focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 rounded-md flex-1"
+          >
+            <Text variant="h3" size="lg" weight="semibold" className="flex items-center gap-3">
               Services Offered
+              <Badge size="sm" variant="secondary">
+                {offeredServices.length}
+              </Badge>
             </Text>
-            <Badge size="sm" variant="secondary">
-              {offeredServices.length}
-            </Badge>
-          </div>
-        </div>
-        <div className="p-8 space-y-6">
-          {categoriesOffered.map(cat => (
-            <CategoryItem
-              key={cat.category_id}
-              category={cat}
-              isOpen={openOfferedCategoryId === cat.category_id}
-              onToggle={() => toggleOfferedCategory(cat.category_id)}
-              onHover={setHoveredServiceId}
-              onViewInChat={viewInChat}
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsOfferedOpen(prev => !prev)}
+            aria-label={isOfferedOpen ? 'Collapse Services Offered' : 'Expand Services Offered'}
+            className="min-h-[44px] min-w-[44px] touch-target rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 flex items-center justify-center flex-shrink-0"
+          >
+            <ChevronDown
+              className={`w-4 h-4 sm:w-5 sm:h-5 text-gray-400 transition-transform flex-shrink-0 ${isOfferedOpen ? 'rotate-180' : ''}`}
+              aria-hidden="true"
             />
-          ))}
+          </button>
         </div>
+        {isOfferedOpen && (
+          <div className="p-8 space-y-6">
+            {categoriesOffered.map(cat => (
+              <CategoryItem
+                key={cat.category_id}
+                category={cat}
+                isOpen={openOfferedCategoryId === cat.category_id}
+                onToggle={() => toggleOfferedCategory(cat.category_id)}
+                onHover={setHoveredServiceId}
+                onViewInChat={viewInChat}
+              />
+            ))}
+          </div>
+        )}
       </Card>
+
+      <StaticInfoSectionsCard onViewInChat={viewInChat} />
     </div>
   );
 };

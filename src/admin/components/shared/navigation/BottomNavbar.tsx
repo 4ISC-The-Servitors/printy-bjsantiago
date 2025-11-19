@@ -70,7 +70,8 @@ export const BottomNavbar: React.FC<BottomNavbarProps> = ({ onNavigate }) => {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 lg:left-14 z-20 bg-white border-t border-neutral-200 shadow-sm"
+      className="fixed bottom-0 left-0 right-0 lg:left-14 z-20 bg-white border-t border-neutral-200 shadow-sm transition-[right] duration-200 ease-out"
+      style={{ right: 'var(--admin-chat-dock-width, 0px)' }}
       aria-label="Admin navigation"
     >
       <div className="mx-auto max-w-screen-xl px-2 md:px-6 lg:px-8 py-2 md:py-3">

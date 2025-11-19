@@ -43,7 +43,10 @@ export const DesktopLayout: React.FC<DesktopLayoutProps> = ({
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col pb-16 lg:pb-20">
+      <main
+        className="flex-1 flex flex-col pb-16 lg:pb-20 transition-[margin-right] duration-200 ease-out"
+        style={{ marginRight: 'var(--admin-chat-dock-width, 0px)' }}
+      >
         <div className="flex-1 overflow-y-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-5 md:py-6">
           {children}
         </div>

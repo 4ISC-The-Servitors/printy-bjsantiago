@@ -88,10 +88,12 @@ const SignInForm: React.FC<Props> = ({
         </Input>
       </div>
 
-      {/* Inline Cloudflare Turnstile container (visible under password) */}
+      {/* Inline Cloudflare Turnstile container temporarily disabled */}
+      {/*
       <div className="pt-1">
         <div id="turnstile-signin" />
       </div>
+      */}
 
       <div className="flex items-center justify-between">
         <label className="flex items-center space-x-2 cursor-pointer">

@@ -4,13 +4,13 @@ export class ChatUnexpectedInputService {
   private static readonly CUSTOMER_WARNING_TEXT =
     "Unfortunately, I can't answer that. For further assistance, please create a support ticket by clicking Ask Assistance in your dashboard so our admin team can assist you.";
   private static readonly ADMIN_WARNING_TEXT =
-    "Unfortunately, I can't answer that from this step. Please use the options above or provide the requested details to continue.";
+    "Unfortunately, I can't answer that from this step. Please use the options below or provide the requested details to continue.";
   private static readonly UPLOAD_EXPECTED_WARNING_TEXT =
-    'Looks like this step needs a file upload. Please use the attachment button to add up to 3 files (max 10MB each). Text messages will not work for this step.';
+    'Looks like this step needs a file upload. Please use the attachment button to add up to 3 files (max 10MB collectively). Text messages will not work for this step.';
 
   // Export warning text for client-side checking
   static readonly ADMIN_WARNING_TEXT_CLIENT =
-    "Unfortunately, I can't answer that from this step. Please use the options above or provide the requested details to continue.";
+    "Unfortunately, I can't answer that from this step. Please use the options below or provide the requested details to continue.";
 
   static getCustomerWarningText(): string {
     return this.CUSTOMER_WARNING_TEXT;

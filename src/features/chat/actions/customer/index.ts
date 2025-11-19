@@ -31,6 +31,10 @@ import { showCustomerOrders } from './showCustomerOrders';
 import { displayServiceCategories } from './displayServiceCategories';
 import { displayServicesByCategory } from './displayServicesByCategory';
 import { displayOrderUploads } from './displayOrderUploads';
+import { displayAboutSections } from './displayAboutSections';
+import { displayAboutContent } from './displayAboutContent';
+import { displayFaqs } from './displayFaqs';
+import { displayFaqAnswer } from './displayFaqAnswer';
 
 /**
  * Registry of all available action handlers
@@ -61,6 +65,10 @@ export const actionHandlers: Record<string, ActionHandler> = {
   display_service_categories: displayServiceCategories,
   display_services_by_category: displayServicesByCategory,
   display_order_uploads: displayOrderUploads,
+  display_about_sections: displayAboutSections,
+  display_about_content: displayAboutContent,
+  display_faqs: displayFaqs,
+  display_faq_answer: displayFaqAnswer,
 };
 
 /**
@@ -92,4 +100,8 @@ export {
   displayServiceCategories,
   displayServicesByCategory,
   displayOrderUploads,
+  displayAboutSections,
+  displayAboutContent,
+  displayFaqs,
+  displayFaqAnswer,
 };
