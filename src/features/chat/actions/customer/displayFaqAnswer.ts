@@ -99,7 +99,6 @@ export async function displayFaqAnswer(
       };
     }
 
-    const question = faq.question;
     const answer = faq.answer;
 
     // Format and display just the answer (question is already shown in user's selection)

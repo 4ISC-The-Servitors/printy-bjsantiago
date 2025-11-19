@@ -12,7 +12,7 @@ export const FaqItem: React.FC<FaqItemProps> = ({ faq }) => {
 
   return (
     <article className="border border-gray-200 rounded-lg p-4 sm:p-5 bg-white shadow-sm space-y-3">
-      <Text variant="h4" size="md" weight="semibold" className="text-gray-900">
+      <Text variant="h4" size="lg" weight="semibold" className="text-gray-900">
         {faq.question}
       </Text>
       <Text

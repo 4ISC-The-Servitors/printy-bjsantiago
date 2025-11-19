@@ -73,6 +73,14 @@ const LandingPage: React.FC = () => {
 
       // Process initial node
       const initialNode = flowDefinition.nodes[flowDefinition.initial_node] as any;
+      console.log('[LandingPage] Initializing flow:', {
+        flowId,
+        flowKey,
+        initialNodeId: flowDefinition.initial_node,
+        initialNodeType: initialNode?.type,
+        initialNodeAction: initialNode?.action,
+      });
+
       if (initialNode) {
         if (initialNode.type === 'message') {
           const botMessage: ChatMessage = {
@@ -96,6 +104,7 @@ const LandingPage: React.FC = () => {
           initialNode.type === 'action' &&
           initialNode.action === 'display_service_categories'
         ) {
+          console.log('[LandingPage] Handling display_service_categories action');
           // Handle display_service_categories action for guest users
           try {
             // Fetch active service categories
@@ -149,123 +158,140 @@ const LandingPage: React.FC = () => {
             };
             setMessages([botMessage]);
           }
-        }
-      } else if (
-        initialNode &&
-        initialNode.type === 'action' &&
-        (initialNode as any).action === 'display_about_sections_guest'
-      ) {
-        // Handle display_about_sections_guest action for guest users
-        try {
-          // Fetch all active about sections
-          const { data: sections, error } = await supabase
-            .from('about_bj_santiago')
-            .select('about_id, about_name, description')
-            .eq('is_active', true)
-            .order('display_order', { ascending: true });
+        } else if (
+          initialNode.type === 'action' &&
+          initialNode.action === 'display_about_sections_guest'
+        ) {
+          console.log('[LandingPage] Handling display_about_sections_guest action');
+          // Handle display_about_sections_guest action for guest users
+          try {
+            // Fetch all about sections (no is_active column - all are active)
+            const { data: sections, error } = await supabase
+              .from('about_bj_santiago')
+              .select('about_id, about_name, description')
+              .order('display_order', { ascending: true });
 
-          if (error || !sections || sections.length === 0) {
+            console.log('[LandingPage] Fetched about sections:', {
+              count: sections?.length || 0,
+              error: error?.message,
+            });
+
+            if (error || !sections || sections.length === 0) {
+              const botMessage: ChatMessage = {
+                id: crypto.randomUUID(),
+                role: 'printy',
+                text: 'No About Us information is available at the moment.',
+                ts: Date.now(),
+              };
+              setMessages([botMessage]);
+            } else {
+              // Add welcome message
+              const welcomeMessage: ChatMessage = {
+                id: crypto.randomUUID(),
+                role: 'printy',
+                text: "Hi! I'm Printy, B.J. Santiago's bot assistant. What would you like to know about our company?",
+                ts: Date.now(),
+              };
+              setMessages([welcomeMessage]);
+
+              // Generate quick replies for sections
+              const replies = sections.map((section, index) => ({
+                id: `about-${index}`,
+                label: section.about_name,
+                value: `${section.about_id}|${section.about_name}`,
+              }));
+
+              // Add End Chat option
+              replies.push({
+                id: 'end-chat',
+                label: 'End Chat',
+                value: 'end',
+              });
+
+              console.log('[LandingPage] Generated quick replies:', replies.length);
+              setQuickReplies(replies);
+            }
+          } catch (error) {
+            console.error('[LandingPage] Error fetching about sections:', error);
             const botMessage: ChatMessage = {
               id: crypto.randomUUID(),
               role: 'printy',
-              text: 'No About Us information is available at the moment.',
+              text: 'Something went wrong while loading our About Us information. Please try again.',
               ts: Date.now(),
             };
             setMessages([botMessage]);
-          } else {
-            // Add welcome message
-            const welcomeMessage: ChatMessage = {
-              id: crypto.randomUUID(),
-              role: 'printy',
-              text: "Hi! I'm Printy, B.J. Santiago's bot assistant. What would you like to know about our company?",
-              ts: Date.now(),
-            };
-            setMessages([welcomeMessage]);
+          }
+        } else if (
+          initialNode.type === 'action' &&
+          initialNode.action === 'display_faqs_guest'
+        ) {
+          console.log('[LandingPage] Handling display_faqs_guest action');
+          // Handle display_faqs_guest action for guest users
+          try {
+            // Fetch all FAQs (no is_active column - all are active)
+            const { data: faqs, error } = await supabase
+              .from('company_faqs')
+              .select('faq_id, question, answer')
+              .order('display_order', { ascending: true });
 
-            // Generate quick replies for sections
-            const replies = sections.map((section, index) => ({
-              id: `about-${index}`,
-              label: section.about_name,
-              value: `${section.about_id}|${section.about_name}`,
-            }));
-
-            // Add End Chat option
-            replies.push({
-              id: 'end-chat',
-              label: 'End Chat',
-              value: 'end',
+            console.log('[LandingPage] Fetched FAQs:', {
+              count: faqs?.length || 0,
+              error: error?.message,
             });
 
-            setQuickReplies(replies);
-          }
-        } catch (error) {
-          console.error('Error fetching about sections:', error);
-          const botMessage: ChatMessage = {
-            id: crypto.randomUUID(),
-            role: 'printy',
-            text: 'Something went wrong while loading our About Us information. Please try again.',
-            ts: Date.now(),
-          };
-          setMessages([botMessage]);
-        }
-      } else if (
-        initialNode &&
-        initialNode.type === 'action' &&
-        (initialNode as any).action === 'display_faqs_guest'
-      ) {
-        // Handle display_faqs_guest action for guest users
-        try {
-          // Fetch all active FAQs
-          const { data: faqs, error } = await supabase
-            .from('company_faqs')
-            .select('faq_id, question, answer')
-            .eq('is_active', true)
-            .order('display_order', { ascending: true });
+            if (error || !faqs || faqs.length === 0) {
+              const botMessage: ChatMessage = {
+                id: crypto.randomUUID(),
+                role: 'printy',
+                text: 'No FAQs are available at the moment.',
+                ts: Date.now(),
+              };
+              setMessages([botMessage]);
+            } else {
+              // Add welcome message
+              const welcomeMessage: ChatMessage = {
+                id: crypto.randomUUID(),
+                role: 'printy',
+                text: "Hi! I'm Printy, B.J. Santiago's bot assistant. Here are some frequently asked questions. What would you like to know?",
+                ts: Date.now(),
+              };
+              setMessages([welcomeMessage]);
 
-          if (error || !faqs || faqs.length === 0) {
+              // Generate quick replies for FAQs
+              const replies = faqs.map((faq, index) => ({
+                id: `faq-${index}`,
+                label: faq.question,
+                value: `${faq.faq_id}|${faq.question}`,
+              }));
+
+              // Add End Chat option
+              replies.push({
+                id: 'end-chat',
+                label: 'End Chat',
+                value: 'end',
+              });
+
+              console.log('[LandingPage] Generated quick replies:', replies.length);
+              setQuickReplies(replies);
+            }
+          } catch (error) {
+            console.error('[LandingPage] Error fetching FAQs:', error);
             const botMessage: ChatMessage = {
               id: crypto.randomUUID(),
               role: 'printy',
-              text: 'No FAQs are available at the moment.',
+              text: 'Something went wrong while loading FAQs. Please try again.',
               ts: Date.now(),
             };
             setMessages([botMessage]);
-          } else {
-            // Add welcome message
-            const welcomeMessage: ChatMessage = {
-              id: crypto.randomUUID(),
-              role: 'printy',
-              text: "Hi! I'm Printy, B.J. Santiago's bot assistant. Here are some frequently asked questions. What would you like to know?",
-              ts: Date.now(),
-            };
-            setMessages([welcomeMessage]);
-
-            // Generate quick replies for FAQs
-            const replies = faqs.map((faq, index) => ({
-              id: `faq-${index}`,
-              label: faq.question,
-              value: `${faq.faq_id}|${faq.question}`,
-            }));
-
-            // Add End Chat option
-            replies.push({
-              id: 'end-chat',
-              label: 'End Chat',
-              value: 'end',
-            });
-
-            setQuickReplies(replies);
           }
-        } catch (error) {
-          console.error('Error fetching FAQs:', error);
-          const botMessage: ChatMessage = {
-            id: crypto.randomUUID(),
-            role: 'printy',
-            text: 'Something went wrong while loading FAQs. Please try again.',
-            ts: Date.now(),
-          };
-          setMessages([botMessage]);
+        } else {
+          console.warn('[LandingPage] Unhandled initial node:', {
+            type: initialNode.type,
+            action: initialNode.action,
+          });
         }
+      } else {
+        console.error('[LandingPage] Initial node not found:', flowDefinition.initial_node);
       }
 
       setIsChatOpen(true);
@@ -280,13 +306,162 @@ const LandingPage: React.FC = () => {
     }
   };
 
+  // Action handler: display_about_content_guest
+  const handleDisplayAboutContentGuest = async (aboutId: string) => {
+    console.log('[LandingPage] display_about_content_guest called with aboutId:', aboutId);
+    
+    try {
+      // Fetch about section details
+      const { data: section, error } = await supabase
+        .from('about_bj_santiago')
+        .select('about_name, description')
+        .eq('about_id', aboutId)
+        .single();
+
+      if (error || !section) {
+        const botMessage: ChatMessage = {
+          id: crypto.randomUUID(),
+          role: 'printy',
+          text: 'Section not found. Please try again.',
+          ts: Date.now(),
+        };
+        setMessages(prev => [...prev, botMessage]);
+      } else {
+        // Display section content (without repeating section name)
+        const botMessage: ChatMessage = {
+          id: crypto.randomUUID(),
+          role: 'printy',
+          text: section.description,
+          ts: Date.now(),
+        };
+        setMessages(prev => [...prev, botMessage]);
+
+        // Fetch all sections for navigation
+        const { data: allSections } = await supabase
+          .from('about_bj_santiago')
+          .select('about_id, about_name')
+          .order('display_order', { ascending: true });
+
+        if (allSections) {
+          // Generate navigation quick replies (exclude current section)
+          const replies = allSections
+            .filter(section => section.about_id !== aboutId)
+            .map((section, index) => ({
+              id: `about-${index}`,
+              label: section.about_name,
+              value: `${section.about_id}|${section.about_name}`,
+            }));
+
+          // Add End Chat option
+          replies.push({
+            id: 'end-chat',
+            label: 'End Chat',
+            value: 'end',
+          });
+
+          setQuickReplies(replies);
+        }
+      }
+    } catch (error) {
+      console.error('[LandingPage] Error in display_about_content_guest:', error);
+      const botMessage: ChatMessage = {
+        id: crypto.randomUUID(),
+        role: 'printy',
+        text: 'Something went wrong while loading the section content. Please try again.',
+        ts: Date.now(),
+      };
+      setMessages(prev => [...prev, botMessage]);
+    }
+  };
+
+  // Action handler: display_faq_answer_guest
+  const handleDisplayFaqAnswerGuest = async (faqId: string) => {
+    console.log('[LandingPage] display_faq_answer_guest called with faqId:', faqId);
+    
+    try {
+      // Fetch FAQ details
+      const { data: faq, error } = await supabase
+        .from('company_faqs')
+        .select('question, answer')
+        .eq('faq_id', faqId)
+        .single();
+
+      if (error || !faq) {
+        const botMessage: ChatMessage = {
+          id: crypto.randomUUID(),
+          role: 'printy',
+          text: 'FAQ not found. Please try again.',
+          ts: Date.now(),
+        };
+        setMessages(prev => [...prev, botMessage]);
+      } else {
+        // Display FAQ answer
+        const botMessage: ChatMessage = {
+          id: crypto.randomUUID(),
+          role: 'printy',
+          text: faq.answer,
+          ts: Date.now(),
+        };
+        setMessages(prev => [...prev, botMessage]);
+
+        // Fetch all FAQs for navigation
+        const { data: allFaqs } = await supabase
+          .from('company_faqs')
+          .select('faq_id, question')
+          .order('display_order', { ascending: true });
+
+        if (allFaqs) {
+          // Generate navigation quick replies (exclude current FAQ)
+          const replies = allFaqs
+            .filter(faq => faq.faq_id !== faqId)
+            .map((faq, index) => ({
+              id: `faq-${index}`,
+              label: faq.question,
+              value: `${faq.faq_id}|${faq.question}`,
+            }));
+
+          // Add End Chat option
+          replies.push({
+            id: 'end-chat',
+            label: 'End Chat',
+            value: 'end',
+          });
+
+          setQuickReplies(replies);
+        }
+      }
+    } catch (error) {
+      console.error('[LandingPage] Error in display_faq_answer_guest:', error);
+      const botMessage: ChatMessage = {
+        id: crypto.randomUUID(),
+        role: 'printy',
+        text: 'Something went wrong while loading the FAQ answer. Please try again.',
+        ts: Date.now(),
+      };
+      setMessages(prev => [...prev, botMessage]);
+    }
+  };
+
   const handleSend = async (text: string) => {
     if (!currentFlow || !currentNodeId) return;
+
+    console.log('[LandingPage] handleSend called with:', {
+      text,
+      currentNodeId,
+      hasQuickReplies: quickReplies.length > 0,
+    });
+
+    // Extract display label if text contains pipe (format: "uuid|label")
+    let displayText = text;
+    if (text.includes('|')) {
+      const parts = text.split('|');
+      displayText = parts[1] || parts[0]; // Use label part, fallback to full text
+    }
 
     const userMessage: ChatMessage = {
       id: crypto.randomUUID(),
       role: 'user',
-      text,
+      text: displayText, // Display the label part, not the UUID
       ts: Date.now(),
     };
 
@@ -299,6 +474,104 @@ const LandingPage: React.FC = () => {
 
     try {
       const currentNode = currentFlow.nodes[currentNodeId];
+      
+      // Check if current node is an action node
+      if (currentNode && currentNode.type === 'action') {
+        const actionName = (currentNode as any).action;
+        console.log('[LandingPage] Current node is action:', actionName, 'currentNodeId:', currentNodeId);
+
+        // Handle display_about_sections_guest action - advance to about_dynamic when section selected
+        if (actionName === 'display_about_sections_guest' && text.includes('|') && text !== 'end') {
+          const aboutId = text.split('|')[0].trim();
+          console.log('[LandingPage] Section selected from welcome, advancing to about_dynamic with aboutId:', aboutId);
+          
+          // Advance to about_dynamic node
+          if (currentFlow.nodes['about_dynamic']) {
+            setCurrentNodeId('about_dynamic');
+            // Execute the action handler
+            await handleDisplayAboutContentGuest(aboutId);
+            setIsTyping(false);
+            return;
+          } else {
+            console.warn('[LandingPage] about_dynamic node not found in flow definition');
+          }
+        }
+
+        // Handle display_faqs_guest action - advance to faq_dynamic when FAQ selected
+        if (actionName === 'display_faqs_guest' && text.includes('|') && text !== 'end') {
+          const faqId = text.split('|')[0].trim();
+          console.log('[LandingPage] FAQ selected from welcome, advancing to faq_dynamic with faqId:', faqId);
+          
+          // Advance to faq_dynamic node
+          if (currentFlow.nodes['faq_dynamic']) {
+            setCurrentNodeId('faq_dynamic');
+            // Execute the action handler
+            await handleDisplayFaqAnswerGuest(faqId);
+            setIsTyping(false);
+            return;
+          } else {
+            console.warn('[LandingPage] faq_dynamic node not found in flow definition');
+          }
+        }
+
+        // Handle display_about_content_guest action
+        if (actionName === 'display_about_content_guest') {
+          if (text.includes('|')) {
+            const aboutId = text.split('|')[0].trim();
+            await handleDisplayAboutContentGuest(aboutId);
+          } else {
+            // Try to find aboutId from previous quick replies
+            const selectedAbout = previousQuickReplies.find(
+              qr => qr.value.includes('|') && qr.label.toLowerCase() === text.toLowerCase()
+            );
+            if (selectedAbout && selectedAbout.value.includes('|')) {
+              const aboutId = selectedAbout.value.split('|')[0].trim();
+              await handleDisplayAboutContentGuest(aboutId);
+            } else {
+              const botMessage: ChatMessage = {
+                id: crypto.randomUUID(),
+                role: 'printy',
+                text: 'No section selected. Please try again.',
+                ts: Date.now(),
+              };
+              setMessages(prev => [...prev, botMessage]);
+            }
+          }
+          
+          // Stay on same node (about_dynamic) for navigation between sections
+          setIsTyping(false);
+          return;
+        }
+
+        // Handle display_faq_answer_guest action
+        if (actionName === 'display_faq_answer_guest') {
+          if (text.includes('|')) {
+            const faqId = text.split('|')[0].trim();
+            await handleDisplayFaqAnswerGuest(faqId);
+          } else {
+            // Try to find faqId from previous quick replies
+            const selectedFaq = previousQuickReplies.find(
+              qr => qr.value.includes('|') && qr.label.toLowerCase() === text.toLowerCase()
+            );
+            if (selectedFaq && selectedFaq.value.includes('|')) {
+              const faqId = selectedFaq.value.split('|')[0].trim();
+              await handleDisplayFaqAnswerGuest(faqId);
+            } else {
+              const botMessage: ChatMessage = {
+                id: crypto.randomUUID(),
+                role: 'printy',
+                text: 'No FAQ selected. Please try again.',
+                ts: Date.now(),
+              };
+              setMessages(prev => [...prev, botMessage]);
+            }
+          }
+          
+          // Stay on same node (faq_dynamic) for navigation between FAQs
+          setIsTyping(false);
+          return;
+        }
+      }
 
       // Detect which flow we're in based on quick reply IDs
       const isServicesFlow =
@@ -448,13 +721,28 @@ const LandingPage: React.FC = () => {
           return;
         }
 
-        // Find the matching About section by label
+        // Find the matching About section by value (uuid|label) or label
         const normalizedText = text.trim().toLowerCase();
         let selectedAbout = previousQuickReplies.find(
-          qr => qr.label.toLowerCase() === normalizedText
+          qr =>
+            qr.value.toLowerCase() === normalizedText || // Match by full value
+            qr.label.toLowerCase() === normalizedText || // Match by label
+            (qr.value.includes('|') &&
+              qr.value.toLowerCase().endsWith(`|${normalizedText}`)) // Match by label in value
         );
 
-        // If no exact match, try to find by checking if any section label contains the input
+        // If no exact match and text contains pipe, try to match by UUID part
+        if (!selectedAbout && text.includes('|')) {
+          const textUuid = text.split('|')[0].trim();
+          selectedAbout = previousQuickReplies.find(
+            qr =>
+              qr.value.includes('|') &&
+              qr.value.split('|')[0].trim() === textUuid &&
+              qr.value !== 'end'
+          );
+        }
+
+        // If still no match, try to find by checking if any section label contains the input
         if (!selectedAbout) {
           selectedAbout = previousQuickReplies.find(
             qr =>
@@ -463,10 +751,27 @@ const LandingPage: React.FC = () => {
           );
         }
 
+        console.log('[LandingPage] About flow - selectedAbout:', {
+          found: !!selectedAbout,
+          value: selectedAbout?.value,
+          label: selectedAbout?.label,
+          input: text,
+        });
+
         if (selectedAbout && selectedAbout.value !== 'end' && selectedAbout.value.includes('|')) {
           // Extract about_id from value
           const aboutId = selectedAbout.value.split('|')[0];
-
+          
+          // Advance to about_dynamic node (action node that displays content)
+          if (currentFlow.nodes['about_dynamic']) {
+            setCurrentNodeId('about_dynamic');
+            // Use the action handler
+            await handleDisplayAboutContentGuest(aboutId);
+            setIsTyping(false);
+            return;
+          }
+          
+          // Fallback to inline handling if node doesn't exist yet
           try {
             // Fetch about section details
             const { data: section, error } = await supabase
@@ -497,7 +802,6 @@ const LandingPage: React.FC = () => {
               const { data: allSections } = await supabase
                 .from('about_bj_santiago')
                 .select('about_id, about_name')
-                .eq('is_active', true)
                 .order('display_order', { ascending: true });
 
               if (allSections) {
@@ -535,7 +839,6 @@ const LandingPage: React.FC = () => {
           const { data: allSections } = await supabase
             .from('about_bj_santiago')
             .select('about_id, about_name')
-            .eq('is_active', true)
             .order('display_order', { ascending: true });
 
           if (allSections) {
@@ -570,13 +873,28 @@ const LandingPage: React.FC = () => {
           return;
         }
 
-        // Find the matching FAQ by label
+        // Find the matching FAQ by value (uuid|question) or label
         const normalizedText = text.trim().toLowerCase();
         let selectedFaq = previousQuickReplies.find(
-          qr => qr.label.toLowerCase() === normalizedText
+          qr =>
+            qr.value.toLowerCase() === normalizedText || // Match by full value
+            qr.label.toLowerCase() === normalizedText || // Match by label
+            (qr.value.includes('|') &&
+              qr.value.toLowerCase().endsWith(`|${normalizedText}`)) // Match by label in value
         );
 
-        // If no exact match, try to find by checking if any FAQ label contains the input
+        // If no exact match and text contains pipe, try to match by UUID part
+        if (!selectedFaq && text.includes('|')) {
+          const textUuid = text.split('|')[0].trim();
+          selectedFaq = previousQuickReplies.find(
+            qr =>
+              qr.value.includes('|') &&
+              qr.value.split('|')[0].trim() === textUuid &&
+              qr.value !== 'end'
+          );
+        }
+
+        // If still no match, try to find by checking if any FAQ label contains the input
         if (!selectedFaq) {
           selectedFaq = previousQuickReplies.find(
             qr =>
@@ -585,10 +903,27 @@ const LandingPage: React.FC = () => {
           );
         }
 
+        console.log('[LandingPage] FAQ flow - selectedFaq:', {
+          found: !!selectedFaq,
+          value: selectedFaq?.value,
+          label: selectedFaq?.label,
+          input: text,
+        });
+
         if (selectedFaq && selectedFaq.value !== 'end' && selectedFaq.value.includes('|')) {
           // Extract faq_id from value
           const faqId = selectedFaq.value.split('|')[0];
-
+          
+          // Advance to faq_dynamic node (action node that displays answer)
+          if (currentFlow.nodes['faq_dynamic']) {
+            setCurrentNodeId('faq_dynamic');
+            // Use the action handler
+            await handleDisplayFaqAnswerGuest(faqId);
+            setIsTyping(false);
+            return;
+          }
+          
+          // Fallback to inline handling if node doesn't exist yet
           try {
             // Fetch FAQ details
             const { data: faq, error } = await supabase
@@ -619,7 +954,6 @@ const LandingPage: React.FC = () => {
               const { data: allFaqs } = await supabase
                 .from('company_faqs')
                 .select('faq_id, question')
-                .eq('is_active', true)
                 .order('display_order', { ascending: true });
 
               if (allFaqs) {
@@ -657,7 +991,6 @@ const LandingPage: React.FC = () => {
           const { data: allFaqs } = await supabase
             .from('company_faqs')
             .select('faq_id, question')
-            .eq('is_active', true)
             .order('display_order', { ascending: true });
 
           if (allFaqs) {
@@ -756,8 +1089,13 @@ const LandingPage: React.FC = () => {
   ) => {
     // Handle both string and object formats
     const data = typeof value === 'string' ? { value, label: value } : value;
-    // Use the label for display but the value for routing
-    handleSend(data.label);
+    console.log('[LandingPage] Quick reply clicked:', {
+      value: data.value,
+      label: data.label,
+    });
+    // Use the value for routing (contains UUID|label) and label for display
+    // Pass the value so handleSend can extract UUID and match properly
+    handleSend(data.value);
   };
 
   const handleEndChat = () => {

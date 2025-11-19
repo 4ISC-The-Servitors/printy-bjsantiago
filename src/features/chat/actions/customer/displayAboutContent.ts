@@ -99,7 +99,6 @@ export async function displayAboutContent(
       };
     }
 
-    const sectionName = section.about_name;
     const sectionContent = section.description;
 
     // Format and display the section content (without repeating the section name)
